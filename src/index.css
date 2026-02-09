@@ -1,0 +1,607 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 
+ * MILLENNIALS B2B DESIGN SYSTEM
+ * Estilo Apple: Minimalista, Elegante, Premium
+ * Paleta: Luz do Galpão + Chão de Fábrica + Farol de Carga
+ */
+
+@layer base {
+  :root {
+    /* Millennials B2B Brand Colors */
+    --luz-galpao: 50 56% 96%;       /* #F5F5DC - Off-white quente */
+    --chao-fabrica: 14 13% 20%;     /* #3A2E2C - Marrom escuro */
+    --aco-usinado: 130 7% 45%;      /* #6B7A6F - Cinza esverdeado */
+    --farol-carga: 48 100% 50%;     /* #FFD400 - Amarelo dourado */
+    
+    /* Sistema Base - Apple Minimalist */
+    --background: 50 50% 98%;        /* Off-white suave */
+    --foreground: 14 13% 20%;        /* Chão de Fábrica */
+    
+    --card: 0 0% 100%;
+    --card-foreground: 14 13% 20%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 14 13% 20%;
+    
+    /* Primário: Farol de Carga (Amarelo) */
+    --primary: 48 100% 50%;
+    --primary-foreground: 14 13% 20%;
+    
+    /* Secundário: Chão de Fábrica (Marrom) */
+    --secondary: 50 30% 95%;
+    --secondary-foreground: 14 13% 20%;
+    
+    --muted: 50 20% 96%;
+    --muted-foreground: 130 7% 45%; /* Aço Usinado */
+    
+    --accent: 48 100% 50%;
+    --accent-foreground: 14 13% 20%;
+    
+    /* Status Colors - Vibrantes */
+    --success: 160 84% 39%;           /* #10B981 - Verde brilhante */
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;            /* #F59E0B - Laranja/Âmbar */
+    --warning-foreground: 0 0% 100%;
+    --danger: 0 84% 60%;
+    --danger-foreground: 0 0% 100%;
+    --info: 217 91% 60%;              /* #3B82F6 - Azul vibrante */
+    --info-foreground: 0 0% 100%;
+    --purple: 258 90% 66%;            /* #8B5CF6 - Roxo */
+    --purple-foreground: 0 0% 100%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 130 7% 45% / 0.15;     /* Aço Usinado em baixa opacidade */
+    --input: 50 20% 96%;
+    --ring: 48 100% 50%;
+    
+    --radius: 0.875rem;              /* 14px - Elegante como Apple */
+    
+    /* Sidebar - Elegante com Marrom */
+    --sidebar-background: 14 13% 18%;
+    --sidebar-foreground: 50 50% 95%;
+    --sidebar-primary: 48 100% 50%;
+    --sidebar-primary-foreground: 14 13% 20%;
+    --sidebar-accent: 14 13% 25%;
+    --sidebar-accent-foreground: 50 50% 95%;
+    --sidebar-border: 14 13% 28%;
+    --sidebar-ring: 48 100% 50%;
+    
+    /* Kanban - Minimalista */
+    --kanban-column: 50 30% 97%;
+    --kanban-column-header: 14 13% 20%;
+    --kanban-card: 0 0% 100%;
+    --kanban-card-hover: 50 40% 98%;
+    --kanban-drag: 48 100% 50%;
+  }
+
+  .dark {
+    --background: 14 13% 8%;
+    --foreground: 50 30% 92%;
+    
+    --card: 14 13% 12%;
+    --card-foreground: 50 30% 92%;
+    
+    --popover: 14 13% 12%;
+    --popover-foreground: 50 30% 92%;
+    
+    --primary: 48 100% 50%;
+    --primary-foreground: 14 13% 10%;
+    
+    --secondary: 14 13% 18%;
+    --secondary-foreground: 50 30% 92%;
+    
+    --muted: 14 13% 18%;
+    --muted-foreground: 130 7% 60%;
+    
+    --accent: 48 90% 50%;
+    --accent-foreground: 14 13% 10%;
+    
+    --destructive: 0 50% 45%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 130 7% 45% / 0.2;
+    --input: 14 13% 18%;
+    --ring: 48 100% 50%;
+    
+    --sidebar-background: 14 13% 8%;
+    --sidebar-foreground: 50 30% 92%;
+    --sidebar-primary: 48 100% 50%;
+    --sidebar-primary-foreground: 14 13% 10%;
+    --sidebar-accent: 14 13% 15%;
+    --sidebar-accent-foreground: 50 30% 92%;
+    --sidebar-border: 14 13% 20%;
+    
+    --kanban-column: 14 13% 12%;
+    --kanban-column-header: 50 30% 92%;
+    --kanban-card: 14 13% 16%;
+    --kanban-card-hover: 14 13% 20%;
+    --kanban-drag: 48 100% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  html {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  
+  /* Tipografia Inter */
+  .font-display {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    letter-spacing: -0.02em;
+    font-weight: 700;
+  }
+  
+  .font-body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+}
+
+@layer components {
+  /* Apple-like Card - Ultra Minimalista */
+  .card-apple {
+    @apply bg-card rounded-2xl;
+    border: 1px solid hsl(130 7% 45% / 0.12);
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.03), 0 1px 2px -1px rgb(0 0 0 / 0.03);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .card-apple:hover {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.03);
+    transform: translateY(-1px);
+  }
+  
+  /* Kanban Card Premium - Ultra Limpo */
+  .kanban-card {
+    @apply bg-kanban-card rounded-xl;
+    border: 1px solid hsl(130 7% 45% / 0.1);
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.03);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: grab;
+  }
+  
+  .kanban-card:hover {
+    @apply bg-kanban-card-hover;
+    box-shadow: 0 4px 12px -2px rgb(0 0 0 / 0.06);
+    border-color: hsl(48 100% 50% / 0.3);
+  }
+  
+  .kanban-card.dragging {
+    box-shadow: 0 20px 40px -8px rgb(0 0 0 / 0.12);
+    transform: rotate(2deg) scale(1.02);
+    cursor: grabbing;
+    border-color: hsl(48 100% 50% / 0.5);
+  }
+  
+  /* Kanban Column - Minimalista */
+  .kanban-column {
+    @apply bg-kanban-column rounded-2xl;
+    border: 1px solid hsl(130 7% 45% / 0.08);
+  }
+  
+  /* Status Indicator Dots - Vibrantes */
+  .status-dot {
+    @apply w-2.5 h-2.5 rounded-full;
+  }
+  
+  .status-dot-todo {
+    @apply bg-info;
+  }
+  
+  .status-dot-doing {
+    @apply bg-warning;
+  }
+  
+  .status-dot-done {
+    @apply bg-success;
+  }
+  
+  /* Section Headers - Coloridos */
+  .section-header {
+    @apply px-4 py-3 rounded-t-xl font-semibold text-sm text-white;
+  }
+  
+  .section-header-blue {
+    background: hsl(217 91% 60%);
+  }
+  
+  .section-header-purple {
+    background: hsl(258 90% 66%);
+  }
+  
+  .section-header-green {
+    background: hsl(160 84% 39%);
+  }
+  
+  .section-header-yellow {
+    background: hsl(48 100% 50%);
+    color: hsl(14 13% 20%);
+  }
+  
+  .section-header-orange {
+    background: hsl(38 92% 50%);
+  }
+  
+  .section-header-danger {
+    background: hsl(0 84% 60%);
+  }
+  
+  .section-header-gray {
+    background: hsl(215 14% 45%);
+  }
+  
+  /* Kanban Column Headers - Coloridos */
+  .kanban-header-todo {
+    background: hsl(217 91% 60%);
+    @apply text-white rounded-lg px-3 py-1.5;
+  }
+  
+  .kanban-header-doing {
+    background: hsl(38 92% 50%);
+    @apply text-white rounded-lg px-3 py-1.5;
+  }
+  
+  .kanban-header-done {
+    background: hsl(160 84% 39%);
+    @apply text-white rounded-lg px-3 py-1.5;
+  }
+  
+  /* Colored Border Cards */
+  .card-border-blue {
+    border-left: 3px solid hsl(217 91% 60%);
+  }
+  
+  .card-border-orange {
+    border-left: 3px solid hsl(38 92% 50%);
+  }
+  
+  .card-border-green {
+    border-left: 3px solid hsl(160 84% 39%);
+  }
+  
+  /* Badge Minimalista */
+  .badge-minimal {
+    @apply inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full 
+           text-xs font-medium;
+    background: hsl(50 30% 95%);
+    color: hsl(130 7% 45%);
+  }
+  
+  /* Button CTA com Farol de Carga */
+  .btn-cta {
+    @apply px-5 py-2.5 rounded-xl font-semibold text-sm;
+    background: hsl(48 100% 50%);
+    color: hsl(14 13% 20%);
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .btn-cta:hover {
+    background: hsl(48 100% 55%);
+    box-shadow: 0 4px 12px -2px hsl(48 100% 50% / 0.3);
+    transform: translateY(-1px);
+  }
+  
+  .btn-cta:active {
+    transform: scale(0.98);
+  }
+  
+  /* Input Apple Style */
+  .input-apple {
+    @apply w-full px-4 py-3 rounded-xl bg-background text-foreground;
+    border: 1px solid hsl(130 7% 45% / 0.15);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .input-apple::placeholder {
+    color: hsl(130 7% 45%);
+  }
+  
+  .input-apple:focus {
+    outline: none;
+    border-color: hsl(48 100% 50% / 0.5);
+    box-shadow: 0 0 0 3px hsl(48 100% 50% / 0.1);
+  }
+  
+  /* Empty State Illustration Container */
+  .empty-state {
+    @apply flex flex-col items-center justify-center py-12 px-6 text-center;
+  }
+  
+  .empty-state-icon {
+    @apply w-16 h-16 mb-4 opacity-40;
+    color: hsl(130 7% 45%);
+  }
+  
+  .empty-state-title {
+    @apply text-base font-medium mb-1;
+    color: hsl(14 13% 20%);
+  }
+  
+  .empty-state-text {
+    @apply text-sm;
+    color: hsl(130 7% 45%);
+  }
+  
+  /* Scrollbar Elegante Apple */
+  .scrollbar-apple::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  .scrollbar-apple::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  
+  .scrollbar-apple::-webkit-scrollbar-thumb {
+    background: hsl(130 7% 45% / 0.2);
+    border-radius: 100px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  
+  .scrollbar-apple::-webkit-scrollbar-thumb:hover {
+    background: hsl(130 7% 45% / 0.35);
+    background-clip: content-box;
+  }
+
+  /*
+   * Radix ScrollArea: reserve espaço para a scrollbar vertical.
+   * Sem isso, a scrollbar pode sobrepor alguns pixels do conteúdo e “cortar” a borda direita dos cards.
+   */
+  .scrollarea-gutter [data-radix-scroll-area-viewport] {
+    padding-right: 12px;
+    box-sizing: border-box;
+  }
+  
+  /* Sidebar Item Minimalista com Estados Refinados */
+  .sidebar-item {
+    @apply flex items-center gap-3 px-4 py-2.5 rounded-xl
+           font-medium transition-all duration-200;
+    color: hsl(var(--sidebar-foreground) / 0.75);
+    position: relative;
+  }
+  
+  .sidebar-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 0;
+    background: hsl(var(--sidebar-primary));
+    border-radius: 0 4px 4px 0;
+    transition: height 0.2s ease-out;
+  }
+  
+  .sidebar-item:hover {
+    background: hsl(var(--sidebar-accent) / 0.8);
+    color: hsl(var(--sidebar-foreground));
+    transform: translateX(2px);
+  }
+  
+  .sidebar-item:hover::before {
+    height: 8px;
+  }
+  
+  .sidebar-item.active {
+    background: hsl(var(--sidebar-primary));
+    color: hsl(var(--sidebar-primary-foreground));
+    font-weight: 600;
+    box-shadow: 0 2px 8px hsl(var(--sidebar-primary) / 0.4),
+                inset 0 1px 2px hsl(var(--sidebar-primary) / 0.2);
+  }
+  
+  .sidebar-item.active::before {
+    height: 24px;
+  }
+  
+  /* Sidebar Section Divider - Mais Sutil */
+  .sidebar-section-divider {
+    @apply my-4 mx-3 border-t;
+    border-color: hsl(var(--sidebar-border) / 0.3);
+  }
+  
+  /* Sidebar Section Title */
+  .sidebar-section-title {
+    @apply px-3 py-2 text-xs font-semibold uppercase tracking-wider;
+    color: hsl(var(--sidebar-foreground) / 0.4);
+  }
+  
+  /* Active Indicator - Farol de Carga */
+  .active-indicator {
+    @apply w-1 h-6 rounded-full;
+    background: hsl(48 100% 50%);
+  }
+  
+  /* Notification Dot */
+  .notification-dot {
+    @apply w-2 h-2 rounded-full absolute -top-0.5 -right-0.5;
+    background: hsl(48 100% 50%);
+  }
+
+  /* Gradient Button */
+  .gradient-button {
+    @apply relative appearance-none cursor-pointer;
+    background: radial-gradient(
+      150% 180.06% at 11.14% 140%,
+      #000 37.35%,
+      #08012c 61.36%,
+      #4e1e40 78.42%,
+      #70464e 89.52%,
+      #88394c 100%
+    );
+    transition: all 0.5s ease;
+  }
+
+  .gradient-button::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      20deg,
+      hsla(340, 75%, 60%, 0.2),
+      hsla(340, 75%, 40%, 0.75)
+    );
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .gradient-button:hover {
+    background: radial-gradient(
+      120.24% 103.18% at 0% 91.51%,
+      #c96287 0%,
+      #c66c64 8.8%,
+      #cc7d23 21.44%,
+      #37140a 71.34%,
+      #000 85.76%
+    );
+  }
+
+  .gradient-button-variant {
+    background: radial-gradient(
+      150% 180.06% at 11.14% 140%,
+      #000022 37.35%,
+      #1f3f6d 61.36%,
+      #469396 78.42%,
+      #f1ffa5 100%
+    );
+  }
+
+  .gradient-button-variant:hover {
+    background: radial-gradient(
+      110.24% 110.2% at 0% 95.51%,
+      #000020 0%,
+      #f1ffa5 10%,
+      #469396 35.44%,
+      #1f3f6d 71.34%,
+      #000 90.76%
+    );
+  }
+}
+
+@layer utilities {
+  /* Text Colors Millennials */
+  .text-fabrica {
+    color: hsl(14 13% 20%);
+  }
+  
+  .text-aco {
+    color: hsl(130 7% 45%);
+  }
+  
+  .text-farol {
+    color: hsl(48 100% 50%);
+  }
+  
+  /* Background Colors */
+  .bg-galpao {
+    background: hsl(50 56% 96%);
+  }
+  
+  .bg-fabrica {
+    background: hsl(14 13% 20%);
+  }
+  
+  .bg-farol {
+    background: hsl(48 100% 50%);
+  }
+  
+  /* Border Subtle */
+  .border-subtle {
+    border-color: hsl(130 7% 45% / 0.12);
+  }
+  
+  /* Shadow Apple */
+  .shadow-apple {
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.03), 0 1px 2px -1px rgb(0 0 0 / 0.03);
+  }
+  
+  .shadow-apple-hover {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.03);
+  }
+  
+  /* Animation utilities */
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+  
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+  
+  .animate-scale-in {
+    animation: scaleIn 0.2s ease-out;
+  }
+  
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  
+  /* TV Dashboard Marquee Animation - Smooth GPU-accelerated */
+  @keyframes marquee-slow {
+    0% {
+      transform: translate3d(0, 0, 0);
+    }
+    100% {
+      transform: translate3d(-50%, 0, 0);
+    }
+  }
+  
+  .animate-marquee-slow {
+    animation: marquee-slow 60s linear infinite;
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+  
+  .animate-marquee-slow:hover {
+    animation-play-state: paused;
+  }
+}
