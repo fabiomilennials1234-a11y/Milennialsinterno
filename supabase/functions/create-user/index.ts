@@ -40,12 +40,10 @@ Deno.serve(async (req) => {
       )
     }
     
-    // Create client with user's token to check their role
-    const supabaseClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
-      global: { headers: { Authorization: authHeader } }
-    })
-    
-    const { data: { user: requestingUser }, error: authError } = await supabaseClient.auth.getUser()
+    // Extract JWT and validate - getUser(jwt) works more reliably than global headers in Edge Functions
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader
+    const supabaseClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!)
+    const { data: { user: requestingUser }, error: authError } = await supabaseClient.auth.getUser(token)
     if (authError || !requestingUser) {
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),

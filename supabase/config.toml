@@ -1,2 +1,15 @@
 # Projeto: Milennials interno (Dashboard Supabase)
 project_id = "semhnpwxptfgqxhkoqsk"
+
+# Edge Functions: validar JWT internamente (evita 401 do gateway com novos JWT Signing Keys)
+[functions.create-user]
+verify_jwt = false
+
+[functions.update-user]
+verify_jwt = false
+
+[functions.delete-user]
+verify_jwt = false
+
+[functions.delete-group]
+verify_jwt = false
