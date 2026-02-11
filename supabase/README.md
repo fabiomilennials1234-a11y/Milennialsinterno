@@ -59,14 +59,17 @@ As funções em `functions/` devem ser deployadas no mesmo projeto Supabase:
 | `summarize-weekly-problems` | Resumo semanal de problemas. |
 | `delete-group` | Exclusão de grupo. |
 
-Deploy (CLI):
+**Deploy (manual, na conta e projeto corretos):**
 
 ```bash
+supabase login
+supabase link --project-ref SEU_PROJECT_REF   # o mesmo que o app usa
 supabase functions deploy create-user
 supabase functions deploy update-user
 supabase functions deploy delete-user
-# ... ou deploy todas: supabase functions deploy
 ```
+
+**Instruções completas:** veja [INSTRUCOES_DEPLOY_EDGE_FUNCTIONS.md](../INSTRUCOES_DEPLOY_EDGE_FUNCTIONS.md) na raiz do projeto.
 
 ## Variáveis de ambiente
 
