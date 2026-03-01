@@ -204,7 +204,7 @@ export default function FinanceiroOverviewDashboard() {
       .filter(c => c.status === 'pendente' || c.status === 'em_dia')
       .reduce((sum, c) => sum + Number(c.valor || 0), 0);
     const inadimplentes = contasReceber
-      .filter(c => c.status === 'atrasada' || c.status === 'inadimplente')
+      .filter(c => c.status === 'inadimplente')
       .reduce((sum, c) => sum + Number(c.valor || 0), 0);
 
     // Despesas

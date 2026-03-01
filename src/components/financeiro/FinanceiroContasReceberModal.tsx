@@ -15,30 +15,21 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Receipt, Check, AlertTriangle, Search, Pencil, X, CalendarDays, Plus, Trash2, Clock, Package } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Receipt, Check, AlertTriangle, Search, Pencil, X,
+  CalendarDays, Plus, Trash2, Clock, ChevronDown, ChevronRight,
+  CheckCircle2, RefreshCw,
+} from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
-interface ClienteReceber {
-  id: string;
-  client_id: string;
-  name: string;
-  razao_social?: string;
-  valor: number;
-  status: 'em_dia' | 'pendente' | 'inadimplente';
-  produto_slug?: string;
-  produtos: string[];
-}
+import { useContasReceber, getProductDisplayName, type ContaReceberEntry, type ClientGroup } from '@/hooks/useContasReceber';
+import ValueEditDialog from './ValueEditDialog';
 
 // Generate month options (current + next 11 months)
 const generateMonthOptions = () => {
   const options = [];
   const now = new Date();
-  
-  // Include last 6 months and next 6 months
   for (let i = -6; i <= 6; i++) {
     const date = new Date(now.getFullYear(), now.getMonth() + i, 1);
     options.push({
@@ -46,8 +37,6 @@ const generateMonthOptions = () => {
       label: format(date, "MMMM 'de' yyyy", { locale: ptBR }),
     });
   }
-  
-  // Sort by date descending for display (most recent first)
   return options.sort((a, b) => b.value.localeCompare(a.value));
 };
 
@@ -60,604 +49,541 @@ export default function FinanceiroContasReceberModal({ open, onOpenChange }: Pro
   const currentMonth = format(new Date(), 'yyyy-MM');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonth);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState<string>('');
+  const [collapsedClients, setCollapsedClients] = useState<Set<string>>(new Set());
   const [isAddingNew, setIsAddingNew] = useState(false);
-  const [selectedClientId, setSelectedClientId] = useState<string>('');
+  const [selectedClientId, setSelectedClientId] = useState('');
+  const [selectedProductSlug, setSelectedProductSlug] = useState('');
   const [newValor, setNewValor] = useState('');
-  const queryClient = useQueryClient();
-  
+  const [newIsRecurring, setNewIsRecurring] = useState(true);
+
+  // Value edit dialog state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<ContaReceberEntry | null>(null);
+  const [editingClientName, setEditingClientName] = useState('');
+
   const monthOptions = useMemo(() => generateMonthOptions(), []);
 
-  // Fetch all clients for the dropdown
-  const { data: allClients = [] } = useQuery({
-    queryKey: ['all-clients-for-receber'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('clients')
-        .select('id, name, razao_social, expected_investment')
-        .eq('archived', false)
-        .order('name');
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: open,
-  });
-
-  // Fetch contas a receber for the selected month
-  const { data: clientes = [], isLoading, refetch } = useQuery({
-    queryKey: ['financeiro-contas-receber', selectedMonth],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('financeiro_contas_receber')
-        .select(`
-          id,
-          client_id,
-          valor,
-          status,
-          produto_slug,
-          client:clients(id, name, razao_social, contracted_products)
-        `)
-        .eq('mes_referencia', selectedMonth);
-
-      if (error) throw error;
-      
-      return (data || []).map(item => ({
-        id: item.id,
-        client_id: item.client_id,
-        name: item.client?.name || 'Cliente',
-        razao_social: item.client?.razao_social,
-        valor: Number(item.valor),
-        status: item.status as 'em_dia' | 'pendente' | 'inadimplente',
-        produto_slug: item.produto_slug,
-        produtos: (item.client?.contracted_products as string[]) || [],
-      }));
-    },
-    enabled: open,
-  });
-
-  // Initialize month with active clients if empty
-  const initializeMonthMutation = useMutation({
-    mutationFn: async (month: string) => {
-      // Check if month already has data
-      const { data: existing } = await supabase
-        .from('financeiro_contas_receber')
-        .select('id')
-        .eq('mes_referencia', month)
-        .limit(1);
-
-      if (existing && existing.length > 0) return;
-
-      // Check previous month for data to copy
-      const prevMonthDate = new Date(month + '-01');
-      prevMonthDate.setMonth(prevMonthDate.getMonth() - 1);
-      const prevMonth = format(prevMonthDate, 'yyyy-MM');
-
-      const { data: prevData } = await supabase
-        .from('financeiro_contas_receber')
-        .select('client_id, valor, status')
-        .eq('mes_referencia', prevMonth);
-
-      if (prevData && prevData.length > 0) {
-        // Copy from previous month (reset status for future months)
-        const isCurrentOrPast = month <= currentMonth;
-        const dataToInsert = prevData.map(item => ({
-          client_id: item.client_id,
-          valor: item.valor,
-          status: isCurrentOrPast ? item.status : 'pendente',
-          mes_referencia: month,
-        }));
-
-        const { error } = await supabase
-          .from('financeiro_contas_receber')
-          .insert(dataToInsert);
-
-        if (error) throw error;
-      } else {
-        // Initialize from financeiro_active_clients
-        const { data: activeClients } = await supabase
-          .from('financeiro_active_clients')
-          .select('client_id, monthly_value, invoice_status');
-
-        if (activeClients && activeClients.length > 0) {
-          const dataToInsert = activeClients.map(item => ({
-            client_id: item.client_id,
-            valor: item.monthly_value || 0,
-            status: item.invoice_status === 'inadimplente' ? 'inadimplente' : 'em_dia',
-            mes_referencia: month,
-          }));
-
-          const { error } = await supabase
-            .from('financeiro_contas_receber')
-            .insert(dataToInsert);
-
-          if (error) throw error;
-        }
-      }
-    },
-    onSuccess: () => {
-      refetch();
-    },
-  });
+  const {
+    clientGroups,
+    stats,
+    isLoading,
+    allClients,
+    getAvailableProducts,
+    initializeMonth,
+    updateStatus,
+    updateValue,
+    toggleRecurring,
+    addEntry,
+    deleteEntry,
+    isUpdatingValue,
+    isAddingEntry,
+  } = useContasReceber(selectedMonth, open);
 
   // Initialize month when selected
   useEffect(() => {
     if (open && selectedMonth) {
-      initializeMonthMutation.mutate(selectedMonth);
+      initializeMonth(selectedMonth);
     }
   }, [open, selectedMonth]);
 
-  // Update status mutation
-  const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { error } = await supabase
-        .from('financeiro_contas_receber')
-        .update({ status })
-        .eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['financeiro-contas-receber', selectedMonth] });
-    },
-    onError: () => {
-      toast.error('Erro ao atualizar status');
-    },
-  });
-
-  // Update value mutation - syncs across all systems
-  const updateValueMutation = useMutation({
-    mutationFn: async ({ id, clientId, newValue }: { id: string; clientId: string; newValue: number }) => {
-      // Update financeiro_contas_receber for this month
-      const { error: receberError } = await supabase
-        .from('financeiro_contas_receber')
-        .update({ valor: newValue })
-        .eq('id', id);
-      if (receberError) throw receberError;
-
-      // Also update financeiro_active_clients
-      await supabase
-        .from('financeiro_active_clients')
-        .update({ monthly_value: newValue })
-        .eq('client_id', clientId);
-
-      // Also update expected_investment in clients table
-      await supabase
-        .from('clients')
-        .update({ expected_investment: newValue })
-        .eq('id', clientId);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['financeiro-contas-receber'] });
-      queryClient.invalidateQueries({ queryKey: ['financeiro-active-clients'] });
-      queryClient.invalidateQueries({ queryKey: ['clients-with-sales'] });
-      queryClient.invalidateQueries({ queryKey: ['clients'] });
-      toast.success('Valor atualizado!');
-    },
-    onError: () => {
-      toast.error('Erro ao atualizar valor');
-    },
-  });
-
-  // Add new client mutation
-  const addClientMutation = useMutation({
-    mutationFn: async ({ clientId, valor }: { clientId: string; valor: number }) => {
-      const { error } = await supabase
-        .from('financeiro_contas_receber')
-        .insert({
-          client_id: clientId,
-          valor,
-          status: 'pendente',
-          mes_referencia: selectedMonth,
-        });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['financeiro-contas-receber', selectedMonth] });
-      toast.success('Cliente adicionado!');
-      setIsAddingNew(false);
-      setSelectedClientId('');
-      setNewValor('');
-    },
-    onError: (error: any) => {
-      if (error.message?.includes('unique') || error.code === '23505') {
-        toast.error('Este cliente já está cadastrado neste mês');
-      } else {
-        toast.error('Erro ao adicionar cliente');
-      }
-    },
-  });
-
-  // Delete client from this month mutation
-  const deleteClientMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('financeiro_contas_receber')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['financeiro-contas-receber', selectedMonth] });
-      toast.success('Cliente removido deste mês!');
-    },
-    onError: () => {
-      toast.error('Erro ao remover cliente');
-    },
-  });
-
-  const startEditing = (id: string, currentValue: number) => {
-    setEditingId(id);
-    setEditValue(currentValue.toFixed(2).replace('.', ','));
-  };
-
-  const saveValue = (id: string, clientId: string) => {
-    const numericValue = parseFloat(editValue.replace(/[^\d.,]/g, '').replace(',', '.'));
-    if (!isNaN(numericValue) && numericValue >= 0) {
-      updateValueMutation.mutate({ id, clientId, newValue: numericValue });
-    } else {
-      toast.error('Valor inválido');
-    }
-    setEditingId(null);
-    setEditValue('');
-  };
-
-  const cancelEditing = () => {
-    setEditingId(null);
-    setEditValue('');
-  };
-
-  const handleAddNew = () => {
-    if (!selectedClientId) {
-      toast.error('Selecione um cliente');
-      return;
-    }
-    const valor = parseFloat(newValor.replace(/[^\d.,]/g, '').replace(',', '.'));
-    if (isNaN(valor) || valor <= 0) {
-      toast.error('Informe um valor válido');
-      return;
-    }
-    addClientMutation.mutate({ clientId: selectedClientId, valor });
-  };
-
-  // Filter out clients that are already in the list for this month
-  const availableClients = useMemo(() => {
-    const existingClientIds = new Set(clientes.map(c => c.client_id));
-    return allClients.filter(c => !existingClientIds.has(c.id));
-  }, [allClients, clientes]);
-
-  // Filtered clients
-  const clientesFiltrados = useMemo(() => {
-    if (!searchTerm) return clientes;
+  // Filter groups by search
+  const filteredGroups = useMemo(() => {
+    if (!searchTerm) return clientGroups;
     const term = searchTerm.toLowerCase();
-    return clientes.filter(
-      c =>
-        c.name.toLowerCase().includes(term) ||
-        (c.razao_social && c.razao_social.toLowerCase().includes(term))
+    return clientGroups.filter(
+      g =>
+        g.client_name.toLowerCase().includes(term) ||
+        (g.razao_social && g.razao_social.toLowerCase().includes(term)) ||
+        g.entries.some(e => e.product_name.toLowerCase().includes(term))
     );
-  }, [clientes, searchTerm]);
+  }, [clientGroups, searchTerm]);
 
-  // Totals
-  const totalReceber = clientes.reduce((sum, c) => sum + c.valor, 0);
-  const totalEmDia = clientes
-    .filter(c => c.status === 'em_dia')
-    .reduce((sum, c) => sum + c.valor, 0);
-  const totalPendente = clientes
-    .filter(c => c.status === 'pendente')
-    .reduce((sum, c) => sum + c.valor, 0);
-  const totalInadimplente = clientes
-    .filter(c => c.status === 'inadimplente')
-    .reduce((sum, c) => sum + c.valor, 0);
-
-  const formatCurrency = (value: number) => {
-    return value.toLocaleString('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
+  const toggleCollapse = (clientId: string) => {
+    setCollapsedClients(prev => {
+      const next = new Set(prev);
+      if (next.has(clientId)) next.delete(clientId);
+      else next.add(clientId);
+      return next;
     });
   };
 
+  const openEditDialog = (entry: ContaReceberEntry, clientName: string) => {
+    setEditingEntry(entry);
+    setEditingClientName(clientName);
+    setEditDialogOpen(true);
+  };
+
+  const handleValueEditConfirm = (params: {
+    newValue: number;
+    scope: 'single_month' | 'all_following';
+    justification: string;
+  }) => {
+    if (!editingEntry) return;
+    updateValue({
+      id: editingEntry.id,
+      clientId: editingEntry.client_id,
+      productSlug: editingEntry.produto_slug,
+      originalValue: editingEntry.valor,
+      newValue: params.newValue,
+      scope: params.scope,
+      justification: params.justification,
+      mesReferencia: editingEntry.mes_referencia,
+    });
+    setEditDialogOpen(false);
+    setEditingEntry(null);
+  };
+
+  const handleAddNew = () => {
+    if (!selectedClientId || !selectedProductSlug) return;
+    const valor = parseFloat(newValor.replace(/[^\d.,]/g, '').replace(',', '.'));
+    if (isNaN(valor) || valor <= 0) return;
+
+    const product = getAvailableProducts(selectedClientId).find(p => p.slug === selectedProductSlug);
+    addEntry({
+      clientId: selectedClientId,
+      productSlug: selectedProductSlug,
+      productName: product?.name || getProductDisplayName(selectedProductSlug),
+      valor,
+      isRecurring: newIsRecurring,
+    });
+    setIsAddingNew(false);
+    setSelectedClientId('');
+    setSelectedProductSlug('');
+    setNewValor('');
+    setNewIsRecurring(true);
+  };
+
+  // Available products for selected client in add form
+  const availableProductsForAdd = useMemo(() => {
+    if (!selectedClientId) return [];
+    return getAvailableProducts(selectedClientId);
+  }, [selectedClientId, getAvailableProducts]);
+
+  // Auto-fill value when product is selected
+  useEffect(() => {
+    if (selectedProductSlug && availableProductsForAdd.length > 0) {
+      const product = availableProductsForAdd.find(p => p.slug === selectedProductSlug);
+      if (product && product.value > 0) {
+        setNewValor(product.value.toFixed(2).replace('.', ','));
+      }
+    }
+  }, [selectedProductSlug, availableProductsForAdd]);
+
+  // Clients that have products available to add
+  const clientsWithAvailableProducts = useMemo(() => {
+    return allClients.filter(c => getAvailableProducts(c.id).length > 0);
+  }, [allClients, getAvailableProducts]);
+
+  const formatCurrency = (value: number) =>
+    value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
   const getStatusStyle = (status: string) => {
     switch (status) {
-      case 'em_dia':
-        return 'bg-green-500 text-white hover:bg-green-600';
-      case 'pendente':
-        return 'bg-amber-400 text-amber-900 hover:bg-amber-500';
-      case 'inadimplente':
-        return 'bg-red-500 text-white hover:bg-red-600';
-      default:
-        return 'bg-gray-200 text-gray-700';
+      case 'em_dia': return 'bg-green-500 text-white hover:bg-green-600';
+      case 'pago': return 'bg-blue-500 text-white hover:bg-blue-600';
+      case 'pendente': return 'bg-amber-400 text-amber-900 hover:bg-amber-500';
+      case 'inadimplente': return 'bg-red-500 text-white hover:bg-red-600';
+      default: return 'bg-gray-200 text-gray-700';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'em_dia': return 'Em Dia';
+      case 'pago': return 'Pago';
+      case 'pendente': return 'Pendente';
+      case 'inadimplente': return 'Inadimplente';
+      default: return status;
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
-        <DialogHeader className="shrink-0 px-6 pt-6 pb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                <Receipt className="text-green-600 dark:text-green-400" size={22} />
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-5xl h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
+          <DialogHeader className="shrink-0 px-6 pt-6 pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                  <Receipt className="text-green-600 dark:text-green-400" size={22} />
+                </div>
+                <div>
+                  <DialogTitle className="text-xl">Contas a Receber</DialogTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Faturamento mensal por cliente e produto
+                  </p>
+                </div>
               </div>
-              <div>
-                <DialogTitle className="text-xl">Contas a Receber</DialogTitle>
-                <p className="text-sm text-muted-foreground">
-                  Faturamento mensal de clientes ativos
-                </p>
-              </div>
-            </div>
-            
-            {/* Month Selector */}
-            <div className="flex items-center gap-2">
-              <CalendarDays className="w-4 h-4 text-muted-foreground" />
-              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Selecione o mês" />
-                </SelectTrigger>
-                <SelectContent>
-                  {monthOptions.map(option => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </DialogHeader>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-4 gap-3 px-6 pb-4 shrink-0">
-          <div className="rounded-xl bg-muted/50 p-3 border border-border">
-            <p className="text-xs text-muted-foreground">Total a Receber</p>
-            <p className="text-lg font-bold text-foreground">{formatCurrency(totalReceber)}</p>
-            <p className="text-xs text-muted-foreground">{clientes.length} clientes</p>
-          </div>
-          <div className="rounded-xl bg-green-50 dark:bg-green-900/20 p-3 border border-green-200 dark:border-green-800">
-            <p className="text-xs text-green-600 dark:text-green-400">Em Dia</p>
-            <p className="text-lg font-bold text-green-700 dark:text-green-300">{formatCurrency(totalEmDia)}</p>
-          </div>
-          <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 p-3 border border-amber-200 dark:border-amber-800">
-            <p className="text-xs text-amber-600 dark:text-amber-400">Pendente</p>
-            <p className="text-lg font-bold text-amber-700 dark:text-amber-300">{formatCurrency(totalPendente)}</p>
-          </div>
-          <div className="rounded-xl bg-red-50 dark:bg-red-900/20 p-3 border border-red-200 dark:border-red-800">
-            <p className="text-xs text-red-600 dark:text-red-400">Inadimplentes</p>
-            <p className="text-lg font-bold text-red-700 dark:text-red-300">{formatCurrency(totalInadimplente)}</p>
-          </div>
-        </div>
-
-        {/* Search */}
-        <div className="relative px-6 shrink-0">
-          <Search className="absolute left-9 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-          <Input
-            placeholder="Buscar cliente..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-
-        {/* Add New Client Button */}
-        <div className="px-6 py-3 shrink-0">
-          {!isAddingNew ? (
-            <Button 
-              onClick={() => setIsAddingNew(true)} 
-              variant="outline" 
-              className="w-full gap-2"
-              disabled={availableClients.length === 0}
-            >
-              <Plus size={16} />
-              Adicionar Cliente
-            </Button>
-          ) : (
-            <div className="flex gap-2 items-end p-3 rounded-xl border border-border bg-muted/30">
-              <div className="flex-1">
-                <label className="text-xs text-muted-foreground">Cliente</label>
-                <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-                  <SelectTrigger className="h-8">
-                    <SelectValue placeholder="Selecione um cliente" />
+              {/* Month Selector */}
+              <div className="flex items-center gap-2">
+                <CalendarDays className="w-4 h-4 text-muted-foreground" />
+                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Selecione o mes" />
                   </SelectTrigger>
                   <SelectContent>
-                    {availableClients.map(client => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.name}
+                    {monthOptions.map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="w-32">
-                <label className="text-xs text-muted-foreground">Valor</label>
-                <Input
-                  placeholder="0,00"
-                  value={newValor}
-                  onChange={(e) => setNewValor(e.target.value)}
-                  className="h-8"
-                />
-              </div>
-              <Button size="sm" onClick={handleAddNew} disabled={addClientMutation.isPending}>
-                <Check size={14} />
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => setIsAddingNew(false)}>
-                <X size={14} />
-              </Button>
             </div>
-          )}
-        </div>
+          </DialogHeader>
 
-        {/* Table Container */}
-        <div className="flex-1 overflow-hidden px-6 pb-6">
-          <div className="h-full rounded-xl border border-border overflow-hidden flex flex-col">
-            {/* Table Header */}
-            <div className="shrink-0 grid grid-cols-[1fr_120px_140px_140px_40px] gap-3 px-4 py-3 bg-green-600 text-white font-semibold text-sm">
-              <span>Cliente</span>
-              <span>Produtos</span>
-              <span className="text-right">Valor Mensal</span>
-              <span className="text-center">Status</span>
-              <span></span>
+          {/* Summary Cards */}
+          <div className="grid grid-cols-5 gap-3 px-6 pb-4 shrink-0">
+            <div className="rounded-xl bg-muted/50 p-3 border border-border">
+              <p className="text-xs text-muted-foreground">Total a Receber</p>
+              <p className="text-lg font-bold text-foreground">{formatCurrency(stats.totalReceber)}</p>
+              <p className="text-xs text-muted-foreground">{stats.uniqueClients} clientes</p>
             </div>
-
-            {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto">
-              {/* Loading state */}
-              {isLoading && (
-                <div className="p-8 text-center text-muted-foreground">
-                  Carregando clientes...
-                </div>
+            <div className="rounded-xl bg-blue-50 dark:bg-blue-900/20 p-3 border border-blue-200 dark:border-blue-800">
+              <p className="text-xs text-blue-600 dark:text-blue-400">Pago</p>
+              <p className="text-lg font-bold text-blue-700 dark:text-blue-300">{formatCurrency(stats.totalPago)}</p>
+            </div>
+            <div className="rounded-xl bg-green-50 dark:bg-green-900/20 p-3 border border-green-200 dark:border-green-800">
+              <p className="text-xs text-green-600 dark:text-green-400">Em Dia</p>
+              <p className="text-lg font-bold text-green-700 dark:text-green-300">{formatCurrency(stats.totalEmDia)}</p>
+            </div>
+            <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 p-3 border border-amber-200 dark:border-amber-800">
+              <p className="text-xs text-amber-600 dark:text-amber-400">Pendente</p>
+              <p className="text-lg font-bold text-amber-700 dark:text-amber-300">{formatCurrency(stats.totalPendente)}</p>
+            </div>
+            <div className="rounded-xl bg-red-50 dark:bg-red-900/20 p-3 border border-red-200 dark:border-red-800">
+              <p className="text-xs text-red-600 dark:text-red-400">Inadimplentes</p>
+              <p className="text-lg font-bold text-red-700 dark:text-red-300">{formatCurrency(stats.totalInadimplente)}</p>
+              {stats.countInadimplente > 0 && (
+                <p className="text-xs text-red-600 dark:text-red-400">{stats.countInadimplente} entrada(s)</p>
               )}
+            </div>
+          </div>
 
-              {/* Empty state */}
-              {!isLoading && clientesFiltrados.length === 0 && (
-                <div className="p-8 text-center text-muted-foreground">
-                  {searchTerm ? 'Nenhum cliente encontrado' : 'Nenhum cliente cadastrado neste mês'}
-                </div>
-              )}
+          {/* Search */}
+          <div className="relative px-6 shrink-0">
+            <Search className="absolute left-9 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+            <Input
+              placeholder="Buscar cliente ou produto..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
 
-              {/* Client rows */}
-              {clientesFiltrados.map((cliente, idx) => (
-                <div
-                  key={cliente.id}
-                  className={`grid grid-cols-[1fr_120px_140px_140px_40px] gap-3 px-4 py-3 border-b border-border/50 items-center group ${
-                    idx % 2 === 0 ? 'bg-background' : 'bg-muted/30'
-                  }`}
-                >
+          {/* Add New Entry Button */}
+          <div className="px-6 py-3 shrink-0">
+            {!isAddingNew ? (
+              <Button
+                onClick={() => setIsAddingNew(true)}
+                variant="outline"
+                className="w-full gap-2"
+                disabled={clientsWithAvailableProducts.length === 0}
+              >
+                <Plus size={16} />
+                Adicionar Entrada
+              </Button>
+            ) : (
+              <div className="p-3 rounded-xl border border-border bg-muted/30 space-y-3">
+                <div className="grid grid-cols-[1fr_1fr_120px] gap-2">
                   <div>
-                    <p className="font-medium text-foreground text-sm">{cliente.name}</p>
-                    {cliente.razao_social && (
-                      <p className="text-xs text-muted-foreground truncate max-w-[200px]">
-                        {cliente.razao_social}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Produtos contratados */}
-                  <div className="flex flex-wrap gap-1">
-                    {(cliente.produtos?.length ?? 0) > 0 ? (
-                      cliente.produtos.slice(0, 2).map((prod, i) => (
-                        <Badge 
-                          key={i} 
-                          variant="outline" 
-                          className="text-[10px] px-1.5 py-0 h-5 capitalize"
-                        >
-                          {prod.replace(/-/g, ' ').replace('millennials ', '')}
-                        </Badge>
-                      ))
-                    ) : (
-                      <span className="text-xs text-muted-foreground">-</span>
-                    )}
-                    {(cliente.produtos?.length ?? 0) > 2 && (
-                      <Badge variant="secondary" className="text-[10px] px-1 py-0 h-5">
-                        +{cliente.produtos.length - 2}
-                      </Badge>
-                    )}
-                  </div>
-                  
-                  {/* Editable Value */}
-                  <div className="flex items-center justify-end gap-1">
-                    {editingId === cliente.id ? (
-                      <>
-                        <span className="text-xs text-muted-foreground">R$</span>
-                        <Input
-                          type="text"
-                          value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          className="w-24 h-7 text-sm px-2 text-right"
-                          autoFocus
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') saveValue(cliente.id, cliente.client_id);
-                            if (e.key === 'Escape') cancelEditing();
-                          }}
-                        />
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-6 w-6 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
-                          onClick={() => saveValue(cliente.id, cliente.client_id)}
-                          disabled={updateValueMutation.isPending}
-                        >
-                          <Check size={14} />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                          onClick={cancelEditing}
-                        >
-                          <X size={14} />
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <span className="font-semibold text-foreground">
-                          {formatCurrency(cliente.valor)}
-                        </span>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-6 w-6 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100"
-                          onClick={() => startEditing(cliente.id, cliente.valor)}
-                        >
-                          <Pencil size={12} />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-
-                  <div className="flex justify-center">
+                    <label className="text-xs text-muted-foreground">Cliente</label>
                     <Select
-                      value={cliente.status}
-                      onValueChange={(value: 'em_dia' | 'pendente' | 'inadimplente') =>
-                        updateStatusMutation.mutate({ id: cliente.id, status: value })
-                      }
+                      value={selectedClientId}
+                      onValueChange={(v) => {
+                        setSelectedClientId(v);
+                        setSelectedProductSlug('');
+                        setNewValor('');
+                      }}
                     >
-                      <SelectTrigger 
-                        className={`w-32 h-7 text-xs font-semibold border-0 ${getStatusStyle(cliente.status)}`}
-                      >
-                        <SelectValue />
+                      <SelectTrigger className="h-8">
+                        <SelectValue placeholder="Selecione um cliente" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="em_dia">
-                          <div className="flex items-center gap-2">
-                            <Check size={14} className="text-green-600" />
-                            Pago
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="pendente">
-                          <div className="flex items-center gap-2">
-                            <Clock size={14} className="text-amber-600" />
-                            Pendente
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="inadimplente">
-                          <div className="flex items-center gap-2">
-                            <AlertTriangle size={14} className="text-red-600" />
-                            Inadimplente
-                          </div>
-                        </SelectItem>
+                        {clientsWithAvailableProducts.map(client => (
+                          <SelectItem key={client.id} value={client.id}>
+                            {client.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
-
-                  {/* Delete Button */}
-                  <div className="flex justify-center">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100"
-                      onClick={() => {
-                        if (confirm('Remover este cliente deste mês?')) {
-                          deleteClientMutation.mutate(cliente.id);
-                        }
-                      }}
+                  <div>
+                    <label className="text-xs text-muted-foreground">Produto</label>
+                    <Select
+                      value={selectedProductSlug}
+                      onValueChange={setSelectedProductSlug}
+                      disabled={!selectedClientId}
                     >
-                      <Trash2 size={12} />
+                      <SelectTrigger className="h-8">
+                        <SelectValue placeholder="Selecione o produto" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableProductsForAdd.map(product => (
+                          <SelectItem key={product.slug} value={product.slug}>
+                            {product.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Valor</label>
+                    <Input
+                      placeholder="0,00"
+                      value={newValor}
+                      onChange={(e) => setNewValor(e.target.value)}
+                      className="h-8"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="new-recurring"
+                      checked={newIsRecurring}
+                      onCheckedChange={(checked) => setNewIsRecurring(checked === true)}
+                    />
+                    <label htmlFor="new-recurring" className="text-xs text-muted-foreground cursor-pointer">
+                      Recorrente (aparece todo mes)
+                    </label>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={handleAddNew} disabled={isAddingEntry || !selectedClientId || !selectedProductSlug}>
+                      <Check size={14} className="mr-1" /> Adicionar
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => {
+                      setIsAddingNew(false);
+                      setSelectedClientId('');
+                      setSelectedProductSlug('');
+                      setNewValor('');
+                    }}>
+                      <X size={14} />
                     </Button>
                   </div>
                 </div>
-              ))}
+              </div>
+            )}
+          </div>
+
+          {/* Table Container */}
+          <div className="flex-1 overflow-hidden px-6 pb-6">
+            <div className="h-full rounded-xl border border-border overflow-hidden flex flex-col">
+              {/* Table Header */}
+              <div className="shrink-0 grid grid-cols-[1fr_90px_130px_130px_70px_40px] gap-2 px-4 py-3 bg-green-600 text-white font-semibold text-sm">
+                <span>Cliente / Produto</span>
+                <span className="text-center">Recorrente</span>
+                <span className="text-right">Valor Mensal</span>
+                <span className="text-center">Status</span>
+                <span className="text-center">Inadimpl.</span>
+                <span></span>
+              </div>
+
+              {/* Scrollable Content */}
+              <div className="flex-1 overflow-y-auto">
+                {isLoading && (
+                  <div className="p-8 text-center text-muted-foreground">
+                    Carregando...
+                  </div>
+                )}
+
+                {!isLoading && filteredGroups.length === 0 && (
+                  <div className="p-8 text-center text-muted-foreground">
+                    {searchTerm ? 'Nenhum resultado encontrado' : 'Nenhuma entrada neste mes'}
+                  </div>
+                )}
+
+                {filteredGroups.map((group) => {
+                  const isCollapsed = collapsedClients.has(group.client_id);
+                  return (
+                    <div key={group.client_id}>
+                      {/* Client Header */}
+                      <div
+                        className="grid grid-cols-[1fr_90px_130px_130px_70px_40px] gap-2 px-4 py-2.5 bg-muted/60 border-b border-border cursor-pointer hover:bg-muted/80 items-center"
+                        onClick={() => toggleCollapse(group.client_id)}
+                      >
+                        <div className="flex items-center gap-2">
+                          {isCollapsed ? (
+                            <ChevronRight size={16} className="text-muted-foreground shrink-0" />
+                          ) : (
+                            <ChevronDown size={16} className="text-muted-foreground shrink-0" />
+                          )}
+                          <div className="min-w-0">
+                            <p className="font-semibold text-foreground text-sm truncate">
+                              {group.client_name}
+                            </p>
+                            {group.razao_social && (
+                              <p className="text-xs text-muted-foreground truncate">
+                                {group.razao_social}
+                              </p>
+                            )}
+                          </div>
+                          {group.payment_due_day && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 shrink-0">
+                              Venc. dia {group.payment_due_day}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-center">
+                          <span className="text-xs text-muted-foreground">
+                            {group.entries.length} produto(s)
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <span className="font-bold text-foreground text-sm">
+                            {formatCurrency(group.total)}
+                          </span>
+                        </div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                      </div>
+
+                      {/* Product Rows */}
+                      {!isCollapsed && group.entries.map((entry, idx) => (
+                        <div
+                          key={entry.id}
+                          className={`grid grid-cols-[1fr_90px_130px_130px_70px_40px] gap-2 px-4 py-2 border-b border-border/50 items-center group ${
+                            idx % 2 === 0 ? 'bg-background' : 'bg-muted/20'
+                          }`}
+                        >
+                          {/* Product name */}
+                          <div className="pl-8">
+                            <Badge
+                              variant="secondary"
+                              className="text-xs capitalize max-w-[200px] truncate"
+                            >
+                              {entry.product_name}
+                            </Badge>
+                          </div>
+
+                          {/* Recurring toggle */}
+                          <div className="flex justify-center">
+                            <button
+                              onClick={() => toggleRecurring({ id: entry.id, isRecurring: !entry.is_recurring })}
+                              className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full transition-colors ${
+                                entry.is_recurring
+                                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                  : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
+                              }`}
+                              title={entry.is_recurring ? 'Recorrente' : 'Avulso'}
+                            >
+                              <RefreshCw size={10} />
+                              {entry.is_recurring ? 'Sim' : 'Nao'}
+                            </button>
+                          </div>
+
+                          {/* Value with edit */}
+                          <div className="flex items-center justify-end gap-1">
+                            <span className="font-semibold text-foreground text-sm">
+                              {formatCurrency(entry.valor)}
+                            </span>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100"
+                              onClick={() => openEditDialog(entry, group.client_name)}
+                            >
+                              <Pencil size={12} />
+                            </Button>
+                          </div>
+
+                          {/* Status */}
+                          <div className="flex justify-center">
+                            <Select
+                              value={entry.status}
+                              onValueChange={(value) =>
+                                updateStatus({ id: entry.id, status: value })
+                              }
+                            >
+                              <SelectTrigger
+                                className={`w-[120px] h-7 text-xs font-semibold border-0 ${getStatusStyle(entry.status)}`}
+                              >
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="em_dia">
+                                  <div className="flex items-center gap-2">
+                                    <Check size={14} className="text-green-600" />
+                                    Em Dia
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="pago">
+                                  <div className="flex items-center gap-2">
+                                    <CheckCircle2 size={14} className="text-blue-600" />
+                                    Pago
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="pendente">
+                                  <div className="flex items-center gap-2">
+                                    <Clock size={14} className="text-amber-600" />
+                                    Pendente
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="inadimplente">
+                                  <div className="flex items-center gap-2">
+                                    <AlertTriangle size={14} className="text-red-600" />
+                                    Inadimplente
+                                  </div>
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {/* Inadimplencia badge */}
+                          <div className="flex justify-center">
+                            {entry.inadimplencia_count > 0 ? (
+                              <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-5">
+                                {entry.inadimplencia_count}+
+                              </Badge>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">-</span>
+                            )}
+                          </div>
+
+                          {/* Delete */}
+                          <div className="flex justify-center">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100"
+                              onClick={() => {
+                                if (confirm('Remover esta entrada deste mes?')) {
+                                  deleteEntry(entry.id);
+                                }
+                              }}
+                            >
+                              <Trash2 size={12} />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+
+      {/* Value Edit Dialog */}
+      {editingEntry && (
+        <ValueEditDialog
+          open={editDialogOpen}
+          onOpenChange={(isOpen) => {
+            setEditDialogOpen(isOpen);
+            if (!isOpen) setEditingEntry(null);
+          }}
+          currentValue={editingEntry.valor}
+          productName={editingEntry.product_name}
+          clientName={editingClientName}
+          onConfirm={handleValueEditConfirm}
+          isPending={isUpdatingValue}
+        />
+      )}
+    </>
   );
 }
