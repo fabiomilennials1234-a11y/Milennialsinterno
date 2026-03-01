@@ -43,6 +43,7 @@ Deno.serve(async (req) => {
       contract_expired_alert: false,
       ads_client_no_movement_7d: false,
       user_inactive: false,
+      generate_monthly_receivables: false,
     }
 
     // 1. Check expiring contracts (30/15/7/3/1/0 days)
@@ -237,6 +238,14 @@ Deno.serve(async (req) => {
       results.user_inactive = true
     } catch (e) {
       console.error('Error checking user inactive:', e)
+    }
+
+    // Generate monthly receivables (backup - main trigger is pg_cron at 6AM BRT)
+    try {
+      await supabase.rpc('generate_monthly_receivables')
+      results.generate_monthly_receivables = true
+    } catch (e) {
+      console.error('Error generating monthly receivables:', e)
     }
 
     return new Response(

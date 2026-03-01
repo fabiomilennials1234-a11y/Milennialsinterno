@@ -105,6 +105,10 @@ const clientSchema = z.object({
     .number({ required_error: 'Duração do contrato é obrigatória' })
     .min(1, 'Duração deve ser de pelo menos 1 mês')
     .max(120, 'Duração máxima de 120 meses'),
+  payment_due_day: z
+    .number({ required_error: 'Dia de vencimento é obrigatório' })
+    .min(1, 'Dia deve ser entre 1 e 31')
+    .max(31, 'Dia deve ser entre 1 e 31'),
   contracted_products: z.array(z.string()).default([]),
   group_id: z.string().optional(),
   squad_id: z.string().optional(),
@@ -173,6 +177,7 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
       sales_percentage: 0,
       entry_date: format(new Date(), 'yyyy-MM-dd'),
       contract_duration_months: 0,
+      payment_due_day: 10,
       contracted_products: [],
       group_id: '',
       squad_id: '',
@@ -245,6 +250,7 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
         entry_date: data.entry_date,
         contract_duration_months: data.contract_duration_months,
         contracted_products: data.contracted_products,
+        payment_due_day: data.payment_due_day,
         group_id: hasMillennialsGrowth ? data.group_id : undefined,
         squad_id: hasMillennialsGrowth ? data.squad_id : undefined,
         assigned_ads_manager: data.assigned_ads_manager || undefined,
@@ -670,6 +676,40 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
                       </FormControl>
                       <FormDescription className="text-xs">
                         Período de vigência do contrato
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="payment_due_day"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <CalendarDays className="w-4 h-4" />
+                        Dia de Vencimento *
+                      </FormLabel>
+                      <FormControl>
+                        <select
+                          className="input-apple"
+                          value={field.value || ''}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value, 10);
+                            field.onChange(isNaN(val) ? 0 : val);
+                          }}
+                        >
+                          <option value="" disabled>Selecione o dia</option>
+                          {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                            <option key={day} value={day}>
+                              Dia {day}
+                            </option>
+                          ))}
+                        </select>
+                      </FormControl>
+                      <FormDescription className="text-xs">
+                        Dia do mes em que o pagamento vence
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

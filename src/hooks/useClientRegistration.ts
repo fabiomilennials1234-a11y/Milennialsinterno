@@ -53,6 +53,7 @@ export interface NewClientData {
   assigned_comercial?: string;
   entry_date?: string;
   contract_duration_months?: number;
+  payment_due_day?: number;
   contracted_products?: string[];
   product_values?: ProductValueInput[];
 }
@@ -181,6 +182,7 @@ export function useCreateClient() {
           assigned_comercial: clientData.assigned_comercial,
           entry_date: clientData.entry_date,
           contract_duration_months: clientData.contract_duration_months || null,
+          payment_due_day: clientData.payment_due_day || null,
           contracted_products: clientData.contracted_products,
           created_by: user?.id,
           status: 'new_client',

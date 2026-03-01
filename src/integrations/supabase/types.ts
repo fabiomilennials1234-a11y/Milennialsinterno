@@ -1162,6 +1162,7 @@ export type Database = {
           name: string
           niche: string | null
           onboarding_started_at: string | null
+          payment_due_day: number | null
           razao_social: string | null
           sales_percentage: number
           squad_id: string | null
@@ -1198,6 +1199,7 @@ export type Database = {
           name: string
           niche?: string | null
           onboarding_started_at?: string | null
+          payment_due_day?: number | null
           razao_social?: string | null
           sales_percentage?: number
           squad_id?: string | null
@@ -1234,6 +1236,7 @@ export type Database = {
           name?: string
           niche?: string | null
           onboarding_started_at?: string | null
+          payment_due_day?: number | null
           razao_social?: string | null
           sales_percentage?: number
           squad_id?: string | null
@@ -2592,8 +2595,10 @@ export type Database = {
           client_id: string | null
           created_at: string
           id: string
+          inadimplencia_count: number
+          is_recurring: boolean
           mes_referencia: string
-          produto_slug: string | null
+          produto_slug: string
           status: string
           updated_at: string
           valor: number
@@ -2603,8 +2608,10 @@ export type Database = {
           client_id?: string | null
           created_at?: string
           id?: string
+          inadimplencia_count?: number
+          is_recurring?: boolean
           mes_referencia: string
-          produto_slug?: string | null
+          produto_slug: string
           status?: string
           updated_at?: string
           valor?: number
@@ -2614,8 +2621,10 @@ export type Database = {
           client_id?: string | null
           created_at?: string
           id?: string
+          inadimplencia_count?: number
+          is_recurring?: boolean
           mes_referencia?: string
-          produto_slug?: string | null
+          produto_slug?: string
           status?: string
           updated_at?: string
           valor?: number
@@ -2626,6 +2635,47 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contas_receber_value_adjustments: {
+        Row: {
+          id: string
+          contas_receber_id: string
+          original_value: number
+          new_value: number
+          scope: string
+          justification: string
+          user_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          contas_receber_id: string
+          original_value: number
+          new_value: number
+          scope: string
+          justification: string
+          user_id: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          contas_receber_id?: string
+          original_value?: number
+          new_value?: number
+          scope?: string
+          justification?: string
+          user_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_receber_value_adjustments_contas_receber_id_fkey"
+            columns: ["contas_receber_id"]
+            isOneToOne: false
+            referencedRelation: "financeiro_contas_receber"
             referencedColumns: ["id"]
           },
         ]
