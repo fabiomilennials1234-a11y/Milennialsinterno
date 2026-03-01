@@ -90,6 +90,7 @@ export function useCurrentMonthCommissions() {
 // Create upsell
 export function useCreateUpsell() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (upsell: {
@@ -107,6 +108,34 @@ export function useCreateUpsell() {
         .single();
 
       if (error) throw error;
+
+      // The process_upsell trigger creates financeiro_client_onboarding,
+      // financeiro_active_clients, and financeiro_tasks.
+      // We also need to create a department_task for the financeiro daily board.
+      if (user?.id) {
+        const { data: client } = await supabase
+          .from('clients')
+          .select('name, razao_social')
+          .eq('id', upsell.client_id)
+          .single();
+
+        const clientName = client?.razao_social || client?.name || 'Cliente';
+
+        await supabase
+          .from('department_tasks')
+          .insert({
+            user_id: user.id,
+            title: `${clientName} — ${upsell.product_name} → Cadastrar no Asaas + Enviar 1ª Cobrança`,
+            description: upsell.product_slug,
+            task_type: 'daily',
+            status: 'todo',
+            priority: 'high',
+            department: 'financeiro',
+            related_client_id: upsell.client_id,
+            due_date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+          } as any);
+      }
+
       return data;
     },
     onSuccess: () => {
@@ -114,9 +143,11 @@ export function useCreateUpsell() {
       queryClient.invalidateQueries({ queryKey: ['upsell-commissions'] });
       queryClient.invalidateQueries({ queryKey: ['clients-with-sales'] });
       queryClient.invalidateQueries({ queryKey: ['client-product-values'] });
-      toast.success('UP Sell registrado com sucesso!', {
-        description: 'Comissão de 7% gerada automaticamente.',
-      });
+      queryClient.invalidateQueries({ queryKey: ['financeiro-onboarding'] });
+      queryClient.invalidateQueries({ queryKey: ['financeiro-active-clients'] });
+      queryClient.invalidateQueries({ queryKey: ['financeiro-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
+      toast.success('UP Sell registrado com sucesso!');
     },
     onError: (error: Error) => {
       console.error('Error creating upsell:', error);

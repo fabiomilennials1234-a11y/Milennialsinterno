@@ -2,6 +2,7 @@ import { useParams } from 'react-router-dom';
 import { usePublicStrategy } from '@/hooks/useClientStrategies';
 import { BackgroundPaths } from '@/components/ui/background-paths';
 import { GlowingEffect } from '@/components/ui/glowing-effect';
+import { MgrowthLogo } from '@/components/ui/MgrowthLogo';
 import { motion } from 'framer-motion';
 import StrategyMarcosSection from '@/components/strategy/StrategyMarcosSection';
 import StrategyProximosPassosSection from '@/components/strategy/StrategyProximosPassosSection';
@@ -1004,11 +1005,7 @@ export default function PublicStrategyPage() {
             transition={{ duration: 0.6 }}
             className="mb-8"
           >
-            <img 
-              src="/millennials-logo-1.png" 
-              alt="Millennials B2B" 
-              className="h-16 md:h-20 mx-auto"
-            />
+            <MgrowthLogo className="h-16 md:h-20 mx-auto text-[#F5F5DC]" />
           </motion.div>
 
           {/* Badge */}
@@ -1444,11 +1441,7 @@ export default function PublicStrategyPage() {
       {/* Footer */}
       <footer className="py-8 px-4 border-t" style={{ borderColor: `${COLORS.farolCarga}20` }}>
         <div className="container mx-auto max-w-6xl text-center">
-          <img 
-            src="/millennials-logo-1.png" 
-            alt="Millennials B2B" 
-            className="h-10 mx-auto mb-4 opacity-70"
-          />
+          <MgrowthLogo className="h-10 mx-auto mb-4 opacity-70 text-[#F5F5DC]" />
           <p className="text-sm" style={{ color: COLORS.acoIndustrial }}>
             © {new Date().getFullYear()} Millennials B2B • A Maior Aceleradora de Fábricas e Distribuidoras B2B da América Latina
           </p>

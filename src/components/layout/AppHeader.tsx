@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocation } from 'react-router-dom';
-import { Bell, Search, LogOut, ChevronDown, Camera } from 'lucide-react';
+import { Search, LogOut, ChevronDown, Camera } from 'lucide-react';
+import NotificationCenter from '@/components/NotificationCenter';
 import { ROLE_LABELS } from '@/types/auth';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import ProfileAvatarUpload from '@/components/profile/ProfileAvatarUpload';
@@ -77,10 +78,7 @@ export default function AppHeader() {
           </div>
 
           {/* Notifications */}
-          <button className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors relative">
-            <Bell size={20} />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-danger rounded-full"></span>
-          </button>
+          <NotificationCenter />
 
           {/* User Menu */}
           <DropdownMenu>

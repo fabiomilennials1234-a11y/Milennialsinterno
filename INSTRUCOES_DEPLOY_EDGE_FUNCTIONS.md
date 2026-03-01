@@ -8,6 +8,15 @@ Execute os passos abaixo **na conta e no projeto corretos do Supabase**. Veja ta
 
 ## Passo 1: Login e Vincular o Projeto
 
+**Opção A – Com token (recomendado para CI/automação):**
+
+1. Obtenha um access token: https://supabase.com/dashboard/account/tokens
+2. Exporte: `export SUPABASE_ACCESS_TOKEN="seu_token"`
+3. Use o script automatizado: `./scripts/setup-and-deploy-edge-functions.sh`  
+   (faz link, secrets e deploy de uma vez)
+
+**Opção B – Manual:**
+
 1. No terminal: `supabase login`
 2. Vincule ao projeto **correto** (o mesmo que o app usa):
    ```bash

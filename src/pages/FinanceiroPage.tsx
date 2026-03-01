@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { 
   CheckSquare, Users, ChevronLeft, ChevronRight, Wrench, FileText, 
-  AlertCircle, UserPlus, Target, Timer, UserCheck, ExternalLink, 
+  AlertCircle, UserPlus, Timer, UserCheck, ExternalLink,
   CalendarClock, Wallet, BarChart3, FileSpreadsheet, TrendingUp
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -15,11 +15,9 @@ import FinanceiroFerramentasSection from '@/components/financeiro/FinanceiroFerr
 import DepartmentTarefasSection from '@/components/department/DepartmentTarefasSection';
 import DepartmentJustificativaSection from '@/components/department/DepartmentJustificativaSection';
 import FinanceiroNovoClienteSection from '@/components/financeiro/FinanceiroNovoClienteSection';
-import FinanceiroMarcoSection from '@/components/financeiro/FinanceiroMarcoSection';
 import FinanceiroClientesAtivosSection from '@/components/financeiro/FinanceiroClientesAtivosSection';
 import FinanceiroClientesAtivosModal from '@/components/financeiro/FinanceiroClientesAtivosModal';
 import FinanceiroContratosExpirandoSection from '@/components/financeiro/FinanceiroContratosExpirandoSection';
-import FinanceiroDistratosSection from '@/components/financeiro/FinanceiroDistratosSection';
 import FinanceiroProductChurnsSection from '@/components/financeiro/FinanceiroProductChurnsSection';
 import FinanceiroContasSection from '@/components/financeiro/FinanceiroContasSection';
 import FinanceiroDRESection from '@/components/financeiro/FinanceiroDRESection';
@@ -50,24 +48,6 @@ const CONTRATOS_COLUMNS = [
     headerClass: 'section-header-orange',
     iconColor: 'text-white',
     badge: null,
-    clickable: false
-  },
-  {
-    id: 'marco1',
-    title: '[Marco 1]',
-    icon: Target,
-    headerClass: 'section-header-blue',
-    iconColor: 'text-white',
-    badge: 'MAX: 3 Dias',
-    clickable: false
-  },
-  {
-    id: 'marco2',
-    title: '[Marco 2] Otimizações PRO+',
-    icon: Target,
-    headerClass: 'section-header-green',
-    iconColor: 'text-white',
-    badge: 'MAX: 10 Dias',
     clickable: false
   },
   {
@@ -198,10 +178,6 @@ export default function FinanceiroPage() {
         return <DepartmentTarefasSection department="financeiro" type="daily" />;
       case 'novo-cliente':
         return <FinanceiroNovoClienteSection />;
-      case 'marco1':
-        return <FinanceiroMarcoSection marcoId="marco1" />;
-      case 'marco2':
-        return <FinanceiroMarcoSection marcoId="marco2" />;
       case 'clientes-ativos':
         return <FinanceiroClientesAtivosSection />;
       case 'contratos-expirando':
@@ -266,14 +242,14 @@ export default function FinanceiroPage() {
             
             return (
               <Fragment key={column.id}>
-                {/* Render Distratos section before Ferramentas */}
+                {/* Render Distratos (per-product) section before Ferramentas */}
                 {isBeforeFerramentas && (
                   <div className="flex-shrink-0">
-                    <FinanceiroDistratosSection />
+                    <FinanceiroProductChurnsSection />
                   </div>
                 )}
                 
-                <div className="w-[340px] flex-shrink-0 flex flex-col bg-card rounded-2xl border border-subtle overflow-hidden shadow-apple">
+                <div className="w-[340px] h-full flex-shrink-0 flex flex-col bg-card rounded-2xl border border-subtle overflow-hidden shadow-apple">
                   <div 
                     className={`section-header ${column.headerClass} ${column.clickable ? 'cursor-pointer hover:brightness-110 transition-all group relative' : ''}`} 
                     onClick={() => {
@@ -334,12 +310,10 @@ export default function FinanceiroPage() {
         </div>
 
         {/* Kanban Content */}
-        <div className="flex-1 overflow-hidden">
-          {activeTab === 'contratos' 
-            ? renderKanbanBoard(CONTRATOS_COLUMNS, contratosScrollRef, renderContratosColumnContent, true)
-            : renderKanbanBoard(CONTAS_COLUMNS, contasScrollRef, renderContasColumnContent, false)
-          }
-        </div>
+        {activeTab === 'contratos'
+          ? renderKanbanBoard(CONTRATOS_COLUMNS, contratosScrollRef, renderContratosColumnContent, true)
+          : renderKanbanBoard(CONTAS_COLUMNS, contasScrollRef, renderContasColumnContent, false)
+        }
 
         {/* Modal de Clientes Ativos */}
         <FinanceiroClientesAtivosModal 

@@ -9,6 +9,9 @@ import { useDevCompletionToasts } from '@/hooks/useDevsCompletionNotifications';
 import { useAtrizesCompletionToasts } from '@/hooks/useAtrizesCompletionNotifications';
 import { useProdutoraCompletionToasts } from '@/hooks/useProdutoraCompletionNotifications';
 import { useAdsNoteNotifications } from '@/hooks/useAdsNoteNotifications';
+import { useAdsNewClientNotifications } from '@/hooks/useAdsNewClientNotifications';
+import { useAssignedClientsRealtime } from '@/hooks/useAssignedClientsRealtime';
+import { useSidebarRealtime } from '@/hooks/useSidebarRealtime';
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -27,6 +30,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
   useProdutoraCompletionToasts();
   // Listen for ads note notifications (creates toasts via realtime)
   useAdsNoteNotifications();
+  // Listen for new client assignments to ads manager (creates toasts via realtime)
+  useAdsNewClientNotifications();
+  // Realtime: atualiza lista de clientes do gestor de ads quando novo cliente é atribuído
+  useAssignedClientsRealtime();
+  // Realtime updates for sidebar when users/groups/squads change
+  useSidebarRealtime();
   return (
     <div className="h-screen max-h-screen flex bg-background overflow-hidden">
       <AppSidebar />
@@ -36,10 +45,10 @@ export default function MainLayout({ children }: MainLayoutProps) {
           {children}
         </main>
       </div>
-      
+
       {/* Churn Notification Modal - appears globally */}
       <ChurnNotificationModal />
-      
+
       {/* Task Delay Modal - appears globally for all roles */}
       <TaskDelayModal />
     </div>

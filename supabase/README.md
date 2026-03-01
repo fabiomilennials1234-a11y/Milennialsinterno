@@ -59,17 +59,16 @@ As funções em `functions/` devem ser deployadas no mesmo projeto Supabase:
 | `summarize-weekly-problems` | Resumo semanal de problemas. |
 | `delete-group` | Exclusão de grupo. |
 
-**Deploy (manual, na conta e projeto corretos):**
+**Deploy (automatizado com token):**
 
 ```bash
-supabase login
-supabase link --project-ref SEU_PROJECT_REF   # o mesmo que o app usa
-supabase functions deploy create-user
-supabase functions deploy update-user
-supabase functions deploy delete-user
+export SUPABASE_ACCESS_TOKEN="seu_token"   # de https://supabase.com/dashboard/account/tokens
+./scripts/setup-and-deploy-edge-functions.sh
 ```
 
-**Instruções completas:** veja [INSTRUCOES_DEPLOY_EDGE_FUNCTIONS.md](../INSTRUCOES_DEPLOY_EDGE_FUNCTIONS.md) na raiz do projeto.
+O script faz link, configura secrets e deploy das funções. O `.env` deve ter `VITE_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` e `VITE_SUPABASE_PUBLISHABLE_KEY`.
+
+**Deploy manual:** veja [INSTRUCOES_DEPLOY_EDGE_FUNCTIONS.md](../INSTRUCOES_DEPLOY_EDGE_FUNCTIONS.md) na raiz do projeto.
 
 ## Variáveis de ambiente
 

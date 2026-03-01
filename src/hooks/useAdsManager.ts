@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTargetAdsManager } from '@/contexts/AdsManagerContext';
+import { useActionJustification } from '@/contexts/JustificationContext';
 import { toast } from 'sonner';
 
 // Helper to get date key in Brazil timezone (YYYY-MM-DD)
@@ -145,28 +146,34 @@ export function useAssignedClients() {
   return useQuery({
     queryKey: ['assigned-clients', effectiveUserId, shouldFilterByManager],
     queryFn: async () => {
+      const selectFields = 'id,name,cnpj,cpf,razao_social,general_info,expected_investment,group_id,squad_id,assigned_ads_manager,status,onboarding_started_at,campaign_published_at,created_at,updated_at,archived,archived_at,sales_percentage,entry_date,client_label,contracted_products';
       let query = supabase
         .from('clients')
-        .select('*')
+        .select(selectFields)
         .order('created_at', { ascending: false });
-      
+
       // ALWAYS filter by assigned_ads_manager when viewing a specific manager's board
       if (effectiveUserId && shouldFilterByManager) {
         query = query.eq('assigned_ads_manager', effectiveUserId);
       }
-      
+
       // Handle archived filtering
       if (!isCEO) {
         query = query.eq('archived', false);
       } else {
         query = query.or('archived.eq.false,and(archived.eq.true,status.eq.churned)');
       }
-      
+
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {
+        console.error('[useAssignedClients] Query error:', error);
+        throw error;
+      }
       return data as Client[];
     },
     enabled: !!effectiveUserId,
+    staleTime: 30_000,
+    refetchInterval: 10_000,
   });
 }
 
@@ -418,14 +425,27 @@ export function useCreateTask() {
 
 export function useUpdateTaskStatus() {
   const queryClient = useQueryClient();
+  const { requireJustification } = useActionJustification();
 
   return useMutation({
-    mutationFn: async ({ id, status, task_type }: { id: string; status: string; task_type: string }) => {
+    mutationFn: async ({ id, status, task_type, taskTitle }: { id: string; status: string; task_type: string; taskTitle?: string }) => {
+      // J11: Require justification when marking ads task as done
+      if (status === 'done') {
+        await requireJustification({
+          title: 'Justificativa: Tarefa Concluída',
+          subtitle: 'Registro obrigatório',
+          message: 'Descreva o resultado desta tarefa e o que foi realizado.',
+          taskId: id,
+          taskTable: 'ads_task_done',
+          taskTitle: taskTitle || 'Tarefa de Ads concluída',
+        });
+      }
+
       const { error } = await supabase
         .from('ads_tasks')
         .update({ status })
         .eq('id', id);
-      
+
       if (error) throw error;
       return { id, status, task_type };
     },

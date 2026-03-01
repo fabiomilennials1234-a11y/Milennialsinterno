@@ -1,17 +1,19 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAdsTasks, useCreateTask, useUpdateTaskStatus, useUpdateTask, useArchiveTask, useDeleteTask, AdsTask } from '@/hooks/useAdsManager';
-import { 
-  useOnboardingTasks, 
-  useUpdateOnboardingTaskStatus, 
-  useArchiveOnboardingTask, 
+import {
+  useOnboardingTasks,
+  useUpdateOnboardingTaskStatus,
+  useArchiveOnboardingTask,
   useDeleteOnboardingTask,
   useArchivedOnboardingTasks,
   useUnarchiveOnboardingTask,
-  useCanArchiveTasks
+  useCanArchiveTasks,
 } from '@/hooks/useOnboardingTasks';
 
+import { useCompleteOnboardingTaskWithAutomation } from '@/hooks/useOnboardingAutomation';
 import { useAddJustification } from '@/hooks/useTaskJustification';
-import { Plus, MoreHorizontal, Calendar, Target, Timer, Archive, CheckCircle, Trash2, ArchiveRestore, Eye, AlertTriangle } from 'lucide-react';
+import { Plus, MoreHorizontal, Calendar, Target, Timer, Archive, CheckCircle, Trash2, ArchiveRestore, Eye, AlertTriangle, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -42,6 +44,7 @@ import {
 import AdsCardDetailModal from './AdsCardDetailModal';
 import AdsCardDescriptionPreview from './AdsCardDescriptionPreview';
 import JustificationModal from '@/components/shared/JustificationModal';
+import { toast } from 'sonner';
 
 interface Props {
   type: 'daily' | 'weekly';
@@ -54,7 +57,33 @@ const STATUSES = [
   { id: 'done', label: 'Feitas', headerClass: 'kanban-header-done', borderClass: 'card-border-green' },
 ];
 
+// Labels legíveis para cada step do onboarding (usados no toast de conclusão)
+const STEP_LABELS: Record<string, string> = {
+  'call_1_marcada':          'Call #1 Marcada',
+  'criar_estrategia':        'Criar Estratégia',
+  'brifar_criativos':        'Brifar Criativos',
+  'elencar_otimizacoes':     'Elencar Otimizações',
+  'configurar_conta_anuncios': 'Configurar Conta de Anúncios',
+  'certificando_consultoria':'Certificar Consultoria',
+  'esperando_criativos':     'Esperando Criativos',
+  'acompanhamento':          'Acompanhamento',
+};
+
+// Instant optimistic advancement: maps onboarding_task_type → the step/milestone the client
+// should land on in AdsOnboardingSection AFTER the task is completed.
+// Matches exactly the stepKeys defined in AdsOnboardingSection.tsx MILESTONE_CARDS.
+const ONBOARDING_TASK_ADVANCEMENT: Record<string, { step: string; milestone: number }> = {
+  'realizar_call_1':            { step: 'criar_estrategia',          milestone: 2 },
+  'apresentar_estrategia':      { step: 'brifar_criativos',          milestone: 3 },
+  'brifar_criativos':           { step: 'elencar_otimizacoes',       milestone: 4 },
+  'brifar_otimizacoes_pendentes':{ step: 'configurar_conta_anuncios', milestone: 5 },
+  'configurar_conta_anuncios':  { step: 'certificando_consultoria',   milestone: 5 },
+  'certificar_consultoria':     { step: 'esperando_criativos',       milestone: 5 },
+  'publicar_campanha':          { step: 'acompanhamento',            milestone: 6 },
+};
+
 export default function AdsTarefasSection({ type, compact }: Props) {
+  const queryClient = useQueryClient();
   const { data: tasks = [], isLoading } = useAdsTasks(type);
   const { data: onboardingTasks = [] } = useOnboardingTasks();
   const { data: archivedOnboardingTasks = [] } = useArchivedOnboardingTasks();
@@ -64,13 +93,99 @@ export default function AdsTarefasSection({ type, compact }: Props) {
   const archiveTask = useArchiveTask();
   const deleteTask = useDeleteTask();
   const updateOnboardingStatus = useUpdateOnboardingTaskStatus();
+  const completeOnboardingWithAutomation = useCompleteOnboardingTaskWithAutomation();
   const archiveOnboardingTask = useArchiveOnboardingTask();
   const deleteOnboardingTask = useDeleteOnboardingTask();
   const unarchiveOnboardingTask = useUnarchiveOnboardingTask();
   const canArchive = useCanArchiveTasks();
   const addAdsJustification = useAddJustification('ads_tasks', ['ads-tasks', type]);
   const addOnboardingJustification = useAddJustification('onboarding_tasks', ['onboarding-tasks']);
+
+  // Instantly advance the client in the Onboarding pipeline via optimistic cache update.
+  // This runs SYNCHRONOUSLY on the same click — no waiting for DB triggers or realtime.
+  const advanceClientOnboardingInstantly = (completedTask: AdsTask) => {
+    const clientTag = completedTask.tags?.find(tag => tag.startsWith('client_id:'));
+    const typeTag = completedTask.tags?.find(tag => tag.startsWith('onboarding_task_type:'));
+    if (!clientTag || !typeTag) return;
+
+    const clientId = clientTag.replace('client_id:', '');
+    const taskType = typeTag.replace('onboarding_task_type:', '');
+    const advancement = ONBOARDING_TASK_ADVANCEMENT[taskType];
+    if (!advancement) return;
+
+    // Optimistic update: immediately reflect the new step in AdsOnboardingSection
+    queryClient.setQueryData(['client-onboarding', undefined], (old: any[]) => {
+      if (!old) return old;
+      return old.map((item: any) =>
+        item.client_id === clientId
+          ? { ...item, current_step: advancement.step, current_milestone: advancement.milestone }
+          : item
+      );
+    });
+  };
   
+  // ─── Auto-scroll durante drag ───────────────────────────────────────────
+  const isDraggingRef = useRef(false);
+  const mouseYRef = useRef(0);
+  const animFrameRef = useRef<number | null>(null);
+  const dragScrollContainerRef = useRef<HTMLElement | null>(null);
+  const dndWrapperRef = useRef<HTMLDivElement>(null);
+
+  const findScrollParent = (el: Element | null): HTMLElement | null => {
+    if (!el || el === document.body) return null;
+    const oy = window.getComputedStyle(el).overflowY;
+    if (oy === 'auto' || oy === 'scroll') return el as HTMLElement;
+    return findScrollParent(el.parentElement);
+  };
+
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => { mouseYRef.current = e.clientY; };
+    const onTouchMove = (e: TouchEvent) => { mouseYRef.current = e.touches[0].clientY; };
+    window.addEventListener('mousemove', onMouseMove, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('touchmove', onTouchMove);
+    };
+  }, []);
+
+  const startAutoScroll = () => {
+    const loop = () => {
+      const container = dragScrollContainerRef.current;
+      if (!isDraggingRef.current || !container) return;
+      const rect = container.getBoundingClientRect();
+      const y = mouseYRef.current;
+      const ZONE = 80, MAX = 14;
+      const dTop = y - rect.top;
+      const dBot = rect.bottom - y;
+      let speed = 0;
+      if (dTop < ZONE && dTop > 0) speed = -((ZONE - dTop) / ZONE) * MAX;
+      else if (dBot < ZONE && dBot > 0) speed = ((ZONE - dBot) / ZONE) * MAX;
+      if (speed !== 0) container.scrollTop += speed;
+      animFrameRef.current = requestAnimationFrame(loop);
+    };
+    animFrameRef.current = requestAnimationFrame(loop);
+  };
+
+  const handleDragStartScroll = () => {
+    isDraggingRef.current = true;
+    if (dndWrapperRef.current) {
+      dragScrollContainerRef.current = findScrollParent(dndWrapperRef.current.parentElement);
+    }
+    startAutoScroll();
+  };
+
+  const handleDragEndAll = (result: DropResult) => {
+    isDraggingRef.current = false;
+    if (animFrameRef.current) {
+      cancelAnimationFrame(animFrameRef.current);
+      animFrameRef.current = null;
+    }
+    handleDragEnd(result);
+  };
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const [showAllDone, setShowAllDone] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [isAdding, setIsAdding] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<AdsTask | null>(null);
@@ -82,18 +197,31 @@ export default function AdsTarefasSection({ type, compact }: Props) {
     isOnboarding?: boolean;
   }>({ open: false });
 
-  // Filter onboarding tasks by status (only for daily view)
-  const pendingOnboardingTasks = type === 'daily' 
-    ? onboardingTasks.filter(t => t.status === 'pending')
+  // Task types that have a visible ads_task entry in Tarefas Diárias.
+  // The corresponding onboarding_tasks must be hidden to avoid duplicates.
+  const HIDDEN_ONBOARDING_TASK_TYPES = [
+    'marcar_call_1',
+    'realizar_call_1',
+    'apresentar_estrategia',
+    'brifar_criativos',
+    'brifar_otimizacoes_pendentes',
+    'configurar_conta_anuncios',
+    'certificar_consultoria',
+    'publicar_campanha',
+  ];
+
+  // Filter onboarding tasks by status (only for daily view).
+  const pendingOnboardingTasks = type === 'daily'
+    ? onboardingTasks.filter(t => t.status === 'pending' && !HIDDEN_ONBOARDING_TASK_TYPES.includes(t.task_type))
     : [];
-  
+
   const doingOnboardingTasks = type === 'daily'
-    ? onboardingTasks.filter(t => t.status === 'doing')
+    ? onboardingTasks.filter(t => t.status === 'doing' && !HIDDEN_ONBOARDING_TASK_TYPES.includes(t.task_type))
     : [];
-  
+
   // Filter done onboarding tasks (for display in "Feitas" column)
   const doneOnboardingTasks = type === 'daily'
-    ? onboardingTasks.filter(t => t.status === 'done')
+    ? onboardingTasks.filter(t => t.status === 'done' && !HIDDEN_ONBOARDING_TASK_TYPES.includes(t.task_type))
     : [];
 
   const handleAddTask = async (statusId: string) => {
@@ -110,7 +238,7 @@ export default function AdsTarefasSection({ type, compact }: Props) {
     if (!result.destination) return;
     const taskId = result.draggableId;
     const newStatus = result.destination.droppableId;
-    
+
     // Check if it's an onboarding task
     if (taskId.startsWith('onboarding-')) {
       const actualId = taskId.replace('onboarding-', '');
@@ -121,8 +249,20 @@ export default function AdsTarefasSection({ type, compact }: Props) {
       };
       const mappedStatus = statusMap[newStatus];
       if (mappedStatus) {
-        // Backend trigger handles automation (client movement + task creation)
-        updateOnboardingStatus.mutate({ taskId: actualId, status: mappedStatus });
+        if (mappedStatus === 'done') {
+          // Use automation hook to trigger next task creation + client advancement
+          const task = onboardingTasks.find(t => t.id === actualId);
+          if (task) {
+            completeOnboardingWithAutomation.mutate({
+              taskId: actualId,
+              taskType: task.task_type,
+              clientId: task.client_id,
+              clientName: task.client?.name || 'Cliente',
+            });
+          }
+        } else {
+          updateOnboardingStatus.mutate({ taskId: actualId, status: mappedStatus });
+        }
       }
       return;
     }
@@ -130,12 +270,33 @@ export default function AdsTarefasSection({ type, compact }: Props) {
     // Regular task - fire confetti when moving to done
     if (newStatus === 'done' && result.source.droppableId !== 'done') {
       fireCelebration();
+      const completedTask = tasks.find(t => t.id === taskId);
+      if (completedTask) {
+        advanceClientOnboardingInstantly(completedTask);
+        // Toast rico: se é tarefa de onboarding, mostrar para onde o cliente avançou
+        const typeTag = completedTask.tags?.find(t => t.startsWith('onboarding_task_type:'));
+        if (typeTag) {
+          const taskType = typeTag.replace('onboarding_task_type:', '');
+          const advancement = ONBOARDING_TASK_ADVANCEMENT[taskType];
+          if (advancement) {
+            const stepLabel = STEP_LABELS[advancement.step] || advancement.step;
+            toast.success(`🎉 ${completedTask.title}`, {
+              description: `Cliente movido para → ${stepLabel}`,
+              duration: 4000,
+            });
+          } else {
+            toast.success(`🎉 ${completedTask.title} concluída!`);
+          }
+        } else {
+          toast.success(`🎉 ${completedTask.title} concluída!`);
+        }
+      }
     }
-    
+
     updateStatus.mutate({ id: taskId, status: newStatus, task_type: type });
   };
 
-  const handleStatusChange = (taskId: string, newStatus: string, isOnboarding?: boolean, task?: any) => {
+  const handleStatusChange = (taskId: string, newStatus: string, isOnboarding?: boolean, onboardingTask?: any) => {
     if (isOnboarding) {
       const statusMap: Record<string, 'pending' | 'doing' | 'done'> = {
         'todo': 'pending',
@@ -144,17 +305,45 @@ export default function AdsTarefasSection({ type, compact }: Props) {
       };
       const mappedStatus = statusMap[newStatus];
       if (mappedStatus) {
-        // Backend trigger handles automation (client movement + task creation)
-        updateOnboardingStatus.mutate({ taskId, status: mappedStatus });
+        if (mappedStatus === 'done' && onboardingTask) {
+          // Use automation hook to trigger next task creation + client advancement
+          completeOnboardingWithAutomation.mutate({
+            taskId,
+            taskType: onboardingTask.task_type,
+            clientId: onboardingTask.client_id,
+            clientName: onboardingTask.client?.name || 'Cliente',
+          });
+        } else {
+          updateOnboardingStatus.mutate({ taskId, status: mappedStatus });
+        }
       }
       return;
     }
-    
+
     // Fire confetti when completing a task
     if (newStatus === 'done') {
       fireCelebration();
+      const completedTask = tasks.find(t => t.id === taskId);
+      if (completedTask) {
+        advanceClientOnboardingInstantly(completedTask);
+        const typeTag = completedTask.tags?.find(t => t.startsWith('onboarding_task_type:'));
+        if (typeTag) {
+          const taskType = typeTag.replace('onboarding_task_type:', '');
+          const advancement = ONBOARDING_TASK_ADVANCEMENT[taskType];
+          if (advancement) {
+            toast.success(`🎉 ${completedTask.title}`, {
+              description: `Cliente movido para → ${STEP_LABELS[advancement.step] || advancement.step}`,
+              duration: 4000,
+            });
+          } else {
+            toast.success(`🎉 ${completedTask.title} concluída!`);
+          }
+        } else {
+          toast.success(`🎉 ${completedTask.title} concluída!`);
+        }
+      }
     }
-    
+
     updateStatus.mutate({ id: taskId, status: newStatus, task_type: type });
   };
 
@@ -264,7 +453,8 @@ export default function AdsTarefasSection({ type, compact }: Props) {
         </div>
       )}
 
-      <DragDropContext onDragEnd={handleDragEnd}>
+      <div ref={dndWrapperRef}>
+      <DragDropContext onDragEnd={handleDragEndAll} onDragStart={handleDragStartScroll}>
         <div className="space-y-6">
           {STATUSES.map(status => {
             const statusTasks = getTasksByStatus(status.id);
@@ -279,29 +469,44 @@ export default function AdsTarefasSection({ type, compact }: Props) {
                   <span className={status.headerClass}>
                     {status.label}
                   </span>
-                  <span className="text-xs text-muted-foreground font-medium bg-muted px-2 py-0.5 rounded-full">
+                  <span
+                    key={statusTasks.length + onboardingTasksForColumn.length}
+                    className="badge-count text-xs text-muted-foreground font-medium bg-muted px-2 py-0.5 rounded-full"
+                  >
                     {statusTasks.length + onboardingTasksForColumn.length}
                   </span>
                 </div>
                 
                 {hasDoneTasks && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-xs text-muted-foreground hover:text-foreground gap-1.5"
-                    onClick={() => {
-                      // Archive regular tasks
-                      statusTasks.forEach(task => handleArchiveTask(task.id));
-                      // Archive onboarding tasks if user has permission
-                      if (canArchive) {
-                        onboardingTasksForColumn.forEach(task => archiveOnboardingTask.mutate(task.id));
-                      }
-                    }}
-                    disabled={archiveTask.isPending || archiveOnboardingTask.isPending}
-                  >
-                    <Archive size={12} />
-                    Arquivar concluídas
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {/* Ver mais / ver menos para feitas */}
+                    {statusTasks.length > 5 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs text-muted-foreground hover:text-foreground gap-1.5"
+                        onClick={() => setShowAllDone(v => !v)}
+                      >
+                        <ChevronDown size={12} className={cn('transition-transform', showAllDone && 'rotate-180')} />
+                        {showAllDone ? 'Ocultar' : `Ver todas (${statusTasks.length})`}
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs text-muted-foreground hover:text-foreground gap-1.5"
+                      onClick={() => {
+                        statusTasks.forEach(task => handleArchiveTask(task.id));
+                        if (canArchive) {
+                          onboardingTasksForColumn.forEach(task => archiveOnboardingTask.mutate(task.id));
+                        }
+                      }}
+                      disabled={archiveTask.isPending || archiveOnboardingTask.isPending}
+                    >
+                      <Archive size={12} />
+                      Arquivar concluídas
+                    </Button>
+                  </div>
                 )}
               </div>
 
@@ -317,6 +522,18 @@ export default function AdsTarefasSection({ type, compact }: Props) {
                     )}
                   >
                     <div className="space-y-2">
+                      {/* Empty state */}
+                      {statusTasks.length === 0 && onboardingTasksForColumn.length === 0 && (
+                        <div className="flex flex-col items-center justify-center py-8 text-center select-none">
+                          <span className="text-3xl mb-2 opacity-40">
+                            {status.id === 'todo' ? '📋' : status.id === 'doing' ? '⚡' : '✅'}
+                          </span>
+                          <p className="text-xs text-muted-foreground opacity-60">
+                            {status.id === 'done' ? 'Nenhuma tarefa concluída' : 'Nenhuma tarefa aqui'}
+                          </p>
+                        </div>
+                      )}
+
                       {/* Onboarding Tasks */}
                       {getOnboardingTasksForColumn(status.id).map((task, index) => {
                         const isOverdue = task.due_date && isPast(new Date(task.due_date)) && task.status === 'pending';
@@ -482,8 +699,11 @@ export default function AdsTarefasSection({ type, compact }: Props) {
                         );
                       })}
 
-                      {/* Regular Tasks */}
-                      {getTasksByStatus(status.id).map((task, index) => (
+                      {/* Regular Tasks — done column collapses to 5 items */}
+                      {(status.id === 'done' && !showAllDone
+                        ? getTasksByStatus(status.id).slice(-5)
+                        : getTasksByStatus(status.id)
+                      ).map((task, index) => (
                         <Draggable key={task.id} draggableId={task.id} index={index + getOnboardingTasksForColumn(status.id).length}>
                           {(provided, snapshot) => (
                             <div
@@ -651,6 +871,7 @@ export default function AdsTarefasSection({ type, compact }: Props) {
           })}
         </div>
       </DragDropContext>
+      </div>
 
       {/* Card Detail Modal */}
       <AdsCardDetailModal

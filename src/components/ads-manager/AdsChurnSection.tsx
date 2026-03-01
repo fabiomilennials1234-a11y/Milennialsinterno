@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/dialog';
 
 export default function AdsChurnSection() {
-  const { data: clients = [], isLoading } = useAssignedClients();
+  const { data: clients = [], isLoading, error: clientsError } = useAssignedClients();
   const { user, isCEO } = useAuth();
   const queryClient = useQueryClient();
   const [selectedClient, setSelectedClient] = useState<any>(null);
@@ -123,6 +123,15 @@ export default function AdsChurnSection() {
         {[1, 2].map(i => (
           <div key={i} className="h-20 bg-muted/50 rounded-lg animate-pulse" />
         ))}
+      </div>
+    );
+  }
+
+  if (clientsError) {
+    return (
+      <div className="text-center py-8 text-danger">
+        <p className="font-medium text-sm">Erro ao carregar clientes</p>
+        <p className="text-xs mt-1">{(clientsError as Error).message}</p>
       </div>
     );
   }

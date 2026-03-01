@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTargetAdsManager } from '@/contexts/AdsManagerContext';
+import { useActionJustification } from '@/contexts/JustificationContext';
 import { toast } from 'sonner';
 import { addDays, getDay } from 'date-fns';
 
@@ -251,7 +252,7 @@ export function useCreateInitialOnboardingTask() {
           client_id: clientId,
           assigned_to: assignedTo,
           task_type: 'marcar_call_1',
-          title: taskDef.title,
+          title: `Marcar Call 1: ${clientName}`,
           description: `${taskDef.description} Cliente: ${clientName}.`,
           status: 'pending',
           due_date: dueDate.toISOString(),
@@ -286,7 +287,8 @@ export function useCompleteOnboardingTaskWithAutomation() {
   const { user } = useAuth();
   const { targetUserId } = useTargetAdsManager();
   const queryClient = useQueryClient();
-  
+  const { requireJustification } = useActionJustification();
+
   // Use targetUserId if available (when CEO is viewing a manager's board)
   const effectiveUserId = targetUserId || user?.id;
 
@@ -322,11 +324,39 @@ export function useCompleteOnboardingTaskWithAutomation() {
 
       // 2. Check if this is an ADVANCING task (one that moves the client forward)
       const taskDef = ADVANCING_TASK_DEFINITIONS[taskType as keyof typeof ADVANCING_TASK_DEFINITIONS];
-      
+
       // If not an advancing task, just complete it without moving the client
       if (!taskDef) {
         console.log('Task completed without automation (auxiliary task):', taskType);
         return { taskCompleted: true, clientMoved: false, tasksCreated: 0, isAuxiliaryTask: true };
+      }
+
+      // J8: Require justification when completing an advancing milestone task
+      await requireJustification({
+        title: 'Justificativa: Milestone Concluído',
+        subtitle: `Marco ${taskDef.milestone} — ${clientName}`,
+        message: `Registre o que foi entregue neste milestone (ex: "site ao ar", "criativos aprovados", "conta configurada").`,
+        taskId: taskId,
+        taskTable: 'onboarding_milestone_done',
+        taskTitle: `Milestone ${taskDef.milestone} concluído: ${clientName} (${taskType})`,
+      });
+
+      // J10: Detect milestone skip (if jumping more than 1 milestone)
+      const { data: currentOnboarding } = await supabase
+        .from('client_onboarding')
+        .select('current_milestone')
+        .eq('client_id', clientId)
+        .maybeSingle();
+
+      if (currentOnboarding && taskDef.nextMilestone > (currentOnboarding.current_milestone || 0) + 1) {
+        await requireJustification({
+          title: 'Justificativa: Pular Milestone',
+          subtitle: `Pulando do Marco ${currentOnboarding.current_milestone} para o Marco ${taskDef.nextMilestone}`,
+          message: `Você está avançando o cliente "${clientName}" mais de um milestone de uma vez. Explique o motivo.`,
+          taskId: `skip_${taskId}`,
+          taskTable: 'onboarding_milestone_skip',
+          taskTitle: `Milestone skip: ${clientName} (Marco ${currentOnboarding.current_milestone} → ${taskDef.nextMilestone})`,
+        });
       }
 
       // 3. Move client to next step and milestone in onboarding
@@ -413,9 +443,28 @@ export function useCompleteOnboardingTaskWithAutomation() {
             is_delayed: false,
           });
 
-        return { 
-          taskCompleted: true, 
-          clientMoved: true, 
+        // N9: Notify CEO + Comercial that onboarding is 100% complete
+        const { data: notifRecipients } = await supabase
+          .from('user_roles')
+          .select('user_id, role')
+          .in('role', ['ceo', 'consultor_comercial']);
+
+        for (const recipient of notifRecipients || []) {
+          await supabase.from('system_notifications').insert({
+            recipient_id: recipient.user_id,
+            recipient_role: recipient.role,
+            notification_type: 'onboarding_completed',
+            title: '🎉 Onboarding Concluído!',
+            message: `O onboarding do cliente "${clientName}" foi 100% concluído. O cliente está em Acompanhamento.`,
+            client_id: clientId,
+            priority: 'medium',
+            metadata: { completed_by: effectiveUserId, client_name: clientName },
+          } as any);
+        }
+
+        return {
+          taskCompleted: true,
+          clientMoved: true,
           tasksCreated: 0,
           nextStep: 'acompanhamento',
           nextMilestone: 6,
@@ -586,33 +635,88 @@ export function useCompleteOnboardingTaskWithAutomation() {
   });
 }
 
-// Hook to automatically create initial task for new clients
+// Fallback hook: ensures initial task + onboarding record exist when the kanban is viewed.
+// The primary creation happens in useCreateClient (useClientRegistration.ts).
+// This hook only fills gaps for clients that were created before the automation was added,
+// or if the primary creation failed for any reason (e.g. RLS, network).
 export function useAutoCreateTaskForNewClients(clients: any[]) {
-  const createInitialTask = useCreateInitialOnboardingTask();
   const { user } = useAuth();
+  const { targetUserId } = useTargetAdsManager();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!user || !clients.length) return;
 
-    // Find new clients that don't have the initial task yet
     const newClients = clients.filter(c => c.status === 'new_client');
-    
-    newClients.forEach(async (client) => {
-      // Check if task already exists
-      const { data: existingTask } = await supabase
-        .from('onboarding_tasks')
-        .select('id')
-        .eq('client_id', client.id)
-        .eq('task_type', 'marcar_call_1')
-        .or('archived.is.null,archived.eq.false')
-        .maybeSingle();
+    if (newClients.length === 0) return;
 
-      if (!existingTask) {
-        createInitialTask.mutate({ 
-          clientId: client.id, 
-          clientName: client.name 
-        });
+    let cancelled = false;
+
+    (async () => {
+      for (const client of newClients) {
+        if (cancelled) break;
+
+        // 1. Ensure onboarding_tasks "marcar_call_1" exists
+        const { data: existingTask } = await supabase
+          .from('onboarding_tasks')
+          .select('id')
+          .eq('client_id', client.id)
+          .eq('task_type', 'marcar_call_1')
+          .maybeSingle();
+
+        if (!existingTask && !cancelled) {
+          const assignedTo = client.assigned_ads_manager || targetUserId || user.id;
+          const dueDate = addDays(new Date(), 1);
+
+          const { error } = await supabase
+            .from('onboarding_tasks')
+            .insert({
+              client_id: client.id,
+              assigned_to: assignedTo,
+              task_type: 'marcar_call_1',
+              title: `Marcar Call 1: ${client.name}`,
+              description: `Agendar a primeira call com o cliente para alinhamento inicial. Cliente: ${client.name}.`,
+              status: 'pending',
+              due_date: dueDate.toISOString(),
+              milestone: 1,
+            });
+
+          if (error) {
+            console.error('[useAutoCreateTaskForNewClients] Erro ao criar tarefa:', error);
+          } else {
+            console.log('[useAutoCreateTaskForNewClients] Tarefa criada (fallback) para:', client.name);
+          }
+        }
+
+        // 2. Ensure client_onboarding record exists
+        const { data: existingOnboarding } = await supabase
+          .from('client_onboarding')
+          .select('id')
+          .eq('client_id', client.id)
+          .maybeSingle();
+
+        if (!existingOnboarding && !cancelled) {
+          const { error } = await supabase
+            .from('client_onboarding')
+            .insert({
+              client_id: client.id,
+              current_milestone: 1,
+              current_step: 'marcar_call_1',
+              milestone_1_started_at: new Date().toISOString(),
+            });
+
+          if (error) {
+            console.error('[useAutoCreateTaskForNewClients] Erro ao criar onboarding:', error);
+          }
+        }
       }
-    });
-  }, [clients, user]);
+
+      if (!cancelled) {
+        queryClient.invalidateQueries({ queryKey: ['onboarding-tasks'] });
+        queryClient.invalidateQueries({ queryKey: ['client-onboarding'] });
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [clients, user, targetUserId, queryClient]);
 }

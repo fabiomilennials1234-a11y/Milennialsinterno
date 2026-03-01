@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { 
-  useDepartmentTasks, 
-  useCreateDepartmentTask, 
+import {
+  useDepartmentTasks,
+  useCreateDepartmentTask,
   useUpdateDepartmentTaskStatus,
   useArchiveDepartmentTask,
   useDeleteDepartmentTask,
@@ -29,6 +29,16 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import JustificationModal from '@/components/shared/JustificationModal';
 
 interface Props {
@@ -53,6 +63,20 @@ export default function DepartmentTarefasSection({ department, type = 'daily' }:
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [isAdding, setIsAdding] = useState<string | null>(null);
   const [justificationModal, setJustificationModal] = useState<{ open: boolean; task?: DepartmentTask }>({ open: false });
+  const [financeiroConfirm, setFinanceiroConfirm] = useState<{ open: boolean; task?: DepartmentTask }>({ open: false });
+
+  // Check if a task is a financeiro auto-created task (department_task, not mapped financeiro_task)
+  const isFinanceiroAutoTask = (task: DepartmentTask) =>
+    department === 'financeiro' && !!task.related_client_id && task._source !== 'financeiro';
+
+  const handleFinanceiroConfirm = () => {
+    const task = financeiroConfirm.task;
+    if (!task) return;
+
+    fireCelebration();
+    updateStatus.mutate({ taskId: task.id, status: 'done' });
+    setFinanceiroConfirm({ open: false });
+  };
 
   const handleAddTask = async (statusId: string) => {
     if (!newTaskTitle.trim()) return;
@@ -68,20 +92,33 @@ export default function DepartmentTarefasSection({ department, type = 'daily' }:
     if (!result.destination) return;
     const taskId = result.draggableId;
     const newStatus = result.destination.droppableId as 'todo' | 'doing' | 'done';
-    
+    const task = tasks.find(t => t.id === taskId);
+
+    // Intercept: financeiro auto-task moving to done → show confirmation
+    if (newStatus === 'done' && result.source.droppableId !== 'done' && task && isFinanceiroAutoTask(task)) {
+      setFinanceiroConfirm({ open: true, task });
+      return;
+    }
+
     // Fire confetti when moving to done
     if (newStatus === 'done' && result.source.droppableId !== 'done') {
       fireCelebration();
     }
-    
-    updateStatus.mutate({ taskId, status: newStatus });
+
+    updateStatus.mutate({ taskId, status: newStatus, _source: task?._source, _financeiroMeta: task?._financeiroMeta });
   };
 
-  const handleStatusChange = (taskId: string, newStatus: 'todo' | 'doing' | 'done') => {
+  const handleStatusChange = (task: DepartmentTask, newStatus: 'todo' | 'doing' | 'done') => {
+    // Intercept: financeiro auto-task moving to done → show confirmation
+    if (newStatus === 'done' && isFinanceiroAutoTask(task)) {
+      setFinanceiroConfirm({ open: true, task });
+      return;
+    }
+
     if (newStatus === 'done') {
       fireCelebration();
     }
-    updateStatus.mutate({ taskId, status: newStatus });
+    updateStatus.mutate({ taskId: task.id, status: newStatus, _source: task._source, _financeiroMeta: task._financeiroMeta });
   };
 
   const getTasksByStatus = (status: string) => 
@@ -123,7 +160,7 @@ export default function DepartmentTarefasSection({ department, type = 'daily' }:
                   size="sm"
                   className="h-7 text-xs text-muted-foreground hover:text-foreground gap-1.5"
                   onClick={() => {
-                    statusTasks.forEach(task => archiveTask.mutate(task.id));
+                    statusTasks.forEach(task => archiveTask.mutate({ taskId: task.id, _source: task._source }));
                   }}
                   disabled={archiveTask.isPending}
                 >
@@ -234,7 +271,7 @@ export default function DepartmentTarefasSection({ department, type = 'daily' }:
                                         key={s.id}
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          handleStatusChange(task.id, s.id as 'todo' | 'doing' | 'done');
+                                          handleStatusChange(task, s.id as 'todo' | 'doing' | 'done');
                                         }}
                                       >
                                         <div className={cn('w-2.5 h-2.5 rounded-full mr-2',
@@ -249,7 +286,7 @@ export default function DepartmentTarefasSection({ department, type = 'daily' }:
                                     <DropdownMenuItem
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        archiveTask.mutate(task.id);
+                                        archiveTask.mutate({ taskId: task.id, _source: task._source });
                                       }}
                                       className="text-muted-foreground"
                                     >
@@ -259,7 +296,7 @@ export default function DepartmentTarefasSection({ department, type = 'daily' }:
                                     <DropdownMenuItem
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        deleteTask.mutate(task.id);
+                                        deleteTask.mutate({ taskId: task.id, _source: task._source });
                                       }}
                                       className="text-destructive focus:text-destructive"
                                     >
@@ -346,6 +383,24 @@ export default function DepartmentTarefasSection({ department, type = 'daily' }:
         existingJustification={(justificationModal.task as any)?.justification}
         isPending={addJustification.isPending}
       />
+
+      {/* Financeiro Auto-Task Confirmation Dialog */}
+      <AlertDialog open={financeiroConfirm.open} onOpenChange={(open) => !open && setFinanceiroConfirm({ open: false })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar conclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              O cliente já foi cadastrado no Asaas e a primeira cobrança foi enviada?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleFinanceiroConfirm} className="bg-emerald-600 hover:bg-emerald-700">
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DragDropContext>
   );
 }

@@ -56,10 +56,43 @@ export function useUpdateClientLabel() {
         .eq('id', clientId);
 
       if (error) throw error;
-      
-      
+
+      // Check if an action plan is required (label is medio/ruim and no active plan exists)
+      let requiresActionPlan = false;
+      if (label === 'medio' || label === 'ruim') {
+        const { data: activePlans } = await supabase
+          .from('cs_action_plans')
+          .select('id')
+          .eq('client_id', clientId)
+          .eq('status', 'active')
+          .limit(1);
+        requiresActionPlan = !activePlans || activePlans.length === 0;
+      }
+
+      // Auto-complete all active plans when label improves to ótimo/bom
+      let autoCompletedPlans = 0;
+      if (shouldResetClassification(label)) {
+        const { data: plansToComplete } = await supabase
+          .from('cs_action_plans')
+          .select('id')
+          .eq('client_id', clientId)
+          .eq('status', 'active');
+        if (plansToComplete && plansToComplete.length > 0) {
+          const { error: completeError } = await supabase
+            .from('cs_action_plans')
+            .update({ status: 'completed', completed_at: new Date().toISOString() })
+            .in('id', plansToComplete.map(p => p.id));
+          if (!completeError) {
+            autoCompletedPlans = plansToComplete.length;
+            console.log(`[useUpdateClientLabel] Auto-completados ${autoCompletedPlans} plano(s) — Classificação melhorada para ${label === 'otimo' ? 'Ótimo' : 'Bom'}`);
+          } else {
+            console.error('[useUpdateClientLabel] Erro ao auto-completar planos:', completeError);
+          }
+        }
+      }
+
       const wasReset = shouldResetClassification(label);
-      return { classification, wasReset };
+      return { classification, wasReset, requiresActionPlan, autoCompletedPlans };
     },
     onSuccess: (result) => {
       // Invalidate all queries that might contain client data
@@ -80,6 +113,16 @@ export function useUpdateClientLabel() {
       queryClient.invalidateQueries({ queryKey: ['client-tracking'] });
       queryClient.invalidateQueries({ queryKey: ['comercial-tracking'] });
       queryClient.invalidateQueries({ queryKey: ['cards'] });
+
+      // Invalidate action plan queries for auto-completion and modal triggers
+      queryClient.invalidateQueries({ queryKey: ['cs-action-plans'] });
+      queryClient.invalidateQueries({ queryKey: ['cs-active-action-plans-by-clients'] });
+
+      if (result.autoCompletedPlans > 0) {
+        toast.info(`${result.autoCompletedPlans} plano(s) de ação concluído(s) automaticamente`, {
+          description: 'Cliente melhorou de classificação',
+        });
+      }
 
       if (result.classification) {
         toast.success('Etiqueta atualizada', {

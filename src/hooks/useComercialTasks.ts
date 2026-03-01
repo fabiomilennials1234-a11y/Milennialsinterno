@@ -4,6 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useEffect } from 'react';
 import { fireCelebration } from '@/lib/confetti';
+import { getCurrentDayPortuguese } from './useComercialAutomation';
+import { useActionJustification } from '@/contexts/JustificationContext';
 
 export interface ComercialTask {
   id: string;
@@ -116,6 +118,7 @@ export function useCreateComercialTask() {
 export function useUpdateComercialTaskStatus() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { requireJustification } = useActionJustification();
 
   return useMutation({
     mutationFn: async ({ taskId, status }: { taskId: string; status: 'todo' | 'doing' | 'done' }) => {
@@ -126,13 +129,46 @@ export function useUpdateComercialTaskStatus() {
         .eq('id', taskId)
         .single();
 
-      // Update the task status
-      const { error } = await supabase
-        .from('comercial_tasks')
-        .update({ status })
-        .eq('id', taskId);
+      // If completing an auto-generated overdue task, require justification
+      if (status === 'done' && task?.is_auto_generated && task?.due_date) {
+        const isOverdue = new Date(task.due_date) < new Date();
+        if (isOverdue) {
+          const justificationText = await requireJustification({
+            title: 'Tarefa Atrasada',
+            subtitle: 'Justificativa obrigatória',
+            message: `A tarefa "${task.title}" está atrasada. Explique o motivo do atraso.`,
+            taskId: task.id,
+            taskTable: 'comercial_tasks',
+            taskTitle: task.title,
+            priority: 'urgent',
+          });
 
-      if (error) throw error;
+          // Save justification to the task
+          await supabase
+            .from('comercial_tasks')
+            .update({
+              status,
+              justification: justificationText,
+              justification_at: new Date().toISOString(),
+            })
+            .eq('id', taskId);
+
+          // Continue with automation below (skip normal update)
+        } else {
+          const { error } = await supabase
+            .from('comercial_tasks')
+            .update({ status })
+            .eq('id', taskId);
+          if (error) throw error;
+        }
+      } else {
+        // Update the task status
+        const { error } = await supabase
+          .from('comercial_tasks')
+          .update({ status })
+          .eq('id', taskId);
+        if (error) throw error;
+      }
 
       // If moving to done and it's an auto-generated task, trigger automation
       if (status === 'done' && task?.is_auto_generated && task?.auto_task_type) {
@@ -171,6 +207,7 @@ export function useUpdateComercialTaskStatus() {
                   related_client_id: clientId,
                   is_auto_generated: true,
                   auto_task_type: 'realizar_consultoria',
+                  due_date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days from now
                 });
             }
           }
@@ -216,9 +253,23 @@ export function useUpdateComercialTaskStatus() {
                   client_id: clientId,
                   manager_id: clientData.assigned_ads_manager,
                   manager_name: managerName,
-                  current_day: 'segunda',
+                  current_day: getCurrentDayPortuguese(),
                 });
             }
+          }
+
+          // N7: Notify assigned gestor de tráfego that consultoria is done
+          if (clientData?.assigned_ads_manager) {
+            await supabase.from('system_notifications').insert({
+              recipient_id: clientData.assigned_ads_manager,
+              recipient_role: 'gestor_ads',
+              notification_type: 'comercial_consultoria_completed',
+              title: '🤝 Consultoria Comercial Concluída',
+              message: `A consultoria comercial do cliente "${clientName}" foi concluída. O cliente está pronto para acompanhamento.`,
+              client_id: clientId,
+              priority: 'high',
+              metadata: { comercial_user_id: user?.id, client_name: clientName },
+            } as any);
           }
         }
       }

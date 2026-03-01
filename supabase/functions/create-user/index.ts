@@ -133,6 +133,24 @@ Deno.serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    // Create kanban board for gestor_ads with squad (required for sidebar)
+    // Trigger ensure_ads_board_columns cria coluna "Novos Clientes" automaticamente
+    if (role === 'gestor_ads' && squad_id) {
+      const { error: boardError } = await supabaseAdmin
+        .from('kanban_boards')
+        .insert({
+          name: `Gestor de ADS (${name})`,
+          slug: `ads-${userId}`,
+          description: `Kanban individual do Gestor de ADS ${name}`,
+          owner_user_id: userId,
+          squad_id,
+        })
+      if (boardError) {
+        console.error('Error creating ads manager board:', boardError)
+        // Non-fatal: user/profile/role are created, board can be created later
+      }
+    }
     
     return new Response(
       JSON.stringify({

@@ -9,6 +9,7 @@ import ClientLabelBadge from '@/components/shared/ClientLabelBadge';
 import ClientLabelSelector from '@/components/shared/ClientLabelSelector';
 import type { ClientLabel } from '@/components/shared/ClientLabelBadge';
 import InternalExitFormModal from './InternalExitFormModal';
+import CreateActionPlanModal from './CreateActionPlanModal';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -129,10 +130,11 @@ export default function CSClientCard({ client, onClick, showSuggestion, onboardi
   const [selectedClassification, setSelectedClassification] = useState<CSClassification | null>(null);
   const [reason, setReason] = useState('');
   const [isInternalExitFormOpen, setIsInternalExitFormOpen] = useState(false);
-  
+  const [isActionPlanModalOpen, setIsActionPlanModalOpen] = useState(false);
+
   const updateClassification = useUpdateClientClassification();
   const updateLastContact = useUpdateClientLastContact();
-  const { canMove, canSetLabels } = useCSPermissions();
+  const { canMove, canSetLabels, isViewOnly } = useCSPermissions();
   
   // Check if client is closed (churned, encerrado, or in distrato)
   const isClientClosed = client.cs_classification === 'encerrado' || 
@@ -151,6 +153,15 @@ export default function CSClientCard({ client, onClick, showSuggestion, onboardi
   const classification = client.cs_classification || 'normal';
   const config = CLASSIFICATION_CONFIG[classification];
   const Icon = config.icon;
+
+  // Needs action plan: alerta/critico without an active plan
+  const needsActionPlan = !activeActionPlan && (classification === 'alerta' || classification === 'critico');
+
+  const handleLabelChangeResult = (result: { label: any; requiresActionPlan: boolean; autoCompletedPlans: number }) => {
+    if (result.requiresActionPlan && !isViewOnly) {
+      setTimeout(() => setIsActionPlanModalOpen(true), 300);
+    }
+  };
 
   const handleClassificationChange = (newClassification: CSClassification) => {
     setSelectedClassification(newClassification);
@@ -245,8 +256,10 @@ export default function CSClientCard({ client, onClick, showSuggestion, onboardi
         className={cn(
           "bg-card hover:shadow-apple-hover transition-all cursor-pointer group border-l-4 relative",
           config.cardBorder,
-          classification === 'critico' && "ring-1 ring-destructive/20",
-          classification === 'alerta' && "ring-1 ring-warning/20",
+          classification === 'critico' && !needsActionPlan && "ring-1 ring-destructive/20",
+          classification === 'alerta' && !needsActionPlan && "ring-1 ring-warning/20",
+          needsActionPlan && classification === 'critico' && "ring-2 ring-destructive/40 animate-pulse-border-red",
+          needsActionPlan && classification === 'alerta' && "ring-2 ring-warning/40 animate-pulse-border-orange",
         )}
         onClick={onClick}
       >
@@ -297,6 +310,8 @@ export default function CSClientCard({ client, onClick, showSuggestion, onboardi
                   <ClientLabelSelector
                     clientId={client.id}
                     currentLabel={client.client_label as ClientLabel}
+                    clientName={client.name}
+                    onLabelChangeResult={handleLabelChangeResult}
                   />
                 )}
 
@@ -439,6 +454,49 @@ export default function CSClientCard({ client, onClick, showSuggestion, onboardi
                   </div>
                   <p className="text-xs text-muted-foreground truncate mt-0.5">
                     📋 {activeActionPlan.problemLabel}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Missing Action Plan - Urgent Visual */}
+          {needsActionPlan && (
+            <div
+              className={cn(
+                'rounded-lg p-2.5 border-2 cursor-pointer transition-all',
+                classification === 'critico'
+                  ? 'bg-destructive/10 border-destructive animate-pulse-border-red'
+                  : 'bg-warning/10 border-warning animate-pulse-border-orange',
+              )}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!isViewOnly) setIsActionPlanModalOpen(true);
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <div className={cn(
+                  'w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0',
+                  classification === 'critico'
+                    ? 'bg-destructive/20 text-destructive'
+                    : 'bg-warning/20 text-warning',
+                )}>
+                  !
+                </div>
+                <div className="flex-1 min-w-0">
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      'text-[10px] font-bold',
+                      classification === 'critico'
+                        ? 'bg-destructive/10 text-destructive border-destructive/30'
+                        : 'bg-warning/10 text-warning border-warning/30',
+                    )}
+                  >
+                    Ação Necessária
+                  </Badge>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Nenhum plano de ação ativo
                   </p>
                 </div>
               </div>
@@ -682,6 +740,14 @@ export default function CSClientCard({ client, onClick, showSuggestion, onboardi
         clientId={client.id}
         clientName={client.name}
         existingExitReasonId={exitReason?.id}
+      />
+
+      {/* Action Plan Modal - triggered by label change or urgent visual click */}
+      <CreateActionPlanModal
+        isOpen={isActionPlanModalOpen}
+        onClose={() => setIsActionPlanModalOpen(false)}
+        clientId={client.id}
+        clientName={client.name}
       />
     </>
   );

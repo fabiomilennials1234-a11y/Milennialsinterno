@@ -116,21 +116,13 @@ export default function MillennialsGrowthDashPage() {
           </div>
         </div>
 
-        {/* Product Metrics Sections */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <ProductMetricsSection 
-            productSlug="millennials-growth"
-            productName="Millennials Growth"
-            productColor="#6366f1"
-            showCosts={true}
-          />
-          <ProductMetricsSection 
-            productSlug="millennials-outbound"
-            productName="Millennials Outbound"
-            productColor="#10b981"
-            showCosts={false}
-          />
-        </div>
+        {/* Product Metrics Section — Growth only */}
+        <ProductMetricsSection
+          productSlug="millennials-growth"
+          productName="Millennials Growth"
+          productColor="#6366f1"
+          showCosts={true}
+        />
 
         {/* Bottleneck Alerts */}
         {stats.bottlenecks.length > 0 && (

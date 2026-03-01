@@ -3,10 +3,9 @@ import MainLayout from '@/layouts/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { 
+import {
   Crown,
   TrendingUp,
-  TrendingDown,
   AlertTriangle,
   Loader2,
   ArrowUpRight,
@@ -26,16 +25,16 @@ import {
   ShoppingCart,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { useCEOIndicadores } from '@/hooks/useCEOIndicadores';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   PieChart,
   Pie,
@@ -64,25 +63,36 @@ const formatCurrencyCompact = (value: number) => {
   return formatCurrency(value);
 };
 
-// Mini Card Component
-function MetricCard({ 
-  icon: Icon, 
-  label, 
-  value, 
+// Variant → accent color map for dashboard-card top bar
+const ACCENT_MAP: Record<string, string> = {
+  default: 'primary',
+  success: 'success',
+  warning: 'warning',
+  destructive: 'danger',
+  info: 'info',
+};
+
+// Enhanced Metric Card Component
+function MetricCard({
+  icon: Icon,
+  label,
+  value,
   subValue,
   trend,
   trendValue,
   variant = 'default',
-  size = 'default'
-}: { 
-  icon: any; 
-  label: string; 
-  value: string | number; 
+  size = 'default',
+  animDelay = 0,
+}: {
+  icon: any;
+  label: string;
+  value: string | number;
   subValue?: string;
   trend?: 'up' | 'down' | 'neutral';
   trendValue?: string;
   variant?: 'default' | 'success' | 'warning' | 'destructive' | 'info';
   size?: 'default' | 'compact';
+  animDelay?: number;
 }) {
   const variantStyles = {
     default: 'text-foreground',
@@ -93,7 +103,7 @@ function MetricCard({
   };
 
   const iconBgStyles = {
-    default: 'bg-muted/50',
+    default: 'bg-primary/10',
     success: 'bg-success/10',
     warning: 'bg-warning/10',
     destructive: 'bg-destructive/10',
@@ -101,51 +111,97 @@ function MetricCard({
   };
 
   return (
-    <div className={cn("card-apple", size === 'compact' ? 'p-3' : 'p-4')}>
-      <div className="flex items-center gap-2 mb-2">
-        <div className={cn("p-1.5 rounded-lg", iconBgStyles[variant])}>
+    <div
+      className={cn("dashboard-card dash-card-animate", size === 'compact' ? 'p-3' : 'p-5')}
+      data-accent={ACCENT_MAP[variant]}
+      style={{ animationDelay: `${animDelay}ms` }}
+    >
+      <div className="flex items-center gap-2.5 mb-3">
+        <div className={cn("p-2 rounded-xl", iconBgStyles[variant])}>
           <Icon size={size === 'compact' ? 14 : 16} className={variantStyles[variant]} />
         </div>
-        <span className="text-xs text-muted-foreground truncate">{label}</span>
+        <span className="text-xs font-medium text-muted-foreground truncate">{label}</span>
       </div>
-      <p className={cn(
-        "font-bold",
-        size === 'compact' ? 'text-lg' : 'text-xl',
-        variantStyles[variant]
-      )}>
-        {typeof value === 'number' ? formatCurrency(value) : value}
-      </p>
-      {(subValue || trendValue) && (
-        <div className="flex items-center gap-1 mt-1">
-          {trend && (
-            <>
-              {trend === 'up' && <ArrowUpRight size={12} className="text-success" />}
-              {trend === 'down' && <ArrowDownRight size={12} className="text-destructive" />}
-            </>
+      {typeof value === 'number' ? (
+        <AnimatedCounter
+          value={value}
+          prefix="R$ "
+          className={cn(
+            "dashboard-metric-sm font-bold block",
+            variantStyles[variant]
           )}
-          <span className={cn(
-            "text-xs",
-            trend === 'up' && 'text-success',
-            trend === 'down' && 'text-destructive',
-            !trend && 'text-muted-foreground'
-          )}>
-            {trendValue || subValue}
-          </span>
+        />
+      ) : (
+        <p className={cn(
+          "font-bold animate-count-up",
+          size === 'compact' ? 'text-xl' : 'text-2xl',
+          variantStyles[variant]
+        )}>
+          {value}
+        </p>
+      )}
+      {(subValue || trendValue) && (
+        <div className="flex items-center gap-1.5 mt-2">
+          {trend === 'up' && (
+            <span className="trend-badge-up">
+              <ArrowUpRight size={12} />
+              {trendValue || subValue}
+            </span>
+          )}
+          {trend === 'down' && (
+            <span className="trend-badge-down">
+              <ArrowDownRight size={12} />
+              {trendValue || subValue}
+            </span>
+          )}
+          {!trend && (
+            <span className="text-xs text-muted-foreground">{trendValue || subValue}</span>
+          )}
         </div>
       )}
     </div>
   );
 }
 
-// Section Header Component
-function SectionHeader({ title, icon: Icon }: { title: string; icon: any }) {
+// Enhanced Section Header Component
+function SectionHeader({ title, icon: Icon, color = 'primary' }: { title: string; icon: any; color?: string }) {
+  const colorMap: Record<string, string> = {
+    primary: 'bg-primary/10 text-primary',
+    success: 'bg-success/10 text-success',
+    info: 'bg-info/10 text-info',
+    warning: 'bg-warning/10 text-warning',
+    danger: 'bg-destructive/10 text-destructive',
+  };
+
   return (
-    <div className="flex items-center gap-2 mb-3">
-      <Icon size={16} className="text-primary" />
-      <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">{title}</h2>
+    <div className="dashboard-section-header">
+      <div className={cn("icon-circle", colorMap[color] || colorMap.primary)}>
+        <Icon size={20} />
+      </div>
+      <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-foreground">{title}</h2>
     </div>
   );
 }
+
+// Enhanced chart tooltip style
+const chartTooltipStyle = {
+  backgroundColor: 'hsl(var(--card))',
+  border: '1px solid hsl(var(--border))',
+  borderRadius: '12px',
+  fontSize: '12px',
+  boxShadow: '0 4px 12px rgb(0 0 0 / 0.08)',
+  padding: '8px 12px',
+};
+
+// Pie chart colors (design system palette)
+const PIE_COLORS = [
+  'hsl(217 91% 60%)',   // blue
+  'hsl(160 84% 39%)',   // green
+  'hsl(258 90% 66%)',   // purple
+  'hsl(38 92% 50%)',    // orange
+  'hsl(0 84% 60%)',     // red
+  'hsl(48 100% 50%)',   // yellow
+];
 
 export default function CEODashboardPage() {
   const { isCEO } = useAuth();
@@ -166,8 +222,8 @@ export default function CEODashboardPage() {
   }
 
   const resultado = indicadores.faturamentoMes - indicadores.custosPagosM;
-  const margemPercent = indicadores.faturamentoMes > 0 
-    ? (resultado / indicadores.faturamentoMes) * 100 
+  const margemPercent = indicadores.faturamentoMes > 0
+    ? (resultado / indicadores.faturamentoMes) * 100
     : 0;
 
   return (
@@ -176,7 +232,7 @@ export default function CEODashboardPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white">
+            <div className="icon-circle bg-gradient-to-br from-amber-500 to-orange-600 text-white">
               <Crown size={22} />
             </div>
             <div>
@@ -194,52 +250,56 @@ export default function CEODashboardPage() {
           </Badge>
         </div>
 
-        {/* ===== RESULTADO DO MÊS ===== */}
-        <div className="card-apple p-6 bg-gradient-to-br from-primary/5 via-background to-primary/10 border border-primary/20">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+        {/* ===== RESULTADO DO MES ===== */}
+        <div className="dashboard-hero dash-card-animate">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
             <div className="text-center md:text-left">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
-                Resultado do Mês
+              <p className="text-[10px] font-semibold uppercase tracking-[0.15em] mb-2 text-white/50">
+                Resultado do Mes
               </p>
-              <div className="flex items-center gap-2">
-                {resultado >= 0 ? (
-                  <ArrowUpRight size={28} className="text-success" />
-                ) : (
-                  <ArrowDownRight size={28} className="text-destructive" />
-                )}
-                <p className={cn(
-                  "text-4xl font-bold",
-                  resultado >= 0 ? "text-success" : "text-destructive"
+              <div className="flex items-center gap-3">
+                <div className={cn(
+                  "p-2.5 rounded-xl",
+                  resultado >= 0 ? "bg-emerald-500/20" : "bg-red-500/20"
                 )}>
-                  {formatCurrency(resultado)}
-                </p>
+                  {resultado >= 0 ? (
+                    <ArrowUpRight size={24} className="text-emerald-400" />
+                  ) : (
+                    <ArrowDownRight size={24} className="text-red-400" />
+                  )}
+                </div>
+                <AnimatedCounter
+                  value={Math.abs(resultado)}
+                  prefix={resultado >= 0 ? "R$ " : "-R$ "}
+                  className={cn(
+                    "dashboard-metric",
+                    resultado >= 0 ? "text-emerald-400" : "text-red-400"
+                  )}
+                />
               </div>
-              <Badge 
-                variant="secondary" 
-                className={cn(
-                  "mt-2 text-xs",
-                  margemPercent >= 0 
-                    ? "bg-success/10 text-success border-success/20" 
-                    : "bg-destructive/10 text-destructive border-destructive/20"
-                )}
-              >
+              <div className={cn(
+                "inline-flex items-center gap-1.5 mt-3 px-3 py-1 rounded-full text-xs font-semibold",
+                margemPercent >= 0
+                  ? "bg-emerald-500/15 text-emerald-400"
+                  : "bg-red-500/15 text-red-400"
+              )}>
                 {margemPercent.toFixed(1)}% de margem
-              </Badge>
+              </div>
             </div>
-            
+
             {/* Mini Stats */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-6">
               <div className="text-center">
-                <p className="text-xs text-muted-foreground">Recebido</p>
-                <p className="text-lg font-bold text-success">{formatCurrencyCompact(indicadores.faturamentoMes)}</p>
+                <p className="text-[10px] font-medium uppercase tracking-wider mb-1 text-white/45">Recebido</p>
+                <p className="text-lg font-bold text-emerald-400">{formatCurrencyCompact(indicadores.faturamentoMes)}</p>
               </div>
               <div className="text-center">
-                <p className="text-xs text-muted-foreground">Custos</p>
-                <p className="text-lg font-bold text-destructive">{formatCurrencyCompact(indicadores.custosPagosM)}</p>
+                <p className="text-[10px] font-medium uppercase tracking-wider mb-1 text-white/45">Custos</p>
+                <p className="text-lg font-bold text-red-400">{formatCurrencyCompact(indicadores.custosPagosM)}</p>
               </div>
               <div className="text-center">
-                <p className="text-xs text-muted-foreground">Caixa</p>
-                <p className={cn("text-lg font-bold", indicadores.caixaHoje >= 0 ? 'text-info' : 'text-warning')}>
+                <p className="text-[10px] font-medium uppercase tracking-wider mb-1 text-white/45">Caixa</p>
+                <p className={cn("text-lg font-bold", indicadores.caixaHoje >= 0 ? 'text-blue-400' : 'text-amber-400')}>
                   {formatCurrencyCompact(indicadores.caixaHoje)}
                 </p>
               </div>
@@ -249,56 +309,55 @@ export default function CEODashboardPage() {
 
         {/* ===== FATURAMENTO ===== */}
         <section>
-          <SectionHeader title="Faturamento" icon={DollarSign} />
+          <SectionHeader title="Faturamento" icon={DollarSign} color="success" />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <MetricCard 
+            <MetricCard
               icon={CreditCard}
-              label="Faturamento /mês"
+              label="Faturamento /mes"
               value={indicadores.faturamentoMes}
-              subValue="Já recebido"
+              subValue="Ja recebido"
               variant="success"
+              animDelay={0}
             />
-            <MetricCard 
+            <MetricCard
               icon={Target}
               label="Faturamento Previsto"
               value={indicadores.faturamentoPrevisto}
-              subValue={`-${indicadores.inadimplenciaTaxa.toFixed(1)}% inadimplência`}
+              subValue={`-${indicadores.inadimplenciaTaxa.toFixed(1)}% inadimplencia`}
               variant="info"
+              animDelay={80}
             />
-            <MetricCard 
+            <MetricCard
               icon={Calendar}
               label="Faturamento /ano"
               value={indicadores.faturamentoAno}
               variant="default"
+              animDelay={160}
             />
-            <MetricCard 
+            <MetricCard
               icon={Wallet}
               label="Caixa Hoje"
               value={indicadores.caixaHoje}
               variant={indicadores.caixaHoje >= 0 ? 'success' : 'warning'}
+              animDelay={240}
             />
           </div>
 
-          {/* Faturamento por Produto - Gráfico */}
+          {/* Faturamento por Produto - Grafico */}
           {indicadores.faturamentoPorProduto.length > 0 && (
-            <div className="card-apple p-4 mt-4">
-              <p className="text-xs font-medium text-muted-foreground mb-3">Faturamento por Produto</p>
+            <div className="dashboard-card dash-card-animate mt-4" style={{ animationDelay: '300ms' }}>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">Faturamento por Produto</p>
               <div className="h-48">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={indicadores.faturamentoPorProduto} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis type="number" tickFormatter={(v) => formatCurrencyCompact(v)} tick={{ fontSize: 10 }} />
-                    <YAxis dataKey="productName" type="category" width={100} tick={{ fontSize: 10 }} />
-                    <Tooltip 
+                    <XAxis type="number" tickFormatter={(v) => formatCurrencyCompact(v)} tick={{ fontSize: 10, fill: 'hsl(130 7% 45%)' }} />
+                    <YAxis dataKey="productName" type="category" width={100} tick={{ fontSize: 10, fill: 'hsl(130 7% 45%)' }} />
+                    <Tooltip
                       formatter={(value: number) => [formatCurrency(value), 'Faturamento']}
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--card))', 
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px',
-                        fontSize: '12px'
-                      }}
+                      contentStyle={chartTooltipStyle}
                     />
-                    <Bar dataKey="valor" radius={[0, 4, 4, 0]}>
+                    <Bar dataKey="valor" radius={[0, 6, 6, 0]}>
                       {indicadores.faturamentoPorProduto.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
@@ -312,148 +371,171 @@ export default function CEODashboardPage() {
 
         {/* ===== CUSTOS ===== */}
         <section>
-          <SectionHeader title="Custos" icon={Receipt} />
+          <SectionHeader title="Custos" icon={Receipt} color="danger" />
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            <MetricCard 
+            <MetricCard
               icon={Receipt}
-              label="Custos Previstos /mês"
+              label="Custos Previstos /mes"
               value={indicadores.custosPrevistosM}
               variant="destructive"
+              animDelay={0}
             />
-            <MetricCard 
+            <MetricCard
               icon={CreditCard}
-              label="Custos Pagos /mês"
+              label="Custos Pagos /mes"
               value={indicadores.custosPagosM}
               subValue={`${((indicadores.custosPagosM / indicadores.custosPrevistosM) * 100).toFixed(0)}% do previsto`}
               variant="warning"
+              animDelay={80}
             />
-            <MetricCard 
+            <MetricCard
               icon={AlertTriangle}
-              label="Inadimplência"
+              label="Inadimplencia"
               value={indicadores.inadimplenciaValor}
               subValue={`${indicadores.inadimplenciaTaxa.toFixed(1)}%`}
               variant={indicadores.inadimplenciaValor > 0 ? 'warning' : 'success'}
+              animDelay={160}
             />
           </div>
         </section>
 
         {/* ===== CRESCIMENTO ===== */}
         <section>
-          <SectionHeader title="Crescimento Mensal" icon={TrendingUp} />
+          <SectionHeader title="Crescimento Mensal" icon={TrendingUp} color="info" />
           <div className="grid grid-cols-2 gap-3">
-            <div className="card-apple p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-muted-foreground">Crescimento | Faturamento</span>
-                {indicadores.crescimentoFaturamento >= 0 ? (
-                  <Badge variant="secondary" className="bg-success/10 text-success text-[10px]">
-                    +{indicadores.crescimentoFaturamentoPercent.toFixed(1)}%
-                  </Badge>
-                ) : (
-                  <Badge variant="secondary" className="bg-destructive/10 text-destructive text-[10px]">
-                    {indicadores.crescimentoFaturamentoPercent.toFixed(1)}%
-                  </Badge>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                {indicadores.crescimentoFaturamento >= 0 ? (
-                  <ArrowUpRight size={20} className="text-success" />
-                ) : (
-                  <ArrowDownRight size={20} className="text-destructive" />
-                )}
+            {/* Crescimento Faturamento */}
+            <div
+              className="dashboard-card dash-card-animate"
+              data-accent={indicadores.crescimentoFaturamento >= 0 ? 'success' : 'danger'}
+              style={{ animationDelay: '0ms' }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-medium text-muted-foreground">Crescimento | Faturamento</span>
                 <span className={cn(
-                  "text-2xl font-bold",
-                  indicadores.crescimentoFaturamento >= 0 ? 'text-success' : 'text-destructive'
+                  "px-2.5 py-0.5 rounded-full text-[10px] font-bold",
+                  indicadores.crescimentoFaturamento >= 0
+                    ? "bg-success/10 text-success"
+                    : "bg-destructive/10 text-destructive"
                 )}>
-                  {formatCurrency(Math.abs(indicadores.crescimentoFaturamento))}
+                  {indicadores.crescimentoFaturamento >= 0 ? '+' : ''}{indicadores.crescimentoFaturamentoPercent.toFixed(1)}%
                 </span>
               </div>
-              <p className="text-[10px] text-muted-foreground mt-1">vs. mês anterior</p>
+              <div className="flex items-center gap-2">
+                <div className={cn(
+                  "p-1.5 rounded-lg",
+                  indicadores.crescimentoFaturamento >= 0 ? "bg-success/10" : "bg-destructive/10"
+                )}>
+                  {indicadores.crescimentoFaturamento >= 0 ? (
+                    <ArrowUpRight size={18} className="text-success" />
+                  ) : (
+                    <ArrowDownRight size={18} className="text-destructive" />
+                  )}
+                </div>
+                <AnimatedCounter
+                  value={Math.abs(indicadores.crescimentoFaturamento)}
+                  prefix={indicadores.crescimentoFaturamento >= 0 ? "R$ " : "-R$ "}
+                  className={cn(
+                    "text-2xl font-bold",
+                    indicadores.crescimentoFaturamento >= 0 ? 'text-success' : 'text-destructive'
+                  )}
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-2">vs. mes anterior</p>
             </div>
 
-            <div className="card-apple p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-muted-foreground">Crescimento | MRR</span>
-                {indicadores.crescimentoMRR >= 0 ? (
-                  <Badge variant="secondary" className="bg-success/10 text-success text-[10px]">
-                    +{indicadores.crescimentoMRRPercent.toFixed(1)}%
-                  </Badge>
-                ) : (
-                  <Badge variant="secondary" className="bg-destructive/10 text-destructive text-[10px]">
-                    {indicadores.crescimentoMRRPercent.toFixed(1)}%
-                  </Badge>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                {indicadores.crescimentoMRR >= 0 ? (
-                  <ArrowUpRight size={20} className="text-success" />
-                ) : (
-                  <ArrowDownRight size={20} className="text-destructive" />
-                )}
+            {/* Crescimento MRR */}
+            <div
+              className="dashboard-card dash-card-animate"
+              data-accent={indicadores.crescimentoMRR >= 0 ? 'success' : 'danger'}
+              style={{ animationDelay: '80ms' }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-medium text-muted-foreground">Crescimento | MRR</span>
                 <span className={cn(
-                  "text-2xl font-bold",
-                  indicadores.crescimentoMRR >= 0 ? 'text-success' : 'text-destructive'
+                  "px-2.5 py-0.5 rounded-full text-[10px] font-bold",
+                  indicadores.crescimentoMRR >= 0
+                    ? "bg-success/10 text-success"
+                    : "bg-destructive/10 text-destructive"
                 )}>
-                  {formatCurrency(Math.abs(indicadores.crescimentoMRR))}
+                  {indicadores.crescimentoMRR >= 0 ? '+' : ''}{indicadores.crescimentoMRRPercent.toFixed(1)}%
                 </span>
               </div>
-              <div className="grid grid-cols-4 gap-1 mt-2 text-[9px]">
-                <div className="text-center p-1 bg-muted/30 rounded">
-                  <p className="text-muted-foreground">Inicial</p>
-                  <p className="font-medium">{formatCurrencyCompact(indicadores.mrrInicial)}</p>
+              <div className="flex items-center gap-2">
+                <div className={cn(
+                  "p-1.5 rounded-lg",
+                  indicadores.crescimentoMRR >= 0 ? "bg-success/10" : "bg-destructive/10"
+                )}>
+                  {indicadores.crescimentoMRR >= 0 ? (
+                    <ArrowUpRight size={18} className="text-success" />
+                  ) : (
+                    <ArrowDownRight size={18} className="text-destructive" />
+                  )}
                 </div>
-                <div className="text-center p-1 bg-destructive/10 rounded">
-                  <p className="text-destructive">-Churn</p>
-                  <p className="font-medium text-destructive">{formatCurrencyCompact(indicadores.mrrDepreciation)}</p>
+                <AnimatedCounter
+                  value={Math.abs(indicadores.crescimentoMRR)}
+                  prefix={indicadores.crescimentoMRR >= 0 ? "R$ " : "-R$ "}
+                  className={cn(
+                    "text-2xl font-bold",
+                    indicadores.crescimentoMRR >= 0 ? 'text-success' : 'text-destructive'
+                  )}
+                />
+              </div>
+              {/* MRR Breakdown */}
+              <div className="grid grid-cols-4 gap-1.5 mt-3">
+                <div className="text-center p-1.5 bg-muted/40 rounded-lg">
+                  <p className="text-[9px] font-medium text-muted-foreground">Inicial</p>
+                  <p className="text-[10px] font-bold">{formatCurrencyCompact(indicadores.mrrInicial)}</p>
                 </div>
-                <div className="text-center p-1 bg-info/10 rounded">
-                  <p className="text-info">+Exp</p>
-                  <p className="font-medium text-info">{formatCurrencyCompact(indicadores.mrrExpansion)}</p>
+                <div className="text-center p-1.5 bg-destructive/10 rounded-lg">
+                  <p className="text-[9px] font-medium text-destructive">-Churn</p>
+                  <p className="text-[10px] font-bold text-destructive">{formatCurrencyCompact(indicadores.mrrDepreciation)}</p>
                 </div>
-                <div className="text-center p-1 bg-success/10 rounded">
-                  <p className="text-success">+Novo</p>
-                  <p className="font-medium text-success">{formatCurrencyCompact(indicadores.mrrVendido)}</p>
+                <div className="text-center p-1.5 bg-info/10 rounded-lg">
+                  <p className="text-[9px] font-medium text-info">+Exp</p>
+                  <p className="text-[10px] font-bold text-info">{formatCurrencyCompact(indicadores.mrrExpansion)}</p>
+                </div>
+                <div className="text-center p-1.5 bg-success/10 rounded-lg">
+                  <p className="text-[9px] font-medium text-success">+Novo</p>
+                  <p className="text-[10px] font-bold text-success">{formatCurrencyCompact(indicadores.mrrVendido)}</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Histórico de Crescimento */}
+          {/* Historico de Crescimento */}
           {indicadores.historicoMensal.length > 0 && (
-            <div className="card-apple p-4 mt-4">
-              <p className="text-xs font-medium text-muted-foreground mb-3">Evolução (6 meses)</p>
-              <div className="h-40">
+            <div className="dashboard-card dash-card-animate mt-4" style={{ animationDelay: '160ms' }}>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">Evolucao (6 meses)</p>
+              <div className="h-44">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={indicadores.historicoMensal}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="mes" tick={{ fontSize: 10 }} />
-                    <YAxis tickFormatter={(v) => formatCurrencyCompact(v)} tick={{ fontSize: 10 }} />
-                    <Tooltip 
+                    <XAxis dataKey="mes" tick={{ fontSize: 10, fill: 'hsl(130 7% 45%)' }} />
+                    <YAxis tickFormatter={(v) => formatCurrencyCompact(v)} tick={{ fontSize: 10, fill: 'hsl(130 7% 45%)' }} />
+                    <Tooltip
                       formatter={(value: number, name: string) => [
-                        formatCurrency(value), 
+                        formatCurrency(value),
                         name === 'faturamento' ? 'Faturamento' : 'MRR'
                       ]}
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--card))', 
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px',
-                        fontSize: '11px'
-                      }}
+                      contentStyle={chartTooltipStyle}
                     />
                     <Legend wrapperStyle={{ fontSize: '10px' }} />
-                    <Line 
-                      type="monotone" 
-                      dataKey="faturamento" 
-                      stroke="hsl(var(--success))" 
-                      strokeWidth={2}
-                      dot={{ r: 3 }}
+                    <Line
+                      type="monotone"
+                      dataKey="faturamento"
+                      stroke="hsl(var(--success))"
+                      strokeWidth={2.5}
+                      dot={{ r: 4, fill: 'hsl(var(--success))', strokeWidth: 2, stroke: 'hsl(var(--card))' }}
+                      activeDot={{ r: 6 }}
                       name="Faturamento"
                     />
-                    <Line 
-                      type="monotone" 
-                      dataKey="mrr" 
-                      stroke="hsl(var(--info))" 
-                      strokeWidth={2}
-                      dot={{ r: 3 }}
+                    <Line
+                      type="monotone"
+                      dataKey="mrr"
+                      stroke="hsl(var(--info))"
+                      strokeWidth={2.5}
+                      dot={{ r: 4, fill: 'hsl(var(--info))', strokeWidth: 2, stroke: 'hsl(var(--card))' }}
+                      activeDot={{ r: 6 }}
                       name="MRR"
                     />
                   </LineChart>
@@ -465,33 +547,36 @@ export default function CEODashboardPage() {
 
         {/* ===== VENDAS ===== */}
         <section>
-          <SectionHeader title="Vendas do Mês" icon={ShoppingCart} />
+          <SectionHeader title="Vendas do Mes" icon={ShoppingCart} color="primary" />
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            <MetricCard 
+            <MetricCard
               icon={UserPlus}
               label="Novos Clientes"
               value={`${indicadores.novosClientesMes}`}
               variant="success"
+              animDelay={0}
             />
-            <MetricCard 
+            <MetricCard
               icon={TrendingUp}
-              label="Vendas MRR /mês"
+              label="Vendas MRR /mes"
               value={indicadores.vendasMRRMes}
               variant="success"
+              animDelay={80}
             />
-            <MetricCard 
+            <MetricCard
               icon={ShoppingCart}
-              label="Vendas Projeto /mês"
+              label="Vendas Projeto /mes"
               value={indicadores.vendasProjetoMes}
               variant="info"
+              animDelay={160}
             />
           </div>
 
-          {/* Vendas por Produto - Gráfico */}
+          {/* Vendas por Produto - Grafico */}
           {indicadores.vendasPorProdutoMRR.length > 0 && (
-            <div className="card-apple p-4 mt-4">
-              <p className="text-xs font-medium text-muted-foreground mb-3">Vendas MRR por Produto</p>
-              <div className="h-40">
+            <div className="dashboard-card dash-card-animate mt-4" style={{ animationDelay: '240ms' }}>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">Vendas MRR por Produto</p>
+              <div className="h-44">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -500,31 +585,27 @@ export default function CEODashboardPage() {
                       nameKey="productName"
                       cx="50%"
                       cy="50%"
-                      innerRadius={40}
-                      outerRadius={60}
-                      paddingAngle={2}
+                      innerRadius={45}
+                      outerRadius={65}
+                      paddingAngle={3}
+                      strokeWidth={0}
                     >
-                      {indicadores.vendasPorProdutoMRR.map((entry, index) => (
-                        <Cell 
-                          key={`cell-${index}`} 
-                          fill={`hsl(${(index * 60) % 360}, 70%, 50%)`} 
+                      {indicadores.vendasPorProdutoMRR.map((_entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={PIE_COLORS[index % PIE_COLORS.length]}
                         />
                       ))}
                     </Pie>
-                    <Tooltip 
+                    <Tooltip
                       formatter={(value: number) => [formatCurrency(value), 'Valor MRR']}
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--card))', 
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px',
-                        fontSize: '11px'
-                      }}
+                      contentStyle={chartTooltipStyle}
                     />
-                    <Legend 
-                      layout="vertical" 
-                      align="right" 
+                    <Legend
+                      layout="vertical"
+                      align="right"
                       verticalAlign="middle"
-                      wrapperStyle={{ fontSize: '10px' }}
+                      wrapperStyle={{ fontSize: '11px' }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -535,55 +616,62 @@ export default function CEODashboardPage() {
 
         {/* ===== CLIENTES ===== */}
         <section>
-          <SectionHeader title="Métricas de Clientes" icon={Users} />
+          <SectionHeader title="Metricas de Clientes" icon={Users} color="info" />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <MetricCard 
+            <MetricCard
               icon={Users}
               label="Clientes Ativos"
               value={`${indicadores.clientesAtivos}`}
               variant="default"
+              animDelay={0}
             />
-            <MetricCard 
+            <MetricCard
               icon={UserMinus}
-              label="Churn /mês"
+              label="Churn /mes"
               value={`${indicadores.churnGeral}`}
               subValue={formatCurrency(indicadores.churnValor)}
               variant={indicadores.churnGeral > 0 ? 'destructive' : 'success'}
+              animDelay={80}
             />
-            <MetricCard 
+            <MetricCard
               icon={AlertTriangle}
               label="Em Risco"
               value={`${indicadores.clientesEmRisco}`}
               variant={indicadores.clientesEmRisco > 0 ? 'warning' : 'success'}
+              animDelay={160}
             />
-            <MetricCard 
+            <MetricCard
               icon={Target}
-              label="Ticket Médio"
+              label="Ticket Medio"
               value={indicadores.ticketMedio}
               variant="info"
+              animDelay={240}
             />
           </div>
-          
+
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
-            <MetricCard 
+            <MetricCard
               icon={PiggyBank}
-              label="LTV Médio"
+              label="LTV Medio"
               value={indicadores.ltvMedio}
               variant="success"
+              animDelay={300}
             />
-            <MetricCard 
+            <MetricCard
               icon={Percent}
               label="ROI Clientes"
               value={`${indicadores.roiClientes.toFixed(1)}x`}
               subValue="LTV / Ticket"
               variant="info"
+              animDelay={380}
             />
-            <MetricCard 
+            <MetricCard
               icon={BarChart3}
-              label="Inadimplência"
+              label="Inadimplencia"
               value={`${indicadores.inadimplenciaTaxa.toFixed(1)}%`}
               subValue={formatCurrency(indicadores.inadimplenciaValor)}
               variant={indicadores.inadimplenciaTaxa > 5 ? 'warning' : 'success'}
+              animDelay={460}
             />
           </div>
         </section>
@@ -591,8 +679,7 @@ export default function CEODashboardPage() {
         {/* Footer */}
         <div className="text-center py-4 border-t border-border/50">
           <p className="text-xs text-muted-foreground">
-            Dados atualizados em tempo real • Para análises detalhadas, acesse o{' '}
-            <span className="font-medium text-foreground">Dash Millennials Growth</span>
+            Dados atualizados em tempo real
           </p>
         </div>
       </div>

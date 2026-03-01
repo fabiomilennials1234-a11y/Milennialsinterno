@@ -14,6 +14,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
   // Permissões
   isAdminUser: boolean;
   isCEO: boolean;
@@ -157,6 +158,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setSession(null);
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    if (session?.user) {
+      const userData = await fetchUserData(session.user.id);
+      setUser(userData);
+    }
+  }, [fetchUserData, session?.user?.id]);
+
   const isCEO = user?.role === 'ceo';
   const isAdminUser = user ? isAdmin(user.role) : false;
   const canManageUsersFlag = user ? canManageUsers(user.role) : false;
@@ -176,6 +184,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isLoading,
     login,
     logout,
+    refreshUser,
     isAdminUser,
     isCEO,
     canManageUsersFlag,

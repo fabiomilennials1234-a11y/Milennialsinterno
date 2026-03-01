@@ -35,6 +35,16 @@ const DAYS = [
   { id: 'sexta', label: 'SEX' },
 ];
 
+function getInitials(name: string): string {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(n => n[0])
+    .join('')
+    .toUpperCase();
+}
+
 interface DocForm {
   client_budget: string;
   metrics: string;
@@ -224,13 +234,32 @@ export default function AdsAcompanhamentoSection({ compact }: Props) {
       <DragDropContext onDragEnd={handleDragEnd}>
         {DAYS.map(day => (
           <div key={day.id}>
-            {/* Day Header */}
-            <div className="px-3 py-2 bg-muted/50 rounded-t-lg font-medium text-sm border border-b-0 border-border">
-              {day.label}
-              <Badge variant="secondary" className="ml-2 text-[10px]">
-                {getClientsByDay(day.id).length}
-              </Badge>
-            </div>
+            {/* Day Header — fica vermelho quando há cliente atrasado na coluna */}
+            {(() => {
+              const dayClients = getClientsByDay(day.id);
+              const hasDelayed = dayClients.some(item => item.is_delayed);
+              return (
+                <div className={cn(
+                  'px-3 py-2 rounded-t-lg font-medium text-sm border border-b-0 transition-colors',
+                  hasDelayed
+                    ? 'bg-danger/10 border-danger/40 text-danger'
+                    : 'bg-muted/50 border-border text-foreground'
+                )}>
+                  {day.label}
+                  <Badge
+                    variant={hasDelayed ? 'destructive' : 'secondary'}
+                    className="ml-2 text-[10px]"
+                  >
+                    {dayClients.length}
+                  </Badge>
+                  {hasDelayed && (
+                    <span className="ml-2 text-[10px] font-normal opacity-80">
+                      ⚠️ atrasado
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Clients */}
             <Droppable droppableId={day.id}>
@@ -263,15 +292,23 @@ export default function AdsAcompanhamentoSection({ compact }: Props) {
                             <ContractStatusBadge clientId={item.client_id} className="w-full justify-center" />
                             
                             <div className="flex items-center gap-2">
-                              <GripVertical size={12} className="text-muted-foreground" />
+                              <GripVertical size={12} className="text-muted-foreground shrink-0" />
+                              {/* Avatar com iniciais */}
+                              <div className={cn(
+                                'w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[9px] font-bold',
+                                item.is_delayed ? 'bg-danger/20 text-danger' : 'bg-primary/20 text-primary'
+                              )}>
+                                {getInitials(item.client?.name || 'C')}
+                              </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-1">
                                   {item.is_delayed ? (
-                                    <Badge variant="destructive" className="text-[8px] px-1 py-0">
+                                    <Badge variant="destructive" className="text-[8px] px-1 py-0 gap-0.5 shrink-0">
                                       <AlertCircle size={8} />
+                                      <span>Atrasado</span>
                                     </Badge>
                                   ) : (
-                                    <Badge className="text-[8px] px-1 py-0 bg-emerald-500">
+                                    <Badge className="text-[8px] px-1 py-0 bg-emerald-500 shrink-0">
                                       <CheckCircle size={8} />
                                     </Badge>
                                   )}

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useActionJustification } from '@/contexts/JustificationContext';
 import { toast } from 'sonner';
 import { useEffect } from 'react';
 
@@ -184,22 +185,46 @@ export function useComercialAcompanhamentoClients() {
   });
 }
 
+// Comercial status hierarchy (higher index = further along)
+const COMERCIAL_STATUS_ORDER = ['novo_cliente', 'consultoria_marcada', 'em_acompanhamento'];
+
 // Update client comercial status
 export function useUpdateComercialStatus() {
   const queryClient = useQueryClient();
+  const { requireJustification } = useActionJustification();
 
   return useMutation({
-    mutationFn: async ({ 
-      clientId, 
+    mutationFn: async ({
+      clientId,
       status,
-      onboardingStarted = false 
-    }: { 
-      clientId: string; 
+      onboardingStarted = false,
+      clientName,
+      currentStatus,
+    }: {
+      clientId: string;
       status: string;
       onboardingStarted?: boolean;
+      clientName?: string;
+      currentStatus?: string;
     }) => {
+      // J7: Detect regression (moving to an earlier status)
+      if (currentStatus) {
+        const currentIdx = COMERCIAL_STATUS_ORDER.indexOf(currentStatus);
+        const newIdx = COMERCIAL_STATUS_ORDER.indexOf(status);
+        if (currentIdx >= 0 && newIdx >= 0 && newIdx < currentIdx) {
+          await requireJustification({
+            title: 'Justificativa: Regressão de Status',
+            subtitle: 'Movimentação regressiva detectada',
+            message: `Você está movendo o cliente "${clientName || 'Cliente'}" de volta para um status anterior. Explique o motivo.`,
+            taskId: clientId,
+            taskTable: 'comercial_status_regression',
+            taskTitle: `Regressão: ${clientName || 'Cliente'} (${currentStatus} → ${status})`,
+          });
+        }
+      }
+
       const updates: Record<string, any> = { comercial_status: status };
-      
+
       if (status === 'consultoria_marcada' && onboardingStarted) {
         updates.comercial_onboarding_started_at = new Date().toISOString();
       }

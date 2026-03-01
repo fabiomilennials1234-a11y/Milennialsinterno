@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import logo from '@/assets/logo.png';
+import { MgrowthLogo } from '@/components/ui/MgrowthLogo';
 import { 
   LayoutDashboard, 
   Users, 
@@ -30,8 +30,9 @@ import {
 import { cn } from '@/lib/utils';
 import { ROLE_LABELS, canViewBoard, UserRole } from '@/types/auth';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { 
-  useSidebarPermissions, 
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  useSidebarPermissions,
   isAdsBoard, 
   getBoardPath, 
   getBoardLabel,
@@ -205,17 +206,30 @@ export default function AppSidebar() {
     return 'text-sidebar-foreground';
   };
 
+  // Tooltip wrapper — só ativo quando sidebar está colapsada
+  const NavTooltip = ({ label, children }: { label: string; children: React.ReactNode }) => {
+    if (!isCollapsed) return <>{children}</>;
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>{children}</TooltipTrigger>
+        <TooltipContent side="right" className="text-xs font-medium">{label}</TooltipContent>
+      </Tooltip>
+    );
+  };
+
   return (
-    <aside 
+    <TooltipProvider delayDuration={0}>
+    <aside
       className={cn(
-        "h-screen bg-sidebar flex flex-col border-r border-sidebar-border transition-all duration-300 sticky top-0",
+        "h-screen bg-sidebar flex flex-col border-r border-sidebar-border sticky top-0",
         isCollapsed ? "w-20" : "w-72"
       )}
+      style={{ transition: 'width 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)' }}
     >
       {/* Header */}
       <div className="p-4 flex items-center justify-between border-b border-sidebar-border">
         {!isCollapsed && (
-          <img src={logo} alt="Millennials B2B" className="h-8" />
+          <MgrowthLogo className="h-8 text-sidebar-foreground" />
         )}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
@@ -226,69 +240,77 @@ export default function AppSidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto scrollbar-elegant p-4 space-y-2">
-        
+      <div className="relative flex-1 min-h-0">
+      <nav className="h-full overflow-y-auto scrollbar-elegant p-4 space-y-3">
+
         {/* ========== SEÇÃO CEO ========== */}
         {isCEO && (
-          <div className="space-y-1.5 pb-6 border-b border-sidebar-border/30">
+          <div className="space-y-1.5 pb-5">
             {!isCollapsed && (
-              <span className="px-4 py-2.5 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wide block">
-                Strategic Vision
-              </span>
+              <div className="sidebar-section-label"><span>Strategic Vision</span></div>
             )}
-            <NavLink to="/ceo" className={({ isActive }) => cn("sidebar-item", isActive && "active")}>
-              <Crown size={20} />
-              {!isCollapsed && <span>Indicadores</span>}
-            </NavLink>
-            {ceoBoard && (
-              <NavLink to="/kanban/ceo" className={({ isActive }) => cn("sidebar-item", isActive && "active")}>
-                <Kanban size={20} />
-                {!isCollapsed && <span>Kanban CEO</span>}
+            <NavTooltip label="Indicadores">
+              <NavLink to="/ceo" className={({ isActive }) => cn("sidebar-item", isActive && "active")}>
+                <Crown size={20} />
+                {!isCollapsed && <span>Indicadores</span>}
               </NavLink>
+            </NavTooltip>
+            {ceoBoard && (
+              <NavTooltip label="Kanban CEO">
+                <NavLink to="/kanban/ceo" className={({ isActive }) => cn("sidebar-item", isActive && "active")}>
+                  <Kanban size={20} />
+                  {!isCollapsed && <span>Kanban CEO</span>}
+                </NavLink>
+              </NavTooltip>
             )}
-            <NavLink to="/okrs-millennials" className={({ isActive }) => cn("sidebar-item bg-gradient-to-r from-primary/20 to-transparent border-l-2 border-primary", isActive && "active")}>
-              <Target size={20} />
-              {!isCollapsed && <span>OKRs Millennials</span>}
-            </NavLink>
-            <NavLink to="/tv-dashboard" className={({ isActive }) => cn("sidebar-item bg-gradient-to-r from-amber-500/20 to-transparent border-l-2 border-amber-500", isActive && "active")}>
-              <LayoutDashboard size={20} />
-              {!isCollapsed && <span>TV Dashboard</span>}
-            </NavLink>
-            {!isCollapsed && <div className="sidebar-section-divider" />}
+            <NavTooltip label="OKRs Millennials">
+              <NavLink to="/okrs-millennials" className={({ isActive }) => cn("sidebar-item bg-gradient-to-r from-primary/20 to-transparent border-l-2 border-primary", isActive && "active")}>
+                <Target size={20} />
+                {!isCollapsed && <span>OKRs Millennials</span>}
+              </NavLink>
+            </NavTooltip>
+            <NavTooltip label="TV Dashboard">
+              <NavLink to="/tv-dashboard" className={({ isActive }) => cn("sidebar-item bg-gradient-to-r from-amber-500/20 to-transparent border-l-2 border-amber-500", isActive && "active")}>
+                <LayoutDashboard size={20} />
+                {!isCollapsed && <span>TV Dashboard</span>}
+              </NavLink>
+            </NavTooltip>
           </div>
         )}
 
         {/* ========== SEÇÃO GESTOR DE PROJETOS / SUCESSO CLIENTE ========== */}
         {(isAdminUser || user?.role === 'sucesso_cliente') && !isCEO && (
-          <div className="space-y-1.5 pb-6 border-b border-sidebar-border/30">
+          <div className="space-y-1.5 pb-5">
             {!isCollapsed && (
-              <span className="px-4 py-2.5 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wide">
-                Management
-              </span>
+              <div className="sidebar-section-label"><span>Management</span></div>
             )}
-            <NavLink to="/kanban/cadastro-novos-clientes" className={({ isActive }) => cn("sidebar-item", isActive && "active")}>
-              <UserPlus size={20} />
-              {!isCollapsed && <span>Cadastrar Cliente</span>}
-            </NavLink>
-            <NavLink to="/admin/usuarios" className={({ isActive }) => cn("sidebar-item", isActive && "active")}>
-              <Users size={20} />
-              {!isCollapsed && <span>Usuários</span>}
-            </NavLink>
-            {isAdminUser && (
-              <NavLink to="/admin/grupos" className={({ isActive }) => cn("sidebar-item", isActive && "active")}>
-                <Building2 size={20} />
-                {!isCollapsed && <span>Grupos</span>}
+            <NavTooltip label="Cadastrar Cliente">
+              <NavLink to="/kanban/cadastro-novos-clientes" className={({ isActive }) => cn("sidebar-item", isActive && "active")}>
+                <UserPlus size={20} />
+                {!isCollapsed && <span>Cadastrar Cliente</span>}
               </NavLink>
+            </NavTooltip>
+            <NavTooltip label="Usuários">
+              <NavLink to="/admin/usuarios" className={({ isActive }) => cn("sidebar-item", isActive && "active")}>
+                <Users size={20} />
+                {!isCollapsed && <span>Usuários</span>}
+              </NavLink>
+            </NavTooltip>
+            {isAdminUser && (
+              <NavTooltip label="Grupos">
+                <NavLink to="/admin/grupos" className={({ isActive }) => cn("sidebar-item", isActive && "active")}>
+                  <Building2 size={20} />
+                  {!isCollapsed && <span>Grupos</span>}
+                </NavLink>
+              </NavTooltip>
             )}
           </div>
         )}
 
         {/* ========== CATEGORIAS DE PRODUTOS (CEO ONLY) ========== */}
         {isCEO && productCategories.length > 0 && !isCollapsed && (
-          <div className="space-y-1.5 pb-6 border-b border-sidebar-border/30">
-            <span className="px-4 py-2.5 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wide">
-              Products
-            </span>
+          <div className="space-y-1.5 pb-5">
+            <div className="sidebar-section-label"><span>Products</span></div>
             {productCategories.map(productCategory => {
               const CategoryIcon = productCategoryIcons[productCategory.icon || ''] || Package;
               
@@ -308,7 +330,7 @@ export default function AppSidebar() {
                       className={cn("transition-transform duration-200", openProductCategories[productCategory.id] && "rotate-180")} 
                     />
                   </CollapsibleTrigger>
-                  <CollapsibleContent className="pl-4 space-y-1 mt-1">
+                  <CollapsibleContent className="pl-4 space-y-1 mt-1 sidebar-tree">
                     {/* Subcategorias dentro da categoria principal */}
                     {productCategory.subcategories.map(subcategory => {
                       const SubcategoryIcon = productCategoryIcons[subcategory.icon || ''] || TrendingUp;
@@ -334,7 +356,7 @@ export default function AppSidebar() {
                                 className={cn("transition-transform duration-200", openProductCategories[`simple_${subcategory.id}`] && "rotate-180")} 
                               />
                             </CollapsibleTrigger>
-                            <CollapsibleContent className="pl-4 space-y-1 mt-1">
+                            <CollapsibleContent className="pl-4 space-y-1 mt-1 sidebar-open-indicator">
                               {/* Dashboard Link - Premium Style (Violet) */}
                               <NavLink
                                 to={`/produto/${board.slug}`}
@@ -400,7 +422,7 @@ export default function AppSidebar() {
                               className={cn("transition-transform duration-200", openProductCategories[subcategory.id] && "rotate-180")} 
                             />
                           </CollapsibleTrigger>
-                          <CollapsibleContent className="pl-4 space-y-1 mt-1">
+                          <CollapsibleContent className="pl-4 space-y-1 mt-1 sidebar-open-indicator">
                             {/* Link do Dashboard - Premium Style (Violet) for ALL subcategories with groups */}
                             <NavLink
                               to={subcategory.name === 'Millennials Growth' ? '/millennials-growth' : `/produto/${subcategory.name.toLowerCase().replace(/\s+/g, '-')}`}
@@ -449,7 +471,7 @@ export default function AppSidebar() {
                                     className={cn("transition-transform duration-200", openGroups[group.id] && "rotate-180")} 
                                   />
                                 </CollapsibleTrigger>
-                                <CollapsibleContent className="pl-4 space-y-1 mt-1">
+                                <CollapsibleContent className="pl-4 space-y-1 mt-1 sidebar-tree">
                                   {/* Coringas */}
                                   {getCoringaRoles(group.id).length > 0 && (
                                     <div className="pl-2 border-l-2 border-sidebar-border space-y-1">
@@ -496,7 +518,7 @@ export default function AppSidebar() {
                                             className={cn("transition-transform duration-200", openSquads[squad.id] && "rotate-180")} 
                                           />
                                         </CollapsibleTrigger>
-                                        <CollapsibleContent className="pl-4 space-y-0.5">
+                                        <CollapsibleContent className="pl-4 space-y-0.5 sidebar-open-indicator">
                                           {squadAdsBoards.map(adsBoard => (
                                             <NavLink
                                               key={adsBoard.id}
@@ -575,7 +597,7 @@ export default function AppSidebar() {
                             className={cn("transition-transform duration-200", openGroups[group.id] && "rotate-180")} 
                           />
                         </CollapsibleTrigger>
-                        <CollapsibleContent className="pl-4 space-y-1 mt-1">
+                        <CollapsibleContent className="pl-4 space-y-1 mt-1 sidebar-tree">
                           {/* Coringas */}
                           {getCoringaRoles(group.id).length > 0 && (
                             <div className="pl-2 border-l-2 border-sidebar-border space-y-1">
@@ -589,7 +611,7 @@ export default function AppSidebar() {
                                   className={() => cn(
                                     "flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg transition-colors",
                                     isRoleActive(role)
-                                      ? "bg-sidebar-primary text-sidebar-primary-foreground" 
+                                      ? "bg-sidebar-primary text-sidebar-primary-foreground"
                                       : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                                   )}
                                 >
@@ -622,7 +644,7 @@ export default function AppSidebar() {
                                     className={cn("transition-transform duration-200", openSquads[squad.id] && "rotate-180")} 
                                   />
                                 </CollapsibleTrigger>
-                                <CollapsibleContent className="pl-4 space-y-0.5">
+                                <CollapsibleContent className="pl-4 space-y-0.5 sidebar-open-indicator">
                                   {squadAdsBoards.map(adsBoard => (
                                     <NavLink
                                       key={adsBoard.id}
@@ -688,11 +710,9 @@ export default function AppSidebar() {
 
         {/* ========== GRUPOS (GESTOR DE PROJETOS VIEW) ========== */}
         {isAdminUser && !isCEO && visibleGroups.length > 0 && !isCollapsed && (
-          <div className="space-y-1.5 pb-6 border-b border-sidebar-border/30">
-            <span className="px-4 py-2.5 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wide">
-              My Group
-            </span>
-            
+          <div className="space-y-1.5 pb-5">
+            <div className="sidebar-section-label"><span>My Group</span></div>
+
             {visibleGroups.map(group => (
               <Collapsible
                 key={group.id}
@@ -704,12 +724,12 @@ export default function AppSidebar() {
                     <Building2 size={20} />
                     <span>{group.name}</span>
                   </div>
-                  <ChevronDown 
-                    size={16} 
-                    className={cn("transition-transform duration-200", openGroups[group.id] && "rotate-180")} 
+                  <ChevronDown
+                    size={16}
+                    className={cn("transition-transform duration-200", openGroups[group.id] && "rotate-180")}
                   />
                 </CollapsibleTrigger>
-                <CollapsibleContent className="pl-4 space-y-1 mt-1">
+                <CollapsibleContent className="pl-4 space-y-1 mt-1 sidebar-tree">
                   {/* Coringas */}
                   {getCoringaRoles(group.id).length > 0 && (
                     <div className="pl-2 border-l-2 border-sidebar-border space-y-1">
@@ -756,7 +776,7 @@ export default function AppSidebar() {
                             className={cn("transition-transform duration-200", openSquads[squad.id] && "rotate-180")} 
                           />
                         </CollapsibleTrigger>
-                        <CollapsibleContent className="pl-6 space-y-0.5">
+                        <CollapsibleContent className="pl-6 space-y-0.5 sidebar-open-indicator">
                           {squadAdsBoards.map(adsBoard => (
                             <NavLink
                               key={adsBoard.id}
@@ -807,9 +827,7 @@ export default function AppSidebar() {
         {/* ========== MINHA ORGANIZAÇÃO (USUÁRIO OPERACIONAL) ========== */}
         {!isAdminUser && userGroup && !isCollapsed && (
           <div className="space-y-1">
-            <span className="px-3 text-xs font-semibold text-sidebar-foreground/40 uppercase tracking-wider">
-              Minha Organização
-            </span>
+            <div className="sidebar-section-label"><span>Minha Organização</span></div>
             
             <Collapsible
               open={openGroups[userGroup.id] ?? true}
@@ -825,7 +843,7 @@ export default function AppSidebar() {
                   className={cn("transition-transform duration-200", (openGroups[userGroup.id] ?? true) && "rotate-180")} 
                 />
               </CollapsibleTrigger>
-              <CollapsibleContent className="pl-4 space-y-1 mt-1">
+              <CollapsibleContent className="pl-4 space-y-1 mt-1 sidebar-tree">
                 {/* Com Squad */}
                 {userSquad && (
                   <Collapsible
@@ -837,12 +855,12 @@ export default function AppSidebar() {
                         <Briefcase size={16} />
                         <span>{userSquad.name}</span>
                       </div>
-                      <ChevronDown 
-                        size={14} 
-                        className={cn("transition-transform duration-200", (openSquads[userSquad.id] ?? true) && "rotate-180")} 
+                      <ChevronDown
+                        size={14}
+                        className={cn("transition-transform duration-200", (openSquads[userSquad.id] ?? true) && "rotate-180")}
                       />
                     </CollapsibleTrigger>
-                    <CollapsibleContent className="pl-6 space-y-0.5">
+                    <CollapsibleContent className="pl-6 space-y-0.5 sidebar-open-indicator">
                       {/* Rota especial (ex: Gestor de Ads PRO+) */}
                       {userSpecialRoute && (
                         <NavLink
@@ -892,9 +910,7 @@ export default function AppSidebar() {
         {/* ========== MINHA ÁREA (FALLBACK SEM GRUPO) ========== */}
         {!isAdminUser && !userGroup && !isCollapsed && (userSpecialRoute || user?.role) && (
           <div className="space-y-1">
-            <span className="px-3 text-xs font-semibold text-sidebar-foreground/40 uppercase tracking-wider">
-              Minha Área
-            </span>
+            <div className="sidebar-section-label"><span>Minha Área</span></div>
 
             {userSpecialRoute && (
               <NavLink
@@ -929,11 +945,8 @@ export default function AppSidebar() {
 
         {/* ========== VENDAS ========== */}
         {user?.role && (isAdminUser || user?.role === 'sucesso_cliente' || user?.role === 'financeiro') && !isCollapsed && (
-          <div className="space-y-1 pb-2">
-            <div className="sidebar-section-divider" />
-            <span className="px-3 py-2 text-xs font-semibold text-sidebar-foreground/40 uppercase tracking-wider block">
-              Vendas
-            </span>
+          <div className="space-y-1.5 pb-4">
+            <div className="sidebar-section-label"><span>Vendas</span></div>
             
             {/* UP Sells - visível para CS, CEO e Gestor de Projetos */}
             {(isAdminUser || user?.role === 'sucesso_cliente') && (
@@ -961,11 +974,8 @@ export default function AppSidebar() {
 
         {/* ========== TREINAMENTOS ========== */}
         {user?.role && !isCollapsed && (
-          <div className="space-y-1 pb-2">
-            <div className="sidebar-section-divider" />
-            <span className="px-3 py-2 text-xs font-semibold text-sidebar-foreground/40 uppercase tracking-wider block">
-              Treinamento
-            </span>
+          <div className="space-y-1.5 pb-4">
+            <div className="sidebar-section-label"><span>Treinamento</span></div>
             <NavLink
               to="/treinamentos"
               className={({ isActive }) => cn("sidebar-item", isActive && "active")}
@@ -978,11 +988,8 @@ export default function AppSidebar() {
 
         {/* ========== ADMINISTRATIVO ========== */}
         {user?.role && !isCollapsed && (
-          <div className="space-y-1 pb-3">
-            <div className="sidebar-section-divider" />
-            <span className="px-3 py-2 text-xs font-semibold text-sidebar-foreground/40 uppercase tracking-wider block">
-              Administrativo
-            </span>
+          <div className="space-y-1.5 pb-4">
+            <div className="sidebar-section-label"><span>Administrativo</span></div>
             {visibleCategories.map(category => {
               const IconComponent = categoryIcons[category.icon || ''] || Folder;
               const categoryBoard = category.boards[0];
@@ -1014,7 +1021,7 @@ export default function AppSidebar() {
                         className={cn("transition-transform duration-200", openProductCategories['financeiro'] && "rotate-180")} 
                       />
                     </CollapsibleTrigger>
-                    <CollapsibleContent className="pl-6 space-y-0.5 mt-1">
+                    <CollapsibleContent className="pl-6 space-y-0.5 mt-1 sidebar-open-indicator">
                       {/* Dashboard Financeiro */}
                       <NavLink
                         to="/financeiro-dashboard"
@@ -1082,7 +1089,7 @@ export default function AppSidebar() {
                         className={cn("transition-transform duration-200", openProductCategories['rh'] && "rotate-180")} 
                       />
                     </CollapsibleTrigger>
-                    <CollapsibleContent className="pl-6 space-y-0.5 mt-1">
+                    <CollapsibleContent className="pl-6 space-y-0.5 mt-1 sidebar-open-indicator">
                       <NavLink
                         to="/rh/contratacao"
                         className={() => cn(
@@ -1132,44 +1139,63 @@ export default function AppSidebar() {
 
         {/* ========== ADMINISTRAÇÃO (CEO) ========== */}
         {isCEO && (
-          <div className="space-y-1 pb-3">
+          <div className="space-y-1.5 pb-4">
             {!isCollapsed && (
-              <>
-                <div className="sidebar-section-divider" />
-                <span className="px-3 py-2 text-xs font-semibold text-sidebar-foreground/40 uppercase tracking-wider block">
-                  Configs Sistema
-                </span>
-              </>
+              <div className="sidebar-section-label"><span>Configs Sistema</span></div>
             )}
-            <NavLink to="/admin/usuarios" className={({ isActive }) => cn("sidebar-item", isActive && "active")}>
-              <Users size={20} />
-              {!isCollapsed && <span>Usuários</span>}
-            </NavLink>
-            <NavLink to="/admin/grupos" className={({ isActive }) => cn("sidebar-item", isActive && "active")}>
-              <Building2 size={20} />
-              {!isCollapsed && <span>Grupos</span>}
-            </NavLink>
-            <NavLink to="/admin/configuracoes" className={({ isActive }) => cn("sidebar-item", isActive && "active")}>
-              <Settings size={20} />
-              {!isCollapsed && <span>Configurações</span>}
-            </NavLink>
+            <NavTooltip label="Usuários">
+              <NavLink to="/admin/usuarios" className={({ isActive }) => cn("sidebar-item", isActive && "active")}>
+                <Users size={20} />
+                {!isCollapsed && <span>Usuários</span>}
+              </NavLink>
+            </NavTooltip>
+            <NavTooltip label="Grupos">
+              <NavLink to="/admin/grupos" className={({ isActive }) => cn("sidebar-item", isActive && "active")}>
+                <Building2 size={20} />
+                {!isCollapsed && <span>Grupos</span>}
+              </NavLink>
+            </NavTooltip>
+            <NavTooltip label="Configurações">
+              <NavLink to="/admin/configuracoes" className={({ isActive }) => cn("sidebar-item", isActive && "active")}>
+                <Settings size={20} />
+                {!isCollapsed && <span>Configurações</span>}
+              </NavLink>
+            </NavTooltip>
           </div>
         )}
       </nav>
+      {/* Scroll fade indicator */}
+      <div
+        className="absolute bottom-0 inset-x-0 h-12 pointer-events-none"
+        style={{ background: 'linear-gradient(to bottom, transparent 0%, hsl(var(--sidebar-background)) 85%)' }}
+      />
+      </div>
 
       {/* User Info */}
       {user && (
-        <div className={cn("p-4 border-t border-sidebar-border", isCollapsed ? "flex justify-center" : "")}>
-          <div className={cn("flex items-center gap-3", isCollapsed && "justify-center")}>
-            <div className="w-10 h-10 rounded-full bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground font-display font-bold">
-              {user.name.charAt(0)}
+        <div className={cn("p-3 border-t border-sidebar-border", isCollapsed ? "flex justify-center" : "")}>
+          <div className={cn("sidebar-user-card", isCollapsed && "justify-center")}>
+            <div className="relative">
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center text-sidebar-primary-foreground font-display font-bold text-sm"
+                style={{
+                  background: 'linear-gradient(135deg, hsl(48 100% 45%), hsl(38 92% 55%))',
+                  boxShadow: '0 0 0 2px hsl(var(--sidebar-background)), 0 0 14px hsl(48 100% 50% / 0.3)'
+                }}
+              >
+                {user.name.charAt(0)}
+              </div>
+              <span
+                className="absolute bottom-0.5 right-0.5 w-2.5 h-2.5 rounded-full bg-success animate-pulse"
+                style={{ border: '2px solid hsl(var(--sidebar-background))' }}
+              />
             </div>
             {!isCollapsed && (
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-sidebar-foreground truncate">
+                <p className="text-sm font-semibold text-sidebar-foreground truncate">
                   {user.name}
                 </p>
-                <p className="text-xs text-sidebar-foreground/60 truncate">
+                <p className="text-[11px] text-sidebar-foreground/50 truncate">
                   {ROLE_LABELS[user.role]}
                 </p>
               </div>
@@ -1178,5 +1204,6 @@ export default function AppSidebar() {
         </div>
       )}
     </aside>
+    </TooltipProvider>
   );
 }

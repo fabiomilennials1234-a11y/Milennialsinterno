@@ -26,6 +26,11 @@ export default function ContractStatusBadge({
   const { getContractStatus } = useContractStatus();
   const contractInfo = getContractStatus(clientId);
 
+  // Don't render anything while data is loading — avoids flashing "Contrato não assinado"
+  if (contractInfo.status === 'loading') {
+    return null;
+  }
+
   // If showOnlyCritical is true, only show expiring or expired badges
   if (showOnlyCritical && contractInfo.status !== 'expiring' && contractInfo.status !== 'expired') {
     return null;

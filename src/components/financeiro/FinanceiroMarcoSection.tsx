@@ -3,7 +3,7 @@ import { useFinanceiroOnboarding, MARCOS, ContractStep, getStepLabel, ALL_STEPS 
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Clock } from 'lucide-react';
+import { ArrowRight, Clock, Package } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import ContractExpirationModal from './ContractExpirationModal';
@@ -14,16 +14,18 @@ interface FinanceiroMarcoSectionProps {
 
 export default function FinanceiroMarcoSection({ marcoId }: FinanceiroMarcoSectionProps) {
   const { getClientsByStep, moveToNextStep, isLoading, getDaysSinceCreated } = useFinanceiroOnboarding();
-  
+
   const [contractModal, setContractModal] = useState<{
     open: boolean;
     clientId: string;
+    productSlug: string;
     clientName: string;
     currentStep: string;
     expectedInvestment: number | null;
   }>({
     open: false,
     clientId: '',
+    productSlug: '',
     clientName: '',
     currentStep: '',
     expectedInvestment: null,
@@ -52,30 +54,32 @@ export default function FinanceiroMarcoSection({ marcoId }: FinanceiroMarcoSecti
     return ALL_STEPS[currentIndex + 1] === 'contrato_assinado';
   };
 
-  const handleAdvance = (clientId: string, currentStep: string, expectedInvestment?: number | null, clientName?: string) => {
+  const handleAdvance = (clientId: string, productSlug: string, currentStep: string, expectedInvestment?: number | null, clientName?: string) => {
     // If next step is contrato_assinado, open the contract expiration modal
     if (willMoveToContratoAssinado(currentStep)) {
       setContractModal({
         open: true,
         clientId,
+        productSlug,
         clientName: clientName || 'Cliente',
         currentStep,
         expectedInvestment: expectedInvestment || null,
       });
     } else {
       // Regular advance
-      moveToNextStep.mutate({ clientId, currentStep, expectedInvestment });
+      moveToNextStep.mutate({ clientId, productSlug, currentStep, expectedInvestment });
     }
   };
 
   const handleContractConfirm = (expirationDate: Date) => {
     moveToNextStep.mutate({
       clientId: contractModal.clientId,
+      productSlug: contractModal.productSlug,
       currentStep: contractModal.currentStep,
       expectedInvestment: contractModal.expectedInvestment,
       contractExpiresAt: expirationDate.toISOString().split('T')[0],
     });
-    setContractModal({ open: false, clientId: '', clientName: '', currentStep: '', expectedInvestment: null });
+    setContractModal({ open: false, clientId: '', productSlug: '', clientName: '', currentStep: '', expectedInvestment: null });
   };
 
   return (
@@ -113,8 +117,8 @@ export default function FinanceiroMarcoSection({ marcoId }: FinanceiroMarcoSecti
                       const isContractStep = willMoveToContratoAssinado(record.current_step);
 
                       return (
-                        <Card 
-                          key={record.id} 
+                        <Card
+                          key={record.id}
                           className={cn(
                             "border-subtle hover:shadow-apple-hover transition-shadow",
                             isOverdue && "border-destructive/50 bg-destructive/5"
@@ -126,6 +130,12 @@ export default function FinanceiroMarcoSection({ marcoId }: FinanceiroMarcoSecti
                                 <h4 className="font-medium text-sm text-foreground line-clamp-2">
                                   {displayName}
                                 </h4>
+                                {record.product_name && (
+                                  <div className="flex items-center gap-1 mt-0.5">
+                                    <Package size={10} className="text-muted-foreground shrink-0" />
+                                    <span className="text-xs text-muted-foreground truncate">{record.product_name}</span>
+                                  </div>
+                                )}
                                 {investment && (
                                   <p className="text-xs text-muted-foreground">
                                     R$ {investment.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
@@ -134,12 +144,12 @@ export default function FinanceiroMarcoSection({ marcoId }: FinanceiroMarcoSecti
                               </div>
 
                               <div className="flex items-center justify-between">
-                                <Badge 
-                                  variant="outline" 
+                                <Badge
+                                  variant="outline"
                                   className={cn(
                                     "text-xs",
-                                    isOverdue 
-                                      ? "bg-destructive/10 text-destructive border-destructive/30" 
+                                    isOverdue
+                                      ? "bg-destructive/10 text-destructive border-destructive/30"
                                       : "bg-muted text-muted-foreground"
                                   )}
                                 >
@@ -154,7 +164,7 @@ export default function FinanceiroMarcoSection({ marcoId }: FinanceiroMarcoSecti
                                     "h-6 text-xs px-2",
                                     isContractStep && "bg-primary text-primary-foreground"
                                   )}
-                                  onClick={() => handleAdvance(record.client_id, record.current_step, record.client?.expected_investment, displayName)}
+                                  onClick={() => handleAdvance(record.client_id, record.product_slug, record.current_step, record.client?.expected_investment, displayName)}
                                   disabled={moveToNextStep.isPending}
                                 >
                                   {isContractStep ? 'Assinar Contrato' : (isLastStepInMarco ? 'Próximo Marco' : 'Avançar')}

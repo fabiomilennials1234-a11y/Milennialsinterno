@@ -189,6 +189,10 @@ export default function FinanceiroProductChurnsSection() {
   // Check if there are any churns
   const totalChurns = productChurns.length;
 
+  if (totalChurns === 0) {
+    return null;
+  }
+
   return (
     <>
       <ScrollArea className="w-full">
@@ -200,8 +204,8 @@ export default function FinanceiroProductChurnsSection() {
             }, 0);
 
             return (
-              <div 
-                key={column.id} 
+              <div
+                key={column.id}
                 className="w-[280px] flex-shrink-0 flex flex-col bg-card rounded-2xl border border-subtle overflow-hidden shadow-apple"
               >
                 {/* Column Header */}
@@ -224,7 +228,7 @@ export default function FinanceiroProductChurnsSection() {
                   {column.steps.map((step) => {
                     const churns = getChurnsByStep(step.id);
                     const isFinalStep = step.id === column.finalStep;
-                    
+
                     return (
                       <StepCard
                         key={step.id}
@@ -243,16 +247,6 @@ export default function FinanceiroProductChurnsSection() {
           })}
         </div>
       </ScrollArea>
-
-      {/* Empty state */}
-      {totalChurns === 0 && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="text-center text-muted-foreground">
-            <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p className="text-sm">Nenhum churn de produto em andamento</p>
-          </div>
-        </div>
-      )}
 
       {/* Finalize Confirmation Dialog */}
       <AlertDialog open={archiveDialog.open} onOpenChange={(open) => setArchiveDialog({ ...archiveDialog, open })}>
