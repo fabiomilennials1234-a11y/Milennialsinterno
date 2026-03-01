@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 
 export interface ContractInfo {
   clientId: string;
-  status: 'not_signed' | 'signed' | 'expiring' | 'expired';
+  status: 'loading' | 'not_signed' | 'signed' | 'expiring' | 'expired';
   contractExpiresAt: string | null;
   daysUntilExpiration: number | null;
 }
@@ -13,12 +13,14 @@ const EXPIRATION_WARNING_DAYS = 30;
 
 export function useContractStatus() {
   // Fetch all onboarding records to check contract signing status
-  const { data: onboardingRecords = [], refetch: refetchOnboarding } = useQuery({
+  // NOTE: RLS restricts this table to financeiro/gestor_projetos/ceo.
+  // Other roles get empty results — that's OK, we fall back to activeClients.
+  const { data: onboardingRecords = [], refetch: refetchOnboarding, isLoading: isLoadingOnboarding } = useQuery({
     queryKey: ['contract-onboarding-status'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('financeiro_client_onboarding')
-        .select('client_id, current_step');
+        .select('client_id, current_step, contract_expiration_date');
 
       if (error) throw error;
       return data || [];
@@ -27,7 +29,8 @@ export function useContractStatus() {
   });
 
   // Fetch all active clients to check contract expiration
-  const { data: activeClients = [], refetch: refetchActive } = useQuery({
+  // This table is readable by all authenticated users (RLS: USING(true))
+  const { data: activeClients = [], refetch: refetchActive, isLoading: isLoadingActive } = useQuery({
     queryKey: ['contract-active-clients'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -39,6 +42,8 @@ export function useContractStatus() {
     },
     staleTime: 30000, // 30 seconds
   });
+
+  const isLoading = isLoadingOnboarding || isLoadingActive;
 
   // Set up realtime subscription for updates
   useEffect(() => {
@@ -75,23 +80,27 @@ export function useContractStatus() {
 
   // Get contract status for a specific client
   const getContractStatus = (clientId: string): ContractInfo => {
-    // First check if client has signed contract (is in active clients or has contrato_assinado step)
-    const activeClient = activeClients.find(ac => ac.client_id === clientId);
-    const onboardingRecord = onboardingRecords.find(or => or.client_id === clientId);
-
-    // If not in onboarding or active clients, status is unknown (treat as not signed)
-    if (!onboardingRecord && !activeClient) {
+    // While queries are still loading, return loading status
+    // This prevents flashing "Contrato não assinado" before data arrives
+    if (isLoading) {
       return {
         clientId,
-        status: 'not_signed',
+        status: 'loading',
         contractExpiresAt: null,
         daysUntilExpiration: null,
       };
     }
 
-    // Check if contract is signed
-    const isContractSigned = 
-      onboardingRecord?.current_step === 'contrato_assinado' || 
+    const activeClient = activeClients.find(ac => ac.client_id === clientId);
+    const onboardingRecord = onboardingRecords.find(or => or.client_id === clientId);
+
+    // Check if contract is signed using multiple signals:
+    // 1. onboarding step === 'contrato_assinado'
+    // 2. onboarding has contract_expiration_date set (auto-signed on registration)
+    // 3. client exists in financeiro_active_clients (readable by all roles)
+    const isContractSigned =
+      onboardingRecord?.current_step === 'contrato_assinado' ||
+      !!(onboardingRecord as any)?.contract_expiration_date ||
       !!activeClient;
 
     if (!isContractSigned) {
@@ -104,7 +113,11 @@ export function useContractStatus() {
     }
 
     // Contract is signed - check expiration
-    const contractExpiresAt = activeClient?.contract_expires_at;
+    // Prefer activeClient.contract_expires_at, fall back to onboarding.contract_expiration_date
+    const contractExpiresAt =
+      activeClient?.contract_expires_at ||
+      (onboardingRecord as any)?.contract_expiration_date ||
+      null;
 
     if (!contractExpiresAt) {
       return {
@@ -161,6 +174,7 @@ export function useContractStatus() {
     getContractStatus,
     isContractSigned,
     isContractExpiring,
+    isLoading,
     onboardingRecords,
     activeClients,
   };

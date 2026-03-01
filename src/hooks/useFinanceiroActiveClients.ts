@@ -5,6 +5,8 @@ import { toast } from 'sonner';
 export interface FinanceiroActiveClient {
   id: string;
   client_id: string;
+  product_slug: string;
+  product_name: string;
   monthly_value: number;
   invoice_status: 'em_dia' | 'atrasada';
   contract_expires_at: string | null;
@@ -36,7 +38,7 @@ const EXPIRATION_WARNING_DAYS = 30;
 export function useFinanceiroActiveClients() {
   const queryClient = useQueryClient();
 
-  // Fetch all active clients
+  // Fetch all active client-products, adjusting for churned products
   const { data: activeClients = [], isLoading } = useQuery({
     queryKey: ['financeiro-active-clients'],
     queryFn: async (): Promise<FinanceiroActiveClient[]> => {
@@ -49,9 +51,36 @@ export function useFinanceiroActiveClients() {
         .order('activated_at', { ascending: false });
 
       if (error) throw error;
-      
-      // Filter out archived clients
-      return (data || []).filter((record: any) => record.client && !record.client.archived) as FinanceiroActiveClient[];
+
+      const records = (data || []).filter((record: any) =>
+        record.client && !record.client.archived
+      ) as FinanceiroActiveClient[];
+
+      if (records.length === 0) return [];
+
+      // Fetch active product churns (not archived) to filter out churned products
+      const clientProductKeys = records.map(r => `${r.client_id}:${r.product_slug}`);
+      const clientIds = [...new Set(records.map(r => r.client_id))];
+
+      const { data: activeChurns } = await supabase
+        .from('client_product_churns')
+        .select('client_id, product_slug, monthly_value')
+        .in('client_id', clientIds)
+        .eq('archived', false);
+
+      // Build set of churned client:product keys
+      const churnedKeys = new Set<string>();
+      if (activeChurns) {
+        for (const churn of activeChurns) {
+          churnedKeys.add(`${churn.client_id}:${churn.product_slug}`);
+        }
+      }
+
+      // Filter out records where the product is currently being churned
+      return records.filter(record => {
+        const key = `${record.client_id}:${record.product_slug}`;
+        return !churnedKeys.has(key) && Number(record.monthly_value) > 0;
+      });
     },
   });
 
@@ -61,11 +90,10 @@ export function useFinanceiroActiveClients() {
     queryFn: async () => {
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-      
+
       const { data, error } = await supabase
-        .from('clients')
-        .select('id, expected_investment')
-        .not('distrato_step', 'is', null)
+        .from('client_product_churns')
+        .select('id, client_id, monthly_value')
         .gte('distrato_entered_at', startOfMonth);
 
       if (error) throw error;
@@ -81,7 +109,7 @@ export function useFinanceiroActiveClients() {
       .filter(client => client.invoice_status === 'atrasada')
       .reduce((sum, client) => sum + Number(client.monthly_value), 0),
     overdueCount: activeClients.filter(client => client.invoice_status === 'atrasada').length,
-    monthlyChurnValue: monthlyChurns.reduce((sum, client) => sum + Number(client.expected_investment || 0), 0),
+    monthlyChurnValue: monthlyChurns.reduce((sum, churn) => sum + Number(churn.monthly_value || 0), 0),
     monthlyChurnCount: monthlyChurns.length,
   };
 
@@ -94,15 +122,22 @@ export function useFinanceiroActiveClients() {
     return daysUntilExpiration <= EXPIRATION_WARNING_DAYS && daysUntilExpiration >= 0;
   });
 
-  // Add client to active list
+  // Add client-product to active list
   const activateClient = useMutation({
-    mutationFn: async ({ clientId, monthlyValue, contractExpiresAt }: { clientId: string; monthlyValue: number; contractExpiresAt?: string }) => {
-      // First check if already exists
+    mutationFn: async ({ clientId, productSlug, productName, monthlyValue, contractExpiresAt }: {
+      clientId: string;
+      productSlug: string;
+      productName: string;
+      monthlyValue: number;
+      contractExpiresAt?: string;
+    }) => {
+      // First check if already exists for this product
       const { data: existing } = await supabase
         .from('financeiro_active_clients')
         .select('id')
         .eq('client_id', clientId)
-        .single();
+        .eq('product_slug', productSlug)
+        .maybeSingle();
 
       if (existing) {
         // Update if exists
@@ -113,6 +148,7 @@ export function useFinanceiroActiveClients() {
             contract_expires_at: contractExpiresAt || null,
           })
           .eq('client_id', clientId)
+          .eq('product_slug', productSlug)
           .select()
           .single();
 
@@ -124,6 +160,8 @@ export function useFinanceiroActiveClients() {
         .from('financeiro_active_clients')
         .insert({
           client_id: clientId,
+          product_slug: productSlug,
+          product_name: productName,
           monthly_value: monthlyValue,
           invoice_status: 'em_dia',
           contract_expires_at: contractExpiresAt || null,
@@ -142,13 +180,13 @@ export function useFinanceiroActiveClients() {
     },
   });
 
-  // Toggle invoice status
+  // Toggle invoice status (uses record ID)
   const toggleInvoiceStatus = useMutation({
-    mutationFn: async ({ clientId, newStatus }: { clientId: string; newStatus: 'em_dia' | 'atrasada' }) => {
+    mutationFn: async ({ recordId, newStatus }: { recordId: string; newStatus: 'em_dia' | 'atrasada' }) => {
       const { error } = await supabase
         .from('financeiro_active_clients')
         .update({ invoice_status: newStatus })
-        .eq('client_id', clientId);
+        .eq('id', recordId);
 
       if (error) throw error;
       return newStatus;
@@ -162,13 +200,13 @@ export function useFinanceiroActiveClients() {
     },
   });
 
-  // Update monthly value
+  // Update monthly value (uses record ID)
   const updateMonthlyValue = useMutation({
-    mutationFn: async ({ clientId, monthlyValue }: { clientId: string; monthlyValue: number }) => {
+    mutationFn: async ({ recordId, monthlyValue }: { recordId: string; monthlyValue: number }) => {
       const { error } = await supabase
         .from('financeiro_active_clients')
         .update({ monthly_value: monthlyValue })
-        .eq('client_id', clientId);
+        .eq('id', recordId);
 
       if (error) throw error;
     },
@@ -181,13 +219,13 @@ export function useFinanceiroActiveClients() {
     },
   });
 
-  // Update contract expiration date (for renewal)
+  // Update contract expiration date (for renewal, uses record ID)
   const updateContractExpiration = useMutation({
-    mutationFn: async ({ clientId, contractExpiresAt }: { clientId: string; contractExpiresAt: string }) => {
+    mutationFn: async ({ recordId, contractExpiresAt }: { recordId: string; contractExpiresAt: string }) => {
       const { error } = await supabase
         .from('financeiro_active_clients')
         .update({ contract_expires_at: contractExpiresAt })
-        .eq('client_id', clientId);
+        .eq('id', recordId);
 
       if (error) throw error;
     },
@@ -200,54 +238,55 @@ export function useFinanceiroActiveClients() {
     },
   });
 
-  // Move client to distrato (churn workflow)
-  // If contract is signed and valid -> churn_solicitado (needs full distrato process with 4 steps)
-  // If contract is expired or not signed -> sem_contrato_solicitado (simplified 2-step process)
+  // Move product to distrato (churn workflow)
   const moveToChurn = useMutation({
-    mutationFn: async ({ clientId, hasValidContract }: { clientId: string; hasValidContract: boolean }) => {
-      // Remove from active clients
+    mutationFn: async ({ recordId, clientId, productSlug, hasValidContract }: {
+      recordId: string;
+      clientId: string;
+      productSlug: string;
+      hasValidContract: boolean;
+    }) => {
+      // Remove this product from active clients
       const { error: deleteError } = await supabase
         .from('financeiro_active_clients')
         .delete()
-        .eq('client_id', clientId);
+        .eq('id', recordId);
 
       if (deleteError) throw deleteError;
 
       // Determine which workflow based on contract status
-      // COM contrato -> fluxo de 4 etapas (churn_solicitado)
-      // SEM contrato -> fluxo de 2 etapas (sem_contrato_solicitado)
       const distratoStep = hasValidContract ? 'churn_solicitado' : 'sem_contrato_solicitado';
 
-      // Move to distrato workflow
+      // Move to distrato workflow (client-level, for kanban compatibility)
       const { error: updateError } = await supabase
         .from('clients')
-        .update({ 
+        .update({
           distrato_step: distratoStep,
           distrato_entered_at: new Date().toISOString(),
         })
         .eq('id', clientId);
 
       if (updateError) throw updateError;
-      
+
       return { hasValidContract };
     },
     onSuccess: ({ hasValidContract }) => {
       queryClient.invalidateQueries({ queryKey: ['financeiro-active-clients'] });
       queryClient.invalidateQueries({ queryKey: ['financeiro-distrato-clients'] });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
-      
+
       if (hasValidContract) {
-        toast.success('Cliente movido para Churn com Contrato', {
+        toast.success('Produto movido para Churn com Contrato', {
           description: 'O contrato ainda está válido. Siga o fluxo completo de distrato.',
         });
       } else {
-        toast.success('Cliente movido para Churn sem Contrato', {
+        toast.success('Produto movido para Churn sem Contrato', {
           description: 'Sem contrato válido. Fluxo simplificado de 2 etapas.',
         });
       }
     },
     onError: () => {
-      toast.error('Erro ao mover cliente para churn');
+      toast.error('Erro ao mover produto para churn');
     },
   });
 

@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useBoard } from '@/hooks/useKanban';
 import { Loader2, Users, UserCheck, Eye } from 'lucide-react';
 import ClientRegistrationForm from '@/components/client-registration/ClientRegistrationForm';
 import ClientViewModal from '@/components/client/ClientViewModal';
 import { Button } from '@/components/ui/button';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -22,8 +22,25 @@ interface RecentClient {
 }
 
 export default function ClientRegistrationBoard({ boardSlug }: ClientRegistrationBoardProps) {
+  const queryClient = useQueryClient();
   const { data: board, isLoading: boardLoading } = useBoard(boardSlug);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+
+  // Realtime: atualiza clientes recentes quando qualquer cliente é cadastrado
+  useEffect(() => {
+    const channel = supabase
+      .channel('client-registration-clients')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'clients' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['recent-clients'] });
+          queryClient.invalidateQueries({ queryKey: ['total-clients-count'] });
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
 
   // Buscar clientes recentes
   const { data: recentClients = [], refetch } = useQuery({

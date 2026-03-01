@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import MainLayout from '@/layouts/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
@@ -8,7 +8,9 @@ import {
   useCreateSquad, 
   useDeleteSquad,
   useUpdateGroup,
-  GroupWithOccupancy 
+  useUpdateSquad,
+  GroupWithOccupancy,
+  SquadInfo
 } from '@/hooks/useGroupManagement';
 import { useUsers, DbUser } from '@/hooks/useUsers';
 import { UserRole, ROLE_LABELS } from '@/types/auth';
@@ -212,12 +214,213 @@ function CreateSquadModal({ isOpen, groupId, groupName, onClose, onSubmit, isLoa
   );
 }
 
-function GroupCard({ group, users, onAddSquad, onDeleteGroup, onDeleteSquad, canManage = true }: {
+interface EditGroupModalProps {
+  group: GroupWithOccupancy;
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (data: { id: string; name: string; roleLimits: { role: UserRole; max_count: number }[] }) => void;
+  isLoading: boolean;
+}
+
+function EditGroupModal({ group, isOpen, onClose, onSubmit, isLoading }: EditGroupModalProps) {
+  const [name, setName] = useState(group.name);
+  const [roleLimits, setRoleLimits] = useState<Record<UserRole, number>>(() =>
+    AVAILABLE_ROLES.reduce(
+      (acc, role) => ({
+        ...acc,
+        [role]: group.roleOccupancy.find(ro => ro.role === role)?.max ?? 0,
+      }),
+      {} as Record<UserRole, number>
+    )
+  );
+
+  useEffect(() => {
+    if (isOpen && group) {
+      setName(group.name);
+      setRoleLimits(
+        AVAILABLE_ROLES.reduce(
+          (acc, role) => ({
+            ...acc,
+            [role]: group.roleOccupancy.find(ro => ro.role === role)?.max ?? 0,
+          }),
+          {} as Record<UserRole, number>
+        )
+      );
+    }
+  }, [isOpen, group]);
+
+  const resetForm = () => {
+    setName(group.name);
+    setRoleLimits(
+      AVAILABLE_ROLES.reduce(
+        (acc, role) => ({
+          ...acc,
+          [role]: group.roleOccupancy.find(ro => ro.role === role)?.max ?? 0,
+        }),
+        {} as Record<UserRole, number>
+      )
+    );
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+
+    const limits = Object.entries(roleLimits)
+      .filter(([_, max]) => max > 0)
+      .map(([role, max_count]) => ({ role: role as UserRole, max_count }));
+
+    onSubmit({ id: group.id, name, roleLimits: limits });
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" onClick={handleClose} />
+      <div className="relative w-full max-w-lg mx-4 bg-card rounded-2xl shadow-2xl border border-border max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between p-6 border-b border-border">
+          <h2 className="font-display text-lg font-bold uppercase">Editar Grupo</h2>
+          <button onClick={handleClose} className="p-2 rounded-xl text-muted-foreground hover:text-foreground">
+            <X size={20} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto flex-1">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">Nome do Grupo</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ex: Grupo 3"
+              className="input-apple"
+              disabled={isLoading}
+            />
+          </div>
+
+          <div className="space-y-3">
+            <label className="block text-sm font-medium">Limite de Vagas por Cargo</label>
+            <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
+              {AVAILABLE_ROLES.map(role => (
+                <div key={role} className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+                  <span className="text-sm">{ROLE_LABELS[role]}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="10"
+                    value={roleLimits[role]}
+                    onChange={(e) => setRoleLimits(prev => ({ ...prev, [role]: parseInt(e.target.value) || 0 }))}
+                    className="w-16 px-3 py-1.5 rounded-lg bg-background border border-border text-center text-sm"
+                    disabled={isLoading}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <button type="button" onClick={handleClose} className="px-5 py-2.5 rounded-xl text-muted-foreground hover:bg-muted">
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={isLoading || !name.trim()}
+              className="px-6 py-2.5 rounded-xl bg-primary text-primary-foreground font-semibold disabled:opacity-50 flex items-center gap-2"
+            >
+              {isLoading && <Loader2 size={16} className="animate-spin" />}
+              Salvar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+interface EditSquadModalProps {
+  squad: { id: string; name: string };
+  groupName: string;
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (data: { id: string; name: string }) => void;
+  isLoading: boolean;
+}
+
+function EditSquadModal({ squad, groupName, isOpen, onClose, onSubmit, isLoading }: EditSquadModalProps) {
+  const [name, setName] = useState(squad.name);
+
+  useEffect(() => {
+    if (isOpen && squad) setName(squad.name);
+  }, [isOpen, squad]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    onSubmit({ id: squad.id, name });
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-md mx-4 bg-card rounded-2xl shadow-2xl border border-border">
+        <div className="flex items-center justify-between p-6 border-b border-border">
+          <div>
+            <h2 className="font-display text-lg font-bold uppercase">Editar Squad</h2>
+            <p className="text-sm text-muted-foreground">em {groupName}</p>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-xl text-muted-foreground hover:text-foreground">
+            <X size={20} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">Nome do Squad</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ex: Squad 3"
+              className="input-apple"
+              disabled={isLoading}
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <button type="button" onClick={onClose} className="px-5 py-2.5 rounded-xl text-muted-foreground hover:bg-muted">
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={isLoading || !name.trim()}
+              className="px-6 py-2.5 rounded-xl bg-primary text-primary-foreground font-semibold disabled:opacity-50 flex items-center gap-2"
+            >
+              {isLoading && <Loader2 size={16} className="animate-spin" />}
+              Salvar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function GroupCard({ group, users, onAddSquad, onDeleteGroup, onDeleteSquad, onEditGroup, onEditSquad, canManage = true }: {
   group: GroupWithOccupancy;
   users: DbUser[];
   onAddSquad: (groupId: string, groupName: string) => void;
   onDeleteGroup: (groupId: string) => void;
   onDeleteSquad: (squadId: string) => void;
+  onEditGroup?: (group: GroupWithOccupancy) => void;
+  onEditSquad?: (squad: { id: string; name: string }, groupName: string) => void;
   canManage?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(true);
@@ -260,12 +463,22 @@ function GroupCard({ group, users, onAddSquad, onDeleteGroup, onDeleteSquad, can
           </div>
           <div className="flex items-center gap-2">
             {canManage && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onDeleteGroup(group.id); }}
-                className="p-2 rounded-lg text-muted-foreground hover:text-danger hover:bg-danger/10 transition-colors"
-              >
-                <Trash2 size={18} />
-              </button>
+              <>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onEditGroup?.(group); }}
+                  className="p-2 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                  aria-label="Editar grupo"
+                >
+                  <Edit2 size={18} />
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onDeleteGroup(group.id); }}
+                  className="p-2 rounded-lg text-muted-foreground hover:text-danger hover:bg-danger/10 transition-colors"
+                  aria-label="Excluir grupo"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </>
             )}
             {isOpen ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
           </div>
@@ -376,12 +589,22 @@ function GroupCard({ group, users, onAddSquad, onDeleteGroup, onDeleteSquad, can
                             </div>
                           </div>
                           {canManage && (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); onDeleteSquad(squad.id); }}
-                              className="p-1.5 rounded-lg text-muted-foreground hover:text-danger hover:bg-danger/10 transition-colors"
-                            >
-                              <Trash2 size={14} />
-                            </button>
+                            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={() => onEditSquad?.({ id: squad.id, name: squad.name }, group.name)}
+                                className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                                aria-label="Editar squad"
+                              >
+                                <Edit2 size={14} />
+                              </button>
+                              <button
+                                onClick={() => onDeleteSquad(squad.id)}
+                                className="p-1.5 rounded-lg text-muted-foreground hover:text-danger hover:bg-danger/10 transition-colors"
+                                aria-label="Excluir squad"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
                           )}
                         </div>
                         
@@ -437,9 +660,13 @@ export default function GroupsPage() {
   const deleteGroup = useDeleteGroup();
   const createSquad = useCreateSquad();
   const deleteSquad = useDeleteSquad();
+  const updateGroup = useUpdateGroup();
+  const updateSquad = useUpdateSquad();
 
   const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
   const [squadModal, setSquadModal] = useState<{ groupId: string; groupName: string } | null>(null);
+  const [editGroupModal, setEditGroupModal] = useState<GroupWithOccupancy | null>(null);
+  const [editSquadModal, setEditSquadModal] = useState<{ squad: SquadInfo; groupName: string } | null>(null);
 
   // CEO e Gestor de Projetos podem acessar
   if (!isAdminUser) {
@@ -500,6 +727,30 @@ export default function GroupsPage() {
     }
   };
 
+  const handleUpdateGroup = async (data: { id: string; name: string; roleLimits: { role: UserRole; max_count: number }[] }) => {
+    try {
+      await updateGroup.mutateAsync({
+        id: data.id,
+        name: data.name,
+        roleLimits: data.roleLimits,
+      });
+      setEditGroupModal(null);
+      toast.success('Grupo atualizado com sucesso!');
+    } catch (err) {
+      toast.error('Erro ao atualizar grupo', { description: err instanceof Error ? err.message : 'Tente novamente' });
+    }
+  };
+
+  const handleUpdateSquad = async (data: { id: string; name: string }) => {
+    try {
+      await updateSquad.mutateAsync(data);
+      setEditSquadModal(null);
+      toast.success('Squad atualizado com sucesso!');
+    } catch (err) {
+      toast.error('Erro ao atualizar squad', { description: err instanceof Error ? err.message : 'Tente novamente' });
+    }
+  };
+
   if (isLoading) {
     return (
       <MainLayout>
@@ -557,6 +808,8 @@ export default function GroupsPage() {
                 onAddSquad={(id, name) => setSquadModal({ groupId: id, groupName: name })}
                 onDeleteGroup={isCEO ? handleDeleteGroup : () => {}}
                 onDeleteSquad={isCEO ? handleDeleteSquad : () => {}}
+                onEditGroup={isCEO ? (g) => setEditGroupModal(g) : undefined}
+                onEditSquad={isCEO ? (s, groupName) => setEditSquadModal({ squad: s, groupName }) : undefined}
                 canManage={isCEO}
               />
             ))
@@ -590,6 +843,29 @@ export default function GroupsPage() {
           onClose={() => setSquadModal(null)}
           onSubmit={handleCreateSquad}
           isLoading={createSquad.isPending}
+        />
+      )}
+
+      {/* Edit Group Modal */}
+      {editGroupModal && (
+        <EditGroupModal
+          group={editGroupModal}
+          isOpen={true}
+          onClose={() => setEditGroupModal(null)}
+          onSubmit={handleUpdateGroup}
+          isLoading={updateGroup.isPending}
+        />
+      )}
+
+      {/* Edit Squad Modal */}
+      {editSquadModal && (
+        <EditSquadModal
+          squad={editSquadModal.squad}
+          groupName={editSquadModal.groupName}
+          isOpen={true}
+          onClose={() => setEditSquadModal(null)}
+          onSubmit={handleUpdateSquad}
+          isLoading={updateSquad.isPending}
         />
       )}
     </MainLayout>

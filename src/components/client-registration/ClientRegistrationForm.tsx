@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { UserPlus, Building2, Loader2, CheckCircle2, AlertCircle, CalendarDays, Package, DollarSign } from 'lucide-react';
+import { UserPlus, Building2, Loader2, CheckCircle2, AlertCircle, CalendarDays, Package, DollarSign, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -101,21 +101,31 @@ const clientSchema = z.object({
   entry_date: z
     .string()
     .min(1, 'Data de entrada é obrigatória'),
+  contract_duration_months: z
+    .number({ required_error: 'Duração do contrato é obrigatória' })
+    .min(1, 'Duração deve ser de pelo menos 1 mês')
+    .max(120, 'Duração máxima de 120 meses'),
   contracted_products: z.array(z.string()).default([]),
   group_id: z.string().optional(),
   squad_id: z.string().optional(),
   assigned_ads_manager: z.string().optional(),
   assigned_comercial: z.string().optional(),
 }).refine((data) => {
-  // Se Millennials Growth está selecionado, exige group_id, squad_id e assigned_ads_manager
+  // Se Millennials Growth está selecionado, exige group_id e squad_id
   const hasMillennialsGrowth = data.contracted_products.includes('millennials-growth');
   if (hasMillennialsGrowth) {
-    return !!data.group_id && !!data.squad_id && !!data.assigned_ads_manager;
+    return !!data.group_id && !!data.squad_id;
   }
   return true;
 }, {
-  message: 'Para Millennials Growth, Grupo, Squad e Gestor de Ads são obrigatórios',
+  message: 'Para Millennials Growth, Grupo e Squad são obrigatórios',
   path: ['contracted_products'],
+}).refine((data) => {
+  // Gestor de Ads é obrigatório sempre
+  return !!data.assigned_ads_manager;
+}, {
+  message: 'Selecione o Gestor de Ads responsável',
+  path: ['assigned_ads_manager'],
 }).refine((data) => {
   // Validar que cada produto selecionado tem um valor
   if (data.contracted_products.length === 0) return true;
@@ -162,6 +172,7 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
       product_values: {},
       sales_percentage: 0,
       entry_date: format(new Date(), 'yyyy-MM-dd'),
+      contract_duration_months: 0,
       contracted_products: [],
       group_id: '',
       squad_id: '',
@@ -191,11 +202,10 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
       const { [slug]: removed, ...rest } = currentValues;
       form.setValue('product_values', rest, { shouldValidate: true });
       
-      // If unchecking millennials-growth, clear team fields
+      // If unchecking millennials-growth, clear team fields (group/squad only)
       if (slug === 'millennials-growth') {
         form.setValue('group_id', '');
         form.setValue('squad_id', '');
-        form.setValue('assigned_ads_manager', '');
         setSelectedGroupId('');
       }
     }
@@ -233,10 +243,11 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
         monthly_value: totalMonthlyValue,
         sales_percentage: data.sales_percentage,
         entry_date: data.entry_date,
+        contract_duration_months: data.contract_duration_months,
         contracted_products: data.contracted_products,
         group_id: hasMillennialsGrowth ? data.group_id : undefined,
         squad_id: hasMillennialsGrowth ? data.squad_id : undefined,
-        assigned_ads_manager: hasMillennialsGrowth ? data.assigned_ads_manager : undefined,
+        assigned_ads_manager: data.assigned_ads_manager || undefined,
         assigned_comercial: data.assigned_comercial || undefined,
         product_values: productValuesArray,
       });
@@ -606,36 +617,153 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
                 />
               </div>
 
-              <FormField
-                control={form.control}
-                name="entry_date"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-2">
-                      <CalendarDays className="w-4 h-4" />
-                      Data de Entrada *
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        type="date"
-                        className="input-apple"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription className="text-xs">
-                      Data em que o cliente entrou
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="entry_date"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <CalendarDays className="w-4 h-4" />
+                        Data de Entrada *
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="date"
+                          className="input-apple"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription className="text-xs">
+                        Data em que o cliente entrou
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="contract_duration_months"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <Clock className="w-4 h-4" />
+                        Duração do Contrato (meses) *
+                      </FormLabel>
+                      <FormControl>
+                        <select
+                          className="input-apple"
+                          value={field.value || ''}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value, 10);
+                            field.onChange(isNaN(val) ? 0 : val);
+                          }}
+                        >
+                          <option value="" disabled>Selecione a duração</option>
+                          <option value="3">3 meses</option>
+                          <option value="6">6 meses</option>
+                          <option value="12">12 meses</option>
+                          <option value="24">24 meses</option>
+                          <option value="36">36 meses</option>
+                        </select>
+                      </FormControl>
+                      <FormDescription className="text-xs">
+                        Período de vigência do contrato
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            {/* Section: Responsáveis - Sempre visível */}
+            <div className="space-y-4 pt-4 border-t border-border">
+              <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                Responsáveis
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="assigned_ads_manager"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Gestor de Ads Responsável *</FormLabel>
+                      <FormControl>
+                        <select
+                          className="input-apple"
+                          value={field.value || ''}
+                          onChange={(e) => field.onChange(e.target.value)}
+                        >
+                          <option value="" disabled>
+                            Selecione um gestor de ads
+                          </option>
+                          {managersLoading ? (
+                            <option value="" disabled>
+                              Carregando...
+                            </option>
+                          ) : adsManagers.length === 0 ? (
+                            <option value="" disabled>
+                              Nenhum gestor encontrado
+                            </option>
+                          ) : (
+                            adsManagers.map((manager) => (
+                              <option key={manager.user_id} value={manager.user_id}>
+                                {manager.name} ({manager.email})
+                              </option>
+                            ))
+                          )}
+                        </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="assigned_comercial"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Consultor Comercial (Opcional)</FormLabel>
+                      <FormControl>
+                        <select
+                          className="input-apple"
+                          value={field.value || ''}
+                          onChange={(e) => field.onChange(e.target.value)}
+                        >
+                          <option value="">Nenhum (opcional)</option>
+                          {consultantsLoading ? (
+                            <option value="" disabled>
+                              Carregando...
+                            </option>
+                          ) : comercialConsultants.length === 0 ? (
+                            <option value="" disabled>
+                              Nenhum consultor encontrado
+                            </option>
+                          ) : (
+                            comercialConsultants.map((consultant) => (
+                              <option key={consultant.user_id} value={consultant.user_id}>
+                                {consultant.name} ({consultant.email})
+                              </option>
+                            ))
+                          )}
+                        </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
 
             {/* Section: Atribuição de Equipe - Só aparece se Millennials Growth estiver selecionado */}
             {hasMillennialsGrowth && (
               <div key="team-assignment-section" className="space-y-4 pt-4 border-t border-border animate-fade-in">
                 <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                  Atribuição de Equipe (Millennials Growth)
+                  Equipe (Millennials Growth)
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -715,78 +843,6 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
                     )}
                   />
                 </div>
-
-                <FormField
-                  control={form.control}
-                  name="assigned_ads_manager"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Gestor de Ads Responsável *</FormLabel>
-                      <FormControl>
-                        <select
-                          className="input-apple"
-                          value={field.value || ''}
-                          onChange={(e) => field.onChange(e.target.value)}
-                        >
-                          <option value="" disabled>
-                            Selecione um gestor de ads
-                          </option>
-                          {managersLoading ? (
-                            <option value="" disabled>
-                              Carregando...
-                            </option>
-                          ) : adsManagers.length === 0 ? (
-                            <option value="" disabled>
-                              Nenhum gestor encontrado
-                            </option>
-                          ) : (
-                            adsManagers.map((manager) => (
-                              <option key={manager.user_id} value={manager.user_id}>
-                                {manager.name} ({manager.email})
-                              </option>
-                            ))
-                          )}
-                        </select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="assigned_comercial"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Consultor Comercial (Opcional)</FormLabel>
-                      <FormControl>
-                        <select
-                          className="input-apple"
-                          value={field.value || ''}
-                          onChange={(e) => field.onChange(e.target.value)}
-                        >
-                          <option value="">Nenhum (opcional)</option>
-                          {consultantsLoading ? (
-                            <option value="" disabled>
-                              Carregando...
-                            </option>
-                          ) : comercialConsultants.length === 0 ? (
-                            <option value="" disabled>
-                              Nenhum consultor encontrado
-                            </option>
-                          ) : (
-                            comercialConsultants.map((consultant) => (
-                              <option key={consultant.user_id} value={consultant.user_id}>
-                                {consultant.name} ({consultant.email})
-                              </option>
-                            ))
-                          )}
-                        </select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
             )}
 
@@ -796,11 +852,11 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
               <div>
                 <p className="text-sm font-medium text-info">Automação Ativada</p>
                 <p className="text-xs text-info/80 mt-1">
-                  {hasMillennialsGrowth 
+                  {hasMillennialsGrowth
                     ? 'Cards serão criados nos kanbans: Gestor de Projetos, Gestor de Ads, Financeiro, Consultor Comercial e nos produtos selecionados.'
                     : watchedProducts.length > 0
-                      ? `Cards serão criados nos kanbans dos ${watchedProducts.length} produto(s) selecionado(s).`
-                      : 'Selecione pelo menos um produto para criar cards automaticamente.'
+                      ? `Cards serão criados no kanban do Gestor de Ads e nos kanbans dos ${watchedProducts.length} produto(s) selecionado(s).`
+                      : 'O cliente aparecerá no kanban do Gestor de Ads selecionado.'
                   }
                 </p>
               </div>

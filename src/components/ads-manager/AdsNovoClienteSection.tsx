@@ -13,27 +13,34 @@ import ContractStatusBadge from '@/components/shared/ContractStatusBadge';
 import ClientLabelBadge, { type ClientLabel } from '@/components/shared/ClientLabelBadge';
 
 export default function AdsNovoClienteSection() {
-  const { data: clients = [], isLoading: clientsLoading } = useAssignedClients();
+  const { data: clients = [], isLoading: clientsLoading, error: clientsError } = useAssignedClients();
   const { data: tasks = [], isLoading: tasksLoading } = useOnboardingTasks();
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
-  
+
   // Auto-create tasks for new clients
   useAutoCreateTaskForNewClients(clients);
 
   // Filter new clients and get their pending tasks
   const newClients = clients.filter(c => c.status === 'new_client');
-  
-  // Get pending tasks for display
+
+  // Get pending tasks for display (carregam em paralelo; clientes aparecem primeiro)
   const pendingTasks = tasks.filter(t => t.status === 'pending');
 
-  const isLoading = clientsLoading || tasksLoading;
-
-  if (isLoading) {
+  if (clientsLoading) {
     return (
       <div className="space-y-2">
         {[1, 2, 3].map(i => (
           <div key={i} className="h-20 bg-muted/50 rounded-lg animate-pulse" />
         ))}
+      </div>
+    );
+  }
+
+  if (clientsError) {
+    return (
+      <div className="text-center py-8 text-danger">
+        <p className="font-medium text-sm">Erro ao carregar clientes</p>
+        <p className="text-xs mt-1">{(clientsError as Error).message}</p>
       </div>
     );
   }

@@ -90,6 +90,8 @@ export default function ProfileAvatarUpload({
     }
   };
 
+  const MAX_AVATAR_SIZE_BYTES = 2 * 1024 * 1024; // 2MB
+
   const handleSave = async () => {
     if (!imageSrc || !croppedAreaPixels) return;
 
@@ -98,6 +100,11 @@ export default function ProfileAvatarUpload({
       const croppedBlob = await getCroppedImg(imageSrc, croppedAreaPixels);
       if (!croppedBlob) {
         throw new Error('Falha ao recortar imagem');
+      }
+      if (croppedBlob.size > MAX_AVATAR_SIZE_BYTES) {
+        toast.error('Imagem muito grande. Use uma foto menor que 2MB.');
+        setIsUploading(false);
+        return;
       }
 
       const fileName = `${userId}/avatar-${Date.now()}.jpg`;

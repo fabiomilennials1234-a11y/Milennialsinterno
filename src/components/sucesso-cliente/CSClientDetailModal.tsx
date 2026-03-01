@@ -28,6 +28,7 @@ import ActionPlanSection from './ActionPlanSection';
 import CSContactHistory from './CSContactHistory';
 import ClientLabelBadge, { type ClientLabel } from '@/components/shared/ClientLabelBadge';
 import ClientLabelSelector from '@/components/shared/ClientLabelSelector';
+import CreateActionPlanModal from './CreateActionPlanModal';
 import { cn } from '@/lib/utils';
 
 interface CSClientDetailModalProps {
@@ -82,7 +83,8 @@ const formatCurrency = (value: number | null) => {
 };
 
 export default function CSClientDetailModal({ isOpen, onClose, client }: CSClientDetailModalProps) {
-  const { canSetLabels } = useCSPermissions();
+  const { canSetLabels, isViewOnly } = useCSPermissions();
+  const [isActionPlanModalOpen, setIsActionPlanModalOpen] = useState(false);
   const classification = client.cs_classification || 'normal';
   const config = CLASSIFICATION_CONFIG[classification];
   const Icon = config.icon;
@@ -90,6 +92,12 @@ export default function CSClientDetailModal({ isOpen, onClose, client }: CSClien
   const daysSinceContact = client.last_cs_contact_at
     ? Math.floor((Date.now() - new Date(client.last_cs_contact_at).getTime()) / (1000 * 60 * 60 * 24))
     : null;
+
+  const handleLabelChangeResult = (result: { label: any; requiresActionPlan: boolean; autoCompletedPlans: number }) => {
+    if (result.requiresActionPlan && !isViewOnly) {
+      setTimeout(() => setIsActionPlanModalOpen(true), 300);
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -121,6 +129,8 @@ export default function CSClientDetailModal({ isOpen, onClose, client }: CSClien
                 <ClientLabelSelector
                   clientId={client.id}
                   currentLabel={client.client_label as ClientLabel}
+                  clientName={client.name}
+                  onLabelChangeResult={handleLabelChangeResult}
                 />
               )}
               <Badge 
@@ -217,6 +227,14 @@ export default function CSClientDetailModal({ isOpen, onClose, client }: CSClien
           </div>
         </ScrollArea>
       </DialogContent>
+
+      {/* Action Plan Modal - triggered by label change */}
+      <CreateActionPlanModal
+        isOpen={isActionPlanModalOpen}
+        onClose={() => setIsActionPlanModalOpen(false)}
+        clientId={client.id}
+        clientName={client.name}
+      />
     </Dialog>
   );
 }

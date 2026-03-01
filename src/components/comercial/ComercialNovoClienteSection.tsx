@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Clock, AlertTriangle, Eye, CheckCircle2 } from 'lucide-react';
+import { Clock, AlertTriangle, Eye, CheckCircle2, Timer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import { useComercialNewClients, getHoursSinceEntry } from '@/hooks/useComercialClients';
 import { useComercialTasksByClient } from '@/hooks/useComercialTasks';
 import { useAutoCreateTasksForNewClients, useCompleteComercialTaskWithAutomation, AUTO_TASK_TYPES } from '@/hooks/useComercialAutomation';
@@ -11,6 +12,32 @@ import OverdueInvoiceBadge from '@/components/shared/OverdueInvoiceBadge';
 import ContractStatusBadge from '@/components/shared/ContractStatusBadge';
 import ClientLabelBadge, { type ClientLabel } from '@/components/shared/ClientLabelBadge';
 import { fireCelebration } from '@/lib/confetti';
+
+function getTaskDeadlineInfo(dueDate?: string) {
+  if (!dueDate) return null;
+  const now = new Date();
+  const due = new Date(dueDate);
+  const diffMs = due.getTime() - now.getTime();
+  const diffHours = Math.ceil(diffMs / (1000 * 60 * 60));
+
+  if (diffHours <= 0) {
+    const overdueHours = Math.abs(diffHours);
+    const overdueDays = Math.floor(overdueHours / 24);
+    return {
+      label: overdueDays > 0 ? `Atrasada ${overdueDays}d` : `Atrasada ${overdueHours}h`,
+      isOverdue: true,
+      isUrgent: true,
+    };
+  }
+  if (diffHours <= 6) {
+    return { label: `${diffHours}h restantes`, isOverdue: false, isUrgent: true };
+  }
+  if (diffHours <= 24) {
+    return { label: `${diffHours}h restantes`, isOverdue: false, isUrgent: false };
+  }
+  const diffDays = Math.ceil(diffHours / 24);
+  return { label: `${diffDays}d restantes`, isOverdue: false, isUrgent: false };
+}
 
 function ClientCard({ client }: { client: any }) {
   const [showModal, setShowModal] = useState(false);
@@ -85,28 +112,53 @@ function ClientCard({ client }: { client: any }) {
           )}
         </div>
 
-        {pendingTask && (
-          <div className="mt-3 pt-3 border-t border-subtle">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-foreground truncate">{pendingTask.title}</p>
-                <p className="text-xs text-muted-foreground">
-                  {pendingTask.status === 'todo' ? 'A fazer' : 'Fazendo'}
-                </p>
+        {pendingTask && (() => {
+          const deadlineInfo = getTaskDeadlineInfo(pendingTask.due_date);
+          return (
+            <div className="mt-3 pt-3 border-t border-subtle">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-foreground truncate">{pendingTask.title}</p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <p className="text-xs text-muted-foreground">
+                      {pendingTask.status === 'todo' ? 'A fazer' : 'Fazendo'}
+                    </p>
+                    {deadlineInfo && (
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "text-[10px] px-1.5 py-0 gap-0.5",
+                          deadlineInfo.isOverdue
+                            ? "border-destructive text-destructive bg-destructive/10 animate-pulse"
+                            : deadlineInfo.isUrgent
+                            ? "border-orange-500 text-orange-600 bg-orange-50 dark:bg-orange-950/20"
+                            : "border-muted-foreground/30 text-muted-foreground"
+                        )}
+                      >
+                        {deadlineInfo.isOverdue ? (
+                          <AlertTriangle size={8} className="mr-0.5" />
+                        ) : (
+                          <Timer size={8} className="mr-0.5" />
+                        )}
+                        {deadlineInfo.label}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs shrink-0"
+                  onClick={handleCompleteTask}
+                  disabled={completeTask.isPending}
+                >
+                  <CheckCircle2 size={12} className="mr-1" />
+                  Concluir
+                </Button>
               </div>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-xs shrink-0"
-                onClick={handleCompleteTask}
-                disabled={completeTask.isPending}
-              >
-                <CheckCircle2 size={12} className="mr-1" />
-                Concluir
-              </Button>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
 
       <ClientViewModal

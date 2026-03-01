@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { useEffect, useRef } from 'react';
 import { useComercialNewClients, useComercialOnboardingClients, getHoursSinceEntry, getDaysSinceOnboardingStart } from './useComercialClients';
 import { useCreateComercialDelayNotification } from './useComercialDelayNotifications';
+import { useActionJustification } from '@/contexts/JustificationContext';
 
 // Auto task types
 export const AUTO_TASK_TYPES = {
@@ -40,7 +41,7 @@ export function useCreateMarcarConsultoriaTask() {
           related_client_id: clientId,
           is_auto_generated: true,
           auto_task_type: AUTO_TASK_TYPES.MARCAR_CONSULTORIA,
-          due_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24h from now
+          due_date: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day from now
         })
         .select()
         .single();
@@ -82,6 +83,7 @@ export function useCreateRealizarConsultoriaTask() {
           related_client_id: clientId,
           is_auto_generated: true,
           auto_task_type: AUTO_TASK_TYPES.REALIZAR_CONSULTORIA,
+          due_date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days from now
         })
         .select()
         .single();
@@ -95,20 +97,37 @@ export function useCreateRealizarConsultoriaTask() {
   });
 }
 
+// Retorna o dia útil atual em português.
+// Sábado e domingo → 'segunda' (próximo dia útil).
+export function getCurrentDayPortuguese(): string {
+  const day = new Date().getDay(); // 0=Dom, 1=Seg, 2=Ter, 3=Qua, 4=Qui, 5=Sex, 6=Sáb
+  const map: Record<number, string> = {
+    0: 'segunda',
+    1: 'segunda',
+    2: 'terca',
+    3: 'quarta',
+    4: 'quinta',
+    5: 'sexta',
+    6: 'segunda',
+  };
+  return map[day];
+}
+
 // Complete task and trigger next step
 export function useCompleteComercialTaskWithAutomation() {
   const queryClient = useQueryClient();
   const createRealizarTask = useCreateRealizarConsultoriaTask();
+  const { requireJustification } = useActionJustification();
 
   return useMutation({
-    mutationFn: async ({ 
-      taskId, 
+    mutationFn: async ({
+      taskId,
       taskType,
       clientId,
       clientName,
       managerId,
       managerName,
-    }: { 
+    }: {
       taskId: string;
       taskType?: string;
       clientId?: string;
@@ -116,13 +135,52 @@ export function useCompleteComercialTaskWithAutomation() {
       managerId?: string;
       managerName?: string;
     }) => {
-      // Mark task as done
-      const { error: taskError } = await supabase
+      // Fetch task to check due_date
+      const { data: taskData } = await supabase
         .from('comercial_tasks')
-        .update({ status: 'done' })
-        .eq('id', taskId);
+        .select('id, title, due_date, is_auto_generated')
+        .eq('id', taskId)
+        .single();
 
-      if (taskError) throw taskError;
+      // If overdue auto task, require justification
+      if (taskData?.is_auto_generated && taskData?.due_date) {
+        const isOverdue = new Date(taskData.due_date) < new Date();
+        if (isOverdue) {
+          const justificationText = await requireJustification({
+            title: 'Tarefa Atrasada',
+            subtitle: 'Justificativa obrigatória',
+            message: `A tarefa "${taskData.title}" está atrasada. Explique o motivo do atraso.`,
+            taskId: taskData.id,
+            taskTable: 'comercial_tasks',
+            taskTitle: taskData.title,
+            priority: 'urgent',
+          });
+
+          // Save justification + mark as done
+          const { error: taskError } = await supabase
+            .from('comercial_tasks')
+            .update({
+              status: 'done',
+              justification: justificationText,
+              justification_at: new Date().toISOString(),
+            })
+            .eq('id', taskId);
+          if (taskError) throw taskError;
+        } else {
+          const { error: taskError } = await supabase
+            .from('comercial_tasks')
+            .update({ status: 'done' })
+            .eq('id', taskId);
+          if (taskError) throw taskError;
+        }
+      } else {
+        // Mark task as done
+        const { error: taskError } = await supabase
+          .from('comercial_tasks')
+          .update({ status: 'done' })
+          .eq('id', taskId);
+        if (taskError) throw taskError;
+      }
 
       // Handle automation based on task type
       if (taskType === AUTO_TASK_TYPES.MARCAR_CONSULTORIA && clientId) {
@@ -166,7 +224,7 @@ export function useCompleteComercialTaskWithAutomation() {
                   client_id: clientId,
                   manager_id: managerId,
                   manager_name: managerName,
-                  current_day: 'segunda',
+                  current_day: getCurrentDayPortuguese(),
                 });
             }
           }

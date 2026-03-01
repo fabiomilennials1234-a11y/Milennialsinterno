@@ -2,14 +2,21 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-// Helper function to activate client when contract is signed
-async function activateClientIfNeeded(clientId: string, expectedInvestment: number | null, contractExpiresAt?: string) {
-  // Check if already active
+// Helper function to activate client-product when contract is signed
+async function activateClientIfNeeded(
+  clientId: string,
+  productSlug: string,
+  productName: string,
+  monthlyValue: number,
+  contractExpiresAt?: string
+) {
+  // Check if already active for this product
   const { data: existing } = await supabase
     .from('financeiro_active_clients')
     .select('id')
     .eq('client_id', clientId)
-    .single();
+    .eq('product_slug', productSlug)
+    .maybeSingle();
 
   if (existing) {
     // Update contract expiration if already exists
@@ -17,7 +24,8 @@ async function activateClientIfNeeded(clientId: string, expectedInvestment: numb
       await supabase
         .from('financeiro_active_clients')
         .update({ contract_expires_at: contractExpiresAt })
-        .eq('client_id', clientId);
+        .eq('client_id', clientId)
+        .eq('product_slug', productSlug);
     }
     return;
   }
@@ -27,7 +35,9 @@ async function activateClientIfNeeded(clientId: string, expectedInvestment: numb
     .from('financeiro_active_clients')
     .insert({
       client_id: clientId,
-      monthly_value: expectedInvestment || 0,
+      product_slug: productSlug,
+      product_name: productName,
+      monthly_value: monthlyValue || 0,
       invoice_status: 'em_dia',
       contract_expires_at: contractExpiresAt || null,
     });
@@ -37,11 +47,14 @@ export interface FinanceiroOnboarding {
   id: string;
   client_id: string;
   current_step: string;
+  product_slug: string;
+  product_name: string;
   step_cadastro_asaas_at: string | null;
   step_contrato_juridico_at: string | null;
   step_contrato_enviado_at: string | null;
   step_esperando_assinatura_at: string | null;
   step_contrato_assinado_at: string | null;
+  contract_expiration_date: string | null;
   created_at: string;
   updated_at: string;
   client?: {
@@ -124,17 +137,18 @@ export function useFinanceiroOnboarding() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
+
       // Filter out archived clients
       return (data || []).filter((record: any) => record.client && !record.client.archived) as FinanceiroOnboarding[];
     },
   });
 
-  // Move client to a specific step
+  // Move client-product to a specific step
   const moveToStep = useMutation({
-    mutationFn: async ({ clientId, targetStep, expectedInvestment, contractExpiresAt }: { 
-      clientId: string; 
-      targetStep: ContractStep; 
+    mutationFn: async ({ clientId, productSlug, targetStep, expectedInvestment, contractExpiresAt }: {
+      clientId: string;
+      productSlug: string;
+      targetStep: ContractStep;
       expectedInvestment?: number | null;
       contractExpiresAt?: string;
     }) => {
@@ -146,13 +160,17 @@ export function useFinanceiroOnboarding() {
       const { error } = await supabase
         .from('financeiro_client_onboarding')
         .update(updateData)
-        .eq('client_id', clientId);
+        .eq('client_id', clientId)
+        .eq('product_slug', productSlug);
 
       if (error) throw error;
 
-      // If moving to contrato_assinado, activate client
+      // If moving to contrato_assinado, activate client-product
       if (targetStep === 'contrato_assinado') {
-        await activateClientIfNeeded(clientId, expectedInvestment || null, contractExpiresAt);
+        // Get product name from onboarding record
+        const record = onboardingRecords.find(r => r.client_id === clientId && r.product_slug === productSlug);
+        const productName = record?.product_name || productSlug;
+        await activateClientIfNeeded(clientId, productSlug, productName, expectedInvestment || 0, contractExpiresAt);
       }
 
       return targetStep;
@@ -169,9 +187,10 @@ export function useFinanceiroOnboarding() {
 
   // Move to next step
   const moveToNextStep = useMutation({
-    mutationFn: async ({ clientId, currentStep, expectedInvestment, contractExpiresAt }: { 
-      clientId: string; 
-      currentStep: string; 
+    mutationFn: async ({ clientId, productSlug, currentStep, expectedInvestment, contractExpiresAt }: {
+      clientId: string;
+      productSlug: string;
+      currentStep: string;
       expectedInvestment?: number | null;
       contractExpiresAt?: string;
     }) => {
@@ -181,7 +200,7 @@ export function useFinanceiroOnboarding() {
       }
 
       const nextStep = ALL_STEPS[currentIndex + 1];
-      
+
       const updateData: Record<string, any> = {
         current_step: nextStep,
         updated_at: new Date().toISOString(),
@@ -190,13 +209,16 @@ export function useFinanceiroOnboarding() {
       const { error } = await supabase
         .from('financeiro_client_onboarding')
         .update(updateData)
-        .eq('client_id', clientId);
+        .eq('client_id', clientId)
+        .eq('product_slug', productSlug);
 
       if (error) throw error;
 
-      // If moving to contrato_assinado, activate client with contract expiration
+      // If moving to contrato_assinado, activate client-product with contract expiration
       if (nextStep === 'contrato_assinado') {
-        await activateClientIfNeeded(clientId, expectedInvestment || null, contractExpiresAt);
+        const record = onboardingRecords.find(r => r.client_id === clientId && r.product_slug === productSlug);
+        const productName = record?.product_name || productSlug;
+        await activateClientIfNeeded(clientId, productSlug, productName, expectedInvestment || 0, contractExpiresAt);
       }
 
       return nextStep;
@@ -211,7 +233,7 @@ export function useFinanceiroOnboarding() {
     },
   });
 
-  // Get clients by step
+  // Get records by step (returns per-product records)
   const getClientsByStep = (step: ContractStep) => {
     return onboardingRecords.filter(record => record.current_step === step);
   };

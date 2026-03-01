@@ -16,6 +16,14 @@ interface ClientLabelSelectorProps {
   clientId: string;
   currentLabel: ClientLabel;
   onSelect?: (label: ClientLabel) => void;
+  /** Optional callback with mutation result — used by CS module to trigger action plan modal */
+  onLabelChangeResult?: (result: {
+    label: ClientLabel;
+    requiresActionPlan: boolean;
+    autoCompletedPlans: number;
+  }) => void;
+  /** Client name — used for action plan context */
+  clientName?: string;
 }
 
 const LABEL_OPTIONS: Array<{
@@ -30,11 +38,22 @@ const LABEL_OPTIONS: Array<{
   { value: 'ruim', label: 'Ruim', icon: ThumbsDown, className: 'text-destructive' },
 ];
 
-export default function ClientLabelSelector({ clientId, currentLabel, onSelect }: ClientLabelSelectorProps) {
+export default function ClientLabelSelector({ clientId, currentLabel, onSelect, onLabelChangeResult, clientName }: ClientLabelSelectorProps) {
   const updateLabel = useUpdateClientLabel();
 
   const handleSelect = (label: ClientLabel) => {
-    updateLabel.mutate({ clientId, label, previousLabel: currentLabel });
+    updateLabel.mutate(
+      { clientId, label, previousLabel: currentLabel },
+      {
+        onSuccess: (result) => {
+          onLabelChangeResult?.({
+            label,
+            requiresActionPlan: result.requiresActionPlan,
+            autoCompletedPlans: result.autoCompletedPlans,
+          });
+        },
+      }
+    );
     onSelect?.(label);
   };
 

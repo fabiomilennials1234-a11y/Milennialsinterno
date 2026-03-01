@@ -200,6 +200,12 @@ export default function AdsOnboardingSection() {
                             {/* Contract Status Badge */}
                             <ContractStatusBadge clientId={client.id} className="w-full justify-center" />
                             
+                            {isOverdue && (
+                              <div className="flex items-center gap-1 text-[10px] font-bold text-danger">
+                                ⚠️ Atrasado — {daysInOnboarding - milestone.maxDays}d além do prazo
+                              </div>
+                            )}
+
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2 min-w-0 flex-1">
                                 <h4 className="text-sm font-medium text-foreground truncate">{client.name}</h4>

@@ -339,3 +339,26 @@ export function useDeleteSquad() {
     },
   });
 }
+
+// Update squad
+export function useUpdateSquad() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (data: { id: string; name: string }) => {
+      const slug = data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      
+      const { error } = await supabase
+        .from('squads')
+        .update({ name: data.name, slug })
+        .eq('id', data.id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups-with-occupancy'] });
+      queryClient.invalidateQueries({ queryKey: ['organization-groups'] });
+      queryClient.invalidateQueries({ queryKey: ['squads'] });
+    },
+  });
+}

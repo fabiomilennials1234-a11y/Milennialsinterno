@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Image,
   Svg,
+  Path,
   Defs,
   LinearGradient,
   Stop,
@@ -1199,10 +1200,20 @@ export default function StrategyPDFDocument({ strategy, clientName }: StrategyPD
         <View style={styles.heroHeader}>
           <View style={styles.headerTopBar}>
             <View style={styles.logoContainer}>
-              <Image 
-                src="/millennials-logo-1.png" 
-                style={styles.logoImage}
-              />
+              <Svg viewBox="0 0 120 110" style={{ width: 36, height: 33 }}>
+                <Path
+                  d="M 28 20 C 22 18 12 28 10 48 C 8 68 5 85 8 96 C 11 107 19 108 24 96 C 29 84 40 52 50 32 C 55 23 59 22 58 30 C 57 40 54 54 60 50 C 66 46 72 30 80 18 C 88 6 98 12 104 30 C 108 42 112 55 108 56"
+                  stroke={COLORS.gold}
+                  strokeWidth={10}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                />
+              </Svg>
+              <View style={{ marginLeft: -2 }}>
+                <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 22, color: COLORS.luzGalpao, letterSpacing: 1 }}>GROWTH</Text>
+                <Text style={{ fontFamily: 'Helvetica', fontSize: 6.5, color: COLORS.luzGalpao, letterSpacing: 3 }}>MARKETING  B2B</Text>
+              </View>
             </View>
             <View style={styles.proBadge}>
               <Text style={styles.proBadgeText}>Estratégia PRO+</Text>

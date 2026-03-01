@@ -32,6 +32,17 @@ Deno.serve(async (req) => {
       pending_approvals: false,
       creative_awaiting_approval: false,
       overdue_deliveries: false,
+      // v2: justification + notification RPCs
+      financeiro_clients_stalled: false,
+      contract_no_renewal_plan: false,
+      comercial_consultoria_stalled: false,
+      comercial_acompanhamento_stalled: false,
+      onboarding_tasks_stuck: false,
+      ads_client_stalled_14d: false,
+      department_tasks_stalled: false,
+      contract_expired_alert: false,
+      ads_client_no_movement_7d: false,
+      user_inactive: false,
     }
 
     // 1. Check expiring contracts (30/15/7/3/1/0 days)
@@ -144,6 +155,88 @@ Deno.serve(async (req) => {
       results.overdue_deliveries = true
     } catch (e) {
       console.error('Error checking overdue deliveries:', e)
+    }
+
+    // ====== v2: New justification + notification RPCs ======
+
+    // J2: Financeiro clients stalled >7d without all tasks done
+    try {
+      await supabase.rpc('check_financeiro_clients_stalled')
+      results.financeiro_clients_stalled = true
+    } catch (e) {
+      console.error('Error checking financeiro clients stalled:', e)
+    }
+
+    // J3: Contract expiring ≤30d without renewal plan
+    try {
+      await supabase.rpc('check_contract_no_renewal_plan')
+      results.contract_no_renewal_plan = true
+    } catch (e) {
+      console.error('Error checking contract no renewal plan:', e)
+    }
+
+    // J5+N6: Comercial consultoria >3d not realized
+    try {
+      await supabase.rpc('check_comercial_consultoria_stalled')
+      results.comercial_consultoria_stalled = true
+    } catch (e) {
+      console.error('Error checking comercial consultoria stalled:', e)
+    }
+
+    // J6: Comercial em_acompanhamento >5d
+    try {
+      await supabase.rpc('check_comercial_acompanhamento_stalled')
+      results.comercial_acompanhamento_stalled = true
+    } catch (e) {
+      console.error('Error checking comercial acompanhamento stalled:', e)
+    }
+
+    // J9: Onboarding tasks in pending >2d
+    try {
+      await supabase.rpc('check_onboarding_tasks_stuck')
+      results.onboarding_tasks_stuck = true
+    } catch (e) {
+      console.error('Error checking onboarding tasks stuck:', e)
+    }
+
+    // J12: Client in ads tracking >14d
+    try {
+      await supabase.rpc('check_ads_client_stalled_14d')
+      results.ads_client_stalled_14d = true
+    } catch (e) {
+      console.error('Error checking ads client stalled 14d:', e)
+    }
+
+    // J13: Department tasks in todo >3d
+    try {
+      await supabase.rpc('check_department_tasks_stalled')
+      results.department_tasks_stalled = true
+    } catch (e) {
+      console.error('Error checking department tasks stalled:', e)
+    }
+
+    // N2: Expired contract notification
+    try {
+      await supabase.rpc('check_contract_expired_alert')
+      results.contract_expired_alert = true
+    } catch (e) {
+      console.error('Error checking contract expired alert:', e)
+    }
+
+    // N11: Ads client without movement >7d
+    try {
+      await supabase.rpc('check_ads_client_no_movement_7d')
+      results.ads_client_no_movement_7d = true
+    } catch (e) {
+      console.error('Error checking ads client no movement 7d:', e)
+    }
+
+    // N13: User inactive >2d
+    try {
+      await supabase.rpc('check_user_inactive')
+      results.user_inactive = true
+    } catch (e) {
+      console.error('Error checking user inactive:', e)
     }
 
     return new Response(

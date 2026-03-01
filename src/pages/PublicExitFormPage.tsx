@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { CheckCircle, Loader2, MessageSquare, Star, ThumbsUp, ThumbsDown, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import logo from '@/assets/logo.png';
+import { MgrowthLogo } from '@/components/ui/MgrowthLogo';
 
 const MAIN_REASONS = [
   { value: 'preco', label: 'Preço muito alto' },
@@ -103,7 +103,7 @@ export default function PublicExitFormPage() {
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Header */}
         <div className="text-center space-y-4">
-          <img src={logo} alt="Logo" className="h-12 mx-auto" />
+          <MgrowthLogo className="h-12 mx-auto" />
           <div>
             <h1 className="text-2xl font-bold text-foreground">Pesquisa de Saída</h1>
             <p className="text-muted-foreground mt-1">

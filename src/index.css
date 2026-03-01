@@ -124,6 +124,14 @@
     --kanban-card-hover: 14 13% 20%;
     --kanban-drag: 48 100% 50%;
   }
+
+  .dark body {
+    background-image: radial-gradient(
+      ellipse 80% 60% at 50% -10%,
+      hsl(48 100% 50% / 0.06) 0%,
+      transparent 70%
+    );
+  }
 }
 
 @layer base {
@@ -142,6 +150,12 @@
     @apply bg-background text-foreground;
     font-size: 15px;
     line-height: 1.6;
+    background-image: radial-gradient(
+      ellipse 80% 60% at 50% -10%,
+      hsl(48 100% 50% / 0.04) 0%,
+      transparent 70%
+    );
+    background-attachment: fixed;
   }
   
   /* Tipografia Inter */
@@ -177,6 +191,9 @@
     box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.03);
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: grab;
+    animation: kanbanCardIn 0.28s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    max-width: 100%;
+    box-sizing: border-box;
   }
   
   .kanban-card:hover {
@@ -190,6 +207,7 @@
     transform: rotate(2deg) scale(1.02);
     cursor: grabbing;
     border-color: hsl(48 100% 50% / 0.5);
+    animation: none;
   }
   
   /* Kanban Column - Minimalista */
@@ -380,7 +398,13 @@
     color: hsl(var(--sidebar-foreground) / 0.75);
     position: relative;
   }
-  
+
+  .sidebar-item > svg,
+  .sidebar-item > div > svg {
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+  }
+
   .sidebar-item::before {
     content: '';
     position: absolute;
@@ -393,27 +417,39 @@
     border-radius: 0 4px 4px 0;
     transition: height 0.2s ease-out;
   }
-  
+
   .sidebar-item:hover {
     background: hsl(var(--sidebar-accent) / 0.8);
     color: hsl(var(--sidebar-foreground));
-    transform: translateX(2px);
+    transform: translateX(3px);
   }
-  
+
+  .sidebar-item:hover > svg {
+    transform: scale(1.1);
+  }
+
   .sidebar-item:hover::before {
-    height: 8px;
+    height: 0;
   }
-  
+
   .sidebar-item.active {
-    background: hsl(var(--sidebar-primary));
+    background: linear-gradient(
+      135deg,
+      hsl(var(--sidebar-primary)) 0%,
+      hsl(48 100% 60%) 100%
+    );
     color: hsl(var(--sidebar-primary-foreground));
     font-weight: 600;
-    box-shadow: 0 2px 8px hsl(var(--sidebar-primary) / 0.4),
-                inset 0 1px 2px hsl(var(--sidebar-primary) / 0.2);
+    box-shadow: 0 2px 14px hsl(var(--sidebar-primary) / 0.5),
+                inset 0 1px 0 hsl(0 0% 100% / 0.25);
   }
-  
+
   .sidebar-item.active::before {
     height: 24px;
+  }
+
+  .sidebar-item.active > svg {
+    filter: drop-shadow(0 0 4px hsl(var(--sidebar-primary) / 0.5));
   }
   
   /* Sidebar Section Divider - Mais Sutil */
@@ -421,19 +457,96 @@
     @apply my-4 mx-3 border-t;
     border-color: hsl(var(--sidebar-border) / 0.3);
   }
-  
+
   /* Sidebar Section Title */
   .sidebar-section-title {
     @apply px-3 py-2 text-xs font-semibold uppercase tracking-wider;
     color: hsl(var(--sidebar-foreground) / 0.4);
   }
+
+  /* Sidebar Section Label — linha com texto centralizado */
+  .sidebar-section-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 20px 12px 8px;
+  }
+
+  .sidebar-section-label::before {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, transparent, hsl(var(--sidebar-border) / 0.6));
+  }
+
+  .sidebar-section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to left, transparent, hsl(var(--sidebar-border) / 0.6));
+  }
+
+  .sidebar-section-label > span {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: hsl(var(--sidebar-foreground) / 0.45);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
   
+  /* Sidebar Tree Line — vertical connector for nested content */
+  .sidebar-tree {
+    position: relative;
+  }
+
+  .sidebar-tree::before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 4px;
+    bottom: 8px;
+    width: 1.5px;
+    background: linear-gradient(
+      to bottom,
+      hsl(var(--sidebar-border) / 0.4),
+      hsl(var(--sidebar-border) / 0.15)
+    );
+    border-radius: 1px;
+  }
+
+  /* Sidebar open section indicator — left accent bar when expanded */
+  .sidebar-open-indicator {
+    border-left: 2px solid hsl(var(--sidebar-primary) / 0.3);
+    padding-left: 4px;
+    margin-left: 2px;
+    transition: border-color 0.2s ease;
+  }
+
+  .sidebar-open-indicator:hover {
+    border-left-color: hsl(var(--sidebar-primary) / 0.5);
+  }
+
+  /* Sidebar User Card — footer user area */
+  .sidebar-user-card {
+    @apply flex items-center gap-3;
+    padding: 12px;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+    margin: 0 4px;
+  }
+
+  .sidebar-user-card:hover {
+    background: hsl(var(--sidebar-accent) / 0.5);
+  }
+
   /* Active Indicator - Farol de Carga */
   .active-indicator {
     @apply w-1 h-6 rounded-full;
     background: hsl(48 100% 50%);
   }
-  
+
   /* Notification Dot */
   .notification-dot {
     @apply w-2 h-2 rounded-full absolute -top-0.5 -right-0.5;
@@ -557,6 +670,40 @@
     animation: scaleIn 0.2s ease-out;
   }
   
+  /* Badge com pop animado — use key={count} para re-triggerar */
+  .badge-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-variant-numeric: tabular-nums;
+    animation: badgePop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  @keyframes badgePop {
+    0% {
+      transform: scale(0.55);
+      opacity: 0;
+    }
+    60% {
+      transform: scale(1.15);
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes kanbanCardIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
   @keyframes slideUp {
     from {
       opacity: 0;
@@ -600,8 +747,213 @@
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
   }
+
+  /* Action Plan urgency - pulsing borders */
+  @keyframes pulse-border-red {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+    }
+    50% {
+      box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+    }
+  }
+
+  @keyframes pulse-border-orange {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+    }
+    50% {
+      box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.1);
+    }
+  }
+
+  .animate-pulse-border-red {
+    animation: pulse-border-red 2s ease-in-out infinite;
+  }
+
+  .animate-pulse-border-orange {
+    animation: pulse-border-orange 2s ease-in-out infinite;
+  }
   
   .animate-marquee-slow:hover {
     animation-play-state: paused;
+  }
+
+  /* ===== Dashboard Premium Styles (Monday.com inspired) ===== */
+
+  /* Dashboard Hero Card - Gradient brand card */
+  .dashboard-hero {
+    @apply relative overflow-hidden rounded-2xl p-6;
+    background: linear-gradient(135deg, hsl(14 13% 22%) 0%, hsl(14 13% 16%) 100%);
+    color: hsl(50 50% 95%);
+    border: 1px solid hsl(48 100% 50% / 0.15);
+  }
+
+  .dashboard-hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 60%;
+    height: 200%;
+    background: radial-gradient(ellipse, hsl(48 100% 50% / 0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* Dashboard Metric Number - Large animated counter */
+  .dashboard-metric {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .dashboard-metric-sm {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Dashboard Metric Card - Enhanced card-apple */
+  .dashboard-card {
+    @apply bg-card rounded-2xl p-5 relative overflow-hidden;
+    border: 1px solid hsl(130 7% 45% / 0.1);
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.03);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .dashboard-card:hover {
+    box-shadow: 0 8px 25px -5px rgb(0 0 0 / 0.08);
+    transform: translateY(-2px);
+    border-color: hsl(48 100% 50% / 0.25);
+  }
+
+  .dashboard-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--card-accent, transparent);
+    border-radius: 2xl 2xl 0 0;
+  }
+
+  /* Card accent color variants */
+  .dashboard-card[data-accent="info"]    { --card-accent: hsl(217 91% 60%); }
+  .dashboard-card[data-accent="success"] { --card-accent: hsl(160 84% 39%); }
+  .dashboard-card[data-accent="primary"] { --card-accent: hsl(48 100% 50%); }
+  .dashboard-card[data-accent="danger"]  { --card-accent: hsl(0 84% 60%); }
+  .dashboard-card[data-accent="warning"] { --card-accent: hsl(38 92% 50%); }
+  .dashboard-card[data-accent="purple"]  { --card-accent: hsl(258 90% 66%); }
+
+  /* Progress Bar - Modern elegant style */
+  .progress-elegant {
+    @apply w-full rounded-full overflow-hidden;
+    height: 8px;
+    background: hsl(130 7% 45% / 0.1);
+  }
+
+  .progress-elegant-fill {
+    height: 100%;
+    border-radius: 9999px;
+    background: linear-gradient(90deg, hsl(48 100% 50%) 0%, hsl(48 100% 60%) 100%);
+    transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Trend Badge - Up/Down indicator */
+  .trend-badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold;
+  }
+
+  .trend-badge-up {
+    @apply trend-badge;
+    background: hsl(160 84% 39% / 0.1);
+    color: hsl(160 84% 39%);
+  }
+
+  .trend-badge-down {
+    @apply trend-badge;
+    background: hsl(0 84% 60% / 0.1);
+    color: hsl(0 84% 60%);
+  }
+
+  /* Section Header - Dashboard style with icon */
+  .dashboard-section-header {
+    @apply flex items-center gap-3 mb-5;
+  }
+
+  .dashboard-section-header .section-icon {
+    @apply p-2 rounded-xl;
+  }
+
+  .dashboard-section-header h3 {
+    @apply font-display text-sm font-semibold uppercase tracking-wider text-foreground;
+  }
+
+  /* Dashboard Sparkline container */
+  .sparkline-container {
+    @apply mt-3;
+    height: 32px;
+  }
+
+  /* Icon container - Circular colored background */
+  .icon-circle {
+    @apply flex items-center justify-center rounded-xl;
+    width: 44px;
+    height: 44px;
+    transition: transform 0.2s ease;
+  }
+
+  .icon-circle:hover {
+    transform: scale(1.05);
+  }
+
+  /* Dashboard grid animation with stagger */
+  @keyframes dashCardIn {
+    from {
+      opacity: 0;
+      transform: translateY(16px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .dash-card-animate {
+    animation: dashCardIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+
+  /* Number counter animation */
+  @keyframes countUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-count-up {
+    animation: countUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* Scrollbar Elegant - Dashboard variant */
+  .scrollbar-elegant::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-elegant::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-elegant::-webkit-scrollbar-thumb {
+    background: hsl(130 7% 45% / 0.15);
+    border-radius: 100px;
+  }
+
+  .scrollbar-elegant::-webkit-scrollbar-thumb:hover {
+    background: hsl(130 7% 45% / 0.3);
   }
 }

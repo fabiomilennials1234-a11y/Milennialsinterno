@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { addDays, addMonths, parseISO } from 'date-fns';
+import { createNewClientNotificationAndTask } from '@/hooks/useAdsNewClientNotifications';
 
 export interface OrganizationGroup {
   id: string;
@@ -50,6 +52,7 @@ export interface NewClientData {
   assigned_ads_manager?: string;
   assigned_comercial?: string;
   entry_date?: string;
+  contract_duration_months?: number;
   contracted_products?: string[];
   product_values?: ProductValueInput[];
 }
@@ -177,6 +180,7 @@ export function useCreateClient() {
           assigned_ads_manager: clientData.assigned_ads_manager,
           assigned_comercial: clientData.assigned_comercial,
           entry_date: clientData.entry_date,
+          contract_duration_months: clientData.contract_duration_months || null,
           contracted_products: clientData.contracted_products,
           created_by: user?.id,
           status: 'new_client',
@@ -188,7 +192,83 @@ export function useCreateClient() {
         .single();
       
       if (clientError) throw clientError;
-      
+
+      // --- Automações disparadas pela criação do cliente ---
+      if (client.assigned_ads_manager) {
+        // 1. Notificação + tarefa diária para o gestor de ads
+        if (user?.id) {
+          try {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('name')
+              .eq('user_id', user.id)
+              .single();
+
+            const createdByName = (profile?.name as string) ?? 'Sistema';
+            await createNewClientNotificationAndTask({
+              clientId: client.id,
+              clientName: client.name,
+              adsManagerId: client.assigned_ads_manager,
+              createdBy: user.id,
+              createdByName,
+            });
+          } catch (err) {
+            console.error('[useCreateClient] Falha na notificação/tarefa para gestor de ads:', err);
+          }
+        }
+
+        // 2. Tarefa inicial de onboarding ("Marcar Call 1: [nome do cliente]")
+        const dueDate = addDays(new Date(), 1);
+        const { error: onboardingTaskError } = await supabase
+          .from('onboarding_tasks')
+          .insert({
+            client_id: client.id,
+            assigned_to: client.assigned_ads_manager,
+            task_type: 'marcar_call_1',
+            title: `Marcar Call 1: ${client.name}`,
+            description: `Agendar a primeira call com o cliente para alinhamento inicial. Cliente: ${client.name}.`,
+            status: 'pending',
+            due_date: dueDate.toISOString(),
+            milestone: 1,
+          });
+
+        if (onboardingTaskError) {
+          console.error('[useCreateClient] Erro ao criar tarefa de onboarding:', onboardingTaskError);
+        }
+
+        // 3. Registro de onboarding do cliente (marco inicial)
+        const { error: onboardingError } = await supabase
+          .from('client_onboarding')
+          .insert({
+            client_id: client.id,
+            current_milestone: 1,
+            current_step: 'marcar_call_1',
+            milestone_1_started_at: new Date().toISOString(),
+          });
+
+        if (onboardingError) {
+          console.error('[useCreateClient] Erro ao criar registro de onboarding:', onboardingError);
+        }
+      }
+
+      // N5: Notificar Consultor Comercial que um novo cliente foi atribuído
+      if (client.assigned_comercial) {
+        try {
+          await supabase.from('system_notifications').insert({
+            recipient_id: client.assigned_comercial,
+            recipient_role: 'consultor_comercial',
+            notification_type: 'new_client_assigned_comercial',
+            title: '🆕 Novo Cliente Atribuído',
+            message: `O cliente "${client.name}" foi cadastrado e atribuído a você. Faça o primeiro contato dentro de 24h.`,
+            client_id: client.id,
+            priority: 'high',
+            metadata: { created_by: user?.id },
+          } as any);
+        } catch (err) {
+          console.error('[useCreateClient] Falha na notificação N5 para comercial:', err);
+        }
+      }
+
       // Depois, salva os valores por produto
       if (clientData.product_values && clientData.product_values.length > 0) {
         const productValuesData = clientData.product_values.map(pv => ({
@@ -197,21 +277,106 @@ export function useCreateClient() {
           product_name: pv.product_name,
           monthly_value: pv.monthly_value,
         }));
-        
+
         const { error: pvError } = await supabase
           .from('client_product_values')
           .insert(productValuesData);
-        
+
         if (pvError) {
           console.error('Error saving product values:', pvError);
-          // Não falha a criação do cliente por causa disso
+        }
+
+        // --- FINANCEIRO: Criar financeiro_tasks (info em "Novo Cliente") ---
+        const finTasksData = clientData.product_values.map(pv => ({
+          client_id: client.id,
+          product_slug: pv.product_slug,
+          product_name: pv.product_name,
+          title: `${clientData.name} — ${pv.product_name} → Cadastrar no Asaas + Enviar 1ª Cobrança`,
+          status: 'pending',
+          due_date: addDays(new Date(), 3).toISOString(),
+        }));
+
+        const { error: ftError } = await supabase
+          .from('financeiro_tasks')
+          .insert(finTasksData);
+
+        if (ftError) {
+          console.error('[useCreateClient] Erro financeiro_tasks:', ftError);
+        }
+
+        // --- FINANCEIRO: Criar department_tasks (ação em "Tarefas Diárias") ---
+        const deptTasksData = clientData.product_values.map(pv => ({
+          user_id: user?.id,
+          title: `${clientData.name} — ${pv.product_name} → Cadastrar no Asaas + Enviar 1ª Cobrança`,
+          description: pv.product_slug,
+          task_type: 'daily',
+          status: 'todo',
+          priority: 'high',
+          department: 'financeiro',
+          related_client_id: client.id,
+          due_date: addDays(new Date(), 3).toISOString(),
+        }));
+
+        const { error: dtError } = await supabase
+          .from('department_tasks')
+          .insert(deptTasksData as any);
+
+        if (dtError) {
+          console.error('[useCreateClient] Erro department_tasks:', dtError);
         }
       }
-      
+
+      // --- FINANCEIRO PER-PRODUCT: Criar registros por produto ---
+      const entryDate = clientData.entry_date
+        ? parseISO(clientData.entry_date)
+        : new Date();
+      const durationMonths = clientData.contract_duration_months || 12;
+      const contractExpirationDate = addMonths(entryDate, durationMonths)
+        .toISOString()
+        .split('T')[0]; // DATE only (yyyy-MM-dd)
+
+      // Criar financeiro_client_onboarding PER-PRODUCT (trigger antigo foi desabilitado)
+      if (clientData.product_values && clientData.product_values.length > 0) {
+        const onboardingData = clientData.product_values.map(pv => ({
+          client_id: client.id,
+          product_slug: pv.product_slug,
+          product_name: pv.product_name,
+          current_step: 'novo_cliente',
+          contract_expiration_date: contractExpirationDate,
+        }));
+
+        const { error: onboardingInsertError } = await supabase
+          .from('financeiro_client_onboarding')
+          .insert(onboardingData);
+
+        if (onboardingInsertError) {
+          console.error('[useCreateClient] Erro ao inserir financeiro_client_onboarding per-product:', onboardingInsertError);
+        }
+
+        // Inserir em financeiro_active_clients PER-PRODUCT (valor=0 até conclusão das tarefas diárias)
+        const activeClientsData = clientData.product_values.map(pv => ({
+          client_id: client.id,
+          product_slug: pv.product_slug,
+          product_name: pv.product_name,
+          monthly_value: 0,
+          invoice_status: 'em_dia',
+          contract_expires_at: contractExpirationDate,
+        }));
+
+        const { error: activeClientError } = await supabase
+          .from('financeiro_active_clients')
+          .insert(activeClientsData);
+
+        if (activeClientError) {
+          console.error('[useCreateClient] Erro ao inserir financeiro_active_clients per-product:', activeClientError);
+        }
+      }
+
       return client;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['assigned-clients'] });
+      queryClient.invalidateQueries({ queryKey: ['onboarding-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       queryClient.invalidateQueries({ queryKey: ['board-cards'] });
       queryClient.invalidateQueries({ queryKey: ['recent-clients'] });
@@ -220,8 +385,20 @@ export function useCreateClient() {
       // Invalidar queries do Consultor Comercial
       queryClient.invalidateQueries({ queryKey: ['comercial-clients'] });
       queryClient.invalidateQueries({ queryKey: ['comercial-new-clients'] });
+      // Invalidar queries do Gestor de Ads (kanban)
+      queryClient.invalidateQueries({ queryKey: ['ads-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['client-tracking'] });
+      queryClient.invalidateQueries({ queryKey: ['ads-new-client-notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['client-onboarding'] });
+      // Invalidar queries do Financeiro
+      queryClient.invalidateQueries({ queryKey: ['financeiro-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['financeiro-onboarding'] });
+      queryClient.invalidateQueries({ queryKey: ['financeiro-active-clients'] });
+      queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['contract-onboarding-status'] });
+      queryClient.invalidateQueries({ queryKey: ['contract-active-clients'] });
       toast.success('Cliente cadastrado com sucesso!', {
-        description: 'Cards criados automaticamente nos kanbans das equipes.',
+        description: 'Contrato assinado automaticamente. Tarefas do Financeiro criadas por produto.',
       });
     },
     onError: (error: Error) => {

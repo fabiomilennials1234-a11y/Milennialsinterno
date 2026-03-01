@@ -73,6 +73,10 @@ export function useOnboardingTasks() {
           queryClient.invalidateQueries({ queryKey: ['onboarding-tasks'] });
           // Also invalidate cards to reflect column changes
           queryClient.invalidateQueries({ queryKey: ['cards'] });
+          // Invalidate onboarding pipeline so AdsOnboardingSection updates
+          // when DB triggers fire (advance_client_onboarding_stage, etc.)
+          queryClient.invalidateQueries({ queryKey: ['client-onboarding'] });
+          queryClient.invalidateQueries({ queryKey: ['assigned-clients'] });
         }
       )
       .subscribe();
@@ -362,4 +366,42 @@ export function useCanArchiveTasks() {
   const { user, isCEO } = useAuth();
   // Only CEO and gestor_projetos can archive/unarchive
   return isCEO || user?.role === 'gestor_projetos';
+}
+
+// Complete the onboarding task linked to a client (queries Supabase directly, no in-memory dependency)
+export function useCompleteLinkedOnboardingTask() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (clientId: string) => {
+      // Use .limit(1) instead of .maybeSingle() to handle the case where
+      // multiple marcar_call_1 tasks exist for the same client (duplicate prevention)
+      const { data: tasks } = await supabase
+        .from('onboarding_tasks')
+        .select('id')
+        .eq('client_id', clientId)
+        .eq('task_type', 'marcar_call_1')
+        .neq('status', 'done')
+        .order('created_at', { ascending: true })
+        .limit(1);
+
+      if (!tasks || tasks.length === 0) return; // Already done or doesn't exist
+
+      const { error } = await supabase
+        .from('onboarding_tasks')
+        .update({ status: 'done' })
+        .eq('id', tasks[0].id);
+
+      if (error) throw error;
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['onboarding-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['client-onboarding'] });
+      queryClient.invalidateQueries({ queryKey: ['assigned-clients'] });
+      queryClient.invalidateQueries({ queryKey: ['cards'] });
+    },
+    onError: () => {
+      console.error('[useCompleteLinkedOnboardingTask] Erro ao concluir tarefa de onboarding vinculada');
+    },
+  });
 }

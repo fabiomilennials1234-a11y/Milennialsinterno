@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import logo from '@/assets/logo.png';
+import { MgrowthLogo } from '@/components/ui/MgrowthLogo';
 import iconBolt from '@/assets/icon-bolt.png';
 import { Eye, EyeOff, ArrowRight } from 'lucide-react';
 
@@ -34,11 +34,7 @@ export default function LoginPage() {
       {/* Lado esquerdo - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-secondary relative overflow-hidden">
         <div className="absolute inset-0 flex flex-col items-center justify-center p-12">
-          <img 
-            src={logo} 
-            alt="Millennials B2B" 
-            className="w-64 mb-8 animate-fade-in"
-          />
+          <MgrowthLogo className="w-64 mb-8 animate-fade-in" />
           <p className="text-secondary-foreground/70 text-center font-body text-lg max-w-md">
             Sistema de Gestão de Processos Empresariais
           </p>
@@ -57,7 +53,7 @@ export default function LoginPage() {
         <div className="w-full max-w-md animate-slide-up">
           {/* Logo mobile */}
           <div className="lg:hidden flex justify-center mb-8">
-            <img src={logo} alt="Millennials B2B" className="h-12" />
+            <MgrowthLogo className="h-12" />
           </div>
 
           <div className="mb-8">

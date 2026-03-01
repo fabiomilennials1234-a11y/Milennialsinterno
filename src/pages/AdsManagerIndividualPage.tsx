@@ -115,7 +115,6 @@ export default function AdsManagerIndividualPage() {
   // Fetch the manager's profile
   const {
     data: managerProfile,
-    isLoading
   } = useQuery({
     queryKey: ['manager-profile', userId],
     queryFn: async () => {
@@ -189,16 +188,10 @@ export default function AdsManagerIndividualPage() {
         return null;
     }
   };
-  if (isLoading) {
-    return <MainLayout>
-        <div className="flex items-center justify-center h-full">
-          <div className="animate-pulse text-muted-foreground">Carregando...</div>
-        </div>
-      </MainLayout>;
-  }
   const managerName = managerProfile?.name || 'Gestor';
 
-  // Wrap with AdsManagerProvider to pass the target userId to all hooks
+  // Wrap with AdsManagerProvider BEFORE any loading gate
+  // so column queries start in parallel with the profile query
   return <AdsManagerProvider targetUserId={userId}>
       <MainLayout>
         {/* Modal de justificativa para tarefas atrasadas */}
@@ -241,7 +234,7 @@ export default function AdsManagerIndividualPage() {
                         <h2 className="font-semibold">{column.title}</h2>
                       </div>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-4 scrollbar-apple bg-card">
+                    <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 scrollbar-apple bg-card">
                       {renderColumnContent(column.id)}
                     </div>
                   </div>;
@@ -270,7 +263,7 @@ export default function AdsManagerIndividualPage() {
                         <h2 className="font-semibold">{column.title}</h2>
                       </div>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-4 scrollbar-apple bg-card">
+                    <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 scrollbar-apple bg-card">
                       {renderColumnContent(column.id)}
                     </div>
                   </div>;

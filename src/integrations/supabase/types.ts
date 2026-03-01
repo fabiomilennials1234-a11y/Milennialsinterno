@@ -1143,6 +1143,7 @@ export type Database = {
           comercial_entered_at: string | null
           comercial_onboarding_started_at: string | null
           comercial_status: string | null
+          contract_duration_months: number | null
           contracted_products: string[] | null
           cpf: string | null
           created_at: string
@@ -1178,6 +1179,7 @@ export type Database = {
           comercial_entered_at?: string | null
           comercial_onboarding_started_at?: string | null
           comercial_status?: string | null
+          contract_duration_months?: number | null
           contracted_products?: string[] | null
           cpf?: string | null
           created_at?: string
@@ -1213,6 +1215,7 @@ export type Database = {
           comercial_entered_at?: string | null
           comercial_onboarding_started_at?: string | null
           comercial_status?: string | null
+          contract_duration_months?: number | null
           contracted_products?: string[] | null
           cpf?: string | null
           created_at?: string
@@ -2406,6 +2409,8 @@ export type Database = {
           id: string
           invoice_status: string
           monthly_value: number
+          product_slug: string
+          product_name: string
           updated_at: string
         }
         Insert: {
@@ -2416,6 +2421,8 @@ export type Database = {
           id?: string
           invoice_status?: string
           monthly_value?: number
+          product_slug: string
+          product_name: string
           updated_at?: string
         }
         Update: {
@@ -2426,13 +2433,15 @@ export type Database = {
           id?: string
           invoice_status?: string
           monthly_value?: number
+          product_slug?: string
+          product_name?: string
           updated_at?: string
         }
         Relationships: [
           {
             foreignKeyName: "financeiro_active_clients_client_id_fkey"
             columns: ["client_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -2445,6 +2454,8 @@ export type Database = {
           created_at: string
           current_step: string
           id: string
+          product_slug: string
+          product_name: string
           step_cadastro_asaas_at: string | null
           step_contrato_assinado_at: string | null
           step_contrato_enviado_at: string | null
@@ -2458,6 +2469,8 @@ export type Database = {
           created_at?: string
           current_step?: string
           id?: string
+          product_slug: string
+          product_name: string
           step_cadastro_asaas_at?: string | null
           step_contrato_assinado_at?: string | null
           step_contrato_enviado_at?: string | null
@@ -2471,6 +2484,8 @@ export type Database = {
           created_at?: string
           current_step?: string
           id?: string
+          product_slug?: string
+          product_name?: string
           step_cadastro_asaas_at?: string | null
           step_contrato_assinado_at?: string | null
           step_contrato_enviado_at?: string | null
@@ -2482,7 +2497,51 @@ export type Database = {
           {
             foreignKeyName: "financeiro_client_onboarding_client_id_fkey"
             columns: ["client_id"]
-            isOneToOne: true
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      financeiro_tasks: {
+        Row: {
+          id: string
+          client_id: string
+          product_slug: string
+          product_name: string
+          title: string
+          due_date: string | null
+          status: string
+          completed_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          product_slug: string
+          product_name: string
+          title: string
+          due_date?: string | null
+          status?: string
+          completed_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          product_slug?: string
+          product_name?: string
+          title?: string
+          due_date?: string | null
+          status?: string
+          completed_at?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financeiro_tasks_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },

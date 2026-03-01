@@ -6,6 +6,7 @@ import CSClientOnboardingBadge from './CSClientOnboardingBadge';
 import CSClientTrackingBadge from './CSClientTrackingBadge';
 import ClientLabelBadge, { type ClientLabel } from '@/components/shared/ClientLabelBadge';
 import ClientLabelSelector from '@/components/shared/ClientLabelSelector';
+import CreateActionPlanModal from './CreateActionPlanModal';
 import CSColumnScroll from './CSColumnScroll';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -48,7 +49,14 @@ export default function CSManagerColumn({ manager, clients, onClientClick }: CSM
   const [activeTab, setActiveTab] = useState<'tracking' | 'onboarding' | 'new'>('tracking');
   const [showOnlyDelayed, setShowOnlyDelayed] = useState(false);
 
-  const { canSetLabels } = useCSPermissions();
+  const { canSetLabels, isViewOnly } = useCSPermissions();
+  const [actionPlanModal, setActionPlanModal] = useState<{ clientId: string; clientName: string } | null>(null);
+
+  const handleLabelChangeResult = (client: CSClient) => (result: { label: any; requiresActionPlan: boolean; autoCompletedPlans: number }) => {
+    if (result.requiresActionPlan && !isViewOnly) {
+      setActionPlanModal({ clientId: client.id, clientName: client.name });
+    }
+  };
   
   // Fetch onboarding tasks and tracking for this manager
   const { data: onboardingTasks = [] } = useCSOnboardingTasks(manager.user_id);
@@ -293,6 +301,8 @@ export default function CSManagerColumn({ manager, clients, onClientClick }: CSM
                             <ClientLabelSelector
                               clientId={client.id}
                               currentLabel={client.client_label as ClientLabel}
+                              clientName={client.name}
+                              onLabelChangeResult={handleLabelChangeResult(client)}
                             />
                           )}
                           {isDelayed && (
@@ -343,6 +353,8 @@ export default function CSManagerColumn({ manager, clients, onClientClick }: CSM
                             <ClientLabelSelector
                               clientId={client.id}
                               currentLabel={client.client_label as ClientLabel}
+                              clientName={client.name}
+                              onLabelChangeResult={handleLabelChangeResult(client)}
                             />
                           )}
                           <Badge variant="secondary" className="bg-primary/10 text-primary text-[10px] shrink-0">
@@ -427,6 +439,8 @@ export default function CSManagerColumn({ manager, clients, onClientClick }: CSM
                             <ClientLabelSelector
                               clientId={client.id}
                               currentLabel={client.client_label as ClientLabel}
+                              clientName={client.name}
+                              onLabelChangeResult={handleLabelChangeResult(client)}
                             />
                           )}
                           <Badge variant="outline" className="bg-success/10 text-success border-success/30 text-[10px] shrink-0">
@@ -469,6 +483,16 @@ export default function CSManagerColumn({ manager, clients, onClientClick }: CSM
           </CSColumnScroll>
         </TabsContent>
       </Tabs>
+
+      {/* Action Plan Modal - triggered by label change */}
+      {actionPlanModal && (
+        <CreateActionPlanModal
+          isOpen={!!actionPlanModal}
+          onClose={() => setActionPlanModal(null)}
+          clientId={actionPlanModal.clientId}
+          clientName={actionPlanModal.clientName}
+        />
+      )}
     </div>
   );
 }

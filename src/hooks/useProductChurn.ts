@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useActionJustification } from '@/contexts/JustificationContext';
 import { toast } from 'sonner';
 
 export interface ProductChurn {
@@ -46,6 +47,7 @@ export type ProductDistratoStep = typeof PRODUCT_DISTRATO_STEPS[keyof typeof PRO
 export function useProductChurn(productSlug?: string) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { requireJustification } = useActionJustification();
 
   // Fetch churns for a specific product
   const { data: productChurns = [], isLoading } = useQuery({
@@ -87,6 +89,16 @@ export function useProductChurn(productSlug?: string) {
       monthlyValue: number;
       hasValidContract: boolean;
     }) => {
+      // J4: Require justification before initiating churn
+      const churnJustification = await requireJustification({
+        title: 'Justificativa: Churn de Produto',
+        subtitle: 'Registro obrigatório de motivo',
+        message: `Explique o motivo do churn do produto "${productName}". Este registro é obrigatório para análise de perda de receita.`,
+        taskId: `${clientId}:${productSlug}`,
+        taskTable: 'product_churn_initiated',
+        taskTitle: `Churn iniciado: ${productName}`,
+      });
+
       const distratoStep = hasValidContract
         ? PRODUCT_DISTRATO_STEPS.CHURN_SOLICITADO
         : PRODUCT_DISTRATO_STEPS.SEM_CONTRATO_SOLICITADO;
@@ -134,11 +146,9 @@ export function useProductChurn(productSlug?: string) {
         }
       }
 
-      // Remove from active clients if exists (for financeiro kanban)
-      await supabase
-        .from('financeiro_active_clients')
-        .delete()
-        .eq('client_id', clientId);
+      // NOTE: We do NOT delete from financeiro_active_clients here.
+      // The client stays in "Clientes" with adjusted value (total minus churned products).
+      // useFinanceiroActiveClients computes the adjusted value at query time.
 
       // Create churn notification with product info
       await supabase
@@ -147,6 +157,31 @@ export function useProductChurn(productSlug?: string) {
           client_id: clientId,
           client_name: `${client?.name || 'Cliente'} - ${productName}`,
         } as any);
+
+      // N3: Notify CEO + Gestor de Projetos about new product churn
+      const { data: notifRecipients } = await supabase
+        .from('user_roles')
+        .select('user_id, role')
+        .in('role', ['ceo', 'gestor_projetos']);
+
+      for (const recipient of notifRecipients || []) {
+        await supabase.from('system_notifications').insert({
+          recipient_id: recipient.user_id,
+          recipient_role: recipient.role,
+          notification_type: 'product_churn_initiated',
+          title: '🔴 Novo Churn de Produto',
+          message: `Churn iniciado para "${productName}" do cliente "${client?.name || 'Cliente'}". Motivo: ${churnJustification.substring(0, 100)}`,
+          client_id: clientId,
+          priority: 'high',
+          metadata: {
+            product_slug: productSlug,
+            product_name: productName,
+            monthly_value: monthlyValue,
+            initiated_by: user?.id,
+            has_contract: hasValidContract,
+          },
+        } as any);
+      }
 
       return { churnRecord, hasValidContract, productName };
     },
@@ -294,6 +329,20 @@ export function useProductChurn(productSlug?: string) {
         .eq('client_id', churn.client_id)
         .eq('product_slug', churn.product_slug);
 
+      // Remove this product from financeiro_active_clients (per-product)
+      await supabase
+        .from('financeiro_active_clients')
+        .delete()
+        .eq('client_id', churn.client_id)
+        .eq('product_slug', churn.product_slug);
+
+      // Remove this product from financeiro_client_onboarding (per-product)
+      await supabase
+        .from('financeiro_client_onboarding')
+        .delete()
+        .eq('client_id', churn.client_id)
+        .eq('product_slug', churn.product_slug);
+
       // If no products left, archive the client entirely
       if (updatedProducts.length === 0) {
         await supabase
@@ -304,12 +353,6 @@ export function useProductChurn(productSlug?: string) {
             status: 'churned',
           })
           .eq('id', churn.client_id);
-
-        // Also remove from active clients
-        await supabase
-          .from('financeiro_active_clients')
-          .delete()
-          .eq('client_id', churn.client_id);
       }
 
       return { remainingProducts: updatedProducts.length };

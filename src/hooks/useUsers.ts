@@ -103,6 +103,8 @@ export function useCreateUser() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['ads-manager-boards'] });
+      queryClient.invalidateQueries({ queryKey: ['groups-with-occupancy'] });
     }
   });
 }
@@ -144,6 +146,8 @@ export function useUpdateUser() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['ads-manager-boards'] });
+      queryClient.invalidateQueries({ queryKey: ['groups-with-occupancy'] });
     }
   });
 }
@@ -175,6 +179,7 @@ export function useDeleteUser() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['groups-with-occupancy'] });
     }
   });
 }

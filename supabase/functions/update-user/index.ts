@@ -63,6 +63,20 @@ Deno.serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    // Fetch current state for kanban board sync
+    const { data: currentProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('name, squad_id')
+      .eq('user_id', userId)
+      .single()
+    const { data: currentRoleRow } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .single()
+    const currentRole = currentRoleRow?.role ?? null
+    const currentSquadId = currentProfile?.squad_id ?? null
     
     // Update auth user if email or password changed
     if (email || password) {
@@ -123,6 +137,50 @@ Deno.serve(async (req) => {
           JSON.stringify({ error: 'Erro ao atualizar cargo' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
+      }
+    }
+
+    // Sync kanban board for gestor_ads (sidebar)
+    const finalRole = role ?? currentRole
+    const finalSquadId = squad_id !== undefined ? squad_id : currentSquadId
+    const finalName = name ?? currentProfile?.name ?? 'Gestor'
+
+    const { data: existingBoard } = await supabaseAdmin
+      .from('kanban_boards')
+      .select('id')
+      .eq('owner_user_id', userId)
+      .single()
+
+    if (finalRole === 'gestor_ads') {
+      if (existingBoard) {
+        const { error: updateBoardError } = await supabaseAdmin
+          .from('kanban_boards')
+          .update({ squad_id: finalSquadId })
+          .eq('owner_user_id', userId)
+        if (updateBoardError) {
+          console.error('Error updating ads manager board:', updateBoardError)
+        }
+      } else if (finalSquadId) {
+        const { error: insertBoardError } = await supabaseAdmin
+          .from('kanban_boards')
+          .insert({
+            name: `Gestor de ADS (${finalName})`,
+            slug: `ads-${userId}`,
+            description: `Kanban individual do Gestor de ADS ${finalName}`,
+            owner_user_id: userId,
+            squad_id: finalSquadId,
+          })
+        if (insertBoardError) {
+          console.error('Error creating ads manager board:', insertBoardError)
+        }
+      }
+    } else if (currentRole === 'gestor_ads' && existingBoard) {
+      const { error: clearBoardError } = await supabaseAdmin
+        .from('kanban_boards')
+        .update({ squad_id: null })
+        .eq('owner_user_id', userId)
+      if (clearBoardError) {
+        console.error('Error clearing ads manager board squad:', clearBoardError)
       }
     }
     
