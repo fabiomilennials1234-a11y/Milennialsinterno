@@ -4,6 +4,7 @@ import { useOrganizationGroups, useIndependentCategories, useProductCategories }
 import { useAllBoards } from '@/hooks/useKanban';
 import { useUsers } from '@/hooks/useUsers';
 import { useAdsManagerBoards } from '@/hooks/useAdsManagerBoards';
+import { useOutboundManagerBoards } from '@/hooks/useOutboundManagerBoards';
 import { ROLE_LABELS, canViewBoard, canViewRole, UserRole } from '@/types/auth';
 import { Target } from 'lucide-react';
 
@@ -16,6 +17,7 @@ import { Target } from 'lucide-react';
  */
 export const SPECIAL_ROUTES: Record<string, { path: string; label: string; icon: React.ElementType }> = {
   gestor_ads: { path: '/gestor-ads', label: 'Gestão de Tráfego PRO+', icon: Target },
+  outbound: { path: '/millennials-outbound', label: 'Outbound PRO+', icon: Target },
   sucesso_cliente: { path: '/sucesso-cliente', label: 'Sucesso do Cliente PRO+', icon: Target },
   consultor_comercial: { path: '/consultor-comercial', label: 'Comercial PRO+', icon: Target },
   financeiro: { path: '/financeiro', label: 'Financeiro PRO+', icon: Target },
@@ -37,6 +39,16 @@ export const ROLE_BOARD_SLUGS: Record<UserRole, string[][]> = {
 
   // Gestor de Ads: próprio + permitidos
   gestor_ads: [
+    ['ads'],
+    ['design'],
+    ['editor-video'],
+    ['devs'],
+    ['crm', 'grupo-1-crm', 'grupo-2-crm'],
+    ['comercial', 'grupo-1-comercial', 'grupo-2-comercial'],
+  ],
+
+  // Outbound: mesma visibilidade do Gestor de Ads
+  outbound: [
     ['ads'],
     ['design'],
     ['editor-video'],
@@ -94,6 +106,7 @@ export const ROLE_INDEPENDENT_CATEGORIES: Record<UserRole, string[]> = {
   ceo: ['*'], // Vê todas
   gestor_projetos: ['*'], // Vê todas
   gestor_ads: ['produtora', 'atrizes'],
+  outbound: ['produtora', 'atrizes'],
   sucesso_cliente: ['produtora', 'atrizes'],
   design: [],
   editor_video: ['atrizes'],
@@ -123,11 +136,26 @@ export function isAdsBoard(board: { slug: string; name: string }): boolean {
 }
 
 /**
+ * Verifica se um board é do tipo "Outbound" (deve redirecionar para PRO+)
+ */
+export function isOutboundBoard(board: { slug: string; name: string }): boolean {
+  return (
+    board.slug.startsWith('outbound') ||
+    board.slug === 'millennials-outbound' ||
+    board.slug.includes('outbound') ||
+    board.name.toLowerCase().includes('outbound')
+  );
+}
+
+/**
  * Retorna o path correto para um board (considera redirecionamento PRO+)
  */
 export function getBoardPath(board: { slug: string; name: string }): string {
   if (isAdsBoard(board)) {
     return '/gestor-ads';
+  }
+  if (isOutboundBoard(board)) {
+    return '/millennials-outbound';
   }
   return `/kanban/${board.slug}`;
 }
@@ -138,6 +166,9 @@ export function getBoardPath(board: { slug: string; name: string }): string {
 export function getBoardLabel(board: { slug: string; name: string }): string {
   if (isAdsBoard(board)) {
     return 'Gestão de Tráfego PRO+';
+  }
+  if (isOutboundBoard(board)) {
+    return 'Outbound PRO+';
   }
   return board.name;
 }
@@ -154,6 +185,7 @@ export function useSidebarPermissions() {
   const { data: boards = [] } = useAllBoards();
   const { data: allUsers = [] } = useUsers();
   const { data: adsManagerBoards = [] } = useAdsManagerBoards();
+  const { data: outboundManagerBoards = [] } = useOutboundManagerBoards();
   
   // Grupos visíveis (CEO vê todos, outros veem apenas seu grupo)
   const visibleGroups = useMemo(() => {
@@ -272,6 +304,7 @@ export function useSidebarPermissions() {
     visibleBoards,
     boards,
     adsManagerBoards, // Boards individuais dos gestores de ADS
+    outboundManagerBoards, // Boards individuais dos outbound managers
     productCategories, // Categorias de produtos (CEO only)
 
     // Funções de permissão

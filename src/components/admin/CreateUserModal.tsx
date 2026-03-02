@@ -26,6 +26,7 @@ interface CreateUserModalProps {
 // Cargos que pertencem a Grupos e Squads (operacionais)
 const GROUP_SQUAD_ROLES: UserRole[] = [
   'gestor_ads',
+  'outbound',
   'sucesso_cliente',
   'design',
   'editor_video',
