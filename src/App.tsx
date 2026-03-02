@@ -35,6 +35,7 @@ import GroupsPage from "./pages/admin/GroupsPage";
 import ClientRegistrationPage from "./pages/ClientRegistrationPage";
 import ClientListPage from "./pages/ClientListPage";
 import PublicStrategyPage from "./pages/PublicStrategyPage";
+import PublicOutboundStrategyPage from "./pages/PublicOutboundStrategyPage";
 import PublicNPSPage from "./pages/PublicNPSPage";
 import PublicExitFormPage from "./pages/PublicExitFormPage";
 import UpsellsPage from "./pages/UpsellsPage";
@@ -410,6 +411,7 @@ function AppRoutes() {
       
       {/* Public Strategy Page - accessible without authentication */}
       <Route path="/estrategia/:token" element={<PublicStrategyPage />} />
+      <Route path="/estrategia-outbound/:token" element={<PublicOutboundStrategyPage />} />
       
       {/* Public NPS Page - accessible without authentication */}
       <Route path="/nps/:token" element={<PublicNPSPage />} />
