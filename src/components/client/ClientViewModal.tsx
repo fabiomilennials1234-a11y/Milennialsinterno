@@ -32,6 +32,7 @@ import ClientLabelBadge, { type ClientLabel } from '@/components/shared/ClientLa
 import ClientLabelSelector from '@/components/shared/ClientLabelSelector';
 import { useClientInfo, useClientCallForm, useSaveClientCallForm, ClientCallForm } from '@/hooks/useClientCallForm';
 import StrategyBuilderSection from '@/components/strategy/StrategyBuilderSection';
+import OutboundStrategyBuilderSection from '@/components/outbound-strategy/OutboundStrategyBuilderSection';
 import { cn } from '@/lib/utils';
 
 interface ClientViewModalProps {
@@ -533,6 +534,14 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
               {/* Strategy Builder Section - Replaces old Mindmeister section */}
               {clientInfo && (
                 <StrategyBuilderSection
+                  clientId={clientId}
+                  clientName={clientInfo.name}
+                />
+              )}
+
+              {/* Outbound Strategy Builder Section */}
+              {clientInfo && (
+                <OutboundStrategyBuilderSection
                   clientId={clientId}
                   clientName={clientInfo.name}
                 />
