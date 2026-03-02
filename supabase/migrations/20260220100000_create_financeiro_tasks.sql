@@ -27,6 +27,7 @@ CREATE INDEX IF NOT EXISTS idx_financeiro_tasks_client_status ON public.financei
 ALTER TABLE public.financeiro_tasks ENABLE ROW LEVEL SECURITY;
 
 -- 4. RLS policies for financeiro, gestor_projetos, ceo
+DROP POLICY IF EXISTS "financeiro_tasks_select" ON public.financeiro_tasks;
 CREATE POLICY "financeiro_tasks_select"
   ON public.financeiro_tasks FOR SELECT
   TO authenticated
@@ -38,6 +39,7 @@ CREATE POLICY "financeiro_tasks_select"
     )
   );
 
+DROP POLICY IF EXISTS "financeiro_tasks_insert" ON public.financeiro_tasks;
 CREATE POLICY "financeiro_tasks_insert"
   ON public.financeiro_tasks FOR INSERT
   TO authenticated
@@ -49,6 +51,7 @@ CREATE POLICY "financeiro_tasks_insert"
     )
   );
 
+DROP POLICY IF EXISTS "financeiro_tasks_update" ON public.financeiro_tasks;
 CREATE POLICY "financeiro_tasks_update"
   ON public.financeiro_tasks FOR UPDATE
   TO authenticated
@@ -60,6 +63,7 @@ CREATE POLICY "financeiro_tasks_update"
     )
   );
 
+DROP POLICY IF EXISTS "financeiro_tasks_delete" ON public.financeiro_tasks;
 CREATE POLICY "financeiro_tasks_delete"
   ON public.financeiro_tasks FOR DELETE
   TO authenticated
@@ -71,5 +75,10 @@ CREATE POLICY "financeiro_tasks_delete"
     )
   );
 
--- 5. Enable realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE public.financeiro_tasks;
+-- 5. Enable realtime (ignore if already added)
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.financeiro_tasks;
+EXCEPTION WHEN duplicate_object THEN
+  NULL;
+END $$;
