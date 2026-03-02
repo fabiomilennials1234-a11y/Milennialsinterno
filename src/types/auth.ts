@@ -1,8 +1,9 @@
 // Tipos de Cargo do Sistema
-export type UserRole = 
+export type UserRole =
   | 'ceo'
   | 'gestor_projetos'
   | 'gestor_ads'
+  | 'outbound'
   | 'sucesso_cliente'
   | 'design'
   | 'editor_video'
@@ -27,6 +28,7 @@ export const ROLE_HIERARCHY: Record<UserRole, number> = {
   ceo: 100,
   gestor_projetos: 90,
   gestor_ads: 60,
+  outbound: 50,
   sucesso_cliente: 50,
   design: 40,
   editor_video: 40,
@@ -44,6 +46,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   ceo: 'CEO',
   gestor_projetos: 'Gestor de Projetos',
   gestor_ads: 'Gestor de Ads',
+  outbound: 'Outbound',
   sucesso_cliente: 'Sucesso do Cliente',
   design: 'Design',
   editor_video: 'Editor de Vídeo',
@@ -80,6 +83,19 @@ export const BOARD_VISIBILITY: Record<UserRole, string[]> = {
     'atrizes_gravacao', 'atrizes',
 
     // Outros cargos permitidos
+    'gestor_crm', 'crm',
+    'consultor_comercial', 'comercial'
+  ],
+
+  // Outbound: Mesma visibilidade que Gestor de Ads
+  outbound: [
+    'outbound',
+    'gestor_ads', 'ads', 'trafego',
+    'design',
+    'editor_video', 'video', 'editor',
+    'devs',
+    'produtora',
+    'atrizes_gravacao', 'atrizes',
     'gestor_crm', 'crm',
     'consultor_comercial', 'comercial'
   ],

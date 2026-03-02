@@ -33,8 +33,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   useSidebarPermissions,
-  isAdsBoard, 
-  getBoardPath, 
+  isAdsBoard,
+  isOutboundBoard,
+  getBoardPath,
   getBoardLabel,
   SPECIAL_ROUTES
 } from '@/hooks/useSidebarPermissions';
@@ -100,6 +101,7 @@ export default function AppSidebar() {
     visibleBoards,
     boards,
     adsManagerBoards,
+    outboundManagerBoards,
     productCategories,
     getGroupRoles,
     getSquadRoles,
@@ -159,7 +161,7 @@ export default function AppSidebar() {
   const BoardLink = ({ board, size = 'sm' }: { board: { id: string; slug: string; name: string }; size?: 'sm' | 'md' }) => {
     const path = getBoardPath(board);
     const label = getBoardLabel(board);
-    const IconComponent = isAdsBoard(board) ? Target : Kanban;
+    const IconComponent = (isAdsBoard(board) || isOutboundBoard(board)) ? Target : Kanban;
     const iconSize = size === 'sm' ? 12 : 14;
 
     return (
@@ -188,6 +190,10 @@ export default function AppSidebar() {
       .filter(board => {
         // Se usuário é gestor_ads e tem rota especial, não duplicar o board de ads
         if (userSpecialRoute && user.role === 'gestor_ads' && isAdsBoard(board)) {
+          return false;
+        }
+        // Se usuário é outbound e tem rota especial, não duplicar o board de outbound
+        if (userSpecialRoute && user.role === 'outbound' && isOutboundBoard(board)) {
           return false;
         }
         return true;
@@ -376,7 +382,7 @@ export default function AppSidebar() {
                               </NavLink>
                               {/* Link para Kanban do produto */}
                               <NavLink
-                                to={`/kanban/${board.slug}`}
+                                to={getBoardPath(board)}
                                 className={({ isActive }) => cn(
                                   "flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg transition-colors",
                                   isActive 
@@ -499,8 +505,9 @@ export default function AppSidebar() {
                                   {/* Squads */}
                                   {group.squads.map(squad => {
                                     const squadRoles = getSquadRoles(squad.id);
-                                    const nonAdsRoles = squadRoles.filter(role => role !== 'gestor_ads');
+                                    const nonAdsRoles = squadRoles.filter(role => role !== 'gestor_ads' && role !== 'outbound');
                                     const squadAdsBoards = adsManagerBoards.filter(b => b.squad_id === squad.id);
+                                    const squadOutboundBoards = outboundManagerBoards.filter(b => b.squad_id === squad.id);
                                     
                                     return (
                                       <Collapsible 
@@ -525,8 +532,8 @@ export default function AppSidebar() {
                                               to={`/gestor-ads/${adsBoard.owner_user_id}`}
                                               className={({ isActive }) => cn(
                                                 "flex items-center gap-2 px-2 py-1 text-[10px] rounded-lg transition-colors",
-                                                isActive 
-                                                  ? "bg-sidebar-primary text-sidebar-primary-foreground" 
+                                                isActive
+                                                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
                                                   : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                                               )}
                                             >
@@ -534,7 +541,22 @@ export default function AppSidebar() {
                                               <span className="truncate">ADS ({adsBoard.owner_name})</span>
                                             </NavLink>
                                           ))}
-                                          
+                                          {squadOutboundBoards.map(outboundBoard => (
+                                            <NavLink
+                                              key={outboundBoard.id}
+                                              to={`/millennials-outbound/${outboundBoard.owner_user_id}`}
+                                              className={({ isActive }) => cn(
+                                                "flex items-center gap-2 px-2 py-1 text-[10px] rounded-lg transition-colors",
+                                                isActive
+                                                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                                                  : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                                              )}
+                                            >
+                                              <Target size={10} />
+                                              <span className="truncate">Outbound ({outboundBoard.owner_name})</span>
+                                            </NavLink>
+                                          ))}
+
                                           {nonAdsRoles.map(role => (
                                             <NavLink
                                               key={role}
@@ -542,7 +564,7 @@ export default function AppSidebar() {
                                               className={() => cn(
                                                 "flex items-center gap-2 px-2 py-1 text-[10px] rounded-lg transition-colors",
                                                 isRoleActive(role)
-                                                  ? "bg-sidebar-primary text-sidebar-primary-foreground" 
+                                                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
                                                   : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                                               )}
                                             >
@@ -550,8 +572,8 @@ export default function AppSidebar() {
                                               <span className="truncate">{ROLE_LABELS[role]}</span>
                                             </NavLink>
                                           ))}
-                                          
-                                          {squadAdsBoards.length === 0 && nonAdsRoles.length === 0 && (
+
+                                          {squadAdsBoards.length === 0 && squadOutboundBoards.length === 0 && nonAdsRoles.length === 0 && (
                                             <span className="px-2 text-[10px] text-sidebar-foreground/40 italic">
                                               Sem usuários
                                             </span>
@@ -560,7 +582,7 @@ export default function AppSidebar() {
                                       </Collapsible>
                                     );
                                   })}
-                                  
+
                                   {group.squads.length === 0 && getCoringaRoles(group.id).length === 0 && (
                                     <span className="px-2 text-[10px] text-sidebar-foreground/40 italic">
                                       Grupo vazio
@@ -625,11 +647,12 @@ export default function AppSidebar() {
                           {/* Squads */}
                           {group.squads.map(squad => {
                             const squadRoles = getSquadRoles(squad.id);
-                            const nonAdsRoles = squadRoles.filter(role => role !== 'gestor_ads');
+                            const nonAdsRoles = squadRoles.filter(role => role !== 'gestor_ads' && role !== 'outbound');
                             const squadAdsBoards = adsManagerBoards.filter(b => b.squad_id === squad.id);
-                            
+                            const squadOutboundBoards = outboundManagerBoards.filter(b => b.squad_id === squad.id);
+
                             return (
-                              <Collapsible 
+                              <Collapsible
                                 key={squad.id}
                                 open={openSquads[squad.id]}
                                 onOpenChange={() => toggleSquad(squad.id)}
@@ -651,8 +674,8 @@ export default function AppSidebar() {
                                       to={`/gestor-ads/${adsBoard.owner_user_id}`}
                                       className={({ isActive }) => cn(
                                         "flex items-center gap-2 px-2 py-1 text-[10px] rounded-lg transition-colors",
-                                        isActive 
-                                          ? "bg-sidebar-primary text-sidebar-primary-foreground" 
+                                        isActive
+                                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
                                           : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                                       )}
                                     >
@@ -660,7 +683,22 @@ export default function AppSidebar() {
                                       <span className="truncate">ADS ({adsBoard.owner_name})</span>
                                     </NavLink>
                                   ))}
-                                  
+                                  {squadOutboundBoards.map(outboundBoard => (
+                                    <NavLink
+                                      key={outboundBoard.id}
+                                      to={`/millennials-outbound/${outboundBoard.owner_user_id}`}
+                                      className={({ isActive }) => cn(
+                                        "flex items-center gap-2 px-2 py-1 text-[10px] rounded-lg transition-colors",
+                                        isActive
+                                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                                          : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                                      )}
+                                    >
+                                      <Target size={10} />
+                                      <span className="truncate">Outbound ({outboundBoard.owner_name})</span>
+                                    </NavLink>
+                                  ))}
+
                                   {nonAdsRoles.map(role => (
                                     <NavLink
                                       key={role}
@@ -668,7 +706,7 @@ export default function AppSidebar() {
                                       className={() => cn(
                                         "flex items-center gap-2 px-2 py-1 text-[10px] rounded-lg transition-colors",
                                         isRoleActive(role)
-                                          ? "bg-sidebar-primary text-sidebar-primary-foreground" 
+                                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
                                           : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                                       )}
                                     >
@@ -676,8 +714,8 @@ export default function AppSidebar() {
                                       <span className="truncate">{ROLE_LABELS[role]}</span>
                                     </NavLink>
                                   ))}
-                                  
-                                  {squadAdsBoards.length === 0 && nonAdsRoles.length === 0 && (
+
+                                  {squadAdsBoards.length === 0 && squadOutboundBoards.length === 0 && nonAdsRoles.length === 0 && (
                                     <span className="px-2 text-[10px] text-sidebar-foreground/40 italic">
                                       Sem usuários
                                     </span>
@@ -686,7 +724,7 @@ export default function AppSidebar() {
                               </Collapsible>
                             );
                           })}
-                          
+
                           {group.squads.length === 0 && getCoringaRoles(group.id).length === 0 && (
                             <span className="px-2 text-xs text-sidebar-foreground/40 italic">
                               Grupo vazio
@@ -757,11 +795,12 @@ export default function AppSidebar() {
                   {/* Squads */}
                   {group.squads.map(squad => {
                     const squadRoles = getSquadRoles(squad.id);
-                    const nonAdsRoles = squadRoles.filter(role => role !== 'gestor_ads');
+                    const nonAdsRoles = squadRoles.filter(role => role !== 'gestor_ads' && role !== 'outbound');
                     const squadAdsBoards = adsManagerBoards.filter(b => b.squad_id === squad.id);
-                    
+                    const squadOutboundBoards = outboundManagerBoards.filter(b => b.squad_id === squad.id);
+
                     return (
-                      <Collapsible 
+                      <Collapsible
                         key={squad.id}
                         open={openSquads[squad.id]}
                         onOpenChange={() => toggleSquad(squad.id)}
@@ -783,8 +822,8 @@ export default function AppSidebar() {
                               to={`/gestor-ads/${adsBoard.owner_user_id}`}
                               className={({ isActive }) => cn(
                                 "flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg transition-colors",
-                                isActive 
-                                  ? "bg-sidebar-primary text-sidebar-primary-foreground" 
+                                isActive
+                                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
                                   : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                               )}
                             >
@@ -792,7 +831,22 @@ export default function AppSidebar() {
                               <span className="truncate">Gestor de ADS ({adsBoard.owner_name})</span>
                             </NavLink>
                           ))}
-                          
+                          {squadOutboundBoards.map(outboundBoard => (
+                            <NavLink
+                              key={outboundBoard.id}
+                              to={`/millennials-outbound/${outboundBoard.owner_user_id}`}
+                              className={({ isActive }) => cn(
+                                "flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg transition-colors",
+                                isActive
+                                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                                  : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                              )}
+                            >
+                              <Target size={12} />
+                              <span className="truncate">Outbound ({outboundBoard.owner_name})</span>
+                            </NavLink>
+                          ))}
+
                           {nonAdsRoles.map(role => (
                             <NavLink
                               key={role}
@@ -800,7 +854,7 @@ export default function AppSidebar() {
                               className={() => cn(
                                 "flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg transition-colors",
                                 isRoleActive(role)
-                                  ? "bg-sidebar-primary text-sidebar-primary-foreground" 
+                                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
                                   : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                               )}
                             >
@@ -808,8 +862,8 @@ export default function AppSidebar() {
                               <span className="truncate">{ROLE_LABELS[role]}</span>
                             </NavLink>
                           ))}
-                          
-                          {squadAdsBoards.length === 0 && nonAdsRoles.length === 0 && (
+
+                          {squadAdsBoards.length === 0 && squadOutboundBoards.length === 0 && nonAdsRoles.length === 0 && (
                             <span className="px-2 text-xs text-sidebar-foreground/40 italic">
                               Sem usuários
                             </span>
@@ -927,7 +981,7 @@ export default function AppSidebar() {
               .map(board => {
                 const path = getBoardPath(board);
                 const label = getBoardLabel(board);
-                const IconComponent = isAdsBoard(board) ? Target : Kanban;
+                const IconComponent = (isAdsBoard(board) || isOutboundBoard(board)) ? Target : Kanban;
 
                 return (
                   <NavLink
@@ -1120,7 +1174,7 @@ export default function AppSidebar() {
               }
 
               // Default path for other categories
-              const targetPath = `/kanban/${categoryBoard.slug}`;
+              const targetPath = getBoardPath(categoryBoard);
               const isActive = isPathActive(currentPath, targetPath);
 
               return (

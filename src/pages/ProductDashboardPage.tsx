@@ -38,6 +38,12 @@ export default function ProductDashboardPage() {
     return null;
   }
 
+  // Redirect Millennials Outbound to its dedicated dashboard
+  if (productSlug === 'millennials-outbound') {
+    navigate('/outbound-dashboard', { replace: true });
+    return null;
+  }
+
   return (
     <MainLayout>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">

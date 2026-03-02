@@ -15,6 +15,9 @@ import ProductDashboardPage from "./pages/ProductDashboardPage";
 import KanbanPage from "./pages/KanbanPage";
 import AdsManagerPage from "./pages/AdsManagerPage";
 import AdsManagerIndividualPage from "./pages/AdsManagerIndividualPage";
+import OutboundManagerPage from "./pages/OutboundManagerPage";
+import OutboundManagerIndividualPage from "./pages/OutboundManagerIndividualPage";
+import OutboundDashboardPage from "./pages/OutboundDashboardPage";
 import SucessoClientePage from "./pages/SucessoClientePage";
 import ConsultorComercialPage from "./pages/ConsultorComercialPage";
 import FinanceiroPage from "./pages/FinanceiroPage";
@@ -134,6 +137,7 @@ function DefaultRedirect() {
     { id: 'gestor_crm', path: '/kanban/crm' },
     { id: 'consultor_comercial', path: '/kanban/comercial' },
     { id: 'gestor_ads', path: '/kanban/ads' },
+    { id: 'outbound', path: '/millennials-outbound' },
     { id: 'sucesso_cliente', path: '/kanban/sucesso' },
     { id: 'financeiro', path: '/financeiro' },
     { id: 'rh', path: '/kanban/rh' },
@@ -172,6 +176,13 @@ function AppRoutes() {
         </AdminRoute>
       } />
       
+      {/* Outbound Dashboard - dedicated */}
+      <Route path="/outbound-dashboard" element={
+        <ProtectedRoute>
+          <OutboundDashboardPage />
+        </ProtectedRoute>
+      } />
+
       {/* Generic Product Dashboard - CEO and Gestor de Projetos */}
       <Route path="/produto/:productSlug" element={
         <AdminRoute>
@@ -213,6 +224,9 @@ function AppRoutes() {
       {/* RH Kanban Board Routes (must be before generic /kanban/:boardId) */}
       <Route path="/kanban/rh" element={<Navigate to="/rh" replace />} />
       <Route path="/kanban/rh-board" element={<Navigate to="/rh" replace />} />
+
+      {/* Redirect outbound kanban route to PRO+ page */}
+      <Route path="/kanban/millennials-outbound" element={<Navigate to="/millennials-outbound" replace />} />
       
       {/* Kanban Routes */}
       <Route path="/kanban/:boardId" element={
@@ -234,7 +248,21 @@ function AppRoutes() {
           <AdsManagerIndividualPage />
         </ProtectedRoute>
       } />
-      
+
+      {/* Outbound Manager Route - Generic */}
+      <Route path="/millennials-outbound" element={
+        <ProtectedRoute>
+          <OutboundManagerPage />
+        </ProtectedRoute>
+      } />
+
+      {/* Outbound Manager Route - Individual by user ID */}
+      <Route path="/millennials-outbound/:userId" element={
+        <ProtectedRoute>
+          <OutboundManagerIndividualPage />
+        </ProtectedRoute>
+      } />
+
       {/* Sucesso do Cliente Route */}
       <Route path="/sucesso-cliente" element={
         <ProtectedRoute>
