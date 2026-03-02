@@ -67,8 +67,8 @@ const clientSchema = z.object({
     }),
   cpf: z
     .string()
-    .min(1, 'CPF é obrigatório')
-    .refine((val) => validateCPF(val), {
+    .optional()
+    .refine((val) => !val || validateCPF(val), {
       message: 'CPF inválido. Verifique os dígitos.',
     }),
   razao_social: z
@@ -240,7 +240,7 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
       await createClient.mutateAsync({
         name: data.name.trim(),
         cnpj: data.cnpj,
-        cpf: data.cpf,
+        cpf: data.cpf || undefined,
         razao_social: data.razao_social.trim(),
         niche: data.niche.trim(),
         general_info: data.general_info.trim(),
@@ -507,7 +507,7 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
                   name="cpf"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>CPF *</FormLabel>
+                      <FormLabel>CPF</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="000.000.000-00"
