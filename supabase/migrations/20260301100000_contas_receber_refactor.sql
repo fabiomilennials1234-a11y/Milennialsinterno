@@ -9,9 +9,16 @@
 ALTER TABLE public.clients
   ADD COLUMN IF NOT EXISTS payment_due_day INTEGER DEFAULT NULL;
 
-ALTER TABLE public.clients
-  ADD CONSTRAINT clients_payment_due_day_check
-  CHECK (payment_due_day IS NULL OR (payment_due_day >= 1 AND payment_due_day <= 31));
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'clients_payment_due_day_check'
+  ) THEN
+    ALTER TABLE public.clients
+      ADD CONSTRAINT clients_payment_due_day_check
+      CHECK (payment_due_day IS NULL OR (payment_due_day >= 1 AND payment_due_day <= 31));
+  END IF;
+END $$;
 
 -- 1B. Reestruturar financeiro_contas_receber
 
