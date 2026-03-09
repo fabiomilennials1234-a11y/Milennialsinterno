@@ -13,6 +13,7 @@ interface UpdateUserRequest {
   squad_id?: string | null
   category_id?: string | null
   is_coringa?: boolean
+  additional_pages?: string[]
 }
 
 Deno.serve(async (req) => {
@@ -55,7 +56,7 @@ Deno.serve(async (req) => {
     }
     
     const body: UpdateUserRequest = await req.json()
-    const { userId, email, password, name, role, department, avatar, group_id, squad_id, category_id, is_coringa } = body
+    const { userId, email, password, name, role, department, avatar, group_id, squad_id, category_id, is_coringa, additional_pages } = body
     
     if (!userId) {
       return new Response(
@@ -108,6 +109,7 @@ Deno.serve(async (req) => {
     if (squad_id !== undefined) profileUpdates.squad_id = squad_id
     if (category_id !== undefined) profileUpdates.category_id = category_id
     if (is_coringa !== undefined) profileUpdates.is_coringa = is_coringa
+    if (additional_pages !== undefined) profileUpdates.additional_pages = additional_pages
     
     if (Object.keys(profileUpdates).length > 0) {
       const { error: profileError } = await supabaseAdmin

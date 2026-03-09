@@ -14,6 +14,7 @@ export interface DbUser {
   squad_id: string | null;
   category_id: string | null;
   is_coringa: boolean;
+  additional_pages: string[];
   group_name?: string;
   squad_name?: string;
   category_name?: string;
@@ -58,6 +59,7 @@ export function useUsers() {
           squad_id: profile.squad_id,
           category_id: profile.category_id,
           is_coringa: profile.is_coringa || false,
+          additional_pages: profile.additional_pages || [],
           group_name: (profile.organization_groups as any)?.name || null,
           squad_name: (profile.squads as any)?.name || null,
           category_name: (profile.independent_categories as any)?.name || null,
@@ -81,6 +83,7 @@ export function useCreateUser() {
       squad_id?: string;
       category_id?: string;
       is_coringa?: boolean;
+      additional_pages?: string[];
     }) => {
       const { data: session } = await supabase.auth.getSession();
       
@@ -124,6 +127,7 @@ export function useUpdateUser() {
       squad_id?: string | null;
       category_id?: string | null;
       is_coringa?: boolean;
+      additional_pages?: string[];
     }) => {
       const { data: session } = await supabase.auth.getSession();
       

@@ -1,5 +1,6 @@
 import { useParams } from 'react-router-dom';
 import { usePublicStrategy } from '@/hooks/useClientStrategies';
+import { useStrategyTemplates } from '@/hooks/useStrategyTemplates';
 import { BackgroundPaths } from '@/components/ui/background-paths';
 import { GlowingEffect } from '@/components/ui/glowing-effect';
 import { MgrowthLogo } from '@/components/ui/MgrowthLogo';
@@ -609,6 +610,73 @@ export default function PublicStrategyPage() {
   const strategy = data;
   const clientName = (data as any).clients?.name || 'Cliente';
 
+  // Custom funnel templates
+  const { data: allTemplates = [] } = useStrategyTemplates();
+  const customFunnels = (strategy as any)?.custom_funnels || {};
+
+  const renderCustomFunnelCard = (templateId: string, platform: 'meta' | 'google' | 'linkedin') => {
+    const funnelData = customFunnels[templateId];
+    if (!funnelData?.enabled) return null;
+
+    const template = allTemplates.find(t => t.id === templateId);
+    if (!template || template.platform !== platform) return null;
+
+    const platformColors = {
+      meta: { bg: 'from-blue-600/20 to-blue-800/20', border: 'border-blue-500/30', accent: 'text-blue-400' },
+      google: { bg: 'from-red-600/20 to-red-800/20', border: 'border-red-500/30', accent: 'text-red-400' },
+      linkedin: { bg: 'from-blue-700/20 to-blue-900/20', border: 'border-blue-600/30', accent: 'text-blue-300' },
+    };
+    const colors = platformColors[platform];
+
+    return (
+      <motion.div
+        key={templateId}
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        className={`relative rounded-3xl overflow-hidden border ${colors.border} bg-gradient-to-br ${colors.bg}`}
+        style={{ backgroundColor: `${COLORS.chaoFabrica}ee` }}
+      >
+        <GlowingEffect spread={60} glow={false} borderWidth={1} />
+        <div className="p-8">
+          <div className="flex items-center gap-4 mb-6">
+            <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${template.icon_color} flex items-center justify-center`}>
+              <Sparkles className="w-7 h-7 text-white" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold" style={{ color: COLORS.luzGalpao }}>{template.name}</h3>
+              <p className="text-sm" style={{ color: COLORS.acoIndustrial }}>{template.description}</p>
+            </div>
+          </div>
+
+          {template.how_it_works.length > 0 && (
+            <div className="mb-6 p-4 rounded-xl" style={{ backgroundColor: `${COLORS.chaoFabrica}` }}>
+              <h4 className="text-sm font-semibold mb-3" style={{ color: COLORS.farolCarga }}>Como funciona:</h4>
+              <ul className="space-y-2">
+                {template.how_it_works.map((item: string, i: number) => (
+                  <li key={i} className="flex items-start gap-2 text-sm" style={{ color: COLORS.acoIndustrial }}>
+                    <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" style={{ color: COLORS.farolCarga }} />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {funnelData.budget > 0 && (
+            <div className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: `${COLORS.chaoFabrica}` }}>
+              <DollarSign className="w-4 h-4 shrink-0" style={{ color: COLORS.farolCarga }} />
+              <span className="text-sm" style={{ color: COLORS.acoIndustrial }}>Verba Mensal:</span>
+              <span className="text-sm font-bold ml-auto" style={{ color: COLORS.farolCarga }}>
+                {formatCurrency(funnelData.budget)}
+              </span>
+            </div>
+          )}
+        </div>
+      </motion.div>
+    );
+  };
+
   // Helper to format currency
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -647,6 +715,13 @@ export default function PublicStrategyPage() {
       }
     });
 
+    // Add custom funnel budgets
+    for (const funnelData of Object.values(customFunnels)) {
+      if (funnelData?.enabled && funnelData?.budget) {
+        total += funnelData.budget;
+      }
+    }
+
     return total;
   };
 
@@ -665,6 +740,10 @@ export default function PublicStrategyPage() {
     if (strategy.google_display?.enabled) count++;
     if (strategy.linkedin_vagas?.enabled) count++;
     if (strategy.linkedin_cadastro?.enabled) count++;
+    // Count custom funnels
+    for (const funnelData of Object.values(customFunnels)) {
+      if (funnelData?.enabled) count++;
+    }
     return count;
   };
 
@@ -1273,6 +1352,7 @@ export default function PublicStrategyPage() {
               {renderFunnelCard('disparo_email', strategy.meta_disparo_email, 'meta')}
               {renderFunnelCard('grupo_vip', strategy.meta_grupo_vip, 'meta')}
               {renderFunnelCard('aumento_base', strategy.meta_aumento_base, 'meta')}
+              {Object.keys(customFunnels).map(tid => renderCustomFunnelCard(tid, 'meta'))}
             </div>
           </div>
         </section>
@@ -1310,6 +1390,7 @@ export default function PublicStrategyPage() {
               {renderFunnelCard('pmax', strategy.google_pmax, 'google')}
               {renderFunnelCard('pesquisa', strategy.google_pesquisa, 'google')}
               {renderFunnelCard('display', strategy.google_display, 'google')}
+              {Object.keys(customFunnels).map(tid => renderCustomFunnelCard(tid, 'google'))}
             </div>
           </div>
         </section>
@@ -1346,6 +1427,7 @@ export default function PublicStrategyPage() {
             <div className="grid lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
               {renderFunnelCard('linkedin_vagas', strategy.linkedin_vagas, 'linkedin')}
               {renderFunnelCard('linkedin_cadastro', strategy.linkedin_cadastro, 'linkedin')}
+              {Object.keys(customFunnels).map(tid => renderCustomFunnelCard(tid, 'linkedin'))}
             </div>
           </div>
         </section>

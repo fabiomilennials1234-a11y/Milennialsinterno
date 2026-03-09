@@ -30,7 +30,7 @@ import ClientNotesSection from './ClientNotesSection';
 import OverdueInvoiceBadge from '@/components/shared/OverdueInvoiceBadge';
 import ClientLabelBadge, { type ClientLabel } from '@/components/shared/ClientLabelBadge';
 import ClientLabelSelector from '@/components/shared/ClientLabelSelector';
-import { useClientInfo, useClientCallForm, useSaveClientCallForm, ClientCallForm } from '@/hooks/useClientCallForm';
+import { useClientInfo, useClientCallForm, useSaveClientCallForm, useUpdateClientInfo, ClientCallForm } from '@/hooks/useClientCallForm';
 import StrategyBuilderSection from '@/components/strategy/StrategyBuilderSection';
 import OutboundStrategyBuilderSection from '@/components/outbound-strategy/OutboundStrategyBuilderSection';
 import { cn } from '@/lib/utils';
@@ -60,8 +60,16 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
   const { data: clientInfo, isLoading: clientLoading } = useClientInfo(clientId);
   const { data: callForm, isLoading: formLoading } = useClientCallForm(clientId);
   const saveForm = useSaveClientCallForm();
+  const updateClientInfo = useUpdateClientInfo();
 
   const canSetClientLabel = isCEO || isAdminUser || user?.role === 'sucesso_cliente';
+
+  const [clientInfoData, setClientInfoData] = useState({
+    niche: '',
+    expected_investment: '',
+    cnpj: '',
+    general_info: '',
+  });
 
   const [formData, setFormData] = useState<Partial<ClientCallForm> & { strategy_link?: string }>({
     historia_empresa: '',
@@ -85,6 +93,18 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
   });
 
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
+
+  // Load existing client info data
+  useEffect(() => {
+    if (clientInfo) {
+      setClientInfoData({
+        niche: clientInfo.niche || '',
+        expected_investment: clientInfo.expected_investment != null ? String(clientInfo.expected_investment) : '',
+        cnpj: clientInfo.cnpj || '',
+        general_info: clientInfo.general_info || '',
+      });
+    }
+  }, [clientInfo]);
 
   // Load existing data when callForm changes
   useEffect(() => {
@@ -116,7 +136,22 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleClientInfoChange = (field: string, value: string) => {
+    setClientInfoData(prev => ({ ...prev, [field]: value }));
+  };
+
   const handleSave = async () => {
+    // Save client info (niche, investment, cnpj, general_info)
+    await updateClientInfo.mutateAsync({
+      clientId,
+      data: {
+        niche: clientInfoData.niche || undefined,
+        expected_investment: clientInfoData.expected_investment ? parseFloat(clientInfoData.expected_investment) : null,
+        cnpj: clientInfoData.cnpj || undefined,
+        general_info: clientInfoData.general_info || undefined,
+      },
+    });
+    // Save call form data
     await saveForm.mutateAsync({ clientId, data: formData });
     setShowSaveSuccess(true);
     setTimeout(() => setShowSaveSuccess(false), 2000);
@@ -159,7 +194,7 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
 
               <Button
                 onClick={handleSave}
-                disabled={saveForm.isPending}
+                disabled={saveForm.isPending || updateClientInfo.isPending}
                 className="gap-2"
               >
                 {saveForm.isPending ? (
@@ -182,16 +217,19 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
         ) : (
           <ScrollArea className="flex-1 overflow-y-auto">
             <div className="px-6 py-4 space-y-6">
-              {/* Client Info Cards */}
+              {/* Client Info Cards - Editable */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-muted/30 rounded-xl p-4 border border-border">
                   <div className="flex items-center gap-2 mb-2">
                     <Target className="w-4 h-4 text-primary" />
                     <span className="text-sm font-semibold text-foreground">Nicho</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    {clientInfo?.niche || 'Não informado'}
-                  </p>
+                  <Input
+                    placeholder="Ex: Bolos, Restaurantes..."
+                    value={clientInfoData.niche}
+                    onChange={(e) => handleClientInfoChange('niche', e.target.value)}
+                    className="h-8 text-sm"
+                  />
                 </div>
 
                 <div className="bg-muted/30 rounded-xl p-4 border border-border">
@@ -199,9 +237,14 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
                     <DollarSign className="w-4 h-4 text-success" />
                     <span className="text-sm font-semibold text-foreground">Investimento Previsto</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    {formatCurrency(clientInfo?.expected_investment || null)}
-                  </p>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="Ex: 2000.00"
+                    value={clientInfoData.expected_investment}
+                    onChange={(e) => handleClientInfoChange('expected_investment', e.target.value)}
+                    className="h-8 text-sm"
+                  />
                 </div>
 
                 <div className="bg-muted/30 rounded-xl p-4 border border-border">
@@ -209,26 +252,30 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
                     <Building2 className="w-4 h-4 text-info" />
                     <span className="text-sm font-semibold text-foreground">CNPJ</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    {clientInfo?.cnpj || 'Não informado'}
-                  </p>
+                  <Input
+                    placeholder="Ex: 18.137.576/0001-60"
+                    value={clientInfoData.cnpj}
+                    onChange={(e) => handleClientInfoChange('cnpj', e.target.value)}
+                    className="h-8 text-sm"
+                  />
                 </div>
               </div>
 
-              {/* General Info */}
-              {clientInfo?.general_info && (
-                <div className="bg-primary/5 rounded-xl p-4 border border-primary/20">
-                  <div className="flex items-center gap-2 mb-2">
-                    <FileText className="w-4 h-4 text-primary" />
-                    <span className="text-sm font-semibold text-foreground">
-                      O que o gestor precisa saber sobre esse cliente?
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                    {clientInfo.general_info}
-                  </p>
+              {/* General Info - Editable */}
+              <div className="bg-primary/5 rounded-xl p-4 border border-primary/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <FileText className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-semibold text-foreground">
+                    O que o gestor precisa saber sobre esse cliente?
+                  </span>
                 </div>
-              )}
+                <Textarea
+                  placeholder="Informações importantes sobre o cliente..."
+                  value={clientInfoData.general_info}
+                  onChange={(e) => handleClientInfoChange('general_info', e.target.value)}
+                  className="min-h-[80px] text-sm"
+                />
+              </div>
 
               <Separator />
 

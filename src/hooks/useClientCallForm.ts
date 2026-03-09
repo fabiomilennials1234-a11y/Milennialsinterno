@@ -73,6 +73,30 @@ export function useClientInfo(clientId: string) {
   });
 }
 
+export function useUpdateClientInfo() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ clientId, data }: { clientId: string; data: { niche?: string; expected_investment?: number | null; cnpj?: string; general_info?: string } }) => {
+      const { error } = await supabase
+        .from('clients')
+        .update({
+          ...data,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', clientId);
+
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['client-info', variables.clientId] });
+    },
+    onError: (error: any) => {
+      toast.error('Erro ao salvar informações do cliente', { description: error.message });
+    },
+  });
+}
+
 export function useSaveClientCallForm() {
   const queryClient = useQueryClient();
 

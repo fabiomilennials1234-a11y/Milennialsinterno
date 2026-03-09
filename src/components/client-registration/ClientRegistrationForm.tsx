@@ -718,87 +718,6 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
               </div>
             </div>
 
-            {/* Section: Responsáveis - Sempre visível */}
-            <div className="space-y-4 pt-4 border-t border-border">
-              <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                Responsáveis
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="assigned_ads_manager"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Gestor de Ads Responsável *</FormLabel>
-                      <FormControl>
-                        <select
-                          className="input-apple"
-                          value={field.value || ''}
-                          onChange={(e) => field.onChange(e.target.value)}
-                        >
-                          <option value="" disabled>
-                            Selecione um gestor de ads
-                          </option>
-                          {managersLoading ? (
-                            <option value="" disabled>
-                              Carregando...
-                            </option>
-                          ) : adsManagers.length === 0 ? (
-                            <option value="" disabled>
-                              Nenhum gestor encontrado
-                            </option>
-                          ) : (
-                            adsManagers.map((manager) => (
-                              <option key={manager.user_id} value={manager.user_id}>
-                                {manager.name} ({manager.email})
-                              </option>
-                            ))
-                          )}
-                        </select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="assigned_comercial"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Consultor Comercial (Opcional)</FormLabel>
-                      <FormControl>
-                        <select
-                          className="input-apple"
-                          value={field.value || ''}
-                          onChange={(e) => field.onChange(e.target.value)}
-                        >
-                          <option value="">Nenhum (opcional)</option>
-                          {consultantsLoading ? (
-                            <option value="" disabled>
-                              Carregando...
-                            </option>
-                          ) : comercialConsultants.length === 0 ? (
-                            <option value="" disabled>
-                              Nenhum consultor encontrado
-                            </option>
-                          ) : (
-                            comercialConsultants.map((consultant) => (
-                              <option key={consultant.user_id} value={consultant.user_id}>
-                                {consultant.name} ({consultant.email})
-                              </option>
-                            ))
-                          )}
-                        </select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-
             {/* Section: Atribuição de Equipe - Só aparece se Millennials Growth estiver selecionado */}
             {hasMillennialsGrowth && (
               <div key="team-assignment-section" className="space-y-4 pt-4 border-t border-border animate-fade-in">
@@ -885,6 +804,87 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
                 </div>
               </div>
             )}
+
+            {/* Section: Responsáveis - Sempre visível */}
+            <div className="space-y-4 pt-4 border-t border-border">
+              <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                Responsáveis
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="assigned_ads_manager"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Gestor de Ads Responsável *</FormLabel>
+                      <FormControl>
+                        <select
+                          className="input-apple"
+                          value={field.value || ''}
+                          onChange={(e) => field.onChange(e.target.value)}
+                        >
+                          <option value="" disabled>
+                            Selecione um gestor de ads
+                          </option>
+                          {managersLoading ? (
+                            <option value="" disabled>
+                              Carregando...
+                            </option>
+                          ) : adsManagers.length === 0 ? (
+                            <option value="" disabled>
+                              Nenhum gestor encontrado
+                            </option>
+                          ) : (
+                            adsManagers.map((manager) => (
+                              <option key={manager.user_id} value={manager.user_id}>
+                                {manager.name} ({manager.email})
+                              </option>
+                            ))
+                          )}
+                        </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="assigned_comercial"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Consultor Comercial (Opcional)</FormLabel>
+                      <FormControl>
+                        <select
+                          className="input-apple"
+                          value={field.value || ''}
+                          onChange={(e) => field.onChange(e.target.value)}
+                        >
+                          <option value="">Nenhum (opcional)</option>
+                          {consultantsLoading ? (
+                            <option value="" disabled>
+                              Carregando...
+                            </option>
+                          ) : comercialConsultants.length === 0 ? (
+                            <option value="" disabled>
+                              Nenhum consultor encontrado
+                            </option>
+                          ) : (
+                            comercialConsultants.map((consultant) => (
+                              <option key={consultant.user_id} value={consultant.user_id}>
+                                {consultant.name} ({consultant.email})
+                              </option>
+                            ))
+                          )}
+                        </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
 
             {/* Info box */}
             <div className="bg-info/10 border border-info/20 rounded-xl p-4 flex items-start gap-3">

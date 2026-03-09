@@ -57,14 +57,15 @@ export default function UsersPage() {
     (user.squad_name?.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const handleCreateUser = async (newUser: { 
-    name: string; 
-    email: string; 
-    role: UserRole; 
+  const handleCreateUser = async (newUser: {
+    name: string;
+    email: string;
+    role: UserRole;
     group_id?: string;
     squad_id?: string;
     category_id?: string;
     is_coringa?: boolean;
+    additional_pages?: string[];
   }, password: string) => {
     try {
       await createUser.mutateAsync({
@@ -76,6 +77,7 @@ export default function UsersPage() {
         squad_id: newUser.squad_id,
         category_id: newUser.category_id,
         is_coringa: newUser.is_coringa,
+        additional_pages: newUser.additional_pages,
       });
       
       setIsCreateModalOpen(false);
@@ -89,14 +91,15 @@ export default function UsersPage() {
     }
   };
 
-  const handleEditUser = async (userId: string, updates: Partial<{ 
-    name: string; 
-    email: string; 
-    role: UserRole; 
+  const handleEditUser = async (userId: string, updates: Partial<{
+    name: string;
+    email: string;
+    role: UserRole;
     group_id: string | null;
     squad_id: string | null;
     category_id: string | null;
     is_coringa: boolean;
+    additional_pages: string[];
   }>, newPassword?: string) => {
     try {
       await updateUser.mutateAsync({
