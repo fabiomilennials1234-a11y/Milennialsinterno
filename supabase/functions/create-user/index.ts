@@ -11,6 +11,7 @@ interface CreateUserRequest {
   squad_id?: string
   category_id?: string
   is_coringa?: boolean
+  additional_pages?: string[]
 }
 
 Deno.serve(async (req) => {
@@ -62,7 +63,7 @@ Deno.serve(async (req) => {
     
     // Parse request body
     const body: CreateUserRequest = await req.json()
-    const { email, password, name, role, avatar, group_id, squad_id, category_id, is_coringa } = body
+    const { email, password, name, role, avatar, group_id, squad_id, category_id, is_coringa, additional_pages } = body
     
     if (!email || !password || !name || !role) {
       return new Response(
@@ -101,7 +102,8 @@ Deno.serve(async (req) => {
           group_id: group_id || null,
           squad_id: squad_id || null,
           category_id: category_id || null,
-          is_coringa: is_coringa || false
+          is_coringa: is_coringa || false,
+          additional_pages: additional_pages || []
         },
         { onConflict: 'user_id' }
       )

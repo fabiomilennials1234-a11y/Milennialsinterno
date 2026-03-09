@@ -45,21 +45,24 @@ CREATE TABLE IF NOT EXISTS public.outbound_strategies (
 -- RLS
 ALTER TABLE public.outbound_strategies ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view outbound strategies"
-  ON public.outbound_strategies FOR SELECT TO authenticated USING (true);
-
-CREATE POLICY "Users can create outbound strategies"
-  ON public.outbound_strategies FOR INSERT TO authenticated WITH CHECK (true);
-
-CREATE POLICY "Users can update outbound strategies"
-  ON public.outbound_strategies FOR UPDATE TO authenticated USING (true);
-
-CREATE POLICY "Users can delete outbound strategies"
-  ON public.outbound_strategies FOR DELETE TO authenticated USING (true);
-
-CREATE POLICY "Public can view published outbound strategies"
-  ON public.outbound_strategies FOR SELECT TO anon USING (is_published = true);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can view outbound strategies' AND tablename = 'outbound_strategies') THEN
+    CREATE POLICY "Users can view outbound strategies" ON public.outbound_strategies FOR SELECT TO authenticated USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can create outbound strategies' AND tablename = 'outbound_strategies') THEN
+    CREATE POLICY "Users can create outbound strategies" ON public.outbound_strategies FOR INSERT TO authenticated WITH CHECK (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can update outbound strategies' AND tablename = 'outbound_strategies') THEN
+    CREATE POLICY "Users can update outbound strategies" ON public.outbound_strategies FOR UPDATE TO authenticated USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can delete outbound strategies' AND tablename = 'outbound_strategies') THEN
+    CREATE POLICY "Users can delete outbound strategies" ON public.outbound_strategies FOR DELETE TO authenticated USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public can view published outbound strategies' AND tablename = 'outbound_strategies') THEN
+    CREATE POLICY "Public can view published outbound strategies" ON public.outbound_strategies FOR SELECT TO anon USING (is_published = true);
+  END IF;
+END $$;
 
 -- Indexes
-CREATE INDEX idx_outbound_strategies_client_id ON public.outbound_strategies(client_id);
-CREATE INDEX idx_outbound_strategies_public_token ON public.outbound_strategies(public_token);
+CREATE INDEX IF NOT EXISTS idx_outbound_strategies_client_id ON public.outbound_strategies(client_id);
+CREATE INDEX IF NOT EXISTS idx_outbound_strategies_public_token ON public.outbound_strategies(public_token);

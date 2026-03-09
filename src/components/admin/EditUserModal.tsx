@@ -1,22 +1,25 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { UserRole, ROLE_LABELS } from '@/types/auth';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, FileText, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DbUser } from '@/hooks/useUsers';
 import { useOrganizationGroups, useIndependentCategories } from '@/hooks/useOrganization';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface EditUserModalProps {
   isOpen: boolean;
   user: DbUser | null;
   onClose: () => void;
-  onSubmit: (userId: string, updates: Partial<{ 
-    name: string; 
-    email: string; 
-    role: UserRole; 
+  onSubmit: (userId: string, updates: Partial<{
+    name: string;
+    email: string;
+    role: UserRole;
     group_id: string | null;
     squad_id: string | null;
     category_id: string | null;
     is_coringa: boolean;
+    additional_pages: string[];
   }>, newPassword?: string) => void;
   isLoading?: boolean;
 }
@@ -24,6 +27,7 @@ interface EditUserModalProps {
 const AVAILABLE_ROLES: UserRole[] = [
   'gestor_projetos',
   'gestor_ads',
+  'outbound',
   'sucesso_cliente',
   'design',
   'editor_video',
@@ -36,10 +40,48 @@ const AVAILABLE_ROLES: UserRole[] = [
   'rh',
 ];
 
+// Páginas disponíveis no sistema (mesma lista do CreateUserModal)
+const ALL_PAGES = [
+  { id: 'gestor-ads', label: 'Gestão de Tráfego PRO+', icon: '📊' },
+  { id: 'sucesso-cliente', label: 'Sucesso do Cliente PRO+', icon: '🤝' },
+  { id: 'consultor-comercial', label: 'Comercial PRO+', icon: '💼' },
+  { id: 'financeiro', label: 'Financeiro PRO+', icon: '💰' },
+  { id: 'gestor-projetos', label: 'Gestão de Projetos PRO+', icon: '📋' },
+  { id: 'gestor-crm', label: 'CRM PRO+', icon: '📇' },
+  { id: 'design', label: 'Design PRO+', icon: '🎨' },
+  { id: 'editor-video', label: 'Editor de Vídeo PRO+', icon: '🎬' },
+  { id: 'devs', label: 'Desenvolvedor PRO+', icon: '💻' },
+  { id: 'atrizes-gravacao', label: 'Gravação PRO+', icon: '🎭' },
+  { id: 'rh', label: 'RH PRO+', icon: '👥' },
+  { id: 'produtora', label: 'Produtora', icon: '🎥' },
+  { id: 'cliente-list', label: 'Lista de Clientes', icon: '📝' },
+  { id: 'cadastro-clientes', label: 'Cadastro de Clientes', icon: '➕' },
+  { id: 'upsells', label: 'UP Sells', icon: '📈' },
+  { id: 'comissoes', label: 'Comissões', icon: '💵' },
+];
+
+// Páginas padrão por cargo (mesma lista do CreateUserModal)
+const DEFAULT_PAGES_BY_ROLE: Record<UserRole, string[]> = {
+  ceo: ALL_PAGES.map(p => p.id),
+  gestor_projetos: ALL_PAGES.map(p => p.id),
+  gestor_ads: ['gestor-ads', 'design', 'editor-video', 'devs', 'produtora', 'atrizes-gravacao', 'gestor-crm', 'consultor-comercial'],
+  outbound: ['gestor-ads', 'design', 'editor-video', 'devs', 'produtora', 'atrizes-gravacao', 'gestor-crm', 'consultor-comercial'],
+  sucesso_cliente: ['sucesso-cliente', 'gestor-ads', 'design', 'editor-video', 'devs', 'produtora', 'atrizes-gravacao', 'gestor-crm', 'consultor-comercial', 'rh', 'cliente-list', 'cadastro-clientes', 'upsells'],
+  design: ['design'],
+  editor_video: ['editor-video', 'atrizes-gravacao'],
+  devs: ['devs', 'design'],
+  atrizes_gravacao: ['atrizes-gravacao', 'editor-video'],
+  produtora: ['produtora'],
+  gestor_crm: ['gestor-crm'],
+  consultor_comercial: ['consultor-comercial'],
+  financeiro: ['financeiro', 'cliente-list', 'comissoes'],
+  rh: ['rh'],
+};
+
 export default function EditUserModal({ isOpen, user, onClose, onSubmit, isLoading }: EditUserModalProps) {
   const { data: groups = [] } = useOrganizationGroups();
   const { data: categories = [] } = useIndependentCategories();
-  
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -51,6 +93,7 @@ export default function EditUserModal({ isOpen, user, onClose, onSubmit, isLoadi
     category_id: '',
     is_coringa: false,
   });
+  const [additionalPages, setAdditionalPages] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -62,7 +105,7 @@ export default function EditUserModal({ isOpen, user, onClose, onSubmit, isLoadi
       } else if (user.category_id) {
         assignmentType = 'category';
       }
-      
+
       setFormData({
         name: user.name,
         email: user.email,
@@ -74,26 +117,54 @@ export default function EditUserModal({ isOpen, user, onClose, onSubmit, isLoadi
         category_id: user.category_id || '',
         is_coringa: user.is_coringa || false,
       });
+      setAdditionalPages(user.additional_pages || []);
     }
   }, [user]);
 
+  // Páginas padrão do cargo selecionado
+  const defaultPages = useMemo(() => {
+    if (!formData.role) return [];
+    return DEFAULT_PAGES_BY_ROLE[formData.role] || [];
+  }, [formData.role]);
+
+  // Páginas disponíveis para adicionar (que não são padrão)
+  const availableAdditionalPages = useMemo(() => {
+    return ALL_PAGES.filter(p => !defaultPages.includes(p.id));
+  }, [defaultPages]);
+
+  // Quando mudar o cargo, filtrar páginas adicionais que agora são padrão
+  useEffect(() => {
+    if (formData.role) {
+      const newDefaults = DEFAULT_PAGES_BY_ROLE[formData.role] || [];
+      setAdditionalPages(prev => prev.filter(p => !newDefaults.includes(p)));
+    }
+  }, [formData.role]);
+
+  const toggleAdditionalPage = (pageId: string) => {
+    setAdditionalPages(prev =>
+      prev.includes(pageId)
+        ? prev.filter(p => p !== pageId)
+        : [...prev, pageId]
+    );
+  };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    
+
     if (!formData.name.trim()) {
       newErrors.name = 'Nome é obrigatório';
     }
-    
+
     if (!formData.email.trim()) {
       newErrors.email = 'E-mail é obrigatório';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'E-mail inválido';
     }
-    
+
     if (formData.password && formData.password.length < 6) {
       newErrors.password = 'Senha deve ter pelo menos 6 caracteres';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -102,27 +173,29 @@ export default function EditUserModal({ isOpen, user, onClose, onSubmit, isLoadi
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm() || !user) return;
-    
-    const updates: Partial<{ 
-      name: string; 
-      email: string; 
-      role: UserRole; 
+
+    const updates: Partial<{
+      name: string;
+      email: string;
+      role: UserRole;
       group_id: string | null;
       squad_id: string | null;
       category_id: string | null;
       is_coringa: boolean;
+      additional_pages: string[];
     }> = {
       name: formData.name,
       email: formData.email,
+      additional_pages: additionalPages,
     };
-    
+
     // Só inclui role se não for CEO
     if (user.role !== 'ceo') {
       updates.role = formData.role;
     }
-    
+
     // Handle group/squad/category assignment
     if (formData.assignmentType === 'group') {
       updates.group_id = formData.group_id || null;
@@ -140,9 +213,9 @@ export default function EditUserModal({ isOpen, user, onClose, onSubmit, isLoadi
       updates.category_id = null;
       updates.is_coringa = false;
     }
-    
+
     const newPassword = formData.password.trim() || undefined;
-    
+
     onSubmit(user.user_id, updates, newPassword);
   };
 
@@ -159,6 +232,7 @@ export default function EditUserModal({ isOpen, user, onClose, onSubmit, isLoadi
       category_id: '',
       is_coringa: false,
     });
+    setAdditionalPages([]);
     setErrors({});
     onClose();
   };
@@ -170,11 +244,11 @@ export default function EditUserModal({ isOpen, user, onClose, onSubmit, isLoadi
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div 
+      <div
         className="absolute inset-0 bg-foreground/20 backdrop-blur-sm animate-fade-in"
         onClick={handleClose}
       />
-      
+
       {/* Modal */}
       <div className="relative w-full max-w-lg mx-4 bg-card rounded-2xl shadow-2xl animate-scale-in border border-border max-h-[90vh] flex flex-col">
         {/* Header */}
@@ -307,8 +381,8 @@ export default function EditUserModal({ isOpen, user, onClose, onSubmit, isLoadi
                 <div className="flex gap-3">
                   <button
                     type="button"
-                    onClick={() => setFormData(prev => ({ 
-                      ...prev, 
+                    onClick={() => setFormData(prev => ({
+                      ...prev,
                       assignmentType: 'group',
                       category_id: '',
                     }))}
@@ -324,8 +398,8 @@ export default function EditUserModal({ isOpen, user, onClose, onSubmit, isLoadi
                   </button>
                   <button
                     type="button"
-                    onClick={() => setFormData(prev => ({ 
-                      ...prev, 
+                    onClick={() => setFormData(prev => ({
+                      ...prev,
                       assignmentType: 'category',
                       group_id: '',
                       squad_id: '',
@@ -354,8 +428,8 @@ export default function EditUserModal({ isOpen, user, onClose, onSubmit, isLoadi
                     </label>
                     <select
                       value={formData.group_id}
-                      onChange={(e) => setFormData(prev => ({ 
-                        ...prev, 
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
                         group_id: e.target.value,
                         squad_id: '',
                       }))}
@@ -381,8 +455,8 @@ export default function EditUserModal({ isOpen, user, onClose, onSubmit, isLoadi
                         type="checkbox"
                         id="edit_is_coringa"
                         checked={formData.is_coringa}
-                        onChange={(e) => setFormData(prev => ({ 
-                          ...prev, 
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
                           is_coringa: e.target.checked,
                           squad_id: e.target.checked ? '' : prev.squad_id,
                         }))}
@@ -450,6 +524,82 @@ export default function EditUserModal({ isOpen, user, onClose, onSubmit, isLoadi
                 </div>
               )}
             </>
+          )}
+
+          {/* Páginas de Acesso */}
+          {formData.role && !isCEO && (
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-foreground flex items-center gap-2">
+                <FileText size={14} />
+                Páginas de Acesso
+              </label>
+
+              {/* Páginas Padrão */}
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">Páginas padrão do cargo:</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {defaultPages.length > 0 ? (
+                    defaultPages.map(pageId => {
+                      const page = ALL_PAGES.find(p => p.id === pageId);
+                      if (!page) return null;
+                      return (
+                        <Badge
+                          key={pageId}
+                          variant="secondary"
+                          className="text-xs py-1 px-2 bg-primary/10 text-primary border-primary/20"
+                        >
+                          <span className="mr-1">{page.icon}</span>
+                          {page.label}
+                        </Badge>
+                      );
+                    })
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Nenhuma página padrão</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Páginas Adicionais */}
+              {availableAdditionalPages.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">Páginas adicionais (opcional):</p>
+                  <ScrollArea className="h-[120px] border rounded-xl p-2">
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {availableAdditionalPages.map(page => {
+                        const isSelected = additionalPages.includes(page.id);
+                        return (
+                          <button
+                            key={page.id}
+                            type="button"
+                            onClick={() => toggleAdditionalPage(page.id)}
+                            disabled={isLoading}
+                            className={cn(
+                              "flex items-center gap-2 p-2 rounded-lg text-xs text-left transition-colors",
+                              isSelected
+                                ? "bg-primary/10 border border-primary/30 text-primary"
+                                : "bg-muted/50 border border-transparent hover:bg-muted"
+                            )}
+                          >
+                            {isSelected ? (
+                              <Check size={12} className="text-primary flex-shrink-0" />
+                            ) : (
+                              <div className="w-3 h-3 rounded border border-muted-foreground/30 flex-shrink-0" />
+                            )}
+                            <span className="mr-1">{page.icon}</span>
+                            <span className="truncate">{page.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                  {additionalPages.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      {additionalPages.length} página(s) adicional(is) selecionada(s)
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
           )}
 
           {/* Actions */}

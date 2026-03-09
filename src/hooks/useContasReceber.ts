@@ -90,15 +90,31 @@ export function useContasReceber(selectedMonth: string, enabled: boolean) {
     enabled,
   });
 
-  // Fetch active client products (for add dropdown product options)
+  // Fetch client product values (for add dropdown product options)
   const { data: activeProducts = [] } = useQuery({
     queryKey: ['active-products-for-receber'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Get from client_product_values (has actual values per product)
+      const { data: cpv, error: cpvError } = await supabase
+        .from('client_product_values')
+        .select('client_id, product_slug, product_name, monthly_value');
+      if (cpvError) throw cpvError;
+
+      // Also get from financeiro_active_clients as fallback
+      const { data: fac, error: facError } = await supabase
         .from('financeiro_active_clients')
         .select('client_id, product_slug, product_name, monthly_value');
-      if (error) throw error;
-      return data || [];
+      if (facError) throw facError;
+
+      // Merge: cpv takes priority over fac
+      const map = new Map<string, typeof fac[0]>();
+      for (const item of (fac || [])) {
+        map.set(`${item.client_id}::${item.product_slug}`, item);
+      }
+      for (const item of (cpv || [])) {
+        map.set(`${item.client_id}::${item.product_slug}`, item);
+      }
+      return Array.from(map.values());
     },
     enabled,
   });
@@ -233,31 +249,118 @@ export function useContasReceber(selectedMonth: string, enabled: boolean) {
 
         if (error) throw error;
       } else {
-        // Initialize from financeiro_active_clients (per product)
-        const { data: activeClients } = await supabase
-          .from('financeiro_active_clients')
-          .select('client_id, product_slug, product_name, monthly_value');
+        // Initialize from ALL registered clients with their product values
+        const { data: clients } = await supabase
+          .from('clients')
+          .select('id, entry_date, contracted_products')
+          .eq('archived', false);
 
-        if (activeClients && activeClients.length > 0) {
-          const dataToInsert = activeClients
-            .filter(item => (item.monthly_value || 0) > 0)
-            .map(item => ({
-              client_id: item.client_id,
-              valor: item.monthly_value || 0,
-              produto_slug: item.product_slug,
-              status: 'pendente' as const,
+        if (!clients || clients.length === 0) return;
+
+        // Filter clients whose entry_date is within or before the selected month
+        const eligibleClients = clients.filter(c => {
+          if (!c.entry_date) return true;
+          const entryMonth = (c.entry_date as string).substring(0, 7);
+          return entryMonth <= month;
+        });
+
+        if (eligibleClients.length === 0) return;
+
+        const clientIds = eligibleClients.map(c => c.id);
+
+        // Get per-product values from client_product_values (source of truth)
+        const { data: productValues } = await supabase
+          .from('client_product_values')
+          .select('client_id, product_slug, product_name, monthly_value')
+          .in('client_id', clientIds);
+
+        // Also get financeiro_active_clients as fallback
+        const { data: facData } = await supabase
+          .from('financeiro_active_clients')
+          .select('client_id, product_slug, product_name, monthly_value')
+          .in('client_id', clientIds);
+
+        // Build map: client_id -> product_slug -> { name, value }
+        const clientProductMap = new Map<string, Map<string, { name: string; value: number }>>();
+
+        // Populate from financeiro_active_clients first
+        if (facData) {
+          for (const ac of facData) {
+            if (!clientProductMap.has(ac.client_id)) {
+              clientProductMap.set(ac.client_id, new Map());
+            }
+            clientProductMap.get(ac.client_id)!.set(ac.product_slug, {
+              name: ac.product_name || getProductDisplayName(ac.product_slug),
+              value: ac.monthly_value || 0,
+            });
+          }
+        }
+
+        // Override with client_product_values (has actual monthly values)
+        if (productValues) {
+          for (const pv of productValues) {
+            if (!clientProductMap.has(pv.client_id)) {
+              clientProductMap.set(pv.client_id, new Map());
+            }
+            const ex = clientProductMap.get(pv.client_id)!.get(pv.product_slug);
+            if (!ex || (pv.monthly_value || 0) > 0) {
+              clientProductMap.get(pv.client_id)!.set(pv.product_slug, {
+                name: pv.product_name || getProductDisplayName(pv.product_slug),
+                value: pv.monthly_value || 0,
+              });
+            }
+          }
+        }
+
+        // For clients with contracted_products but no product values yet
+        for (const client of eligibleClients) {
+          if (client.contracted_products && (client.contracted_products as string[]).length > 0) {
+            if (!clientProductMap.has(client.id)) {
+              clientProductMap.set(client.id, new Map());
+            }
+            const existingProducts = clientProductMap.get(client.id)!;
+            for (const slug of (client.contracted_products as string[])) {
+              if (!existingProducts.has(slug)) {
+                existingProducts.set(slug, {
+                  name: getProductDisplayName(slug),
+                  value: 0,
+                });
+              }
+            }
+          }
+        }
+
+        // Build insert data
+        const dataToInsert: Array<{
+          client_id: string;
+          valor: number;
+          produto_slug: string;
+          status: 'pendente';
+          mes_referencia: string;
+          is_recurring: boolean;
+          inadimplencia_count: number;
+        }> = [];
+
+        for (const [clientId, products] of clientProductMap) {
+          for (const [slug, product] of products) {
+            dataToInsert.push({
+              client_id: clientId,
+              valor: product.value,
+              produto_slug: slug,
+              status: 'pendente',
               mes_referencia: month,
               is_recurring: true,
               inadimplencia_count: 0,
-            }));
-
-          if (dataToInsert.length > 0) {
-            const { error } = await supabase
-              .from('financeiro_contas_receber')
-              .insert(dataToInsert);
-
-            if (error) throw error;
+            });
           }
+        }
+
+        if (dataToInsert.length > 0) {
+          const { error } = await supabase
+            .from('financeiro_contas_receber')
+            .insert(dataToInsert);
+
+          if (error) throw error;
         }
       }
     },

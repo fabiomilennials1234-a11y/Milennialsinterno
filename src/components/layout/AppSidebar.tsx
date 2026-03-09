@@ -233,15 +233,15 @@ export default function AppSidebar() {
       style={{ transition: 'width 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)' }}
     >
       {/* Header */}
-      <div className="p-4 flex items-center justify-between border-b border-sidebar-border">
+      <div className="px-5 py-5 flex items-center justify-between">
         {!isCollapsed && (
-          <MgrowthLogo className="h-8 text-sidebar-foreground" />
+          <MgrowthLogo className="h-10 text-sidebar-foreground" />
         )}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-2 rounded-xl text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all duration-200"
+          className="p-2 rounded-lg text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all duration-200"
         >
-          {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+          {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </button>
       </div>
 
@@ -270,13 +270,13 @@ export default function AppSidebar() {
               </NavTooltip>
             )}
             <NavTooltip label="OKRs Millennials">
-              <NavLink to="/okrs-millennials" className={({ isActive }) => cn("sidebar-item bg-gradient-to-r from-primary/20 to-transparent border-l-2 border-primary", isActive && "active")}>
+              <NavLink to="/okrs-millennials" className={({ isActive }) => cn("sidebar-item", isActive && "active")}>
                 <Target size={20} />
                 {!isCollapsed && <span>OKRs Millennials</span>}
               </NavLink>
             </NavTooltip>
             <NavTooltip label="TV Dashboard">
-              <NavLink to="/tv-dashboard" className={({ isActive }) => cn("sidebar-item bg-gradient-to-r from-amber-500/20 to-transparent border-l-2 border-amber-500", isActive && "active")}>
+              <NavLink to="/tv-dashboard" className={({ isActive }) => cn("sidebar-item", isActive && "active")}>
                 <LayoutDashboard size={20} />
                 {!isCollapsed && <span>TV Dashboard</span>}
               </NavLink>
@@ -502,15 +502,31 @@ export default function AppSidebar() {
                                     </div>
                                   )}
 
+                                  {/* Sucesso do Cliente - nível de grupo (cuida de todos os squads) */}
+                                  {getGroupRoles(group.id).includes('sucesso_cliente') && (
+                                    <NavLink
+                                      to="/sucesso-cliente"
+                                      className={() => cn(
+                                        "flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg transition-colors",
+                                        isRoleActive('sucesso_cliente')
+                                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                                          : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                                      )}
+                                    >
+                                      <Target size={12} />
+                                      <span className="truncate">Sucesso do Cliente PRO+</span>
+                                    </NavLink>
+                                  )}
+
                                   {/* Squads */}
                                   {group.squads.map(squad => {
                                     const squadRoles = getSquadRoles(squad.id);
-                                    const nonAdsRoles = squadRoles.filter(role => role !== 'gestor_ads' && role !== 'outbound');
+                                    const nonAdsRoles = squadRoles.filter(role => role !== 'gestor_ads' && role !== 'outbound' && role !== 'sucesso_cliente');
                                     const squadAdsBoards = adsManagerBoards.filter(b => b.squad_id === squad.id);
                                     const squadOutboundBoards = outboundManagerBoards.filter(b => b.squad_id === squad.id);
-                                    
+
                                     return (
-                                      <Collapsible 
+                                      <Collapsible
                                         key={squad.id}
                                         open={openSquads[squad.id]}
                                         onOpenChange={() => toggleSquad(squad.id)}
@@ -520,9 +536,9 @@ export default function AppSidebar() {
                                             <Briefcase size={14} />
                                             <span>{squad.name}</span>
                                           </div>
-                                          <ChevronDown 
-                                            size={12} 
-                                            className={cn("transition-transform duration-200", openSquads[squad.id] && "rotate-180")} 
+                                          <ChevronDown
+                                            size={12}
+                                            className={cn("transition-transform duration-200", openSquads[squad.id] && "rotate-180")}
                                           />
                                         </CollapsibleTrigger>
                                         <CollapsibleContent className="pl-4 space-y-0.5 sidebar-open-indicator">
@@ -583,7 +599,7 @@ export default function AppSidebar() {
                                     );
                                   })}
 
-                                  {group.squads.length === 0 && getCoringaRoles(group.id).length === 0 && (
+                                  {group.squads.length === 0 && getCoringaRoles(group.id).length === 0 && !getGroupRoles(group.id).includes('sucesso_cliente') && (
                                     <span className="px-2 text-[10px] text-sidebar-foreground/40 italic">
                                       Grupo vazio
                                     </span>
@@ -644,10 +660,26 @@ export default function AppSidebar() {
                             </div>
                           )}
 
+                          {/* Sucesso do Cliente - nível de grupo (cuida de todos os squads) */}
+                          {getGroupRoles(group.id).includes('sucesso_cliente') && (
+                            <NavLink
+                              to="/sucesso-cliente"
+                              className={() => cn(
+                                "flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg transition-colors",
+                                isRoleActive('sucesso_cliente')
+                                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                                  : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                              )}
+                            >
+                              <Target size={12} />
+                              <span className="truncate">Sucesso do Cliente PRO+</span>
+                            </NavLink>
+                          )}
+
                           {/* Squads */}
                           {group.squads.map(squad => {
                             const squadRoles = getSquadRoles(squad.id);
-                            const nonAdsRoles = squadRoles.filter(role => role !== 'gestor_ads' && role !== 'outbound');
+                            const nonAdsRoles = squadRoles.filter(role => role !== 'gestor_ads' && role !== 'outbound' && role !== 'sucesso_cliente');
                             const squadAdsBoards = adsManagerBoards.filter(b => b.squad_id === squad.id);
                             const squadOutboundBoards = outboundManagerBoards.filter(b => b.squad_id === squad.id);
 
@@ -662,9 +694,9 @@ export default function AppSidebar() {
                                     <Briefcase size={14} />
                                     <span>{squad.name}</span>
                                   </div>
-                                  <ChevronDown 
-                                    size={12} 
-                                    className={cn("transition-transform duration-200", openSquads[squad.id] && "rotate-180")} 
+                                  <ChevronDown
+                                    size={12}
+                                    className={cn("transition-transform duration-200", openSquads[squad.id] && "rotate-180")}
                                   />
                                 </CollapsibleTrigger>
                                 <CollapsibleContent className="pl-4 space-y-0.5 sidebar-open-indicator">
@@ -725,7 +757,7 @@ export default function AppSidebar() {
                             );
                           })}
 
-                          {group.squads.length === 0 && getCoringaRoles(group.id).length === 0 && (
+                          {group.squads.length === 0 && getCoringaRoles(group.id).length === 0 && !getGroupRoles(group.id).includes('sucesso_cliente') && (
                             <span className="px-2 text-xs text-sidebar-foreground/40 italic">
                               Grupo vazio
                             </span>
@@ -792,10 +824,26 @@ export default function AppSidebar() {
                     </div>
                   )}
 
+                  {/* Sucesso do Cliente - nível de grupo (cuida de todos os squads) */}
+                  {getGroupRoles(group.id).includes('sucesso_cliente') && (
+                    <NavLink
+                      to="/sucesso-cliente"
+                      className={() => cn(
+                        "flex items-center gap-2 px-2 py-1.5 text-sm rounded-lg transition-colors",
+                        isRoleActive('sucesso_cliente')
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                      )}
+                    >
+                      <Target size={14} />
+                      <span className="truncate">Sucesso do Cliente PRO+</span>
+                    </NavLink>
+                  )}
+
                   {/* Squads */}
                   {group.squads.map(squad => {
                     const squadRoles = getSquadRoles(squad.id);
-                    const nonAdsRoles = squadRoles.filter(role => role !== 'gestor_ads' && role !== 'outbound');
+                    const nonAdsRoles = squadRoles.filter(role => role !== 'gestor_ads' && role !== 'outbound' && role !== 'sucesso_cliente');
                     const squadAdsBoards = adsManagerBoards.filter(b => b.squad_id === squad.id);
                     const squadOutboundBoards = outboundManagerBoards.filter(b => b.squad_id === squad.id);
 
@@ -810,9 +858,9 @@ export default function AppSidebar() {
                             <Briefcase size={16} />
                             <span>{squad.name}</span>
                           </div>
-                          <ChevronDown 
-                            size={14} 
-                            className={cn("transition-transform duration-200", openSquads[squad.id] && "rotate-180")} 
+                          <ChevronDown
+                            size={14}
+                            className={cn("transition-transform duration-200", openSquads[squad.id] && "rotate-180")}
                           />
                         </CollapsibleTrigger>
                         <CollapsibleContent className="pl-6 space-y-0.5 sidebar-open-indicator">
@@ -1227,20 +1275,21 @@ export default function AppSidebar() {
 
       {/* User Info */}
       {user && (
-        <div className={cn("p-3 border-t border-sidebar-border", isCollapsed ? "flex justify-center" : "")}>
+        <div className={cn("p-3 border-t border-sidebar-border/50", isCollapsed ? "flex justify-center" : "")}>
           <div className={cn("sidebar-user-card", isCollapsed && "justify-center")}>
             <div className="relative">
               <div
-                className="w-10 h-10 rounded-full flex items-center justify-center text-sidebar-primary-foreground font-display font-bold text-sm"
+                className="w-10 h-10 rounded-full flex items-center justify-center font-display font-bold text-sm"
                 style={{
-                  background: 'linear-gradient(135deg, hsl(48 100% 45%), hsl(38 92% 55%))',
-                  boxShadow: '0 0 0 2px hsl(var(--sidebar-background)), 0 0 14px hsl(48 100% 50% / 0.3)'
+                  background: 'linear-gradient(135deg, hsl(45 100% 50%), hsl(38 90% 52%))',
+                  color: 'hsl(20 15% 10%)',
+                  boxShadow: '0 0 0 2px hsl(var(--sidebar-background))'
                 }}
               >
                 {user.name.charAt(0)}
               </div>
               <span
-                className="absolute bottom-0.5 right-0.5 w-2.5 h-2.5 rounded-full bg-success animate-pulse"
+                className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-success"
                 style={{ border: '2px solid hsl(var(--sidebar-background))' }}
               />
             </div>
@@ -1249,7 +1298,7 @@ export default function AppSidebar() {
                 <p className="text-sm font-semibold text-sidebar-foreground truncate">
                   {user.name}
                 </p>
-                <p className="text-[11px] text-sidebar-foreground/50 truncate">
+                <p className="text-[11px] text-sidebar-foreground/40 truncate">
                   {ROLE_LABELS[user.role]}
                 </p>
               </div>

@@ -66,6 +66,7 @@ export interface ClientStrategy {
   google_display: GoogleStrategy | null;
   linkedin_vagas: LinkedInStrategy | null;
   linkedin_cadastro: LinkedInStrategy | null;
+  custom_funnels: Record<string, { enabled: boolean; budget: number; [key: string]: any }> | null;
   public_token: string;
   is_published: boolean;
 }

@@ -63,15 +63,15 @@
     
     --radius: 0.875rem;              /* 14px - Elegante como Apple */
     
-    /* Sidebar - Elegante com Marrom */
-    --sidebar-background: 14 13% 18%;
-    --sidebar-foreground: 50 50% 95%;
-    --sidebar-primary: 48 100% 50%;
-    --sidebar-primary-foreground: 14 13% 20%;
-    --sidebar-accent: 14 13% 25%;
-    --sidebar-accent-foreground: 50 50% 95%;
-    --sidebar-border: 14 13% 28%;
-    --sidebar-ring: 48 100% 50%;
+    /* Sidebar - Premium Dark */
+    --sidebar-background: 20 10% 10%;
+    --sidebar-foreground: 40 20% 92%;
+    --sidebar-primary: 45 100% 52%;
+    --sidebar-primary-foreground: 20 15% 10%;
+    --sidebar-accent: 20 8% 16%;
+    --sidebar-accent-foreground: 40 20% 92%;
+    --sidebar-border: 20 8% 18%;
+    --sidebar-ring: 45 100% 52%;
     
     /* Kanban - Minimalista */
     --kanban-column: 50 30% 97%;
@@ -110,13 +110,13 @@
     --input: 14 13% 18%;
     --ring: 48 100% 50%;
     
-    --sidebar-background: 14 13% 8%;
-    --sidebar-foreground: 50 30% 92%;
-    --sidebar-primary: 48 100% 50%;
-    --sidebar-primary-foreground: 14 13% 10%;
-    --sidebar-accent: 14 13% 15%;
-    --sidebar-accent-foreground: 50 30% 92%;
-    --sidebar-border: 14 13% 20%;
+    --sidebar-background: 20 10% 7%;
+    --sidebar-foreground: 40 20% 90%;
+    --sidebar-primary: 45 100% 52%;
+    --sidebar-primary-foreground: 20 15% 8%;
+    --sidebar-accent: 20 8% 13%;
+    --sidebar-accent-foreground: 40 20% 90%;
+    --sidebar-border: 20 8% 14%;
     
     --kanban-column: 14 13% 12%;
     --kanban-column-header: 50 30% 92%;
@@ -391,11 +391,11 @@
     box-sizing: border-box;
   }
   
-  /* Sidebar Item Minimalista com Estados Refinados */
+  /* Sidebar Item - Modern Clean Style (Torque-inspired) */
   .sidebar-item {
     @apply flex items-center gap-3 px-4 py-2.5 rounded-xl
            font-medium transition-all duration-200;
-    color: hsl(var(--sidebar-foreground) / 0.75);
+    color: hsl(var(--sidebar-foreground) / 0.65);
     position: relative;
   }
 
@@ -405,93 +405,68 @@
     flex-shrink: 0;
   }
 
-  .sidebar-item::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 3px;
-    height: 0;
-    background: hsl(var(--sidebar-primary));
-    border-radius: 0 4px 4px 0;
-    transition: height 0.2s ease-out;
-  }
-
   .sidebar-item:hover {
-    background: hsl(var(--sidebar-accent) / 0.8);
-    color: hsl(var(--sidebar-foreground));
-    transform: translateX(3px);
+    background: hsl(var(--sidebar-accent));
+    color: hsl(var(--sidebar-foreground) / 0.95);
   }
 
   .sidebar-item:hover > svg {
-    transform: scale(1.1);
-  }
-
-  .sidebar-item:hover::before {
-    height: 0;
+    transform: scale(1.05);
   }
 
   .sidebar-item.active {
     background: linear-gradient(
       135deg,
-      hsl(var(--sidebar-primary)) 0%,
-      hsl(48 100% 60%) 100%
+      hsl(45 100% 48%) 0%,
+      hsl(40 95% 55%) 100%
     );
-    color: hsl(var(--sidebar-primary-foreground));
+    color: hsl(20 15% 10%);
     font-weight: 600;
-    box-shadow: 0 2px 14px hsl(var(--sidebar-primary) / 0.5),
-                inset 0 1px 0 hsl(0 0% 100% / 0.25);
-  }
-
-  .sidebar-item.active::before {
-    height: 24px;
+    box-shadow: 0 2px 12px hsl(45 100% 50% / 0.25);
   }
 
   .sidebar-item.active > svg {
-    filter: drop-shadow(0 0 4px hsl(var(--sidebar-primary) / 0.5));
+    color: hsl(20 15% 10%);
   }
   
-  /* Sidebar Section Divider - Mais Sutil */
+  /* Sidebar Section Divider */
   .sidebar-section-divider {
     @apply my-4 mx-3 border-t;
-    border-color: hsl(var(--sidebar-border) / 0.3);
+    border-color: hsl(var(--sidebar-border) / 0.5);
   }
 
   /* Sidebar Section Title */
   .sidebar-section-title {
     @apply px-3 py-2 text-xs font-semibold uppercase tracking-wider;
-    color: hsl(var(--sidebar-foreground) / 0.4);
+    color: hsl(var(--sidebar-foreground) / 0.35);
   }
 
-  /* Sidebar Section Label — linha com texto centralizado */
+  /* Sidebar Section Label — clean uppercase label */
   .sidebar-section-label {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 20px 12px 8px;
+    gap: 0;
+    padding: 20px 16px 8px;
   }
 
   .sidebar-section-label::before {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: linear-gradient(to right, transparent, hsl(var(--sidebar-border) / 0.6));
+    display: none;
   }
 
   .sidebar-section-label::after {
     content: '';
     flex: 1;
     height: 1px;
-    background: linear-gradient(to left, transparent, hsl(var(--sidebar-border) / 0.6));
+    margin-left: 12px;
+    background: hsl(var(--sidebar-border) / 0.5);
   }
 
   .sidebar-section-label > span {
     font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.14em;
+    font-weight: 600;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: hsl(var(--sidebar-foreground) / 0.45);
+    color: hsl(var(--sidebar-foreground) / 0.35);
     white-space: nowrap;
     flex-shrink: 0;
   }
@@ -507,25 +482,21 @@
     left: 8px;
     top: 4px;
     bottom: 8px;
-    width: 1.5px;
-    background: linear-gradient(
-      to bottom,
-      hsl(var(--sidebar-border) / 0.4),
-      hsl(var(--sidebar-border) / 0.15)
-    );
+    width: 1px;
+    background: hsl(var(--sidebar-border) / 0.4);
     border-radius: 1px;
   }
 
   /* Sidebar open section indicator — left accent bar when expanded */
   .sidebar-open-indicator {
-    border-left: 2px solid hsl(var(--sidebar-primary) / 0.3);
+    border-left: 1.5px solid hsl(var(--sidebar-foreground) / 0.12);
     padding-left: 4px;
     margin-left: 2px;
     transition: border-color 0.2s ease;
   }
 
   .sidebar-open-indicator:hover {
-    border-left-color: hsl(var(--sidebar-primary) / 0.5);
+    border-left-color: hsl(var(--sidebar-foreground) / 0.2);
   }
 
   /* Sidebar User Card — footer user area */
@@ -538,7 +509,7 @@
   }
 
   .sidebar-user-card:hover {
-    background: hsl(var(--sidebar-accent) / 0.5);
+    background: hsl(var(--sidebar-accent));
   }
 
   /* Active Indicator - Farol de Carga */
