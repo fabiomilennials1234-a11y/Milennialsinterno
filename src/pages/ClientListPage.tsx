@@ -25,7 +25,10 @@ import {
   ArrowUpCircle,
   ArrowDownCircle,
   Filter,
-  Sparkles
+  Sparkles,
+  Pencil,
+  Check,
+  X as XIcon
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -107,6 +110,65 @@ export default function ClientListPage() {
   const [saleValue, setSaleValue] = useState('');
   const [saleDate, setSaleDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [editingValueId, setEditingValueId] = useState<string | null>(null);
+  const [editingCommissionId, setEditingCommissionId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [editCommission, setEditCommission] = useState('');
+
+  const isCEO = user?.role === 'ceo';
+
+  const handleSaveMonthlyValue = async (clientId: string) => {
+    const parsed = parseFloat(editValue.replace(/[^\d,.-]/g, '').replace(',', '.'));
+    if (isNaN(parsed) || parsed < 0) {
+      toast.error('Valor inválido');
+      return;
+    }
+    const { error } = await supabase
+      .from('clients')
+      .update({ monthly_value: parsed })
+      .eq('id', clientId);
+    if (error) {
+      toast.error('Erro ao atualizar valor');
+      return;
+    }
+    // Also update financeiro_active_clients if exists
+    await supabase
+      .from('financeiro_active_clients')
+      .update({ monthly_value: parsed })
+      .eq('client_id', clientId);
+    // Update product values if in product view
+    if (productSlug) {
+      await supabase
+        .from('client_product_values')
+        .update({ monthly_value: parsed })
+        .eq('client_id', clientId)
+        .eq('product_slug', productSlug);
+    }
+    queryClient.invalidateQueries({ queryKey: ['clients-with-sales'] });
+    queryClient.invalidateQueries({ queryKey: ['financeiro-active-clients'] });
+    queryClient.invalidateQueries({ queryKey: ['client-product-values'] });
+    setEditingValueId(null);
+    toast.success('Valor mensal atualizado');
+  };
+
+  const handleSaveCommission = async (clientId: string) => {
+    const parsed = parseFloat(editCommission.replace(',', '.'));
+    if (isNaN(parsed) || parsed < 0 || parsed > 100) {
+      toast.error('Porcentagem inválida (0-100)');
+      return;
+    }
+    const { error } = await supabase
+      .from('clients')
+      .update({ sales_percentage: parsed })
+      .eq('id', clientId);
+    if (error) {
+      toast.error('Erro ao atualizar comissão');
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ['clients-with-sales'] });
+    setEditingCommissionId(null);
+    toast.success('Comissão atualizada');
+  };
 
   // Get product values for the current product filter
   const { data: productValues = [] } = useQuery({
@@ -614,28 +676,103 @@ export default function ClientListPage() {
                 </span>
               </TableCell>
               <TableCell className="text-right">
-                <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                  {formatCurrency(
-                    (productSlug && Object.keys(productValueMap).length > 0
-                      ? productValueMap[client.id]
-                      : clientMonthlyValueMap[client.id])
-                    || client.monthly_value
-                    || 0
-                  )}
-                </span>
+                {editingValueId === client.id ? (
+                  <div className="flex items-center gap-1 justify-end">
+                    <input
+                      type="text"
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSaveMonthlyValue(client.id);
+                        if (e.key === 'Escape') setEditingValueId(null);
+                      }}
+                      className="w-24 px-2 py-1 text-xs border border-border rounded bg-background text-right"
+                      autoFocus
+                    />
+                    <button onClick={() => handleSaveMonthlyValue(client.id)} className="text-success hover:text-success/80">
+                      <Check className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={() => setEditingValueId(null)} className="text-muted-foreground hover:text-destructive">
+                      <XIcon className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 justify-end">
+                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                      {formatCurrency(
+                        (productSlug && Object.keys(productValueMap).length > 0
+                          ? productValueMap[client.id]
+                          : clientMonthlyValueMap[client.id])
+                        || client.monthly_value
+                        || 0
+                      )}
+                    </span>
+                    {isCEO && !isChurnList && (
+                      <button
+                        onClick={() => {
+                          const currentValue = (productSlug && Object.keys(productValueMap).length > 0
+                            ? productValueMap[client.id]
+                            : clientMonthlyValueMap[client.id])
+                            || client.monthly_value || 0;
+                          setEditValue(String(currentValue));
+                          setEditingValueId(client.id);
+                        }}
+                        className="text-muted-foreground/50 hover:text-primary transition-colors"
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                )}
               </TableCell>
               <TableCell className="text-center">
-                <span className={cn(
-                  "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold",
-                  client.sales_percentage > 0 
-                    ? "bg-primary/10 text-primary" 
-                    : "bg-destructive/10 text-destructive"
-                )}>
-                  {client.sales_percentage}%
-                  {client.sales_percentage === 0 && (
-                    <AlertTriangle className="w-3 h-3" />
-                  )}
-                </span>
+                {editingCommissionId === client.id ? (
+                  <div className="flex items-center gap-1 justify-center">
+                    <input
+                      type="text"
+                      value={editCommission}
+                      onChange={(e) => setEditCommission(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSaveCommission(client.id);
+                        if (e.key === 'Escape') setEditingCommissionId(null);
+                      }}
+                      className="w-16 px-2 py-1 text-xs border border-border rounded bg-background text-center"
+                      autoFocus
+                    />
+                    <span className="text-xs text-muted-foreground">%</span>
+                    <button onClick={() => handleSaveCommission(client.id)} className="text-success hover:text-success/80">
+                      <Check className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={() => setEditingCommissionId(null)} className="text-muted-foreground hover:text-destructive">
+                      <XIcon className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 justify-center">
+                    <span className={cn(
+                      "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold",
+                      client.sales_percentage > 0
+                        ? "bg-primary/10 text-primary"
+                        : "bg-destructive/10 text-destructive"
+                    )}>
+                      {client.sales_percentage}%
+                      {client.sales_percentage === 0 && (
+                        <AlertTriangle className="w-3 h-3" />
+                      )}
+                    </span>
+                    {isCEO && !isChurnList && (
+                      <button
+                        onClick={() => {
+                          setEditCommission(String(client.sales_percentage));
+                          setEditingCommissionId(client.id);
+                        }}
+                        className="text-muted-foreground/50 hover:text-primary transition-colors"
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                )}
               </TableCell>
               <TableCell className="text-right">
                 <span className={cn(
