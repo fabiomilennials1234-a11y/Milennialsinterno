@@ -1,8 +1,16 @@
+import { useState, useMemo } from 'react';
 import { Navigate } from 'react-router-dom';
 import MainLayout from '@/layouts/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Crown,
   TrendingUp,
@@ -203,9 +211,24 @@ const PIE_COLORS = [
   'hsl(48 100% 50%)',   // yellow
 ];
 
+const generateMonthOptions = () => {
+  const options = [];
+  const now = new Date();
+  for (let i = 0; i < 12; i++) {
+    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    options.push({
+      value: format(date, 'yyyy-MM'),
+      label: format(date, "MMMM 'de' yyyy", { locale: ptBR }),
+    });
+  }
+  return options;
+};
+
 export default function CEODashboardPage() {
   const { isCEO } = useAuth();
-  const { data: indicadores, isLoading } = useCEOIndicadores();
+  const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
+  const monthOptions = useMemo(() => generateMonthOptions(), []);
+  const { data: indicadores, isLoading } = useCEOIndicadores(selectedMonth);
 
   if (!isCEO) {
     return <Navigate to="/dashboard" replace />;
@@ -240,14 +263,28 @@ export default function CEODashboardPage() {
                 Indicadores
               </h1>
               <p className="text-muted-foreground text-xs md:text-sm">
-                {format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })}
+                {format(new Date(selectedMonth + '-15'), "MMMM 'de' yyyy", { locale: ptBR })}
               </p>
             </div>
           </div>
-          <Badge variant="outline" className="gap-1.5 px-3 py-1.5 bg-success/5 border-success/20 text-success">
-            <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-            Tempo real
-          </Badge>
+          <div className="flex items-center gap-3">
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Selecionar mês" />
+              </SelectTrigger>
+              <SelectContent>
+                {monthOptions.map(option => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Badge variant="outline" className="gap-1.5 px-3 py-1.5 bg-success/5 border-success/20 text-success">
+              <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+              Tempo real
+            </Badge>
+          </div>
         </div>
 
         {/* ===== RESULTADO DO MES ===== */}

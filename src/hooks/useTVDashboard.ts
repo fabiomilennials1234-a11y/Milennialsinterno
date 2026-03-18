@@ -22,17 +22,19 @@ export interface ProfessionalStats {
 
 // Include all relevant roles for the TV Dashboard
 const PROFESSIONAL_ROLES = [
-  'designer', 
-  'editor_video', 
-  'consultor_comercial', 
-  'desenvolvedor',
+  'design',
+  'editor_video',
+  'consultor_comercial',
+  'devs',
   'gestor_ads',
+  'outbound',
   'gestor_projetos',
   'sucesso_cliente',
+  'gestor_crm',
   'financeiro',
   'rh',
   'produtora',
-  'atriz',
+  'atrizes_gravacao',
 ];
 
 export function useTVDashboardStats() {
@@ -134,8 +136,8 @@ export function useTVDashboardStats() {
         let delayedTasks = 0;
         let clientCounts: ProfessionalStats['clientCounts'] = undefined;
         
-        if (p.role === 'designer' || p.role === 'editor_video' || p.role === 'desenvolvedor' || 
-            p.role === 'produtora' || p.role === 'atriz') {
+        if (p.role === 'design' || p.role === 'editor_video' || p.role === 'devs' ||
+            p.role === 'produtora' || p.role === 'atrizes_gravacao') {
           // Kanban-based roles
           const userCards = kanbanCards.filter((c: any) => c.assigned_to === p.user_id);
           
@@ -224,10 +226,10 @@ export function useTVDashboardStats() {
       });
       
       return {
-        designers: stats.filter(s => s.role === 'designer'),
+        designers: stats.filter(s => s.role === 'design'),
         editors: stats.filter(s => s.role === 'editor_video'),
         comercial: stats.filter(s => s.role === 'consultor_comercial'),
-        devs: stats.filter(s => s.role === 'desenvolvedor'),
+        devs: stats.filter(s => s.role === 'devs'),
         gestoresAds: stats.filter(s => s.role === 'gestor_ads'),
         all: stats,
       };
