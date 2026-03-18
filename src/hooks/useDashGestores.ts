@@ -37,7 +37,14 @@ interface DocRow {
 }
 
 async function fetchGestores(): Promise<ProfileRow[]> {
-  const result = await (supabase.from('profiles') as any).select('user_id, name, avatar').eq('role', 'gestor_ads');
+  // Get user_ids with gestor_ads role from user_roles table
+  const rolesResult = await supabase.from('user_roles').select('user_id').eq('role', 'gestor_ads');
+  const gestorIds = (rolesResult.data || []).map(r => r.user_id);
+  if (gestorIds.length === 0) return [];
+
+  const result = await (supabase.from('profiles') as any)
+    .select('user_id, name, avatar')
+    .in('user_id', gestorIds);
   if (result.error) throw result.error;
   return result.data || [];
 }
