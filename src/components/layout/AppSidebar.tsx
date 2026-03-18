@@ -478,8 +478,8 @@ export default function AppSidebar() {
                                   />
                                 </CollapsibleTrigger>
                                 <CollapsibleContent className="pl-4 space-y-1 mt-1 sidebar-tree">
-                                  {/* Coringas */}
-                                  {getCoringaRoles(group.id).length > 0 && (
+                                  {/* Coringas (inclui Sucesso do Cliente) */}
+                                  {(getCoringaRoles(group.id).length > 0 || getGroupRoles(group.id).includes('sucesso_cliente')) && (
                                     <div className="pl-2 border-l-2 border-sidebar-border space-y-1">
                                       <span className="px-2 text-[10px] font-semibold text-sidebar-foreground/30 uppercase tracking-wider">
                                         Coringas
@@ -491,7 +491,7 @@ export default function AppSidebar() {
                                           className={() => cn(
                                             "flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg transition-colors",
                                             isRoleActive(role)
-                                              ? "bg-sidebar-primary text-sidebar-primary-foreground" 
+                                              ? "bg-sidebar-primary text-sidebar-primary-foreground"
                                               : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                                           )}
                                         >
@@ -499,23 +499,22 @@ export default function AppSidebar() {
                                           <span className="truncate">{ROLE_LABELS[role]}</span>
                                         </NavLink>
                                       ))}
-                                    </div>
-                                  )}
-
-                                  {/* Sucesso do Cliente - nível de grupo (cuida de todos os squads) */}
-                                  {getGroupRoles(group.id).includes('sucesso_cliente') && (
-                                    <NavLink
-                                      to="/sucesso-cliente"
-                                      className={() => cn(
-                                        "flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg transition-colors",
-                                        isRoleActive('sucesso_cliente')
-                                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                                          : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                                      {/* Sucesso do Cliente - nível de grupo */}
+                                      {getGroupRoles(group.id).includes('sucesso_cliente') && (
+                                        <NavLink
+                                          to="/sucesso-cliente"
+                                          className={() => cn(
+                                            "flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg transition-colors",
+                                            isRoleActive('sucesso_cliente')
+                                              ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                                              : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                                          )}
+                                        >
+                                          <Target size={12} />
+                                          <span className="truncate">Sucesso do Cliente PRO+</span>
+                                        </NavLink>
                                       )}
-                                    >
-                                      <Target size={12} />
-                                      <span className="truncate">Sucesso do Cliente PRO+</span>
-                                    </NavLink>
+                                    </div>
                                   )}
 
                                   {/* Squads */}
@@ -636,8 +635,8 @@ export default function AppSidebar() {
                           />
                         </CollapsibleTrigger>
                         <CollapsibleContent className="pl-4 space-y-1 mt-1 sidebar-tree">
-                          {/* Coringas */}
-                          {getCoringaRoles(group.id).length > 0 && (
+                          {/* Coringas (inclui Sucesso do Cliente) */}
+                          {(getCoringaRoles(group.id).length > 0 || getGroupRoles(group.id).includes('sucesso_cliente')) && (
                             <div className="pl-2 border-l-2 border-sidebar-border space-y-1">
                               <span className="px-2 text-[10px] font-semibold text-sidebar-foreground/30 uppercase tracking-wider">
                                 Coringas
@@ -657,23 +656,21 @@ export default function AppSidebar() {
                                   <span className="truncate">{ROLE_LABELS[role]}</span>
                                 </NavLink>
                               ))}
-                            </div>
-                          )}
-
-                          {/* Sucesso do Cliente - nível de grupo (cuida de todos os squads) */}
-                          {getGroupRoles(group.id).includes('sucesso_cliente') && (
-                            <NavLink
-                              to="/sucesso-cliente"
-                              className={() => cn(
-                                "flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg transition-colors",
-                                isRoleActive('sucesso_cliente')
-                                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                                  : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                              {getGroupRoles(group.id).includes('sucesso_cliente') && (
+                                <NavLink
+                                  to="/sucesso-cliente"
+                                  className={() => cn(
+                                    "flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg transition-colors",
+                                    isRoleActive('sucesso_cliente')
+                                      ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                                      : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                                  )}
+                                >
+                                  <Target size={12} />
+                                  <span className="truncate">Sucesso do Cliente PRO+</span>
+                                </NavLink>
                               )}
-                            >
-                              <Target size={12} />
-                              <span className="truncate">Sucesso do Cliente PRO+</span>
-                            </NavLink>
+                            </div>
                           )}
 
                           {/* Squads */}
@@ -800,8 +797,8 @@ export default function AppSidebar() {
                   />
                 </CollapsibleTrigger>
                 <CollapsibleContent className="pl-4 space-y-1 mt-1 sidebar-tree">
-                  {/* Coringas */}
-                  {getCoringaRoles(group.id).length > 0 && (
+                  {/* Coringas (inclui Sucesso do Cliente) */}
+                  {(getCoringaRoles(group.id).length > 0 || getGroupRoles(group.id).includes('sucesso_cliente')) && (
                     <div className="pl-2 border-l-2 border-sidebar-border space-y-1">
                       <span className="px-2 text-[10px] font-semibold text-sidebar-foreground/30 uppercase tracking-wider">
                         Coringas
@@ -813,7 +810,7 @@ export default function AppSidebar() {
                           className={() => cn(
                             "flex items-center gap-2 px-2 py-1.5 text-sm rounded-lg transition-colors",
                             isRoleActive(role)
-                              ? "bg-sidebar-primary text-sidebar-primary-foreground" 
+                              ? "bg-sidebar-primary text-sidebar-primary-foreground"
                               : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                           )}
                         >
@@ -821,23 +818,21 @@ export default function AppSidebar() {
                           <span className="truncate">{ROLE_LABELS[role]}</span>
                         </NavLink>
                       ))}
-                    </div>
-                  )}
-
-                  {/* Sucesso do Cliente - nível de grupo (cuida de todos os squads) */}
-                  {getGroupRoles(group.id).includes('sucesso_cliente') && (
-                    <NavLink
-                      to="/sucesso-cliente"
-                      className={() => cn(
-                        "flex items-center gap-2 px-2 py-1.5 text-sm rounded-lg transition-colors",
-                        isRoleActive('sucesso_cliente')
-                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                          : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                      {getGroupRoles(group.id).includes('sucesso_cliente') && (
+                        <NavLink
+                          to="/sucesso-cliente"
+                          className={() => cn(
+                            "flex items-center gap-2 px-2 py-1.5 text-sm rounded-lg transition-colors",
+                            isRoleActive('sucesso_cliente')
+                              ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                              : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                          )}
+                        >
+                          <Target size={14} />
+                          <span className="truncate">Sucesso do Cliente PRO+</span>
+                        </NavLink>
                       )}
-                    >
-                      <Target size={14} />
-                      <span className="truncate">Sucesso do Cliente PRO+</span>
-                    </NavLink>
+                    </div>
                   )}
 
                   {/* Squads */}
@@ -1192,18 +1187,6 @@ export default function AppSidebar() {
                       />
                     </CollapsibleTrigger>
                     <CollapsibleContent className="pl-6 space-y-0.5 mt-1 sidebar-open-indicator">
-                      <NavLink
-                        to="/rh/contratacao"
-                        className={() => cn(
-                          "flex items-center gap-2 px-2 py-1.5 text-sm rounded-lg transition-colors",
-                          (currentPath === '/rh' || currentPath === '/rh/contratacao')
-                            ? "bg-sidebar-primary text-sidebar-primary-foreground" 
-                            : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-                        )}
-                      >
-                        <UserPlus size={14} />
-                        <span className="truncate">Contratação</span>
-                      </NavLink>
                       <NavLink
                         to="/rh/jornada-equipe"
                         className={({ isActive }) => cn(

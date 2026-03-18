@@ -13,12 +13,6 @@ interface ProTool {
 // Ferramentas PRO+ fixas - conteúdo padrão para todos os gestores
 const PRO_TOOLS: ProTool[] = [
   {
-    id: 'estrategias',
-    title: 'Estratégias Millennials',
-    icon: '📊',
-    content: 'Escolha a sua estratégia aqui: https://drive.google.com/drive/folders/1YTtNJ7k2TyhgjDJscngf8gs2GqDzlHV0?usp=sharing',
-  },
-  {
     id: 'gpt_roteiros',
     title: 'GPT Criador de Roteiros + Criador de LPS',
     icon: '🤖',
@@ -38,15 +32,9 @@ const PRO_TOOLS: ProTool[] = [
   },
   {
     id: 'clientes_millennials',
-    title: 'Materiais de apoio',
+    title: 'Treinamentos Milennials',
     icon: '👥',
-    content: 'Como desativar o Advantage da forma correta:\nhttps://drive.google.com/drive/folders/1CRG85AK_15k4fTOPZ5T7NDtGNImEsPRy?usp=sharing\n\nComo gravar um bom anúncio:\nhttps://drive.google.com/drive/folders/1S5AY5cDEq3kdUud4wT0zJ4v-_wuo8xUC?usp=sharing\n\nComo rodar anúncios sem pagar impostos:\nhttps://drive.google.com/drive/folders/1F1vdNAJvRw3Y3Y7tzTtxA29absoHZ1YN?usp=sharing',
-  },
-  {
-    id: 'treinamento',
-    title: 'Treinamento gestor de sucesso',
-    icon: '🎓',
-    content: 'Link para ganhar acesso ao treinamento (Ao pagar, pedir ressarcimento ao gestor de projetos): https://pay.hotmart.com/R101977821G',
+    content: 'Como se livrar de Leads a distância:\nhttps://drive.google.com/drive/folders/18FwEAFLqwUIBp6CASjYKWcfettLJt-9R?usp=sharing\n\nComo gravar um bom anúncio:\nhttps://drive.google.com/drive/folders/1S5AY5cDEq3kdUud4wT0zJ4v-_wuo8xUC?usp=sharing\n\nComo rodar anúncios sem pagar impostos:\nhttps://drive.google.com/drive/folders/1F1vdNAJvRw3Y3Y7tzTtxA29absoHZ1YN?usp=sharing\n\nTreinamento Gestor de sucesso:\nhttps://pay.hotmart.com/R101977821G?bid=1773845381131\n\nComo fazer Automação CRM dos Clientes:\nAcesso Make\nLogin: ***REDACTED***\nSenha: ***REDACTED***\nDrive Tutorial: https://drive.google.com/drive/folders/1tBQJg75kKvWMEI9TVgi_BBKBzeli58Db?usp=sharing',
   },
   {
     id: 'lista_marcos',
@@ -79,12 +67,6 @@ const PRO_TOOLS: ProTool[] = [
     content: '',
   },
   {
-    id: 'contornar_impostos',
-    title: 'Como contornar os impostos dos ADS',
-    icon: '💰',
-    content: '',
-  },
-  {
     id: 'relatorio_reportei',
     title: 'Relatório Reportei',
     icon: '📈',
@@ -95,18 +77,6 @@ const PRO_TOOLS: ProTool[] = [
     title: 'Contas da Millennials',
     icon: '🏦',
     content: 'Conta de ADS: anapauladospassos53@gmail.com\n\nGmail Millennials: milennialswebservices@gmail.com\n\nAcesso Make\nLogin: ***REDACTED***\nSenha: ***REDACTED***',
-  },
-  {
-    id: 'automacao_crm',
-    title: 'Como fazer Automação CRM dos Clientes',
-    icon: '⚙️',
-    content: 'Todos os treinamentos de automação: https://drive.google.com/drive/folders/10fLqFUsYRsOQa5H9Rw7LD4nGQRfrXpHW?usp=sharing',
-  },
-  {
-    id: 'acesso_cursos',
-    title: 'Acesso Cursos',
-    icon: '🎯',
-    content: 'Como ver os cursos?: https://drive.google.com/file/d/17lWX-KZe8fW-m1UR-gNbP9ai7KLqqrgg/view?usp=sharing\n\nAcesso.\n\nLogin: ***REDACTED***\n\nSenha: ***REDACTED***',
   },
   {
     id: 'tabela_bonus',

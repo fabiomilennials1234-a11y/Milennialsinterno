@@ -342,6 +342,34 @@ export default function DashGestoresPage() {
             </div>
           )}
 
+          {/* Clientes com Dificuldade */}
+          {problemsStats && problemsStats.problems.filter(p => p.problem_type === 'client_problem').length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase mb-3">
+                Clientes com Dificuldade
+              </h3>
+              <div className="space-y-2">
+                {problemsStats.problems
+                  .filter(p => p.problem_type === 'client_problem')
+                  .map(problem => (
+                    <div
+                      key={problem.id}
+                      className="flex items-start gap-3 p-3 rounded-lg border border-orange-200 dark:border-orange-800 bg-orange-50/50 dark:bg-orange-900/10"
+                    >
+                      <AlertTriangle className="w-4 h-4 text-orange-500 mt-0.5 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm">{problem.problem_text}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Reportado por {problem.manager_name}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                }
+              </div>
+            </div>
+          )}
+
           {/* Resumo com IA */}
           <WeeklySummarySection problems={problemsStats?.problems || []} />
         </section>

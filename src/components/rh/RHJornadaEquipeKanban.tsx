@@ -368,9 +368,9 @@ export default function RHJornadaEquipeKanban() {
       </div>
 
       {/* Kanban Board */}
-      <ScrollArea className="flex-1">
+      <div className="flex-1 overflow-x-auto overflow-y-auto">
         <DragDropContext onDragEnd={handleDragEnd}>
-          <div className="p-4 flex gap-4 min-w-max">
+          <div className="p-4 flex gap-4 min-w-max h-full">
             {JORNADA_STATUSES.map(status => (
               <Column
                 key={status.id}
@@ -387,7 +387,7 @@ export default function RHJornadaEquipeKanban() {
             ))}
           </div>
         </DragDropContext>
-      </ScrollArea>
+      </div>
 
       {/* Future improvements notice */}
       <div className="p-4 border-t border-border bg-muted/30">
