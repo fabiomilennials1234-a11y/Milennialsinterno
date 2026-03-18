@@ -561,11 +561,22 @@ export default function DesignKanbanBoard() {
     }));
   };
 
-  // Get designer columns only (excluding justification columns)
-  const designerColumns = columns.filter(c => c.title.startsWith('BY ') && !c.title.startsWith('JUSTIFICATIVA'));
+  // Build set of valid designer names (uppercase) from current designers list
+  const validDesignerNames = new Set(designers.map(d => d.name.toUpperCase()));
 
-  // Get justification columns
-  const justificationColumns = columns.filter(c => c.title.startsWith('JUSTIFICATIVA ('));
+  // Get designer columns only - filtered to match current designers
+  const designerColumns = columns.filter(c => {
+    if (!c.title.startsWith('BY ') || c.title.startsWith('JUSTIFICATIVA')) return false;
+    const name = c.title.replace('BY ', '');
+    return validDesignerNames.has(name);
+  });
+
+  // Get justification columns - filtered to match current designers
+  const justificationColumns = columns.filter(c => {
+    if (!c.title.startsWith('JUSTIFICATIVA (')) return false;
+    const match = c.title.match(/^JUSTIFICATIVA \((.+)\)$/);
+    return match ? validDesignerNames.has(match[1]) : false;
+  });
 
   // Get designer columns for the modal
   const designerColumnsForModal = designerColumns.map(c => ({ id: c.id, title: c.title }));

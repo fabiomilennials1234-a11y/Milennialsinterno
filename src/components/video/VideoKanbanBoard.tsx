@@ -521,11 +521,22 @@ export default function VideoKanbanBoard() {
     }));
   };
 
-  // Get editor columns only (excluding justification columns)
-  const editorColumns = columns.filter(c => c.title.startsWith('BY ') && !c.title.startsWith('JUSTIFICATIVA'));
+  // Build set of valid editor names (uppercase) from current editors list
+  const validEditorNames = new Set(editors.map(e => e.name.toUpperCase()));
 
-  // Get justification columns
-  const justificationColumns = columns.filter(c => c.title.startsWith('JUSTIFICATIVA ('));
+  // Get editor columns only - filtered to match current editors
+  const editorColumns = columns.filter(c => {
+    if (!c.title.startsWith('BY ') || c.title.startsWith('JUSTIFICATIVA')) return false;
+    const name = c.title.replace('BY ', '');
+    return validEditorNames.has(name);
+  });
+
+  // Get justification columns - filtered to match current editors
+  const justificationColumns = columns.filter(c => {
+    if (!c.title.startsWith('JUSTIFICATIVA (')) return false;
+    const match = c.title.match(/^JUSTIFICATIVA \((.+)\)$/);
+    return match ? validEditorNames.has(match[1]) : false;
+  });
 
   // Get editor columns for the modal
   const editorColumnsForModal = editorColumns.map(c => ({ id: c.id, title: c.title }));
