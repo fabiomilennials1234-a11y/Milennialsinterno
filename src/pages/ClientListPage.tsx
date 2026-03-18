@@ -238,30 +238,47 @@ export default function ClientListPage() {
   const filteredActiveClients = filterClients(activeClients);
   const filteredChurnedClients = filterClients(churnedClients);
 
-  // Calculate entry and churn values for current month
+  // Calculate entry and churn values for selected month (or sum of ALL months if 'all')
   const currentMonthStats = useMemo(() => {
-    const now = new Date();
-    const monthStart = startOfMonth(now);
-    const monthEnd = endOfMonth(now);
+    const isAllMonths = selectedMonth === 'all';
+    let monthStart: Date | null = null;
+    let monthEnd: Date | null = null;
+    let referenceDate: Date = new Date();
 
-    // Entry value from NEW clients: sum of monthly value for clients that entered this month
+    if (!isAllMonths) {
+      const [year, month] = selectedMonth.split('-').map(Number);
+      referenceDate = new Date(year, month - 1, 15);
+      monthStart = new Date(year, month - 1, 1);
+      monthEnd = new Date(year, month, 0, 23, 59, 59, 999);
+    }
+
+    // Choose the right value map: product-specific or global
+    const valueMap = productSlug && Object.keys(productValueMap).length > 0
+      ? productValueMap
+      : clientMonthlyValueMap;
+
+    // Entry value from NEW clients
     let newClientValue = 0;
     let newClientCount = 0;
     activeClients.forEach(client => {
       const entryDate = client.entry_date ? parseISO(client.entry_date) : parseISO(client.created_at);
-      if (entryDate >= monthStart && entryDate <= monthEnd) {
-        const monthlyValue = clientMonthlyValueMap[client.id] || 0;
+      const inRange = isAllMonths || (entryDate >= monthStart! && entryDate <= monthEnd!);
+      if (inRange) {
+        const monthlyValue = valueMap[client.id] || client.monthly_value || 0;
         newClientValue += monthlyValue;
         newClientCount++;
       }
     });
 
-    // Upsell value: sum of monthly value for upsells created this month
+    // Upsell value
     let upsellValue = 0;
     let upsellCount = 0;
     upsells.forEach(upsell => {
+      // If filtering by product, only count upsells for this product
+      if (productSlug && upsell.product_slug && upsell.product_slug !== productSlug) return;
       const upsellDate = new Date(upsell.created_at);
-      if (isSameMonth(upsellDate, now)) {
+      const inRange = isAllMonths || isSameMonth(upsellDate, referenceDate);
+      if (inRange) {
         upsellValue += Number(upsell.monthly_value);
         upsellCount++;
       }
@@ -271,29 +288,44 @@ export default function ClientListPage() {
     const entryValue = newClientValue + upsellValue;
     const entryCount = newClientCount + upsellCount;
 
-    // Churn value: sum of expected_investment for clients that churned this month
+    // Churn value: use product-specific churns when filtering by product
     let churnValue = 0;
     let churnCount = 0;
-    churnedClients.forEach(client => {
-      const distratoDate = client.distrato_entered_at ? parseISO(client.distrato_entered_at) : null;
-      if (distratoDate && distratoDate >= monthStart && distratoDate <= monthEnd) {
-        const monthlyValue = clientMonthlyValueMap[client.id] || 0;
-        churnValue += monthlyValue;
-        churnCount++;
-      }
-    });
 
-    return { 
-      entryValue, 
-      entryCount, 
-      newClientValue, 
-      newClientCount, 
-      upsellValue, 
-      upsellCount, 
-      churnValue, 
-      churnCount 
+    if (productSlug && productChurns.length > 0) {
+      productChurns.forEach(churn => {
+        const distratoDate = churn.distrato_entered_at ? parseISO(churn.distrato_entered_at) : null;
+        if (!distratoDate) return;
+        const inRange = isAllMonths || (distratoDate >= monthStart! && distratoDate <= monthEnd!);
+        if (inRange) {
+          churnValue += churn.monthly_value || 0;
+          churnCount++;
+        }
+      });
+    } else {
+      churnedClients.forEach(client => {
+        const distratoDate = client.distrato_entered_at ? parseISO(client.distrato_entered_at) : null;
+        if (!distratoDate) return;
+        const inRange = isAllMonths || (distratoDate >= monthStart! && distratoDate <= monthEnd!);
+        if (inRange) {
+          const monthlyValue = valueMap[client.id] || client.monthly_value || 0;
+          churnValue += monthlyValue;
+          churnCount++;
+        }
+      });
+    }
+
+    return {
+      entryValue,
+      entryCount,
+      newClientValue,
+      newClientCount,
+      upsellValue,
+      upsellCount,
+      churnValue,
+      churnCount
     };
-  }, [activeClients, churnedClients, clientMonthlyValueMap, upsells]);
+  }, [activeClients, churnedClients, clientMonthlyValueMap, productValueMap, upsells, selectedMonth, productSlug, productChurns]);
 
   // Stats (only from active clients)
   const totalClients = activeClients.length;
@@ -583,7 +615,13 @@ export default function ClientListPage() {
               </TableCell>
               <TableCell className="text-right">
                 <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                  {formatCurrency(clientMonthlyValueMap[client.id] || 0)}
+                  {formatCurrency(
+                    (productSlug && Object.keys(productValueMap).length > 0
+                      ? productValueMap[client.id]
+                      : clientMonthlyValueMap[client.id])
+                    || client.monthly_value
+                    || 0
+                  )}
                 </span>
               </TableCell>
               <TableCell className="text-center">

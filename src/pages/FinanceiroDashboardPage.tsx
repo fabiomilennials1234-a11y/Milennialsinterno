@@ -1,3 +1,4 @@
+import { useState, useMemo } from 'react';
 import { Navigate } from 'react-router-dom';
 import MainLayout from '@/layouts/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -5,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { 
+import {
   Wallet,
   TrendingUp,
   TrendingDown,
@@ -22,6 +23,7 @@ import {
   CheckCircle2,
   XCircle,
   Calendar,
+  CalendarDays,
   BarChart3,
   PieChart,
 } from 'lucide-react';
@@ -29,6 +31,27 @@ import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+// Generate month options for filter
+const generateMonthOptions = () => {
+  const options = [];
+  const now = new Date();
+  for (let i = 0; i < 12; i++) {
+    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    options.push({
+      value: format(date, 'yyyy-MM'),
+      label: format(date, "MMMM 'de' yyyy", { locale: ptBR }),
+    });
+  }
+  return options;
+};
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', {
@@ -41,8 +64,15 @@ const formatCurrency = (value: number) => {
 
 export default function FinanceiroDashboardPage() {
   const { user, isCEO, isAdminUser } = useAuth();
-  const currentMonth = format(new Date(), 'yyyy-MM');
-  const lastMonth = format(subMonths(new Date(), 1), 'yyyy-MM');
+  const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
+  const monthOptions = useMemo(() => generateMonthOptions(), []);
+
+  // Derive previous month from selectedMonth
+  const previousMonth = useMemo(() => {
+    const [year, month] = selectedMonth.split('-').map(Number);
+    const prevDate = new Date(year, month - 2, 1);
+    return format(prevDate, 'yyyy-MM');
+  }, [selectedMonth]);
 
   // Verificar acesso
   const allowedRoles = ['financeiro', 'gestor_projetos', 'ceo'];
@@ -50,29 +80,53 @@ export default function FinanceiroDashboardPage() {
 
   // Fetch financial data
   const { data: dashboardData, isLoading } = useQuery({
-    queryKey: ['financeiro-dashboard', currentMonth],
+    queryKey: ['financeiro-dashboard', selectedMonth],
     queryFn: async () => {
       const [
         { data: contasPagar },
         { data: contasPagarLastMonth },
         { data: contasReceber },
         { data: contasReceberLastMonth },
-        { data: activeClients },
         { data: allClients },
+        { data: productValues },
         { data: dreData },
       ] = await Promise.all([
-        supabase.from('financeiro_contas_pagar').select('*').eq('mes_referencia', currentMonth),
-        supabase.from('financeiro_contas_pagar').select('*').eq('mes_referencia', lastMonth),
-        supabase.from('financeiro_contas_receber').select('*').eq('mes_referencia', currentMonth),
-        supabase.from('financeiro_contas_receber').select('*').eq('mes_referencia', lastMonth),
-        supabase.from('financeiro_active_clients').select('*'),
-        supabase.from('clients').select('id, name, status, archived, distrato_step, monthly_value, entry_date'),
-        supabase.from('financeiro_dre').select('*').eq('mes_referencia', currentMonth).maybeSingle(),
+        supabase.from('financeiro_contas_pagar').select('*').eq('mes_referencia', selectedMonth),
+        supabase.from('financeiro_contas_pagar').select('*').eq('mes_referencia', previousMonth),
+        supabase.from('financeiro_contas_receber').select('*').eq('mes_referencia', selectedMonth),
+        supabase.from('financeiro_contas_receber').select('*').eq('mes_referencia', previousMonth),
+        supabase.from('clients').select('id, name, status, archived, distrato_step, monthly_value, entry_date, contracted_products'),
+        supabase.from('client_product_values').select('client_id, monthly_value'),
+        supabase.from('financeiro_dre').select('*').eq('mes_referencia', selectedMonth).maybeSingle(),
       ]);
 
-      // Clientes ativos
-      const totalActiveClients = activeClients?.length || 0;
-      const totalMonthlyValue = activeClients?.reduce((sum, c) => sum + (Number(c.monthly_value) || 0), 0) || 0;
+      // Build product value map (sum all products per client)
+      const productValueMap: Record<string, number> = {};
+      productValues?.forEach((pv: any) => {
+        productValueMap[pv.client_id] = (productValueMap[pv.client_id] || 0) + (Number(pv.monthly_value) || 0);
+      });
+
+      // Selected month boundaries for entry_date filter
+      const [selYear, selMonth] = selectedMonth.split('-').map(Number);
+      const monthEnd = new Date(selYear, selMonth, 0, 23, 59, 59, 999); // last day of selected month
+
+      // Active clients = not archived, not churned, entered before or during selected month
+      const activeClientsList = allClients?.filter(c => {
+        if (c.archived) return false;
+        if (c.status === 'churned') return false;
+        if (c.distrato_step) return false;
+        // Client must have entered on or before the selected month
+        const entryDate = c.entry_date ? new Date(c.entry_date) : null;
+        if (entryDate && entryDate > monthEnd) return false;
+        return true;
+      }) || [];
+
+      const totalActiveClients = activeClientsList.length;
+      const totalMonthlyValue = activeClientsList.reduce((sum, c) => {
+        // Use product values sum if available, otherwise client monthly_value
+        const value = productValueMap[c.id] || Number(c.monthly_value) || 0;
+        return sum + value;
+      }, 0);
 
       // Clientes em distrato
       const distratoClients = allClients?.filter(c => c.distrato_step && !c.archived) || [];
@@ -176,7 +230,7 @@ export default function FinanceiroDashboardPage() {
     <MainLayout>
       <div className="p-6 space-y-6 animate-fade-in overflow-y-auto h-full">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
               <Wallet size={24} />
@@ -186,13 +240,30 @@ export default function FinanceiroDashboardPage() {
                 Dashboard Financeiro
               </h1>
               <p className="text-muted-foreground text-sm">
-                Visão consolidada • {format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })}
+                Visão consolidada • {format(new Date(selectedMonth + '-15'), "MMMM 'de' yyyy", { locale: ptBR })}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-success/10 text-success text-sm font-medium">
-            <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-            Tempo real
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <CalendarDays className="w-4 h-4 text-muted-foreground" />
+              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                <SelectTrigger className="w-[220px]">
+                  <SelectValue placeholder="Selecionar mês" />
+                </SelectTrigger>
+                <SelectContent>
+                  {monthOptions.map(option => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-success/10 text-success text-sm font-medium">
+              <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+              Tempo real
+            </div>
           </div>
         </div>
 

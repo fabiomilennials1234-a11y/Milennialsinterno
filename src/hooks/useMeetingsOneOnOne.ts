@@ -56,6 +56,12 @@ export interface WeeklySummary {
   created_at: string;
 }
 
+export interface ClientProblem {
+  clientId: string;
+  clientName: string;
+  problem: string;
+}
+
 export interface MeetingFormData {
   evaluated_manager_id: string;
   evaluated_manager_name: string;
@@ -70,6 +76,7 @@ export interface MeetingFormData {
   general_observations: string | null;
   meeting_date: string;
   created_by_name: string | null;
+  client_problems?: ClientProblem[];
 }
 
 function getWeekStart(): string {
@@ -252,6 +259,20 @@ export function useMeetingsOneOnOne() {
         });
       }
 
+      // Adicionar clientes com problemas
+      if (data.client_problems?.length) {
+        for (const cp of data.client_problems) {
+          problemsToInsert.push({
+            problem_text: `[Cliente: ${cp.clientName}] ${cp.problem}`,
+            source_meeting_id: meeting.id,
+            problem_type: 'client_problem',
+            manager_id: data.evaluated_manager_id,
+            manager_name: data.evaluated_manager_name,
+            week_start: weekStart,
+          });
+        }
+      }
+
       if (problemsToInsert.length > 0) {
         await supabase.from('weekly_problems').insert(problemsToInsert);
       }
@@ -261,6 +282,7 @@ export function useMeetingsOneOnOne() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meetings-one-on-one'] });
       queryClient.invalidateQueries({ queryKey: ['weekly-problems'] });
+      queryClient.invalidateQueries({ queryKey: ['weekly-problems-stats'] });
       toast.success('Reunião 1 a 1 registrada com sucesso');
     },
     onError: (error: Error) => {
@@ -278,6 +300,7 @@ export function useMeetingsOneOnOne() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['weekly-problems'] });
+      queryClient.invalidateQueries({ queryKey: ['weekly-problems-stats'] });
       toast.success('Problemas da semana arquivados');
     },
     onError: (error: Error) => {

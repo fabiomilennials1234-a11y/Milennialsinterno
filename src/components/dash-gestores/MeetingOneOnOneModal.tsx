@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -9,8 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useMeetingsOneOnOne, MeetingFormData } from '@/hooks/useMeetingsOneOnOne';
 import { useSquadManagers } from '@/hooks/useSquadManagers';
+import { useClientsWithSales } from '@/hooks/useClientList';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, Plus, X } from 'lucide-react';
+import { Loader2, Plus, X, Search, Users, AlertCircle } from 'lucide-react';
 
 interface MeetingOneOnOneModalProps {
   open: boolean;
@@ -21,7 +22,8 @@ export default function MeetingOneOnOneModal({ open, onOpenChange }: MeetingOneO
   const { user } = useAuth();
   const { challenges, createMeeting, addChallenge } = useMeetingsOneOnOne();
   const { data: managers = [], isLoading: isLoadingManagers } = useSquadManagers();
-  
+  const { data: allClients = [] } = useClientsWithSales();
+
   const [selectedManager, setSelectedManager] = useState<string>('');
   const [documentationUpToDate, setDocumentationUpToDate] = useState(false);
   const [correctMovement, setCorrectMovement] = useState(false);
@@ -33,6 +35,43 @@ export default function MeetingOneOnOneModal({ open, onOpenChange }: MeetingOneO
   const [selectedChallenges, setSelectedChallenges] = useState<string[]>([]);
   const [newChallenge, setNewChallenge] = useState('');
   const [observations, setObservations] = useState('');
+  const [clientSearch, setClientSearch] = useState('');
+  const [clientProblems, setClientProblems] = useState<Record<string, string>>({});
+
+  // Active clients only (not archived, not churned)
+  const activeClients = useMemo(() => {
+    return allClients.filter(c => !c.archived && c.status !== 'churned');
+  }, [allClients]);
+
+  // Filter clients by search
+  const filteredClients = useMemo(() => {
+    if (!clientSearch.trim()) return [];
+    const q = clientSearch.toLowerCase();
+    return activeClients
+      .filter(c => c.name.toLowerCase().includes(q) || c.razao_social?.toLowerCase().includes(q))
+      .slice(0, 6);
+  }, [activeClients, clientSearch]);
+
+  const selectedClientIds = Object.keys(clientProblems);
+
+  const addClientProblem = (clientId: string) => {
+    if (!clientProblems[clientId]) {
+      setClientProblems(prev => ({ ...prev, [clientId]: '' }));
+      setClientSearch('');
+    }
+  };
+
+  const removeClientProblem = (clientId: string) => {
+    setClientProblems(prev => {
+      const next = { ...prev };
+      delete next[clientId];
+      return next;
+    });
+  };
+
+  const updateClientProblem = (clientId: string, text: string) => {
+    setClientProblems(prev => ({ ...prev, [clientId]: text }));
+  };
 
   const resetForm = () => {
     setSelectedManager('');
@@ -46,6 +85,8 @@ export default function MeetingOneOnOneModal({ open, onOpenChange }: MeetingOneO
     setSelectedChallenges([]);
     setNewChallenge('');
     setObservations('');
+    setClientSearch('');
+    setClientProblems({});
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -55,6 +96,14 @@ export default function MeetingOneOnOneModal({ open, onOpenChange }: MeetingOneO
 
     const manager = managers.find(m => m.user_id === selectedManager);
     if (!manager) return;
+
+    // Build client problems array with names
+    const clientProblemsArray = Object.entries(clientProblems)
+      .filter(([, text]) => text.trim())
+      .map(([clientId, text]) => {
+        const client = activeClients.find(c => c.id === clientId);
+        return { clientId, clientName: client?.name || 'Cliente', problem: text.trim() };
+      });
 
     const formData: MeetingFormData = {
       evaluated_manager_id: selectedManager,
@@ -70,6 +119,7 @@ export default function MeetingOneOnOneModal({ open, onOpenChange }: MeetingOneO
       general_observations: observations.trim() || null,
       meeting_date: new Date().toISOString().split('T')[0],
       created_by_name: user?.name || null,
+      client_problems: clientProblemsArray,
     };
 
     await createMeeting.mutateAsync(formData);
@@ -232,6 +282,79 @@ export default function MeetingOneOnOneModal({ open, onOpenChange }: MeetingOneO
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
+          </div>
+
+          {/* Clientes com Problemas */}
+          <div>
+            <Label className="text-muted-foreground uppercase text-xs tracking-wider flex items-center gap-1.5">
+              <Users className="w-3.5 h-3.5" />
+              Selecionar clientes com problemas
+            </Label>
+            <div className="relative mt-2">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                placeholder="Buscar cliente pelo nome..."
+                value={clientSearch}
+                onChange={(e) => setClientSearch(e.target.value)}
+                className="pl-10"
+              />
+              {clientSearch.trim() && filteredClients.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto">
+                  {filteredClients.map(client => (
+                    <button
+                      key={client.id}
+                      type="button"
+                      onClick={() => addClientProblem(client.id)}
+                      disabled={selectedClientIds.includes(client.id)}
+                      className="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <span className="truncate">{client.name}</span>
+                      {selectedClientIds.includes(client.id) && (
+                        <span className="text-xs text-muted-foreground ml-2">Já adicionado</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {clientSearch.trim() && filteredClients.length === 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg z-50 p-3">
+                  <p className="text-sm text-muted-foreground text-center">Nenhum cliente encontrado</p>
+                </div>
+              )}
+            </div>
+
+            {/* Selected clients with problem notes */}
+            {selectedClientIds.length > 0 && (
+              <div className="space-y-3 mt-3">
+                {selectedClientIds.map(clientId => {
+                  const client = activeClients.find(c => c.id === clientId);
+                  return (
+                    <div key={clientId} className="border border-orange-200 dark:border-orange-800 rounded-lg p-3 bg-orange-50/50 dark:bg-orange-900/10">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4 text-orange-500" />
+                          <span className="text-sm font-medium">{client?.name || 'Cliente'}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeClientProblem(clientId)}
+                          className="text-muted-foreground hover:text-destructive transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <Textarea
+                        value={clientProblems[clientId] || ''}
+                        onChange={(e) => updateClientProblem(clientId, e.target.value)}
+                        placeholder="Descreva o problema encontrado com este cliente..."
+                        rows={2}
+                        className="text-sm"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Observações */}

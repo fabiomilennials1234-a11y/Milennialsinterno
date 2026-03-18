@@ -30,8 +30,8 @@ const LEMAS: Lema[] = [
     icon: <Sparkles className="w-4 h-4" />,
   },
   {
-    number: 'Quinto',
-    text: 'Nós somos a melhor equipe de Marketing do mundo, e hoje, amanhã e sempre irei provar isso para mim mesmo.',
+    number: 'Quinta',
+    text: 'Somos a melhor equipe de marketing do mundo. Por isso, darei sempre o meu melhor, farei sempre algo a mais, cuidarei da minha vestimenta e do que digo no escritório.',
     icon: <Users className="w-4 h-4" />,
   },
   {
@@ -48,11 +48,6 @@ const LEMAS: Lema[] = [
     number: 'Oitavo',
     text: 'Sempre que precisar falar com alguém da equipe, irei falar nos grupos que possuo acesso. Jamais chamarei alguém da equipe no privado.',
     icon: <Lock className="w-4 h-4" />,
-  },
-  {
-    number: 'Nono',
-    text: 'Sempre anexarei na descrição de meus clientes o Dashboard, Link do drive e Link do documento de objeções + Chamarizes.',
-    icon: <Link2 className="w-4 h-4" />,
   },
 ];
 
@@ -85,7 +80,7 @@ export default function AdsLemasSection() {
             <Quote size={16} className="text-warning" />
             <h4 className="text-sm font-medium text-foreground">Quais os Lemas da Millennials?</h4>
           </div>
-          <p className="text-xs text-muted-foreground mt-2 pl-6">Clique para ver os 9 lemas</p>
+          <p className="text-xs text-muted-foreground mt-2 pl-6">Clique para ver os 8 lemas</p>
         </div>
       </div>
 
@@ -105,7 +100,7 @@ export default function AdsLemasSection() {
                 <span className="inline-block text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-1 rounded-md mb-1">
                   Lemas Millennials
                 </span>
-                <h2 className="text-xl font-bold text-foreground">Os 9 Lemas da Millennials</h2>
+                <h2 className="text-xl font-bold text-foreground">Os 8 Lemas da Millennials</h2>
               </div>
             </div>
           </div>
