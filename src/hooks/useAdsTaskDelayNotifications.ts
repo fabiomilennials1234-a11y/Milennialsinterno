@@ -146,10 +146,20 @@ export function useAdsTaskDelayNotifications() {
         .select('notification_id')
         .eq('user_id', user.id);
 
-      const justifiedIds = new Set((justifications || []).map((j: any) => j.notification_id));
+      const justifiedNotificationIds = new Set((justifications || []).map((j: any) => j.notification_id));
 
-      // Filtrar notificações que ainda não foram justificadas pelo usuário
-      let pendingNotifications = (notifications || []).filter((n: any) => !justifiedIds.has(n.id));
+      // Mapear task_ids já justificados para cobrir notificações duplicatas
+      const justifiedTaskIds = new Set<string>();
+      (notifications || []).forEach((n: any) => {
+        if (justifiedNotificationIds.has(n.id)) {
+          justifiedTaskIds.add(n.ads_task_id);
+        }
+      });
+
+      // Filtrar: excluir se já justificou essa task (por qualquer notification_id)
+      let pendingNotifications = (notifications || []).filter((n: any) => {
+        return !justifiedNotificationIds.has(n.id) && !justifiedTaskIds.has(n.ads_task_id);
+      });
 
       // Para gestor_ads, filtrar apenas suas próprias tarefas
       if (user.role === 'gestor_ads') {

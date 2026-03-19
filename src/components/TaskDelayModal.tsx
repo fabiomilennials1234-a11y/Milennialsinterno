@@ -23,12 +23,26 @@ export default function TaskDelayModal() {
   const [currentNotificationId, setCurrentNotificationId] = useState<string | null>(null);
   const [justification, setJustification] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [justifiedIds, setJustifiedIds] = useState<Set<string>>(new Set());
+
+  // Persist justified IDs in localStorage so they survive navigation/remounts
+  const STORAGE_KEY = 'task-delay-justified-ids';
+  const getJustifiedIds = (): Set<string> => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch { return new Set(); }
+  };
+  const addJustifiedId = (id: string) => {
+    const ids = getJustifiedIds();
+    ids.add(id);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([...ids]));
+  };
 
   // Get current notification from the list
   const currentNotification = notifications.find(n => n.id === currentNotificationId) || null;
 
-  // Filter out already-justified notifications
+  // Filter out already-justified notifications (localStorage persists across navigation)
+  const justifiedIds = getJustifiedIds();
   const pendingNotifications = notifications.filter(n => !justifiedIds.has(n.id));
 
   // Set current notification when notifications change
@@ -40,9 +54,6 @@ export default function TaskDelayModal() {
       setCurrentNotificationId(null);
     }
   }, [pendingNotifications.length, currentNotificationId, isProcessing]);
-
-  // justifiedIds persist for the entire session to prevent re-showing
-  // On page refresh they reset, and the query will have fresh data by then
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +67,7 @@ export default function TaskDelayModal() {
         justification: justification.trim(),
       });
 
-      setJustifiedIds(prev => new Set(prev).add(currentNotification.id));
+      addJustifiedId(currentNotification.id);
       setCurrentNotificationId(null);
       setJustification('');
     } finally {

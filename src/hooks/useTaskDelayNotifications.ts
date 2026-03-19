@@ -322,10 +322,20 @@ export function useTaskDelayNotifications() {
         .select('notification_id')
         .eq('user_id', user.id);
 
-      const justifiedIds = new Set((justifications || []).map((j: any) => j.notification_id));
+      const justifiedNotificationIds = new Set((justifications || []).map((j: any) => j.notification_id));
 
-      // Filtrar notificações que ainda não foram justificadas pelo usuário
-      let pendingNotifications = (notifications || []).filter((n: any) => !justifiedIds.has(n.id));
+      // Mapear notification_id justificado → task_id, para cobrir duplicatas
+      const justifiedTaskIds = new Set<string>();
+      (notifications || []).forEach((n: any) => {
+        if (justifiedNotificationIds.has(n.id)) {
+          justifiedTaskIds.add(`${n.task_id}:${n.task_table}`);
+        }
+      });
+
+      // Filtrar notificações: excluir se o usuário já justificou essa task (por qualquer notification_id)
+      let pendingNotifications = (notifications || []).filter((n: any) => {
+        return !justifiedNotificationIds.has(n.id) && !justifiedTaskIds.has(`${n.task_id}:${n.task_table}`);
+      });
 
       // Aplicar regras de quem recebe notificação
       pendingNotifications = pendingNotifications.filter((n: TaskDelayNotification) => {
