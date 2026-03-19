@@ -72,9 +72,6 @@ export default function ProdutoraKanbanBoard() {
     }
   }, [delayedCards.length, user?.role]);
 
-  // Get user's squad
-  const userSquadId = user?.squad_id;
-
   // Fetch produtora board - use the existing board by slug
   const { data: board, isLoading: isBoardLoading } = useQuery({
     queryKey: ['produtora-board'],
@@ -84,41 +81,27 @@ export default function ProdutoraKanbanBoard() {
         .select('*')
         .eq('slug', 'produtora-board')
         .maybeSingle();
-      
       if (error) throw error;
       return data;
     },
   });
 
-  // Fetch produtora users (only those with produtora role)
+  // Fetch all produtora users (no squad filter - all users see the same board)
   const { data: produtoraUsers = [], isLoading: isProdutoraUsersLoading } = useQuery({
-    queryKey: ['produtora-users', userSquadId],
+    queryKey: ['all-produtora-users'],
     queryFn: async () => {
-      // Get all produtora users from user_roles
       const { data: allProdutoras, error } = await supabase
         .from('user_roles')
         .select('user_id')
         .eq('role', 'produtora');
-
       if (error) throw error;
-
       const produtoraIds = allProdutoras?.map(d => d.user_id) || [];
-      
       if (produtoraIds.length === 0) return [];
-
-      // Get profiles for produtoras
       const { data: profiles, error: profileError } = await supabase
         .from('profiles')
         .select('user_id, name, squad_id')
         .in('user_id', produtoraIds);
-
       if (profileError) throw profileError;
-
-      // Filter by squad if user has one
-      if (userSquadId) {
-        return (profiles || []).filter(p => p.squad_id === userSquadId) as ProdutoraUser[];
-      }
-
       return (profiles || []) as ProdutoraUser[];
     },
   });

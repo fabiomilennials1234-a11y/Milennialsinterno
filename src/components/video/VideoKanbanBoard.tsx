@@ -82,82 +82,37 @@ export default function VideoKanbanBoard() {
     }
   }, [delayedCards.length, user?.role]);
 
-  // Get user's squad
-  const userSquadId = user?.squad_id;
-
-  // Fetch video board for the squad
+  // Fetch video board (same board for all users)
   const { data: board, isLoading: isBoardLoading } = useQuery({
-    queryKey: ['video-board', userSquadId],
+    queryKey: ['video-board'],
     queryFn: async () => {
-      if (!userSquadId) {
-        // Fallback: get the first video board
-        const { data, error } = await supabase
-          .from('kanban_boards')
-          .select('*')
-          .ilike('slug', '%video%')
-          .limit(1)
-          .maybeSingle();
-        
-        if (error) throw error;
-        return data;
-      }
-
-      // Try to get squad-specific board
       const { data, error } = await supabase
         .from('kanban_boards')
         .select('*')
-        .eq('squad_id', userSquadId)
         .ilike('slug', '%video%')
+        .limit(1)
         .maybeSingle();
-
       if (error) throw error;
-      
-      // Fallback to any video board
-      if (!data) {
-        const { data: fallback, error: fallbackError } = await supabase
-          .from('kanban_boards')
-          .select('*')
-          .ilike('slug', '%video%')
-          .limit(1)
-          .maybeSingle();
-        
-        if (fallbackError) throw fallbackError;
-        return fallback;
-      }
-
       return data;
     },
   });
 
-  // Fetch editors in the squad (only those with editor_video role)
+  // Fetch all editors (no squad filter - all users see the same board)
   const { data: editors = [], isLoading: isEditorsLoading } = useQuery({
-    queryKey: ['squad-editors', userSquadId],
+    queryKey: ['all-editors'],
     queryFn: async () => {
-      // Get all editors from user_roles
       const { data: allEditors, error } = await supabase
         .from('user_roles')
         .select('user_id')
         .eq('role', 'editor_video');
-
       if (error) throw error;
-
       const editorIds = allEditors?.map(d => d.user_id) || [];
-      
       if (editorIds.length === 0) return [];
-
-      // Get profiles for editors
       const { data: profiles, error: profileError } = await supabase
         .from('profiles')
         .select('user_id, name, squad_id')
         .in('user_id', editorIds);
-
       if (profileError) throw profileError;
-
-      // Filter by squad if user has one
-      if (userSquadId) {
-        return (profiles || []).filter(p => p.squad_id === userSquadId) as VideoEditor[];
-      }
-
       return (profiles || []) as VideoEditor[];
     },
   });

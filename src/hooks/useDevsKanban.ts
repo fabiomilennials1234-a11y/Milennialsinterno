@@ -29,6 +29,8 @@ export const DEV_BOARD_VIEWERS: UserRole[] = [
   'ceo',
   'gestor_projetos',
   'gestor_ads',
+  'outbound',
+  'sucesso_cliente',
   'devs',
 ];
 

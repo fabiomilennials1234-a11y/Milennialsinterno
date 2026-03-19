@@ -1,17 +1,13 @@
-import { useEffect } from 'react';
 import MainLayout from '@/layouts/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import DesignKanbanBoard from '@/components/design/DesignKanbanBoard';
+import { canViewBoard } from '@/types/auth';
 
 export default function DesignPage() {
   const { user, isCEO, isAdminUser } = useAuth();
 
-  const allowedRoles = ['design', 'gestor_projetos', 'ceo', 'gestor_ads'];
-  const canAccess = user?.role && allowedRoles.includes(user.role);
-
-  // Empty useEffect to satisfy hook order (if needed for future)
-  useEffect(() => {}, []);
+  const canAccess = user?.role && canViewBoard(user.role, 'design');
 
   if (!canAccess && !isCEO && !isAdminUser) {
     return <Navigate to="/" replace />;

@@ -23,23 +23,30 @@ export default function TaskDelayModal() {
   const [currentNotificationId, setCurrentNotificationId] = useState<string | null>(null);
   const [justification, setJustification] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [justifiedIds, setJustifiedIds] = useState<Set<string>>(new Set());
 
   // Get current notification from the list
   const currentNotification = notifications.find(n => n.id === currentNotificationId) || null;
 
+  // Filter out already-justified notifications
+  const pendingNotifications = notifications.filter(n => !justifiedIds.has(n.id));
+
   // Set current notification when notifications change
   useEffect(() => {
-    if (notifications.length > 0 && !currentNotificationId && !isProcessing) {
-      setCurrentNotificationId(notifications[0].id);
+    if (pendingNotifications.length > 0 && !currentNotificationId && !isProcessing) {
+      setCurrentNotificationId(pendingNotifications[0].id);
       setJustification('');
-    } else if (notifications.length === 0) {
+    } else if (pendingNotifications.length === 0) {
       setCurrentNotificationId(null);
     }
-  }, [notifications, currentNotificationId, isProcessing]);
+  }, [pendingNotifications.length, currentNotificationId, isProcessing]);
+
+  // justifiedIds persist for the entire session to prevent re-showing
+  // On page refresh they reset, and the query will have fresh data by then
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!currentNotification || isProcessing || !justification.trim()) return;
 
     setIsProcessing(true);
@@ -49,7 +56,7 @@ export default function TaskDelayModal() {
         justification: justification.trim(),
       });
 
-      // Clear current notification to allow useEffect to pick the next one
+      setJustifiedIds(prev => new Set(prev).add(currentNotification.id));
       setCurrentNotificationId(null);
       setJustification('');
     } finally {
@@ -193,9 +200,9 @@ export default function TaskDelayModal() {
           </form>
 
           {/* Notificações restantes */}
-          {notifications.length > 1 && (
+          {pendingNotifications.length > 1 && (
             <p className="text-xs text-muted-foreground text-center">
-              +{notifications.length - 1} outra{notifications.length > 2 ? 's' : ''} tarefa{notifications.length > 2 ? 's' : ''} atrasada{notifications.length > 2 ? 's' : ''}
+              +{pendingNotifications.length - 1} outra{pendingNotifications.length > 2 ? 's' : ''} tarefa{pendingNotifications.length > 2 ? 's' : ''} atrasada{pendingNotifications.length > 2 ? 's' : ''}
             </p>
           )}
         </div>

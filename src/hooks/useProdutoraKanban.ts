@@ -27,6 +27,8 @@ export const PRODUTORA_BOARD_VIEWERS: UserRole[] = [
   'ceo',
   'gestor_projetos',
   'gestor_ads',
+  'outbound',
+  'sucesso_cliente',
   'produtora',
   'editor_video',
 ];

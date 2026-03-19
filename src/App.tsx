@@ -40,6 +40,7 @@ import PublicNPSPage from "./pages/PublicNPSPage";
 import PublicExitFormPage from "./pages/PublicExitFormPage";
 import UpsellsPage from "./pages/UpsellsPage";
 import ComissoesPage from "./pages/ComissoesPage";
+import ProvasSociaisPage from "./pages/ProvasSociaisPage";
 import DashGestoresPage from "./pages/DashGestoresPage";
 import TVDashboardPage from "./pages/TVDashboardPage";
 import TreinamentosPage from "./pages/TreinamentosPage";
@@ -368,7 +369,14 @@ function AppRoutes() {
           <ComissoesPage />
         </ProtectedRoute>
       } />
-      
+
+      {/* Provas Sociais Route */}
+      <Route path="/provas-sociais" element={
+        <ProtectedRoute>
+          <ProvasSociaisPage />
+        </ProtectedRoute>
+      } />
+
       {/* Client Registration Route - CEO, Gestor de Projetos e Sucesso do Cliente */}
       <Route path="/cadastro-clientes" element={
         <ManagerRoute>
