@@ -74,6 +74,7 @@ const SEARCHABLE_PAGES = [
   { path: '/cadastro-clientes', label: 'Cadastro de Clientes', category: 'Clientes' },
   { path: '/upsells', label: 'UP Sells', category: 'Financeiro' },
   { path: '/comissoes', label: 'Comissões', category: 'Financeiro' },
+  { path: '/provas-sociais', label: 'Provas Sociais', category: 'Vendas' },
   { path: '/financeiro-dashboard', label: 'Financeiro Dashboard', category: 'Financeiro' },
   { path: '/treinamentos', label: 'Treinamentos', category: 'Outros' },
   { path: '/admin/usuarios', label: 'Gestão de Usuários', category: 'Admin' },

@@ -82,82 +82,37 @@ export default function DesignKanbanBoard() {
     }
   }, [delayedCards.length, user?.role]);
 
-  // Get user's squad
-  const userSquadId = user?.squad_id;
-
-  // Fetch design board for the squad
+  // Fetch design board (same board for all users)
   const { data: board, isLoading: isBoardLoading } = useQuery({
-    queryKey: ['design-board', userSquadId],
+    queryKey: ['design-board'],
     queryFn: async () => {
-      if (!userSquadId) {
-        // Fallback: get the first design board
-        const { data, error } = await supabase
-          .from('kanban_boards')
-          .select('*')
-          .ilike('slug', '%design%')
-          .limit(1)
-          .maybeSingle();
-        
-        if (error) throw error;
-        return data;
-      }
-
-      // Try to get squad-specific board
       const { data, error } = await supabase
         .from('kanban_boards')
         .select('*')
-        .eq('squad_id', userSquadId)
         .ilike('slug', '%design%')
+        .limit(1)
         .maybeSingle();
-
       if (error) throw error;
-      
-      // Fallback to any design board
-      if (!data) {
-        const { data: fallback, error: fallbackError } = await supabase
-          .from('kanban_boards')
-          .select('*')
-          .ilike('slug', '%design%')
-          .limit(1)
-          .maybeSingle();
-        
-        if (fallbackError) throw fallbackError;
-        return fallback;
-      }
-
       return data;
     },
   });
 
-  // Fetch designers in the squad (only those with design role)
+  // Fetch all designers (no squad filter - all users see the same board)
   const { data: designers = [], isLoading: isDesignersLoading } = useQuery({
-    queryKey: ['squad-designers', userSquadId],
+    queryKey: ['all-designers'],
     queryFn: async () => {
-      // Get all designers from user_roles
       const { data: allDesigners, error } = await supabase
         .from('user_roles')
         .select('user_id')
         .eq('role', 'design');
-
       if (error) throw error;
-
       const designerIds = allDesigners?.map(d => d.user_id) || [];
-      
       if (designerIds.length === 0) return [];
-
-      // Get profiles for designers
       const { data: profiles, error: profileError } = await supabase
         .from('profiles')
         .select('user_id, name, squad_id')
         .in('user_id', designerIds);
-
       if (profileError) throw profileError;
-
-      // Filter by squad if user has one
-      if (userSquadId) {
-        return (profiles || []).filter(p => p.squad_id === userSquadId) as Designer[];
-      }
-
       return (profiles || []) as Designer[];
     },
   });

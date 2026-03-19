@@ -43,8 +43,6 @@ export const ROLE_BOARD_SLUGS: Record<UserRole, string[][]> = {
     ['design'],
     ['editor-video'],
     ['devs'],
-    ['crm', 'grupo-1-crm', 'grupo-2-crm'],
-    ['comercial', 'grupo-1-comercial', 'grupo-2-comercial'],
   ],
 
   // Outbound: mesma visibilidade do Gestor de Ads
@@ -53,8 +51,6 @@ export const ROLE_BOARD_SLUGS: Record<UserRole, string[][]> = {
     ['design'],
     ['editor-video'],
     ['devs'],
-    ['crm', 'grupo-1-crm', 'grupo-2-crm'],
-    ['comercial', 'grupo-1-comercial', 'grupo-2-comercial'],
   ],
 
   // Sucesso do Cliente: próprio + permitidos
@@ -64,8 +60,6 @@ export const ROLE_BOARD_SLUGS: Record<UserRole, string[][]> = {
     ['design'],
     ['editor-video'],
     ['devs'],
-    ['crm', 'grupo-1-crm', 'grupo-2-crm'],
-    ['comercial', 'grupo-1-comercial', 'grupo-2-comercial'],
     ['rh', 'rh-board'],
   ],
 
@@ -84,11 +78,11 @@ export const ROLE_BOARD_SLUGS: Record<UserRole, string[][]> = {
   // Produtora: NÃO tem kanban de grupo, só independente
   produtora: [],
 
-  // Gestor de CRM: apenas próprio
-  gestor_crm: [['crm', 'grupo-1-crm', 'grupo-2-crm']],
+  // Gestor de CRM: sem kanban de grupo
+  gestor_crm: [],
 
-  // Consultor Comercial: apenas próprio
-  consultor_comercial: [['comercial', 'grupo-1-comercial', 'grupo-2-comercial']],
+  // Consultor Comercial: sem kanban de grupo
+  consultor_comercial: [],
 
   // Financeiro: apenas próprio
   financeiro: [['financeiro', 'financeiro-board']],

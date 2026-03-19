@@ -29,25 +29,30 @@ export default function AdsMovimentacaoNotification({
   useEffect(() => {
     // Se forceShow é true, mostra imediatamente para teste
     if (forceShow) {
-      setUnmoveTodayCount(tracking.length || 5); // Simula 5 clientes para teste
+      setUnmoveTodayCount(tracking.length || 5);
       setIsOpen(true);
       return;
     }
 
-    // Verifica a cada minuto
+    const DISMISS_KEY = 'ads-movimentacao-dismissed-at';
+    const ONE_HOUR = 60 * 60 * 1000;
+
     const checkTime = () => {
       const now = new Date();
       const today = getDateKeyInTZ(now);
 
-      // Conta clientes que NÃO foram movidos HOJE (no fuso BR)
-      // Um cliente está pendente se last_moved_at não é de hoje
       const notMovedToday = tracking.filter(t => {
         const movedDate = getDateKeyInTZ(new Date(t.last_moved_at));
         return movedDate !== today;
       });
       setUnmoveTodayCount(notMovedToday.length);
+
       if (notMovedToday.length > 0) {
-        setIsOpen(true);
+        // Só abre se passou 1 hora desde o último dismiss
+        const dismissedAt = localStorage.getItem(DISMISS_KEY);
+        if (!dismissedAt || (Date.now() - Number(dismissedAt)) >= ONE_HOUR) {
+          setIsOpen(true);
+        }
       } else {
         setIsOpen(false);
       }
@@ -59,6 +64,7 @@ export default function AdsMovimentacaoNotification({
     return () => clearInterval(interval);
   }, [tracking, forceShow]);
   const handleClose = () => {
+    localStorage.setItem('ads-movimentacao-dismissed-at', String(Date.now()));
     setIsOpen(false);
     onClose?.();
   };

@@ -27,6 +27,9 @@ export const ATRIZES_BOARD_VIEWERS: UserRole[] = [
   'ceo',
   'gestor_projetos',
   'gestor_ads',
+  'outbound',
+  'sucesso_cliente',
+  'editor_video',
   'atrizes_gravacao',
 ];
 

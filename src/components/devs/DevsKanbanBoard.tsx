@@ -80,82 +80,37 @@ export default function DevsKanbanBoard() {
     }
   }, [delayedCards.length, user?.role]);
 
-  // Get user's squad
-  const userSquadId = user?.squad_id;
-
-  // Fetch dev board for the squad
+  // Fetch dev board (same board for all users)
   const { data: board, isLoading: isBoardLoading } = useQuery({
-    queryKey: ['dev-board', userSquadId],
+    queryKey: ['dev-board'],
     queryFn: async () => {
-      if (!userSquadId) {
-        // Fallback: get the first dev board
-        const { data, error } = await supabase
-          .from('kanban_boards')
-          .select('*')
-          .ilike('slug', '%dev%')
-          .limit(1)
-          .maybeSingle();
-        
-        if (error) throw error;
-        return data;
-      }
-
-      // Try to get squad-specific board
       const { data, error } = await supabase
         .from('kanban_boards')
         .select('*')
-        .eq('squad_id', userSquadId)
         .ilike('slug', '%dev%')
+        .limit(1)
         .maybeSingle();
-
       if (error) throw error;
-      
-      // Fallback to any dev board
-      if (!data) {
-        const { data: fallback, error: fallbackError } = await supabase
-          .from('kanban_boards')
-          .select('*')
-          .ilike('slug', '%dev%')
-          .limit(1)
-          .maybeSingle();
-        
-        if (fallbackError) throw fallbackError;
-        return fallback;
-      }
-
       return data;
     },
   });
 
-  // Fetch devs in the squad (only those with devs role)
+  // Fetch all devs (no squad filter - all users see the same board)
   const { data: devs = [], isLoading: isDevsLoading } = useQuery({
-    queryKey: ['squad-devs', userSquadId],
+    queryKey: ['all-devs'],
     queryFn: async () => {
-      // Get all devs from user_roles
       const { data: allDevs, error } = await supabase
         .from('user_roles')
         .select('user_id')
         .eq('role', 'devs');
-
       if (error) throw error;
-
       const devIds = allDevs?.map(d => d.user_id) || [];
-      
       if (devIds.length === 0) return [];
-
-      // Get profiles for devs
       const { data: profiles, error: profileError } = await supabase
         .from('profiles')
         .select('user_id, name, squad_id')
         .in('user_id', devIds);
-
       if (profileError) throw profileError;
-
-      // Filter by squad if user has one
-      if (userSquadId) {
-        return (profiles || []).filter(p => p.squad_id === userSquadId) as Dev[];
-      }
-
       return (profiles || []) as Dev[];
     },
   });
