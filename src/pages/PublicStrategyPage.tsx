@@ -555,6 +555,7 @@ interface FunnelData {
 export default function PublicStrategyPage() {
   const { token } = useParams<{ token: string }>();
   const { data, isLoading, error } = usePublicStrategy(token || '');
+  const { data: allTemplates = [] } = useStrategyTemplates();
 
   if (isLoading) {
     return (
@@ -611,8 +612,7 @@ export default function PublicStrategyPage() {
   const clientName = (data as any).clients?.name || 'Cliente';
 
   // Custom funnel templates
-  const { data: allTemplates = [] } = useStrategyTemplates();
-  const customFunnels = (strategy as any)?.custom_funnels || {};
+  const customFunnels: Record<string, any> = (strategy as any)?.custom_funnels || {};
 
   const renderCustomFunnelCard = (templateId: string, platform: 'meta' | 'google' | 'linkedin') => {
     const funnelData = customFunnels[templateId];
