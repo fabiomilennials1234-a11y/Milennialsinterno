@@ -8,6 +8,8 @@ Documentacao da API REST para integracao com sistemas externos (CRM, ERP, etc.).
 
 **Rate Limit:** 60 requisicoes/minuto por API key
 
+**API Key (desenvolvimento):** `***REDACTED***`
+
 ---
 
 ## Autenticacao
@@ -15,7 +17,7 @@ Documentacao da API REST para integracao com sistemas externos (CRM, ERP, etc.).
 Todas as requisicoes requerem uma API key valida no header:
 
 ```
-Authorization: Bearer <sua-api-key>
+Authorization: Bearer ***REDACTED***
 ```
 
 ### Gerar nova API key (via SQL no Supabase)
