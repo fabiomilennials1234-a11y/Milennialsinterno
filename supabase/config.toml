@@ -13,3 +13,6 @@ verify_jwt = false
 
 [functions.delete-group]
 verify_jwt = false
+
+[functions.api-v1]
+verify_jwt = false
