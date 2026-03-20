@@ -21,6 +21,8 @@ import {
   useSquads,
   useAdsManagers,
   useComercialConsultants,
+  useCrmManagers,
+  useRhUsers,
   useCreateClient,
 } from '@/hooks/useClientRegistration';
 import {
@@ -36,20 +38,9 @@ import {
 const AVAILABLE_PRODUCTS = [
   { slug: 'millennials-growth', name: 'Millennials Growth', requiresTeam: true },
   { slug: 'millennials-outbound', name: 'Millennials Outbound', requiresTeam: false },
-  { slug: 'on-demand', name: 'ON Demand', requiresTeam: false },
-  { slug: 'catalog-terceirizacao', name: 'Catalog (Terceirização)', requiresTeam: false },
-  { slug: 'zydon', name: 'Zydon', requiresTeam: false },
-  { slug: 'septem', name: 'Septem', requiresTeam: false },
-  { slug: 'vendedor-pastinha-comunidade', name: 'Vendedor Pastinha (Comunidade)', requiresTeam: false },
-  { slug: 'b2b-club', name: 'B2B Club', requiresTeam: false },
-  { slug: 'forja', name: 'Forja', requiresTeam: false },
   { slug: 'millennials-paddock', name: 'Millennials Paddock', requiresTeam: false },
-  { slug: 'vendedor-pastinha-educacional', name: 'Vendedor Pastinha (Educacional)', requiresTeam: false },
   { slug: 'torque-crm', name: 'Torque CRM', requiresTeam: false },
   { slug: 'millennials-hunting', name: 'Millennials Hunting', requiresTeam: false },
-  { slug: 'organic', name: 'Organic', requiresTeam: false },
-  { slug: 'catalog-saas', name: 'Catalog (SAAS)', requiresTeam: false },
-  { slug: 'b2b-summit', name: 'B2B Summit', requiresTeam: false },
 ];
 
 // Schema de validação com Zod
@@ -114,6 +105,8 @@ const clientSchema = z.object({
   squad_id: z.string().optional(),
   assigned_ads_manager: z.string().optional(),
   assigned_comercial: z.string().optional(),
+  assigned_crm: z.string().optional(),
+  assigned_rh: z.string().optional(),
 }).refine((data) => {
   // Se Millennials Growth está selecionado, exige group_id e squad_id
   const hasMillennialsGrowth = data.contracted_products.includes('millennials-growth');
@@ -163,6 +156,8 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
   const { data: squads = [] } = useSquads(selectedGroupId);
   const { data: adsManagers = [], isLoading: managersLoading } = useAdsManagers();
   const { data: comercialConsultants = [], isLoading: consultantsLoading } = useComercialConsultants();
+  const { data: crmManagers = [], isLoading: crmLoading } = useCrmManagers();
+  const { data: rhUsers = [], isLoading: rhLoading } = useRhUsers();
   const createClient = useCreateClient();
 
   const form = useForm<ClientFormData>({
@@ -185,6 +180,8 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
       squad_id: '',
       assigned_ads_manager: '',
       assigned_comercial: '',
+      assigned_crm: '',
+      assigned_rh: '',
     },
     mode: 'onChange',
   });
@@ -202,7 +199,17 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
   }, [watchedProducts]);
 
   const showAdsManager = hasMillennialsGrowth;
-  const showComercial = hasMillennialsGrowth || hasMillennialsPaddock;
+  const hasTorqueCRM = useMemo(() => {
+    return Array.isArray(watchedProducts) && watchedProducts.includes('torque-crm');
+  }, [watchedProducts]);
+
+  const hasHunting = useMemo(() => {
+    return Array.isArray(watchedProducts) && watchedProducts.includes('millennials-hunting');
+  }, [watchedProducts]);
+
+  const showComercial = hasMillennialsGrowth || hasMillennialsPaddock || hasTorqueCRM;
+  const showCrmManager = hasTorqueCRM;
+  const showRhUser = hasHunting;
 
   const toggleProduct = useCallback((slug: string, checked: boolean) => {
     const current = form.getValues('contracted_products') || [];
@@ -264,6 +271,8 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
         squad_id: hasMillennialsGrowth ? data.squad_id : undefined,
         assigned_ads_manager: data.assigned_ads_manager || undefined,
         assigned_comercial: data.assigned_comercial || undefined,
+        assigned_crm: data.assigned_crm || undefined,
+        assigned_rh: data.assigned_rh || undefined,
         product_values: productValuesArray,
       });
 
@@ -868,26 +877,94 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
                         name="assigned_comercial"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Consultor Comercial (Opcional)</FormLabel>
+                            <FormLabel>Treinador Comercial</FormLabel>
                             <FormControl>
                               <select
                                 className="input-apple"
                                 value={field.value || ''}
                                 onChange={(e) => field.onChange(e.target.value)}
                               >
-                                <option value="">Nenhum (opcional)</option>
+                                <option value="">Selecione o Treinador Comercial</option>
                                 {consultantsLoading ? (
                                   <option value="" disabled>
                                     Carregando...
                                   </option>
                                 ) : comercialConsultants.length === 0 ? (
                                   <option value="" disabled>
-                                    Nenhum consultor encontrado
+                                    Nenhum treinador encontrado
                                   </option>
                                 ) : (
                                   comercialConsultants.map((consultant) => (
                                     <option key={consultant.user_id} value={consultant.user_id}>
                                       {consultant.name} ({consultant.email})
+                                    </option>
+                                  ))
+                                )}
+                              </select>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {/* Gestor de CRM (Torque CRM) */}
+                    {showCrmManager && (
+                      <FormField
+                        control={form.control}
+                        name="assigned_crm"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Gestor de CRM</FormLabel>
+                            <FormControl>
+                              <select
+                                className="input-apple"
+                                value={field.value || ''}
+                                onChange={(e) => field.onChange(e.target.value)}
+                              >
+                                <option value="">Selecione o Gestor de CRM</option>
+                                {crmLoading ? (
+                                  <option value="" disabled>Carregando...</option>
+                                ) : crmManagers.length === 0 ? (
+                                  <option value="" disabled>Nenhum Gestor de CRM cadastrado ainda</option>
+                                ) : (
+                                  crmManagers.map((manager) => (
+                                    <option key={manager.user_id} value={manager.user_id}>
+                                      {manager.name} ({manager.email})
+                                    </option>
+                                  ))
+                                )}
+                              </select>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {/* RH (Millennials Hunting) */}
+                    {showRhUser && (
+                      <FormField
+                        control={form.control}
+                        name="assigned_rh"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>RH Responsável</FormLabel>
+                            <FormControl>
+                              <select
+                                className="input-apple"
+                                value={field.value || ''}
+                                onChange={(e) => field.onChange(e.target.value)}
+                              >
+                                <option value="">Selecione o RH</option>
+                                {rhLoading ? (
+                                  <option value="" disabled>Carregando...</option>
+                                ) : rhUsers.length === 0 ? (
+                                  <option value="" disabled>Nenhum RH cadastrado ainda</option>
+                                ) : (
+                                  rhUsers.map((rh) => (
+                                    <option key={rh.user_id} value={rh.user_id}>
+                                      {rh.name} ({rh.email})
                                     </option>
                                   ))
                                 )}
@@ -910,7 +987,7 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
                 <p className="text-sm font-medium text-info">Automação Ativada</p>
                 <p className="text-xs text-info/80 mt-1">
                   {hasMillennialsGrowth
-                    ? 'Cards serão criados nos kanbans: Gestor de Projetos, Gestor de Ads, Financeiro, Consultor Comercial e nos produtos selecionados.'
+                    ? 'Cards serão criados nos kanbans: Gestor de Projetos, Gestor de Ads, Financeiro, Treinador Comercial e nos produtos selecionados.'
                     : watchedProducts.length > 0
                       ? `Cards serão criados no kanban do Gestor de Ads e nos kanbans dos ${watchedProducts.length} produto(s) selecionado(s).`
                       : 'O cliente aparecerá no kanban do Gestor de Ads selecionado.'

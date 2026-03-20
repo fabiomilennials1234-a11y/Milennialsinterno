@@ -44,7 +44,7 @@ const AVAILABLE_ROLES: UserRole[] = [
 const ALL_PAGES = [
   { id: 'gestor-ads', label: 'Gestão de Tráfego PRO+', icon: '📊' },
   { id: 'sucesso-cliente', label: 'Sucesso do Cliente PRO+', icon: '🤝' },
-  { id: 'consultor-comercial', label: 'Comercial PRO+', icon: '💼' },
+  { id: 'consultor-comercial', label: 'Treinador Comercial PRO+', icon: '💼' },
   { id: 'financeiro', label: 'Financeiro PRO+', icon: '💰' },
   { id: 'gestor-projetos', label: 'Gestão de Projetos PRO+', icon: '📋' },
   { id: 'gestor-crm', label: 'CRM PRO+', icon: '📇' },

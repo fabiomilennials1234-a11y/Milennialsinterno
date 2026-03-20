@@ -1063,7 +1063,7 @@ export default function ClientListPage() {
                 <p className="text-sm text-muted-foreground mt-1">
                   As comissões são calculadas automaticamente ao registrar uma venda. 
                   O valor total da comissão (baseado na % do cliente) é dividido igualmente entre: 
-                  <strong> Gestor de Ads</strong>, <strong>Sucesso do Cliente</strong> e <strong>Consultor Comercial</strong>.
+                  <strong> Gestor de Ads</strong>, <strong>Sucesso do Cliente</strong> e <strong>Treinador Comercial</strong>.
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
                   Clientes com <span className="text-destructive font-semibold">0% de comissão</span> não geram comissões. 
@@ -1121,7 +1121,7 @@ export default function ClientListPage() {
                   <span className="text-muted-foreground font-normal"> ({selectedClient.sales_percentage}%)</span>
                 </p>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Será dividida entre: Gestor de Ads, Sucesso do Cliente e Consultor Comercial
+                  Será dividida entre: Gestor de Ads, Sucesso do Cliente e Treinador Comercial
                 </p>
               </div>
             )}

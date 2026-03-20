@@ -33,7 +33,10 @@ import ClientLabelSelector from '@/components/shared/ClientLabelSelector';
 import { useClientInfo, useClientCallForm, useSaveClientCallForm, useUpdateClientInfo, ClientCallForm } from '@/hooks/useClientCallForm';
 import StrategyBuilderSection from '@/components/strategy/StrategyBuilderSection';
 import OutboundStrategyBuilderSection from '@/components/outbound-strategy/OutboundStrategyBuilderSection';
+import { PRODUCT_CONFIG } from '@/components/shared/ProductBadges';
 import { cn } from '@/lib/utils';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ClientViewModalProps {
   isOpen: boolean;
@@ -63,6 +66,30 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
   const updateClientInfo = useUpdateClientInfo();
 
   const canSetClientLabel = isCEO || isAdminUser || user?.role === 'sucesso_cliente';
+
+  // Buscar nomes dos responsáveis (Gestor, Treinador Comercial, CRM, RH)
+  const gestorId = clientInfo?.assigned_ads_manager;
+  const treinadorId = clientInfo?.assigned_comercial;
+  const crmId = clientInfo?.assigned_crm;
+  const rhId = clientInfo?.assigned_rh;
+  const responsibleIds = [gestorId, treinadorId, crmId, rhId].filter(Boolean) as string[];
+
+  const { data: responsibleNames = {} } = useQuery({
+    queryKey: ['responsible-names', responsibleIds.join(',')],
+    queryFn: async () => {
+      if (responsibleIds.length === 0) return {};
+      const { data } = await supabase
+        .from('profiles')
+        .select('user_id, name')
+        .in('user_id', responsibleIds);
+      const map: Record<string, string> = {};
+      for (const p of data || []) {
+        map[p.user_id] = p.name || 'Sem nome';
+      }
+      return map;
+    },
+    enabled: responsibleIds.length > 0,
+  });
 
   const [clientInfoData, setClientInfoData] = useState({
     niche: '',
@@ -217,6 +244,58 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
         ) : (
           <ScrollArea className="flex-1 overflow-y-auto">
             <div className="px-6 py-4 space-y-6">
+              {/* Produtos Inclusos */}
+              {clientInfo?.contracted_products && clientInfo.contracted_products.length > 0 && (
+                <div className="bg-muted/20 rounded-xl p-4 border border-border">
+                  <div className="flex items-center gap-2 mb-3">
+                    <FileText className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-semibold text-foreground">Produtos Inclusos</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {/* Growth sempre primeiro (se presente) */}
+                    {clientInfo.contracted_products.includes('millennials-growth') && (
+                      <span className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30">
+                        Millennials Growth
+                        <span className="text-[10px] font-normal opacity-80">
+                          • {gestorId && responsibleNames[gestorId] ? responsibleNames[gestorId] : 'Sem gestor'}
+                        </span>
+                      </span>
+                    )}
+                    {/* Paddock (sempre aparece se Growth está presente) */}
+                    {(clientInfo.contracted_products.includes('millennials-growth') || clientInfo.contracted_products.includes('millennials-paddock')) && (
+                      <span className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold bg-red-500/10 text-red-600 border-red-500/20">
+                        Paddock
+                        <span className="text-[10px] font-normal opacity-70">
+                          • {treinadorId && responsibleNames[treinadorId] ? responsibleNames[treinadorId] : 'Sem treinador'}
+                        </span>
+                      </span>
+                    )}
+                    {/* Demais produtos (excluindo Growth e Paddock que já foram mostrados acima) */}
+                    {clientInfo.contracted_products
+                      .filter(slug => slug !== 'millennials-growth' && slug !== 'millennials-paddock')
+                      .map(slug => {
+                        const config = PRODUCT_CONFIG[slug];
+                        if (!config) return null;
+                        // Responsável por produto
+                        let responsibleName: string | null = null;
+                        if (slug === 'torque-crm' && crmId && responsibleNames[crmId]) {
+                          responsibleName = responsibleNames[crmId];
+                        } else if (slug === 'millennials-hunting' && rhId && responsibleNames[rhId]) {
+                          responsibleName = responsibleNames[rhId];
+                        }
+                        return (
+                          <span key={slug} className={cn("inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold", config.color)}>
+                            {config.name}
+                            {responsibleName && (
+                              <span className="text-[10px] font-normal opacity-80">• {responsibleName}</span>
+                            )}
+                          </span>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
+
               {/* Client Info Cards - Editable */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-muted/30 rounded-xl p-4 border border-border">
@@ -556,7 +635,7 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
 
               <Separator />
 
-              {/* Client Notes Section - Shared between Gestor de Tráfego and Consultor Comercial */}
+              {/* Client Notes Section - Shared between Gestor de Tráfego and Treinador Comercial */}
               <div className="space-y-4">
                 <div className="bg-gradient-to-r from-primary/5 to-info/5 rounded-xl p-5 border border-primary/20">
                   <div className="flex items-center gap-3 mb-4">

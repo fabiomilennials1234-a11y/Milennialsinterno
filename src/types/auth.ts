@@ -54,7 +54,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   atrizes_gravacao: 'Atrizes para Gravação',
   produtora: 'Produtora',
   gestor_crm: 'Gestor de CRM',
-  consultor_comercial: 'Consultor Comercial',
+  consultor_comercial: 'Treinador Comercial',
   financeiro: 'Financeiro',
   rh: 'RH',
 };
@@ -110,7 +110,7 @@ export const BOARD_VISIBILITY: Record<UserRole, string[]> = {
     'produtora',                      // Produtora (independente)
     'atrizes_gravacao', 'atrizes',    // Atrizes para Gravação (independente)
     'gestor_crm', 'crm',              // Gestor de CRM
-    'consultor_comercial', 'comercial', // Consultor Comercial
+    'consultor_comercial', 'comercial', // Treinador Comercial
     'rh'                              // RH
   ],
   
@@ -132,8 +132,8 @@ export const BOARD_VISIBILITY: Record<UserRole, string[]> = {
   // Gestor de CRM: Apenas próprio cargo
   gestor_crm: ['gestor_crm', 'crm'],
   
-  // Consultor Comercial: Apenas próprio cargo
-  consultor_comercial: ['consultor_comercial', 'comercial'],
+  // Treinador Comercial (ex-Consultor Comercial): Próprio cargo + paddock
+  consultor_comercial: ['consultor_comercial', 'comercial', 'paddock'],
   
   // Financeiro: Apenas próprio cargo
   financeiro: ['financeiro'],

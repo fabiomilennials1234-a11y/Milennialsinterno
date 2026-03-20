@@ -35,7 +35,7 @@ interface ClientNotesProps {
 const ROLE_LABELS: Record<string, string> = {
   ceo: 'CEO',
   gestor_ads: 'Gestor de Tráfego',
-  consultor_comercial: 'Consultor Comercial',
+  consultor_comercial: 'Treinador Comercial',
   sucesso_cliente: 'Sucesso do Cliente',
   gestor_projetos: 'Gestor de Projetos',
   financeiro: 'Financeiro',
@@ -279,7 +279,7 @@ export default function ClientNotesSection({ clientId }: ClientNotesProps) {
 
       <Separator />
 
-      {/* Comentários do Consultor Comercial */}
+      {/* Comentários do Treinador Comercial */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <MessageSquare className="w-4 h-4 text-muted-foreground" />

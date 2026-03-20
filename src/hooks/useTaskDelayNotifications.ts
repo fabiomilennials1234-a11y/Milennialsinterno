@@ -565,7 +565,7 @@ export const ROLE_LABELS: Record<string, string> = {
   'editor_video': 'Editor de Vídeo',
   'devs': 'Desenvolvedor',
   'financeiro': 'Financeiro',
-  'consultor_comercial': 'Consultor Comercial',
+  'consultor_comercial': 'Treinador Comercial',
   'gestor_crm': 'Gestor de CRM',
   'produtora': 'Produtora',
   'atrizes_gravacao': 'Atrizes/Gravação',

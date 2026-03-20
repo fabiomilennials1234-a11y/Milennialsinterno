@@ -124,7 +124,7 @@ export default function CSComercialColumn() {
         <div className="flex items-center justify-between w-full">
           <div className="flex items-center gap-3">
             <User size={18} className="text-white" />
-            <h2 className="font-semibold text-white">Consultor Comercial</h2>
+            <h2 className="font-semibold text-white">Treinador Comercial</h2>
           </div>
           <Badge variant="secondary" className="bg-white/20 text-white border-0">
             {consultants.length}

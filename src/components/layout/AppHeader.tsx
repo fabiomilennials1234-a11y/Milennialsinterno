@@ -26,7 +26,7 @@ const pageTitles: Record<string, string> = {
   '/kanban/atrizes': 'Atrizes para Gravação',
   '/kanban/produtora': 'Produtora',
   '/kanban/crm': 'Gestor de CRM',
-  '/kanban/comercial': 'Consultor Comercial',
+  '/kanban/comercial': 'Treinador Comercial',
   '/kanban/ads': 'Gestor de Ads',
   '/kanban/sucesso': 'Sucesso do Cliente',
   '/kanban/financeiro': 'Financeiro',
