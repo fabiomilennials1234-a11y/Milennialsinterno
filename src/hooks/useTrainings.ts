@@ -251,7 +251,7 @@ export const ROLE_OPTIONS = [
   { value: 'gestor_projetos', label: 'Gestor de Projetos' },
   { value: 'gestor_ads', label: 'Gestor de Ads' },
   { value: 'sucesso_cliente', label: 'Sucesso do Cliente' },
-  { value: 'consultor_comercial', label: 'Consultor Comercial' },
+  { value: 'consultor_comercial', label: 'Treinador Comercial' },
   { value: 'financeiro', label: 'Financeiro' },
   { value: 'editor_video', label: 'Editor de Vídeo' },
   { value: 'designer', label: 'Designer' },

@@ -73,7 +73,7 @@ export default function GestorCRMPage() {
               </p>
             </div>
             <p className="text-lg text-foreground text-center">
-              Antes de criar, certifique com o Consultor Comercial se o CRM será via Trello ou via Torque.
+              Antes de criar, certifique com o Treinador Comercial se o CRM será via Trello ou via Torque.
             </p>
           </div>
 

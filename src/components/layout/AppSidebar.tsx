@@ -39,6 +39,8 @@ import {
   getBoardLabel,
   SPECIAL_ROUTES
 } from '@/hooks/useSidebarPermissions';
+import { useAllTreinadorClientCounts } from '@/hooks/useTreinadorClientCount';
+import { useUsers } from '@/hooks/useUsers';
 
 // Ícones das categorias independentes
 const categoryIcons: Record<string, React.ElementType> = {
@@ -110,6 +112,11 @@ export default function AppSidebar() {
     canViewBoard: userCanViewBoard,
   } = useSidebarPermissions();
 
+  // Dados dos treinadores comerciais (para sidebar do Paddock)
+  const { data: treinadorCounts = {} } = useAllTreinadorClientCounts();
+  const { data: allSystemUsers = [] } = useUsers();
+  const treinadores = allSystemUsers.filter(u => u.role === 'consultor_comercial');
+
   const [openProductCategories, setOpenProductCategories] = useState<Record<string, boolean>>(() => {
     const saved = localStorage.getItem('sidebar-open-product-categories');
     return saved ? JSON.parse(saved) : {};
@@ -152,6 +159,28 @@ export default function AppSidebar() {
 
   // Board do CEO
   const ceoBoard = boards.find(b => b.slug === 'ceo');
+
+  // Itens removidos da sidebar (não aparecem mais na navegação)
+  const hiddenSidebarSlugs = [
+    'on-demand',
+    'catalog', 'catalog-terceirizacao', 'catalog-saas',
+    'zydon', 'septem',
+    'comunidade', 'vendedor-pastinha-comunidade',
+    'forja',
+    'vendedor-pastinha', 'vendedor-pastinha-educacional',
+    'organic',
+    'eventos',
+  ];
+  const hiddenSidebarNames = [
+    'on demand', 'catalog', 'marketplace', 'zydon', 'septem',
+    'comunidade', 'forja', 'vendedor pastinha', 'organic', 'eventos',
+  ];
+  const isHiddenItem = (slug: string, name: string) => {
+    const s = slug.toLowerCase();
+    const n = name.toLowerCase();
+    return hiddenSidebarSlugs.some(h => s === h || s.includes(h)) ||
+      hiddenSidebarNames.some(h => n === h || n.includes(h));
+  };
 
   // ==========================================
   // COMPONENTES DE RENDERIZAÇÃO
@@ -317,7 +346,9 @@ export default function AppSidebar() {
         {isCEO && productCategories.length > 0 && !isCollapsed && (
           <div className="space-y-1.5 pb-5">
             <div className="sidebar-section-label"><span>Products</span></div>
-            {productCategories.map(productCategory => {
+            {productCategories
+            .filter(pc => !isHiddenItem(pc.name?.toLowerCase().replace(/\s+/g, '-') || '', pc.name || ''))
+            .map(productCategory => {
               const CategoryIcon = productCategoryIcons[productCategory.icon || ''] || Package;
               
               return (
@@ -338,7 +369,9 @@ export default function AppSidebar() {
                   </CollapsibleTrigger>
                   <CollapsibleContent className="pl-4 space-y-1 mt-1 sidebar-tree">
                     {/* Subcategorias dentro da categoria principal */}
-                    {productCategory.subcategories.map(subcategory => {
+                    {productCategory.subcategories
+                    .filter(sub => !isHiddenItem(sub.name?.toLowerCase().replace(/\s+/g, '-') || '', sub.name || ''))
+                    .map(subcategory => {
                       const SubcategoryIcon = productCategoryIcons[subcategory.icon || ''] || TrendingUp;
                       const hasGroups = subcategory.groups.length > 0;
                       const hasBoards = subcategory.boards && subcategory.boards.length > 0;
@@ -406,6 +439,40 @@ export default function AppSidebar() {
                                 <List size={12} />
                                 <span className="truncate">Clientes</span>
                               </NavLink>
+                              {/* Treinadores Comerciais dentro do Paddock */}
+                              {subcategory.name.toLowerCase().includes('paddock') && treinadores.length > 0 && (
+                                <div className="mt-1.5 space-y-1">
+                                  <span className="px-2 text-[10px] font-semibold text-sidebar-foreground/30 uppercase tracking-wider">
+                                    Treinadores Comerciais
+                                  </span>
+                                  {treinadores.map(treinador => {
+                                    const clientCount = treinadorCounts[treinador.user_id] || 0;
+                                    return (
+                                      <NavLink
+                                        key={treinador.user_id}
+                                        to="/consultor-comercial"
+                                        className={({ isActive }) => cn(
+                                          "flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg transition-colors",
+                                          isActive
+                                            ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                                            : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                                        )}
+                                      >
+                                        <Target size={12} />
+                                        <span className="truncate flex-1">{treinador.name}</span>
+                                        <span className={cn(
+                                          "text-[10px] font-mono font-bold shrink-0 px-1.5 py-0.5 rounded",
+                                          clientCount >= 80 ? "bg-red-500/20 text-red-400" :
+                                          clientCount >= 60 ? "bg-amber-500/20 text-amber-400" :
+                                          "bg-sidebar-foreground/10 text-sidebar-foreground/60"
+                                        )}>
+                                          {clientCount}/80
+                                        </span>
+                                      </NavLink>
+                                    );
+                                  })}
+                                </div>
+                              )}
                             </CollapsibleContent>
                           </Collapsible>
                         );

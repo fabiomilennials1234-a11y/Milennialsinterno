@@ -37,6 +37,11 @@ export interface ClientInfo {
   general_info: string | null;
   razao_social: string | null;
   cnpj: string | null;
+  contracted_products: string[] | null;
+  assigned_ads_manager: string | null;
+  assigned_comercial: string | null;
+  assigned_crm: string | null;
+  assigned_rh: string | null;
 }
 
 export function useClientCallForm(clientId: string) {
@@ -62,7 +67,7 @@ export function useClientInfo(clientId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('clients')
-        .select('id, name, niche, expected_investment, general_info, razao_social, cnpj')
+        .select('id, name, niche, expected_investment, general_info, razao_social, cnpj, contracted_products, assigned_ads_manager, assigned_comercial, assigned_crm, assigned_rh')
         .eq('id', clientId)
         .single();
 

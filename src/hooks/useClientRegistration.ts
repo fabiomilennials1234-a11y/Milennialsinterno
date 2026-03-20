@@ -37,6 +37,18 @@ export interface ProductValueInput {
   monthly_value: number;
 }
 
+export interface CrmManager {
+  user_id: string;
+  name: string;
+  email: string;
+}
+
+export interface RhUser {
+  user_id: string;
+  name: string;
+  email: string;
+}
+
 export interface NewClientData {
   name: string;
   cnpj?: string;
@@ -51,6 +63,8 @@ export interface NewClientData {
   squad_id?: string;
   assigned_ads_manager?: string;
   assigned_comercial?: string;
+  assigned_crm?: string;
+  assigned_rh?: string;
   entry_date?: string;
   contract_duration_months?: number;
   payment_due_day?: number;
@@ -156,6 +170,56 @@ export function useComercialConsultants() {
   });
 }
 
+// Fetch CRM managers for dropdown (Torque CRM)
+export function useCrmManagers() {
+  return useQuery({
+    queryKey: ['crm-managers'],
+    queryFn: async () => {
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'gestor_crm');
+
+      if (roleError) throw roleError;
+      const userIds = roleData?.map(r => r.user_id) || [];
+      if (userIds.length === 0) return [];
+
+      const { data: profiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('user_id, name, email')
+        .in('user_id', userIds);
+
+      if (profileError) throw profileError;
+      return profiles as CrmManager[];
+    },
+  });
+}
+
+// Fetch RH users for dropdown (Millennials Hunting)
+export function useRhUsers() {
+  return useQuery({
+    queryKey: ['rh-users'],
+    queryFn: async () => {
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'rh');
+
+      if (roleError) throw roleError;
+      const userIds = roleData?.map(r => r.user_id) || [];
+      if (userIds.length === 0) return [];
+
+      const { data: profiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('user_id, name, email')
+        .in('user_id', userIds);
+
+      if (profileError) throw profileError;
+      return profiles as RhUser[];
+    },
+  });
+}
+
 // Create new client
 export function useCreateClient() {
   const queryClient = useQueryClient();
@@ -180,6 +244,8 @@ export function useCreateClient() {
           squad_id: clientData.squad_id,
           assigned_ads_manager: clientData.assigned_ads_manager,
           assigned_comercial: clientData.assigned_comercial,
+          assigned_crm: clientData.assigned_crm || null,
+          assigned_rh: clientData.assigned_rh || null,
           entry_date: clientData.entry_date,
           contract_duration_months: clientData.contract_duration_months || null,
           payment_due_day: clientData.payment_due_day || null,

@@ -128,10 +128,10 @@ export default function ConsultorComercialPage() {
         {/* Header */}
         <div className="px-8 py-6 border-b border-subtle shrink-0">
           <h1 className="text-display text-foreground">
-            Consultor Comercial
+            Treinador Comercial
           </h1>
           <p className="text-caption text-muted-foreground mt-1">
-            Central de vendas e acompanhamento comercial
+            Central de treinamento e acompanhamento comercial
           </p>
         </div>
 

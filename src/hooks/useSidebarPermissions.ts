@@ -19,7 +19,7 @@ export const SPECIAL_ROUTES: Record<string, { path: string; label: string; icon:
   gestor_ads: { path: '/gestor-ads', label: 'Gestão de Tráfego PRO+', icon: Target },
   outbound: { path: '/millennials-outbound', label: 'Outbound PRO+', icon: Target },
   sucesso_cliente: { path: '/sucesso-cliente', label: 'Sucesso do Cliente PRO+', icon: Target },
-  consultor_comercial: { path: '/consultor-comercial', label: 'Comercial PRO+', icon: Target },
+  consultor_comercial: { path: '/consultor-comercial', label: 'Treinador Comercial PRO+', icon: Target },
   financeiro: { path: '/financeiro', label: 'Financeiro PRO+', icon: Target },
   gestor_projetos: { path: '/gestor-projetos', label: 'Gestão de Projetos PRO+', icon: Target },
   gestor_crm: { path: '/gestor-crm', label: 'CRM PRO+', icon: Target },
@@ -81,8 +81,8 @@ export const ROLE_BOARD_SLUGS: Record<UserRole, string[][]> = {
   // Gestor de CRM: sem kanban de grupo
   gestor_crm: [],
 
-  // Consultor Comercial: sem kanban de grupo
-  consultor_comercial: [],
+  // Treinador Comercial: kanban comercial (dentro do Paddock)
+  consultor_comercial: [['comercial']],
 
   // Financeiro: apenas próprio
   financeiro: [['financeiro', 'financeiro-board']],

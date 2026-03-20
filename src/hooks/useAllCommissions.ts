@@ -193,7 +193,7 @@ export function getRoleLabel(role: string): string {
   const labels: Record<string, string> = {
     gestor_ads: 'Gestor de Ads',
     sucesso_cliente: 'Sucesso do Cliente',
-    consultor_comercial: 'Consultor Comercial',
+    consultor_comercial: 'Treinador Comercial',
     financeiro: 'Financeiro',
     gestor_projetos: 'Gestor de Projetos',
     ceo: 'CEO',
