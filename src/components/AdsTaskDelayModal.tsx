@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { AlertTriangle, Clock, User } from 'lucide-react';
+import { AlertTriangle, Clock, User, SkipForward } from 'lucide-react';
 import { useAdsTaskDelayNotifications, useSaveDelayJustification, AdsTaskDelayNotification } from '@/hooks/useAdsTaskDelayNotifications';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -75,6 +75,21 @@ export default function AdsTaskDelayModal() {
     }
   };
 
+  const isCeo = user?.role === 'ceo';
+
+  const handleSkip = () => {
+    if (!currentNotification) return;
+    addJustifiedId(currentNotification.id);
+    setCurrentNotificationId(null);
+    setJustification('');
+  };
+
+  const handleSkipAll = () => {
+    pendingNotifications.forEach(n => addJustifiedId(n.id));
+    setCurrentNotificationId(null);
+    setJustification('');
+  };
+
   // Gerar mensagem baseada no cargo
   const getMessage = () => {
     if (!currentNotification || !user?.role) return '';
@@ -91,11 +106,11 @@ export default function AdsTaskDelayModal() {
   }
 
   return (
-    <Dialog open={!!currentNotification} onOpenChange={() => {}}>
-      <DialogContent 
+    <Dialog open={!!currentNotification} onOpenChange={isCeo ? handleSkip : () => {}}>
+      <DialogContent
         className="sm:max-w-lg border-danger/50 bg-card"
-        onPointerDownOutside={(e) => e.preventDefault()}
-        onEscapeKeyDown={(e) => e.preventDefault()}
+        onPointerDownOutside={(e) => { if (!isCeo) e.preventDefault(); }}
+        onEscapeKeyDown={(e) => { if (!isCeo) e.preventDefault(); }}
       >
         <DialogHeader>
           <div className="flex items-center gap-3 text-danger">
@@ -164,14 +179,38 @@ export default function AdsTaskDelayModal() {
               </p>
             </div>
 
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full bg-danger hover:bg-danger/90 text-white"
               disabled={saveMutation.isPending || !justification.trim()}
             >
               {saveMutation.isPending ? 'Salvando...' : 'Enviar Justificativa'}
             </Button>
           </form>
+
+          {isCeo && (
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                className="flex-1 text-muted-foreground hover:text-foreground"
+                onClick={handleSkip}
+              >
+                <SkipForward size={16} className="mr-2" />
+                Pular
+              </Button>
+              {pendingNotifications.length > 1 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="flex-1 text-muted-foreground hover:text-foreground"
+                  onClick={handleSkipAll}
+                >
+                  Pular todas ({pendingNotifications.length})
+                </Button>
+              )}
+            </div>
+          )}
 
           {/* Notificações restantes */}
           {pendingNotifications.length > 1 && (
