@@ -33,7 +33,7 @@ export function useDepartmentTasks(department: string, type: 'daily' | 'weekly' 
   return useQuery({
     queryKey: ['department-tasks', user?.id, department, type],
     queryFn: async () => {
-      // 1. Fetch regular department tasks
+      // 1. Fetch regular department tasks (personal, per user)
       const { data, error } = await supabase
         .from('department_tasks')
         .select('*')
@@ -45,10 +45,46 @@ export function useDepartmentTasks(department: string, type: 'daily' | 'weekly' 
 
       if (error) throw error;
 
-      return (data || []).map(t => ({
+      const departmentTasks = (data || []).map(t => ({
         ...t,
         _source: 'department' as const,
       })) as DepartmentTask[];
+
+      // 2. For financeiro department, also fetch team-level financeiro_tasks
+      if (department === 'financeiro' && type === 'daily') {
+        const { data: finTasks, error: finError } = await supabase
+          .from('financeiro_tasks')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (!finError && finTasks) {
+          const mappedFinTasks: DepartmentTask[] = finTasks.map(ft => ({
+            id: ft.id,
+            user_id: user?.id || '',
+            title: ft.title,
+            description: ft.product_slug,
+            task_type: 'daily' as const,
+            status: ft.status === 'done' ? 'done' as const : 'todo' as const,
+            priority: 'normal',
+            due_date: ft.due_date,
+            department: 'financeiro',
+            related_client_id: ft.client_id,
+            created_at: ft.created_at,
+            updated_at: ft.created_at,
+            archived: false,
+            archived_at: null,
+            _source: 'financeiro' as const,
+            _financeiroMeta: {
+              clientId: ft.client_id,
+              productSlug: ft.product_slug,
+            },
+          }));
+
+          return [...mappedFinTasks, ...departmentTasks];
+        }
+      }
+
+      return departmentTasks;
     },
     enabled: !!user?.id,
   });
