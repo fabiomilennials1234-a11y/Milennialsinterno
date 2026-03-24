@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "supabase:deploy-functions": "supabase functions deploy create-user && supabase functions deploy update-user",
-    "dev": "vite",
+    "dev": "npx vite --host",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
