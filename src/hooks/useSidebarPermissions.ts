@@ -5,6 +5,7 @@ import { useAllBoards } from '@/hooks/useKanban';
 import { useUsers } from '@/hooks/useUsers';
 import { useAdsManagerBoards } from '@/hooks/useAdsManagerBoards';
 import { useOutboundManagerBoards } from '@/hooks/useOutboundManagerBoards';
+import { useCrmManagerBoards } from '@/hooks/useCrmManagerBoards';
 import { ROLE_LABELS, canViewBoard, canViewRole, UserRole } from '@/types/auth';
 import { Target } from 'lucide-react';
 
@@ -109,8 +110,8 @@ export const ROLE_INDEPENDENT_CATEGORIES: Record<UserRole, string[]> = {
   produtora: ['produtora'],
   gestor_crm: [],
   consultor_comercial: [],
-  financeiro: [],
-  rh: [],
+  financeiro: ['financeiro'],
+  rh: ['rh'],
 };
 
 // ============================================
@@ -180,6 +181,7 @@ export function useSidebarPermissions() {
   const { data: allUsers = [] } = useUsers();
   const { data: adsManagerBoards = [] } = useAdsManagerBoards();
   const { data: outboundManagerBoards = [] } = useOutboundManagerBoards();
+  const { data: crmManagerBoards = [] } = useCrmManagerBoards();
   
   // Grupos visíveis (CEO vê todos, outros veem apenas seu grupo)
   const visibleGroups = useMemo(() => {
@@ -224,8 +226,9 @@ export function useSidebarPermissions() {
         for (const slug of variants) {
           const exact = boards.find((b) => b.slug === slug);
           if (exact) return exact;
-          const partial = boards.find((b) => b.slug.includes(slug));
-          if (partial) return partial;
+          // Fallback: match apenas se o slug do board começa com o padrão (ex: 'financeiro-board' para 'financeiro')
+          const prefixed = boards.find((b) => b.slug.startsWith(slug + '-'));
+          if (prefixed) return prefixed;
         }
         return null;
       })
@@ -258,11 +261,12 @@ export function useSidebarPermissions() {
   };
 
   // Roles dos coringas (usuários no grupo mas não em squad)
+  // Exclui consultor_comercial pois pertence ao Paddock, não ao Growth
   const getCoringaRoles = (groupId: string): UserRole[] => {
     const coringaUsers = allUsers.filter(u => u.group_id === groupId && u.is_coringa && !u.squad_id);
     const roles = [...new Set(coringaUsers.map(u => u.role))];
     if (!user?.role) return [];
-    return roles.filter(role => canViewRole(user.role, role));
+    return roles.filter(role => role !== 'consultor_comercial' && canViewRole(user.role, role));
   };
 
   // Retorna o path correto para um cargo
@@ -273,7 +277,7 @@ export function useSidebarPermissions() {
 
     const roleSlug = role.replace(/_/g, '-');
     const matchingBoard = boards.find(
-      b => b.slug === roleSlug || b.slug.includes(roleSlug) || b.name.toLowerCase().includes(ROLE_LABELS[role].toLowerCase())
+      b => b.slug === roleSlug || b.slug.startsWith(roleSlug + '-') || b.name.toLowerCase().includes(ROLE_LABELS[role].toLowerCase())
     );
 
     if (matchingBoard) {
@@ -299,6 +303,7 @@ export function useSidebarPermissions() {
     boards,
     adsManagerBoards, // Boards individuais dos gestores de ADS
     outboundManagerBoards, // Boards individuais dos outbound managers
+    crmManagerBoards, // Boards individuais dos gestores de CRM
     productCategories, // Categorias de produtos (CEO only)
 
     // Funções de permissão

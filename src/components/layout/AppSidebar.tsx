@@ -25,7 +25,8 @@ import {
   GraduationCap,
   Cloud,
   Package,
-  Coins
+  Coins,
+  VideoIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ROLE_LABELS, canViewBoard, UserRole } from '@/types/auth';
@@ -39,7 +40,7 @@ import {
   getBoardLabel,
   SPECIAL_ROUTES
 } from '@/hooks/useSidebarPermissions';
-import { useAllTreinadorClientCounts } from '@/hooks/useTreinadorClientCount';
+import { useAllTreinadorClientCounts, useAllGestorClientCounts, useAllCrmClientCounts, useAllOutboundClientCounts } from '@/hooks/useTreinadorClientCount';
 import { useUsers } from '@/hooks/useUsers';
 
 // Ícones das categorias independentes
@@ -104,6 +105,7 @@ export default function AppSidebar() {
     boards,
     adsManagerBoards,
     outboundManagerBoards,
+    crmManagerBoards,
     productCategories,
     getGroupRoles,
     getSquadRoles,
@@ -114,6 +116,9 @@ export default function AppSidebar() {
 
   // Dados dos treinadores comerciais (para sidebar do Paddock)
   const { data: treinadorCounts = {} } = useAllTreinadorClientCounts();
+  const { data: gestorCounts = {} } = useAllGestorClientCounts();
+  const { data: crmCounts = {} } = useAllCrmClientCounts();
+  const { data: outboundCounts = {} } = useAllOutboundClientCounts();
   const { data: allSystemUsers = [] } = useUsers();
   const treinadores = allSystemUsers.filter(u => u.role === 'consultor_comercial');
 
@@ -210,6 +215,22 @@ export default function AppSidebar() {
     );
   };
 
+  // Slugs que representam o board "próprio" de cada cargo.
+  // Quando o usuário já tem rota especial (PRO+), esses boards não devem aparecer duplicados.
+  const ROLE_OWN_BOARD_SLUGS: Partial<Record<UserRole, string[]>> = {
+    gestor_ads: ['ads'],
+    outbound: ['outbound', 'millennials-outbound'],
+    sucesso_cliente: ['sucesso'],
+    design: ['design'],
+    editor_video: ['editor-video'],
+    devs: ['devs'],
+    atrizes_gravacao: ['atrizes'],
+    consultor_comercial: ['comercial'],
+    financeiro: ['financeiro', 'financeiro-board'],
+    gestor_crm: ['crm'],
+    rh: ['rh', 'rh-board'],
+  };
+
   // Renderiza os boards visíveis para o usuário atual
   const renderVisibleBoards = (size: 'sm' | 'md' = 'sm') => {
     if (!user?.role) return null;
@@ -217,13 +238,15 @@ export default function AppSidebar() {
     return visibleBoards
       .filter(board => userCanViewBoard(board.slug))
       .filter(board => {
-        // Se usuário é gestor_ads e tem rota especial, não duplicar o board de ads
-        if (userSpecialRoute && user.role === 'gestor_ads' && isAdsBoard(board)) {
-          return false;
-        }
-        // Se usuário é outbound e tem rota especial, não duplicar o board de outbound
-        if (userSpecialRoute && user.role === 'outbound' && isOutboundBoard(board)) {
-          return false;
+        // Se o usuário tem rota especial (PRO+), não duplicar o board próprio do cargo
+        if (userSpecialRoute && user?.role) {
+          const ownSlugs = ROLE_OWN_BOARD_SLUGS[user.role] || [];
+          if (ownSlugs.some(s => board.slug === s)) {
+            return false;
+          }
+          // Fallback: checar funções específicas para ads/outbound (slugs compostos)
+          if (isAdsBoard(board) && user.role === 'gestor_ads') return false;
+          if (isOutboundBoard(board) && user.role === 'outbound') return false;
         }
         return true;
       })
@@ -439,6 +462,74 @@ export default function AppSidebar() {
                                 <List size={12} />
                                 <span className="truncate">Clientes</span>
                               </NavLink>
+                              {/* Gestores de CRM dentro do Torque */}
+                              {(subcategory.name.toLowerCase().includes('torque') || board.slug?.includes('crm') || board.slug?.includes('torque')) && crmManagerBoards.length > 0 && (
+                                <div className="mt-1.5 space-y-1">
+                                  <span className="px-2 text-[10px] font-semibold text-sidebar-foreground/30 uppercase tracking-wider">
+                                    Gestores de CRM
+                                  </span>
+                                  {crmManagerBoards.map(crmBoard => {
+                                    const clientCount = crmCounts[crmBoard.owner_user_id] || 0;
+                                    return (
+                                      <NavLink
+                                        key={crmBoard.owner_user_id}
+                                        to={`/gestor-crm/${crmBoard.owner_user_id}`}
+                                        className={({ isActive }) => cn(
+                                          "flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg transition-colors",
+                                          isActive
+                                            ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                                            : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                                        )}
+                                      >
+                                        <Target size={12} />
+                                        <span className="truncate flex-1">{crmBoard.owner_name}</span>
+                                        <span className={cn(
+                                          "text-[10px] font-mono font-bold shrink-0 px-1.5 py-0.5 rounded",
+                                          clientCount >= 80 ? "bg-red-500/20 text-red-400" :
+                                          clientCount >= 60 ? "bg-amber-500/20 text-amber-400" :
+                                          "bg-sidebar-foreground/10 text-sidebar-foreground/60"
+                                        )}>
+                                          {clientCount}/80
+                                        </span>
+                                      </NavLink>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                              {/* Outbound managers dentro do Hunting/Outbound */}
+                              {(subcategory.name.toLowerCase().includes('hunting') || subcategory.name.toLowerCase().includes('outbound') || board.slug?.includes('outbound')) && outboundManagerBoards.length > 0 && (
+                                <div className="mt-1.5 space-y-1">
+                                  <span className="px-2 text-[10px] font-semibold text-sidebar-foreground/30 uppercase tracking-wider">
+                                    Outbound Managers
+                                  </span>
+                                  {outboundManagerBoards.map(outboundBoard => {
+                                    const clientCount = outboundCounts[outboundBoard.owner_user_id] || 0;
+                                    return (
+                                      <NavLink
+                                        key={outboundBoard.owner_user_id}
+                                        to={`/millennials-outbound/${outboundBoard.owner_user_id}`}
+                                        className={({ isActive }) => cn(
+                                          "flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg transition-colors",
+                                          isActive
+                                            ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                                            : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                                        )}
+                                      >
+                                        <Target size={12} />
+                                        <span className="truncate flex-1">{outboundBoard.owner_name}</span>
+                                        <span className={cn(
+                                          "text-[10px] font-mono font-bold shrink-0 px-1.5 py-0.5 rounded",
+                                          clientCount >= 80 ? "bg-red-500/20 text-red-400" :
+                                          clientCount >= 60 ? "bg-amber-500/20 text-amber-400" :
+                                          "bg-sidebar-foreground/10 text-sidebar-foreground/60"
+                                        )}>
+                                          {clientCount}/80
+                                        </span>
+                                      </NavLink>
+                                    );
+                                  })}
+                                </div>
+                              )}
                               {/* Treinadores Comerciais dentro do Paddock */}
                               {subcategory.name.toLowerCase().includes('paddock') && treinadores.length > 0 && (
                                 <div className="mt-1.5 space-y-1">
@@ -587,9 +678,10 @@ export default function AppSidebar() {
                                   {/* Squads */}
                                   {group.squads.map(squad => {
                                     const squadRoles = getSquadRoles(squad.id);
-                                    const nonAdsRoles = squadRoles.filter(role => role !== 'gestor_ads' && role !== 'outbound' && role !== 'sucesso_cliente');
+                                    const nonAdsRoles = squadRoles.filter(role => role !== 'gestor_ads' && role !== 'outbound' && role !== 'sucesso_cliente' && role !== 'consultor_comercial');
                                     const squadAdsBoards = adsManagerBoards.filter(b => b.squad_id === squad.id);
                                     const squadOutboundBoards = outboundManagerBoards.filter(b => b.squad_id === squad.id);
+                                    const squadCrmBoards = crmManagerBoards.filter(b => b.squad_id === squad.id);
 
                                     return (
                                       <Collapsible
@@ -620,7 +712,17 @@ export default function AppSidebar() {
                                               )}
                                             >
                                               <Target size={10} />
-                                              <span className="truncate">ADS ({adsBoard.owner_name})</span>
+                                              <span className="truncate flex-1">ADS ({adsBoard.owner_name})</span>
+                                              {adsBoard.owner_user_id && (
+                                                <span className={cn(
+                                                  "text-[9px] font-mono font-bold shrink-0 px-1 py-0.5 rounded",
+                                                  (gestorCounts[adsBoard.owner_user_id] || 0) >= 25 ? "bg-red-500/20 text-red-400" :
+                                                  (gestorCounts[adsBoard.owner_user_id] || 0) >= 20 ? "bg-amber-500/20 text-amber-400" :
+                                                  "bg-sidebar-foreground/10 text-sidebar-foreground/60"
+                                                )}>
+                                                  {gestorCounts[adsBoard.owner_user_id] || 0}/25
+                                                </span>
+                                              )}
                                             </NavLink>
                                           ))}
                                           {squadOutboundBoards.map(outboundBoard => (
@@ -635,7 +737,38 @@ export default function AppSidebar() {
                                               )}
                                             >
                                               <Target size={10} />
-                                              <span className="truncate">Outbound ({outboundBoard.owner_name})</span>
+                                              <span className="truncate flex-1">Outbound ({outboundBoard.owner_name})</span>
+                                              <span className={cn(
+                                                "text-[9px] font-mono font-bold shrink-0 px-1 py-0.5 rounded",
+                                                (outboundCounts[outboundBoard.owner_user_id] || 0) >= 80 ? "bg-red-500/20 text-red-400" :
+                                                (outboundCounts[outboundBoard.owner_user_id] || 0) >= 60 ? "bg-amber-500/20 text-amber-400" :
+                                                "bg-sidebar-foreground/10 text-sidebar-foreground/60"
+                                              )}>
+                                                {outboundCounts[outboundBoard.owner_user_id] || 0}/80
+                                              </span>
+                                            </NavLink>
+                                          ))}
+                                          {squadCrmBoards.map(crmBoard => (
+                                            <NavLink
+                                              key={crmBoard.id}
+                                              to={`/gestor-crm/${crmBoard.owner_user_id}`}
+                                              className={({ isActive }) => cn(
+                                                "flex items-center gap-2 px-2 py-1 text-[10px] rounded-lg transition-colors",
+                                                isActive
+                                                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                                                  : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                                              )}
+                                            >
+                                              <Target size={10} />
+                                              <span className="truncate flex-1">CRM ({crmBoard.owner_name})</span>
+                                              <span className={cn(
+                                                "text-[9px] font-mono font-bold shrink-0 px-1 py-0.5 rounded",
+                                                (crmCounts[crmBoard.owner_user_id] || 0) >= 80 ? "bg-red-500/20 text-red-400" :
+                                                (crmCounts[crmBoard.owner_user_id] || 0) >= 60 ? "bg-amber-500/20 text-amber-400" :
+                                                "bg-sidebar-foreground/10 text-sidebar-foreground/60"
+                                              )}>
+                                                {crmCounts[crmBoard.owner_user_id] || 0}/80
+                                              </span>
                                             </NavLink>
                                           ))}
 
@@ -743,9 +876,10 @@ export default function AppSidebar() {
                           {/* Squads */}
                           {group.squads.map(squad => {
                             const squadRoles = getSquadRoles(squad.id);
-                            const nonAdsRoles = squadRoles.filter(role => role !== 'gestor_ads' && role !== 'outbound' && role !== 'sucesso_cliente');
+                            const nonAdsRoles = squadRoles.filter(role => role !== 'gestor_ads' && role !== 'outbound' && role !== 'sucesso_cliente' && role !== 'consultor_comercial');
                             const squadAdsBoards = adsManagerBoards.filter(b => b.squad_id === squad.id);
                             const squadOutboundBoards = outboundManagerBoards.filter(b => b.squad_id === squad.id);
+                            const squadCrmBoards2 = crmManagerBoards.filter(b => b.squad_id === squad.id);
 
                             return (
                               <Collapsible
@@ -776,7 +910,15 @@ export default function AppSidebar() {
                                       )}
                                     >
                                       <Target size={10} />
-                                      <span className="truncate">ADS ({adsBoard.owner_name})</span>
+                                      <span className="truncate flex-1">ADS ({adsBoard.owner_name})</span>
+                                      <span className={cn(
+                                        "text-[9px] font-mono font-bold shrink-0 px-1 py-0.5 rounded",
+                                        (gestorCounts[adsBoard.owner_user_id] || 0) >= 25 ? "bg-red-500/20 text-red-400" :
+                                        (gestorCounts[adsBoard.owner_user_id] || 0) >= 20 ? "bg-amber-500/20 text-amber-400" :
+                                        "bg-sidebar-foreground/10 text-sidebar-foreground/60"
+                                      )}>
+                                        {gestorCounts[adsBoard.owner_user_id] || 0}/25
+                                      </span>
                                     </NavLink>
                                   ))}
                                   {squadOutboundBoards.map(outboundBoard => (
@@ -791,7 +933,38 @@ export default function AppSidebar() {
                                       )}
                                     >
                                       <Target size={10} />
-                                      <span className="truncate">Outbound ({outboundBoard.owner_name})</span>
+                                      <span className="truncate flex-1">Outbound ({outboundBoard.owner_name})</span>
+                                      <span className={cn(
+                                        "text-[9px] font-mono font-bold shrink-0 px-1 py-0.5 rounded",
+                                        (outboundCounts[outboundBoard.owner_user_id] || 0) >= 80 ? "bg-red-500/20 text-red-400" :
+                                        (outboundCounts[outboundBoard.owner_user_id] || 0) >= 60 ? "bg-amber-500/20 text-amber-400" :
+                                        "bg-sidebar-foreground/10 text-sidebar-foreground/60"
+                                      )}>
+                                        {outboundCounts[outboundBoard.owner_user_id] || 0}/80
+                                      </span>
+                                    </NavLink>
+                                  ))}
+                                  {squadCrmBoards2.map(crmBoard => (
+                                    <NavLink
+                                      key={crmBoard.id}
+                                      to={`/gestor-crm/${crmBoard.owner_user_id}`}
+                                      className={({ isActive }) => cn(
+                                        "flex items-center gap-2 px-2 py-1 text-[10px] rounded-lg transition-colors",
+                                        isActive
+                                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                                          : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                                      )}
+                                    >
+                                      <Target size={10} />
+                                      <span className="truncate flex-1">CRM ({crmBoard.owner_name})</span>
+                                      <span className={cn(
+                                        "text-[9px] font-mono font-bold shrink-0 px-1 py-0.5 rounded",
+                                        (crmCounts[crmBoard.owner_user_id] || 0) >= 80 ? "bg-red-500/20 text-red-400" :
+                                        (crmCounts[crmBoard.owner_user_id] || 0) >= 60 ? "bg-amber-500/20 text-amber-400" :
+                                        "bg-sidebar-foreground/10 text-sidebar-foreground/60"
+                                      )}>
+                                        {crmCounts[crmBoard.owner_user_id] || 0}/80
+                                      </span>
                                     </NavLink>
                                   ))}
 
@@ -905,9 +1078,10 @@ export default function AppSidebar() {
                   {/* Squads */}
                   {group.squads.map(squad => {
                     const squadRoles = getSquadRoles(squad.id);
-                    const nonAdsRoles = squadRoles.filter(role => role !== 'gestor_ads' && role !== 'outbound' && role !== 'sucesso_cliente');
+                    const nonAdsRoles = squadRoles.filter(role => role !== 'gestor_ads' && role !== 'outbound' && role !== 'sucesso_cliente' && role !== 'consultor_comercial');
                     const squadAdsBoards = adsManagerBoards.filter(b => b.squad_id === squad.id);
                     const squadOutboundBoards = outboundManagerBoards.filter(b => b.squad_id === squad.id);
+                    const squadCrmBoards3 = crmManagerBoards.filter(b => b.squad_id === squad.id);
 
                     return (
                       <Collapsible
@@ -938,7 +1112,15 @@ export default function AppSidebar() {
                               )}
                             >
                               <Target size={12} />
-                              <span className="truncate">Gestor de ADS ({adsBoard.owner_name})</span>
+                              <span className="truncate flex-1">Gestor de ADS ({adsBoard.owner_name})</span>
+                              <span className={cn(
+                                "text-[9px] font-mono font-bold shrink-0 px-1 py-0.5 rounded",
+                                (gestorCounts[adsBoard.owner_user_id] || 0) >= 25 ? "bg-red-500/20 text-red-400" :
+                                (gestorCounts[adsBoard.owner_user_id] || 0) >= 20 ? "bg-amber-500/20 text-amber-400" :
+                                "bg-sidebar-foreground/10 text-sidebar-foreground/60"
+                              )}>
+                                {gestorCounts[adsBoard.owner_user_id] || 0}/25
+                              </span>
                             </NavLink>
                           ))}
                           {squadOutboundBoards.map(outboundBoard => (
@@ -953,7 +1135,38 @@ export default function AppSidebar() {
                               )}
                             >
                               <Target size={12} />
-                              <span className="truncate">Outbound ({outboundBoard.owner_name})</span>
+                              <span className="truncate flex-1">Outbound ({outboundBoard.owner_name})</span>
+                              <span className={cn(
+                                "text-[9px] font-mono font-bold shrink-0 px-1 py-0.5 rounded",
+                                (outboundCounts[outboundBoard.owner_user_id] || 0) >= 80 ? "bg-red-500/20 text-red-400" :
+                                (outboundCounts[outboundBoard.owner_user_id] || 0) >= 60 ? "bg-amber-500/20 text-amber-400" :
+                                "bg-sidebar-foreground/10 text-sidebar-foreground/60"
+                              )}>
+                                {outboundCounts[outboundBoard.owner_user_id] || 0}/80
+                              </span>
+                            </NavLink>
+                          ))}
+                          {squadCrmBoards3.map(crmBoard => (
+                            <NavLink
+                              key={crmBoard.id}
+                              to={`/gestor-crm/${crmBoard.owner_user_id}`}
+                              className={({ isActive }) => cn(
+                                "flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg transition-colors",
+                                isActive
+                                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                                  : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                              )}
+                            >
+                              <Target size={12} />
+                              <span className="truncate flex-1">CRM ({crmBoard.owner_name})</span>
+                              <span className={cn(
+                                "text-[9px] font-mono font-bold shrink-0 px-1 py-0.5 rounded",
+                                (crmCounts[crmBoard.owner_user_id] || 0) >= 80 ? "bg-red-500/20 text-red-400" :
+                                (crmCounts[crmBoard.owner_user_id] || 0) >= 60 ? "bg-amber-500/20 text-amber-400" :
+                                "bg-sidebar-foreground/10 text-sidebar-foreground/60"
+                              )}>
+                                {crmCounts[crmBoard.owner_user_id] || 0}/80
+                              </span>
                             </NavLink>
                           ))}
 
@@ -1088,6 +1301,16 @@ export default function AppSidebar() {
 
             {visibleBoards
               .filter(board => userCanViewBoard(board.slug))
+              .filter(board => {
+                // Não duplicar board próprio quando já tem rota especial (PRO+)
+                if (userSpecialRoute && user?.role) {
+                  const ownSlugs = ROLE_OWN_BOARD_SLUGS[user.role] || [];
+                  if (ownSlugs.some(s => board.slug === s)) return false;
+                  if (isAdsBoard(board) && user.role === 'gestor_ads') return false;
+                  if (isOutboundBoard(board) && user.role === 'outbound') return false;
+                }
+                return true;
+              })
               .map(board => {
                 const path = getBoardPath(board);
                 const label = getBoardLabel(board);
@@ -1286,6 +1509,13 @@ export default function AppSidebar() {
                 </NavLink>
               );
             })}
+            <NavLink
+              to="/reunioes-gravadas"
+              className={({ isActive }) => cn("sidebar-item", isActive && "active")}
+            >
+              <VideoIcon size={20} />
+              <span>Reuniões Gravadas</span>
+            </NavLink>
           </div>
         )}
 
