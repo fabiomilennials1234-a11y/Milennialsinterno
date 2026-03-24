@@ -12,6 +12,7 @@ import { useAdsNoteNotifications } from '@/hooks/useAdsNoteNotifications';
 import { useAdsNewClientNotifications } from '@/hooks/useAdsNewClientNotifications';
 import { useAssignedClientsRealtime } from '@/hooks/useAssignedClientsRealtime';
 import { useSidebarRealtime } from '@/hooks/useSidebarRealtime';
+import { useTrainingReminderToasts } from '@/hooks/useTrainingReminderToasts';
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -36,6 +37,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
   useAssignedClientsRealtime();
   // Realtime updates for sidebar when users/groups/squads change
   useSidebarRealtime();
+  // Show training reminder toasts (push visual na tela)
+  useTrainingReminderToasts();
   return (
     <div className="h-screen max-h-screen flex bg-background overflow-hidden">
       <AppSidebar />

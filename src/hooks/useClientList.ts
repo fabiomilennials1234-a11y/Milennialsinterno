@@ -18,6 +18,8 @@ export interface ClientWithSales {
   total_sales: number;
   total_commission: number;
   ads_manager_name?: string;
+  assigned_comercial?: string | null;
+  comercial_name?: string;
   archived?: boolean;
   archived_at?: string | null;
   campaign_published_at?: string | null;
@@ -50,7 +52,7 @@ export function useClientsWithSales() {
       // Include distrato_step and distrato_entered_at to match Financeiro churn calculation
       const { data: clients, error: clientsError } = await supabase
         .from('clients')
-        .select('id, name, razao_social, cnpj, cpf, sales_percentage, assigned_ads_manager, created_at, status, entry_date, archived, archived_at, campaign_published_at, onboarding_started_at, distrato_step, distrato_entered_at, client_label, contracted_products, monthly_value')
+        .select('id, name, razao_social, cnpj, cpf, sales_percentage, assigned_ads_manager, assigned_comercial, created_at, status, entry_date, archived, archived_at, campaign_published_at, onboarding_started_at, distrato_step, distrato_entered_at, client_label, contracted_products, monthly_value')
         .order('name', { ascending: true });
 
       if (clientsError) throw clientsError;
@@ -62,18 +64,20 @@ export function useClientsWithSales() {
 
       if (salesError) throw salesError;
 
-      // Fetch ads managers names
+      // Fetch ads managers and comercial names
       const adsManagerIds = [...new Set(clients?.filter(c => c.assigned_ads_manager).map(c => c.assigned_ads_manager) || [])];
-      
-      let adsManagerMap: Record<string, string> = {};
-      if (adsManagerIds.length > 0) {
+      const comercialIds = [...new Set(clients?.filter(c => c.assigned_comercial).map(c => c.assigned_comercial) || [])];
+      const allUserIds = [...new Set([...adsManagerIds, ...comercialIds])];
+
+      let profileNameMap: Record<string, string> = {};
+      if (allUserIds.length > 0) {
         const { data: profiles } = await supabase
           .from('profiles')
           .select('user_id, name')
-          .in('user_id', adsManagerIds);
-        
+          .in('user_id', allUserIds);
+
         if (profiles) {
-          adsManagerMap = profiles.reduce((acc, p) => {
+          profileNameMap = profiles.reduce((acc, p) => {
             acc[p.user_id] = p.name;
             return acc;
           }, {} as Record<string, string>);
@@ -99,8 +103,12 @@ export function useClientsWithSales() {
           client_label: client.client_label as 'otimo' | 'bom' | 'medio' | 'ruim' | null,
           total_sales: totalSales,
           total_commission: totalCommission,
-          ads_manager_name: client.assigned_ads_manager 
-            ? adsManagerMap[client.assigned_ads_manager] 
+          ads_manager_name: client.assigned_ads_manager
+            ? profileNameMap[client.assigned_ads_manager]
+            : undefined,
+          assigned_comercial: client.assigned_comercial,
+          comercial_name: client.assigned_comercial
+            ? profileNameMap[client.assigned_comercial]
             : undefined,
         };
       });

@@ -49,6 +49,12 @@ export interface RhUser {
   email: string;
 }
 
+export interface OutboundManager {
+  user_id: string;
+  name: string;
+  email: string;
+}
+
 export interface NewClientData {
   name: string;
   cnpj?: string;
@@ -65,6 +71,7 @@ export interface NewClientData {
   assigned_comercial?: string;
   assigned_crm?: string;
   assigned_rh?: string;
+  assigned_outbound_manager?: string;
   entry_date?: string;
   contract_duration_months?: number;
   payment_due_day?: number;
@@ -110,61 +117,71 @@ export function useSquads(groupId?: string) {
   });
 }
 
-// Fetch ads managers for dropdown
-export function useAdsManagers() {
+// Fetch ads managers for dropdown (filtrado por squad quando informado)
+export function useAdsManagers(squadId?: string) {
   return useQuery({
-    queryKey: ['ads-managers'],
+    queryKey: ['ads-managers', squadId || 'all'],
     queryFn: async () => {
       // Get all users with gestor_ads role
       const { data: roleData, error: roleError } = await supabase
         .from('user_roles')
         .select('user_id')
         .eq('role', 'gestor_ads');
-      
+
       if (roleError) throw roleError;
-      
+
       const userIds = roleData?.map(r => r.user_id) || [];
-      
+
       if (userIds.length === 0) return [];
-      
+
       // Get profile info for these users
-      const { data: profiles, error: profileError } = await supabase
+      let query = supabase
         .from('profiles')
         .select('user_id, name, email')
         .in('user_id', userIds);
-      
+
+      if (squadId) {
+        query = query.eq('squad_id', squadId);
+      }
+
+      const { data: profiles, error: profileError } = await query;
+
       if (profileError) throw profileError;
-      
+
       return profiles as AdsManager[];
     },
   });
 }
 
-// Fetch comercial consultants for dropdown
-export function useComercialConsultants() {
+// Fetch comercial consultants for dropdown (filtrado por squad quando informado)
+export function useComercialConsultants(squadId?: string) {
   return useQuery({
-    queryKey: ['comercial-consultants'],
+    queryKey: ['comercial-consultants', squadId || 'all'],
     queryFn: async () => {
-      // Get all users with consultor_comercial role
       const { data: roleData, error: roleError } = await supabase
         .from('user_roles')
         .select('user_id')
         .eq('role', 'consultor_comercial');
-      
+
       if (roleError) throw roleError;
-      
+
       const userIds = roleData?.map(r => r.user_id) || [];
-      
+
       if (userIds.length === 0) return [];
-      
-      // Get profile info for these users
-      const { data: profiles, error: profileError } = await supabase
+
+      let query = supabase
         .from('profiles')
         .select('user_id, name, email')
         .in('user_id', userIds);
-      
+
+      if (squadId) {
+        query = query.eq('squad_id', squadId);
+      }
+
+      const { data: profiles, error: profileError } = await query;
+
       if (profileError) throw profileError;
-      
+
       return profiles as ComercialConsultant[];
     },
   });
@@ -220,6 +237,31 @@ export function useRhUsers() {
   });
 }
 
+// Fetch outbound managers for dropdown (Millennials Outbound)
+export function useOutboundManagers() {
+  return useQuery({
+    queryKey: ['outbound-managers'],
+    queryFn: async () => {
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'outbound');
+
+      if (roleError) throw roleError;
+      const userIds = roleData?.map(r => r.user_id) || [];
+      if (userIds.length === 0) return [];
+
+      const { data: profiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('user_id, name, email')
+        .in('user_id', userIds);
+
+      if (profileError) throw profileError;
+      return profiles as OutboundManager[];
+    },
+  });
+}
+
 // Create new client
 export function useCreateClient() {
   const queryClient = useQueryClient();
@@ -246,6 +288,7 @@ export function useCreateClient() {
           assigned_comercial: clientData.assigned_comercial,
           assigned_crm: clientData.assigned_crm || null,
           assigned_rh: clientData.assigned_rh || null,
+          assigned_outbound_manager: clientData.assigned_outbound_manager || null,
           entry_date: clientData.entry_date,
           contract_duration_months: clientData.contract_duration_months || null,
           payment_due_day: clientData.payment_due_day || null,

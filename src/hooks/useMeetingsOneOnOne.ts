@@ -21,6 +21,8 @@ export interface MeetingOneOnOne {
   created_by_name: string | null;
   created_at: string;
   updated_at: string;
+  archived: boolean;
+  archived_at: string | null;
 }
 
 export interface WeeklyProblem {
@@ -354,6 +356,40 @@ export function useMeetingsOneOnOne() {
     },
   });
 
+  const archiveMeeting = useMutation({
+    mutationFn: async (meetingId: string) => {
+      const { error } = await supabase
+        .from('meetings_one_on_one')
+        .update({ archived: true, archived_at: new Date().toISOString() } as any)
+        .eq('id', meetingId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['meetings-one-on-one'] });
+      toast.success('Reunião arquivada');
+    },
+    onError: (error: Error) => {
+      toast.error('Erro ao arquivar reunião: ' + error.message);
+    },
+  });
+
+  const unarchiveMeeting = useMutation({
+    mutationFn: async (meetingId: string) => {
+      const { error } = await supabase
+        .from('meetings_one_on_one')
+        .update({ archived: false, archived_at: null } as any)
+        .eq('id', meetingId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['meetings-one-on-one'] });
+      toast.success('Reunião desarquivada');
+    },
+    onError: (error: Error) => {
+      toast.error('Erro ao desarquivar reunião: ' + error.message);
+    },
+  });
+
   return {
     meetings: meetingsQuery.data || [],
     challenges: challengesQuery.data || [],
@@ -364,5 +400,7 @@ export function useMeetingsOneOnOne() {
     archiveWeeklyProblems,
     saveWeeklySummary,
     addChallenge,
+    archiveMeeting,
+    unarchiveMeeting,
   };
 }

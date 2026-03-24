@@ -3221,6 +3221,8 @@ export type Database = {
       }
       meetings_one_on_one: {
         Row: {
+          archived: boolean | null
+          archived_at: string | null
           correct_client_movement: boolean | null
           created_at: string | null
           created_by: string | null
@@ -3240,6 +3242,8 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          archived?: boolean | null
+          archived_at?: string | null
           correct_client_movement?: boolean | null
           created_at?: string | null
           created_by?: string | null
@@ -3259,6 +3263,8 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          archived?: boolean | null
+          archived_at?: string | null
           correct_client_movement?: boolean | null
           created_at?: string | null
           created_by?: string | null

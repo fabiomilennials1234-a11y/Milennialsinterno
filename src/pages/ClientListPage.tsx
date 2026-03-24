@@ -64,6 +64,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { useQuery } from '@tanstack/react-query';
+import { useManagerOptions, useUpdateClientAssignment } from '@/hooks/useTreinadorClientCount';
 
 // Helper to generate month options
 const generateMonthOptions = () => {
@@ -100,6 +101,8 @@ export default function ClientListPage() {
   const registerSale = useRegisterSale();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { data: managerOptions } = useManagerOptions();
+  const updateAssignment = useUpdateClientAssignment();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
@@ -561,7 +564,7 @@ export default function ClientListPage() {
 
       const { error } = await supabase
         .from('clients')
-        .update({ 
+        .update({
           status: newStatus,
           archived: false,
           archived_at: null,
@@ -571,6 +574,13 @@ export default function ClientListPage() {
         .eq('id', client.id);
 
       if (error) throw error;
+
+      // Remover registros de churn por produto ativos para este cliente
+      await supabase
+        .from('client_product_churns')
+        .update({ archived: true, archived_at: new Date().toISOString() } as any)
+        .eq('client_id', client.id)
+        .eq('archived', false);
 
       const statusLabels: Record<string, string> = {
         'new_client': 'Novo Cliente',
@@ -585,6 +595,9 @@ export default function ClientListPage() {
       queryClient.invalidateQueries({ queryKey: ['clients-with-sales'] });
       queryClient.invalidateQueries({ queryKey: ['assigned-clients'] });
       queryClient.invalidateQueries({ queryKey: ['financeiro-distrato-clients'] });
+      queryClient.invalidateQueries({ queryKey: ['all-gestor-client-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['all-treinador-client-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['product-churns'] });
     } catch (error: any) {
       toast.error('Erro ao restaurar cliente', {
         description: error.message,
@@ -661,11 +674,55 @@ export default function ClientListPage() {
                       {client.razao_social}
                     </p>
                   )}
-                  {client.ads_manager_name && (
-                    <p className="text-xs text-primary mt-0.5">
-                      Gestor: {client.ads_manager_name}
-                    </p>
-                  )}
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
+                    {isCEO ? (
+                      <>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-muted-foreground">Gestor:</span>
+                          <select
+                            value={client.assigned_ads_manager || ''}
+                            onChange={(e) => updateAssignment.mutate({
+                              clientId: client.id,
+                              field: 'assigned_ads_manager',
+                              value: e.target.value || null,
+                            })}
+                            className="text-[10px] bg-transparent border-none text-primary cursor-pointer hover:underline p-0 h-auto focus:outline-none"
+                          >
+                            <option value="">Sem gestor</option>
+                            {managerOptions?.gestores.map(g => (
+                              <option key={g.id} value={g.id}>{g.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-muted-foreground">Treinador:</span>
+                          <select
+                            value={(client as any).assigned_comercial || ''}
+                            onChange={(e) => updateAssignment.mutate({
+                              clientId: client.id,
+                              field: 'assigned_comercial',
+                              value: e.target.value || null,
+                            })}
+                            className="text-[10px] bg-transparent border-none text-primary cursor-pointer hover:underline p-0 h-auto focus:outline-none"
+                          >
+                            <option value="">Sem treinador</option>
+                            {managerOptions?.treinadores.map(t => (
+                              <option key={t.id} value={t.id}>{t.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        {client.ads_manager_name && (
+                          <p className="text-xs text-primary">Gestor: {client.ads_manager_name}</p>
+                        )}
+                        {(client as any).comercial_name && (
+                          <p className="text-xs text-primary">Treinador: {(client as any).comercial_name}</p>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
               </TableCell>
               <TableCell>
