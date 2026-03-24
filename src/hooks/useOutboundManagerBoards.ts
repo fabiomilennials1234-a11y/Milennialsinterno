@@ -11,37 +11,40 @@ export interface OutboundManagerBoard {
 }
 
 /**
- * Fetch all individual Outbound manager boards (one per outbound user)
+ * Fetch all individual Outbound manager boards (one per outbound user).
+ * Queries user_roles directly so boards appear as soon as the role exists,
+ * without requiring a manual kanban_boards entry.
  */
 export function useOutboundManagerBoards() {
   return useQuery({
     queryKey: ['outbound-manager-boards'],
     queryFn: async (): Promise<OutboundManagerBoard[]> => {
-      const { data: boards, error: boardsError } = await supabase
-        .from('kanban_boards')
-        .select('id, name, slug, owner_user_id, squad_id')
-        .not('owner_user_id', 'is', null)
-        .like('slug', 'outbound-%')
-        .order('name', { ascending: true });
+      // Buscar todos os usuários com cargo outbound
+      const { data: outboundRoles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'outbound');
 
-      if (boardsError) throw boardsError;
-      if (!boards || boards.length === 0) return [];
+      if (rolesError) throw rolesError;
+      if (!outboundRoles || outboundRoles.length === 0) return [];
 
-      const ownerIds = boards.map(b => b.owner_user_id).filter(Boolean);
+      const userIds = outboundRoles.map(r => r.user_id);
+
+      // Buscar perfis para nomes e squad_id
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('user_id, name')
-        .in('user_id', ownerIds);
+        .select('user_id, name, squad_id')
+        .in('user_id', userIds);
 
-      const profileMap = new Map(profiles?.map(p => [p.user_id, p.name]) || []);
+      if (!profiles || profiles.length === 0) return [];
 
-      return boards.map(b => ({
-        id: b.id,
-        name: b.name,
-        slug: b.slug,
-        owner_user_id: b.owner_user_id!,
-        owner_name: profileMap.get(b.owner_user_id!) || 'Outbound',
-        squad_id: b.squad_id,
+      return profiles.map(p => ({
+        id: p.user_id,
+        name: `Outbound (${p.name})`,
+        slug: `outbound-${p.user_id}`,
+        owner_user_id: p.user_id,
+        owner_name: p.name,
+        squad_id: p.squad_id,
       }));
     },
   });

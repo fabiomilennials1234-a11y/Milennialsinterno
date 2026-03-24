@@ -86,7 +86,7 @@ export function useCreateUser() {
       additional_pages?: string[];
     }) => {
       const { data: session } = await supabase.auth.getSession();
-      
+
       const response = await supabase.functions.invoke('create-user', {
         body: data,
         headers: {
@@ -130,7 +130,7 @@ export function useUpdateUser() {
       additional_pages?: string[];
     }) => {
       const { data: session } = await supabase.auth.getSession();
-      
+
       const response = await supabase.functions.invoke('update-user', {
         body: data,
         headers: {
@@ -163,7 +163,7 @@ export function useDeleteUser() {
   return useMutation({
     mutationFn: async (userId: string) => {
       const { data: session } = await supabase.auth.getSession();
-      
+
       const response = await supabase.functions.invoke('delete-user', {
         body: { userId },
         headers: {

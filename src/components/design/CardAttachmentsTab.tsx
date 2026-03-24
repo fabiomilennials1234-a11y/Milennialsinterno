@@ -39,8 +39,10 @@ export default function CardAttachmentsTab({
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<CardAttachment | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [uploadingFileName, setUploadingFileName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const uploadAttachment = useUploadAttachment();
   const deleteAttachment = useDeleteAttachment();
 
@@ -79,13 +81,20 @@ export default function CardAttachmentsTab({
       }
 
       try {
+        setUploadingFileName(file.name);
+        setUploadProgress(0);
         await uploadAttachment.mutateAsync({
           cardId,
           file,
+          onProgress: (percentage) => setUploadProgress(percentage),
         });
         toast.success(`${file.name} enviado!`);
-      } catch (error) {
-        toast.error(`Erro ao enviar ${file.name}`);
+      } catch (error: any) {
+        const msg = error?.message || 'Erro desconhecido';
+        toast.error(`Erro ao enviar ${file.name}: ${msg}`);
+      } finally {
+        setUploadProgress(null);
+        setUploadingFileName(null);
       }
     }
 
@@ -169,7 +178,9 @@ export default function CardAttachmentsTab({
             "w-full flex items-center justify-center gap-2 py-4 rounded-xl border-2 border-dashed transition-colors",
             attachments.length >= MAX_ATTACHMENTS_PER_CARD
               ? "border-muted text-muted-foreground cursor-not-allowed"
-              : "border-border text-muted-foreground hover:text-foreground hover:bg-muted hover:border-primary/50"
+              : uploadAttachment.isPending
+                ? "border-primary/30 text-muted-foreground cursor-wait"
+                : "border-border text-muted-foreground hover:text-foreground hover:bg-muted hover:border-primary/50"
           )}
         >
           {uploadAttachment.isPending ? (
@@ -178,11 +189,35 @@ export default function CardAttachmentsTab({
             <Upload size={18} />
           )}
           <span className="font-medium">
-            {attachments.length >= MAX_ATTACHMENTS_PER_CARD 
+            {attachments.length >= MAX_ATTACHMENTS_PER_CARD
               ? `Limite de ${MAX_ATTACHMENTS_PER_CARD} anexos atingido`
               : 'Enviar imagens ou vídeos (sem limite de tamanho para vídeos)'}
           </span>
         </button>
+
+        {/* Progress Bar */}
+        {uploadAttachment.isPending && uploadProgress !== null && (
+          <div className="mt-3 space-y-1.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground truncate max-w-[200px]">
+                {uploadingFileName || 'Enviando...'}
+              </span>
+              <span className="font-medium text-primary">{uploadProgress}%</span>
+            </div>
+            <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
+              <div
+                className="h-full rounded-full bg-primary transition-all duration-300 ease-out"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+            {uploadProgress < 100 && (
+              <p className="text-[10px] text-muted-foreground text-center">
+                Não feche esta janela durante o envio
+              </p>
+            )}
+          </div>
+        )}
+
         <p className="text-center text-xs text-muted-foreground mt-2">
           {attachments.length} / {MAX_ATTACHMENTS_PER_CARD} anexos
         </p>

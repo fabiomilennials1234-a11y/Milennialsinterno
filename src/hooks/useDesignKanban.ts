@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/auth';
+import * as tus from 'tus-js-client';
 
 // ============================================
 // TYPES
@@ -299,6 +300,77 @@ export function useCardAttachments(cardId: string | undefined) {
   });
 }
 
+// Sanitize filename: remove accents, special chars, replace spaces
+function sanitizeFileName(name: string): string {
+  const lastDot = name.lastIndexOf('.');
+  const ext = lastDot > 0 ? name.slice(lastDot) : '';
+  const baseName = lastDot > 0 ? name.slice(0, lastDot) : name;
+
+  const sanitized = baseName
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9_-]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '')
+    .slice(0, 50);
+
+  return sanitized + ext.toLowerCase();
+}
+
+// Upload via TUS (resumable) para arquivos grandes
+function uploadWithTus(
+  bucketName: string,
+  fileName: string,
+  file: File,
+  token: string,
+  onProgress?: (percentage: number) => void,
+): Promise<void> {
+  const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL
+    || (window as any).__SUPABASE_URL__
+    || '';
+
+  return new Promise((resolve, reject) => {
+    const upload = new tus.Upload(file, {
+      endpoint: `${supabaseUrl}/storage/v1/upload/resumable`,
+      retryDelays: [0, 3000, 5000, 10000, 20000],
+      headers: {
+        authorization: `Bearer ${token}`,
+        'x-upsert': 'false',
+      },
+      uploadDataDuringCreation: true,
+      removeFingerprintOnSuccess: true,
+      metadata: {
+        bucketName,
+        objectName: fileName,
+        contentType: file.type,
+        cacheControl: '3600',
+      },
+      chunkSize: 6 * 1024 * 1024, // 6MB chunks
+      onError: (error) => {
+        reject(new Error(`Falha no upload: ${error.message || 'Erro de conexão'}`));
+      },
+      onProgress: (bytesUploaded, bytesTotal) => {
+        const percentage = Math.round((bytesUploaded / bytesTotal) * 100);
+        onProgress?.(percentage);
+      },
+      onSuccess: () => {
+        resolve();
+      },
+    });
+
+    // Check for previous uploads to resume
+    upload.findPreviousUploads().then((previousUploads) => {
+      if (previousUploads.length > 0) {
+        upload.resumeFromPreviousUpload(previousUploads[0]);
+      }
+      upload.start();
+    });
+  });
+}
+
+// Limite para usar TUS (arquivos acima de 40MB usam upload resumável)
+const TUS_THRESHOLD = 40 * 1024 * 1024;
+
 export function useUploadAttachment() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -307,52 +379,54 @@ export function useUploadAttachment() {
     mutationFn: async ({
       cardId,
       file,
+      onProgress,
     }: {
       cardId: string;
       file: File;
+      onProgress?: (percentage: number) => void;
     }) => {
       if (!user) throw new Error('Usuário não autenticado');
 
-      // Sanitize filename: remove accents, special chars, replace spaces
-      const sanitizeFileName = (name: string): string => {
-        // Get extension
-        const lastDot = name.lastIndexOf('.');
-        const ext = lastDot > 0 ? name.slice(lastDot) : '';
-        const baseName = lastDot > 0 ? name.slice(0, lastDot) : name;
-        
-        // Remove accents and special characters
-        const sanitized = baseName
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '') // Remove accents
-          .replace(/[^a-zA-Z0-9_-]/g, '_') // Replace special chars with underscore
-          .replace(/_+/g, '_') // Remove multiple underscores
-          .replace(/^_|_$/g, '') // Remove leading/trailing underscores
-          .slice(0, 50); // Limit length
-        
-        return sanitized + ext.toLowerCase();
-      };
-
       const sanitizedName = sanitizeFileName(file.name);
       const fileName = `${cardId}/${Date.now()}-${sanitizedName}`;
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('card-attachments')
-        .upload(fileName, file);
+      const isLargeFile = file.size > TUS_THRESHOLD;
 
-      if (uploadError) throw uploadError;
+      let publicUrl: string;
 
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('card-attachments')
-        .getPublicUrl(uploadData.path);
+      if (isLargeFile) {
+        // Upload resumável via TUS para arquivos grandes
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) throw new Error('Sessão expirada. Faça login novamente.');
+
+        await uploadWithTus('card-attachments', fileName, file, session.access_token, onProgress);
+
+        const { data: urlData } = supabase.storage
+          .from('card-attachments')
+          .getPublicUrl(fileName);
+        publicUrl = urlData.publicUrl;
+      } else {
+        // Upload padrão para arquivos pequenos
+        onProgress?.(0);
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('card-attachments')
+          .upload(fileName, file);
+
+        if (uploadError) throw uploadError;
+        onProgress?.(100);
+
+        const { data: urlData } = supabase.storage
+          .from('card-attachments')
+          .getPublicUrl(uploadData.path);
+        publicUrl = urlData.publicUrl;
+      }
 
       // Save to database (keep original filename for display)
       const { data, error } = await supabase
         .from('card_attachments')
         .insert({
           card_id: cardId,
-          file_name: file.name, // Keep original name for display
-          file_url: urlData.publicUrl,
+          file_name: file.name,
+          file_url: publicUrl,
           file_type: file.type,
           file_size: file.size,
           created_by: user.id,

@@ -44,6 +44,7 @@ import ProvasSociaisPage from "./pages/ProvasSociaisPage";
 import DashGestoresPage from "./pages/DashGestoresPage";
 import TVDashboardPage from "./pages/TVDashboardPage";
 import TreinamentosPage from "./pages/TreinamentosPage";
+import RecordedMeetingsPage from "./pages/RecordedMeetingsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -212,6 +213,13 @@ function AppRoutes() {
           <TreinamentosPage />
         </ProtectedRoute>
       } />
+
+      {/* Reuniões Gravadas Page */}
+      <Route path="/reunioes-gravadas" element={
+        <ProtectedRoute>
+          <RecordedMeetingsPage />
+        </ProtectedRoute>
+      } />
       
       {/* Redirect old route */}
       <Route path="/dash-gestores" element={<Navigate to="/okrs-millennials" replace />} />
@@ -310,7 +318,12 @@ function AppRoutes() {
           <GestorCRMPage />
         </ProtectedRoute>
       } />
-      
+      <Route path="/gestor-crm/:userId" element={
+        <ProtectedRoute>
+          <GestorCRMPage />
+        </ProtectedRoute>
+      } />
+
       {/* Design Route */}
       <Route path="/design" element={
         <ProtectedRoute>

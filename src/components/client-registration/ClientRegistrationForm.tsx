@@ -17,14 +17,31 @@ import {
   FormDescription,
 } from '@/components/ui/form';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   useGroups,
   useSquads,
   useAdsManagers,
   useComercialConsultants,
   useCrmManagers,
   useRhUsers,
+  useOutboundManagers,
   useCreateClient,
 } from '@/hooks/useClientRegistration';
+import {
+  useAllGestorClientCounts,
+  useAllTreinadorClientCounts,
+  useAllCrmClientCounts,
+  useAllOutboundClientCounts,
+} from '@/hooks/useTreinadorClientCount';
 import {
   validateCNPJ,
   validateCPF,
@@ -33,6 +50,14 @@ import {
   formatCurrency,
   parseCurrency,
 } from '@/lib/validators';
+
+// Limites de carteira por cargo (mesmos da Sidebar)
+const MANAGER_LIMITS: Record<string, number> = {
+  gestor_ads: 25,
+  consultor_comercial: 80,
+  gestor_crm: 80,
+  outbound: 80,
+};
 
 // Lista de produtos disponíveis
 const AVAILABLE_PRODUCTS = [
@@ -107,6 +132,7 @@ const clientSchema = z.object({
   assigned_comercial: z.string().optional(),
   assigned_crm: z.string().optional(),
   assigned_rh: z.string().optional(),
+  assigned_outbound_manager: z.string().optional(),
 }).refine((data) => {
   // Se Millennials Growth está selecionado, exige group_id e squad_id
   const hasMillennialsGrowth = data.contracted_products.includes('millennials-growth');
@@ -151,14 +177,28 @@ interface ClientRegistrationFormProps {
 export default function ClientRegistrationForm({ onSuccess, compact = false }: ClientRegistrationFormProps) {
   const [selectedGroupId, setSelectedGroupId] = useState<string>('');
   const [showSuccess, setShowSuccess] = useState(false);
-  
+  const [overloadDialog, setOverloadDialog] = useState<{
+    open: boolean;
+    fieldName: string;
+    value: string;
+    managerName: string;
+  }>({ open: false, fieldName: '', value: '', managerName: '' });
+
   const { data: groups = [], isLoading: groupsLoading } = useGroups();
+  const [selectedSquadId, setSelectedSquadId] = useState<string>('');
   const { data: squads = [] } = useSquads(selectedGroupId);
-  const { data: adsManagers = [], isLoading: managersLoading } = useAdsManagers();
+  const { data: adsManagers = [], isLoading: managersLoading } = useAdsManagers(selectedSquadId || undefined);
   const { data: comercialConsultants = [], isLoading: consultantsLoading } = useComercialConsultants();
   const { data: crmManagers = [], isLoading: crmLoading } = useCrmManagers();
   const { data: rhUsers = [], isLoading: rhLoading } = useRhUsers();
+  const { data: outboundManagers = [], isLoading: outboundLoading } = useOutboundManagers();
   const createClient = useCreateClient();
+
+  // Contagens de clientes (mesma lógica da Sidebar)
+  const { data: gestorCounts = {} } = useAllGestorClientCounts();
+  const { data: treinadorCounts = {} } = useAllTreinadorClientCounts();
+  const { data: crmCounts = {} } = useAllCrmClientCounts();
+  const { data: outboundCounts = {} } = useAllOutboundClientCounts();
 
   const form = useForm<ClientFormData>({
     resolver: zodResolver(clientSchema),
@@ -182,6 +222,7 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
       assigned_comercial: '',
       assigned_crm: '',
       assigned_rh: '',
+      assigned_outbound_manager: '',
     },
     mode: 'onChange',
   });
@@ -207,9 +248,41 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
     return Array.isArray(watchedProducts) && watchedProducts.includes('millennials-hunting');
   }, [watchedProducts]);
 
+  const hasOutbound = useMemo(() => {
+    return Array.isArray(watchedProducts) && watchedProducts.includes('millennials-outbound');
+  }, [watchedProducts]);
+
   const showComercial = hasMillennialsGrowth || hasMillennialsPaddock || hasTorqueCRM;
   const showCrmManager = hasTorqueCRM;
   const showRhUser = hasHunting;
+  const showOutboundManager = hasOutbound;
+
+  // Handler para selects de responsáveis com verificação de limite
+  const handleManagerSelect = useCallback((
+    fieldName: string,
+    value: string,
+    counts: Record<string, number>,
+    managers: { user_id: string; name: string }[],
+    limit: number,
+    onChange: (value: string) => void,
+  ) => {
+    if (!value) {
+      onChange(value);
+      return;
+    }
+    const count = counts[value] || 0;
+    if (count >= limit) {
+      const manager = managers.find(m => m.user_id === value);
+      setOverloadDialog({
+        open: true,
+        fieldName,
+        value,
+        managerName: manager?.name || 'Responsável',
+      });
+    } else {
+      onChange(value);
+    }
+  }, []);
 
   const toggleProduct = useCallback((slug: string, checked: boolean) => {
     const current = form.getValues('contracted_products') || [];
@@ -227,7 +300,10 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
       if (slug === 'millennials-growth') {
         form.setValue('group_id', '');
         form.setValue('squad_id', '');
+        form.setValue('assigned_ads_manager', '');
+        form.setValue('assigned_comercial', '');
         setSelectedGroupId('');
+        setSelectedSquadId('');
       }
     }
   }, [form]);
@@ -273,6 +349,7 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
         assigned_comercial: data.assigned_comercial || undefined,
         assigned_crm: data.assigned_crm || undefined,
         assigned_rh: data.assigned_rh || undefined,
+        assigned_outbound_manager: data.assigned_outbound_manager || undefined,
         product_values: productValuesArray,
       });
 
@@ -283,6 +360,7 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
       // Limpar formulário
       form.reset();
       setSelectedGroupId('');
+      setSelectedSquadId('');
 
       onSuccess?.();
     } catch (error) {
@@ -758,7 +836,10 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
                               const value = e.target.value;
                               field.onChange(value);
                               setSelectedGroupId(value);
+                              setSelectedSquadId('');
                               form.setValue('squad_id', '');
+                              form.setValue('assigned_ads_manager', '');
+                              form.setValue('assigned_comercial', '');
                             }}
                           >
                             <option value="" disabled>
@@ -797,7 +878,13 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
                             className="input-apple"
                             value={field.value || ''}
                             disabled={!selectedGroupId}
-                            onChange={(e) => field.onChange(e.target.value)}
+                            onChange={(e) => {
+                              field.onChange(e.target.value);
+                              setSelectedSquadId(e.target.value);
+                              // Limpar responsáveis ao trocar de squad
+                              form.setValue('assigned_ads_manager', '');
+                              form.setValue('assigned_comercial', '');
+                            }}
                           >
                             <option value="" disabled>
                               {selectedGroupId ? 'Selecione um squad' : 'Selecione um grupo primeiro'}
@@ -825,7 +912,7 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
 
             {/* Section: Responsáveis - Sempre visível */}
             <div className="space-y-4 pt-4 border-t border-border">
-              {(showAdsManager || showComercial) && (
+              {(showAdsManager || showComercial || showCrmManager || showOutboundManager) && (
                 <>
                   <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
                     Responsáveis
@@ -843,7 +930,14 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
                               <select
                                 className="input-apple"
                                 value={field.value || ''}
-                                onChange={(e) => field.onChange(e.target.value)}
+                                onChange={(e) => handleManagerSelect(
+                                  'assigned_ads_manager',
+                                  e.target.value,
+                                  gestorCounts,
+                                  adsManagers,
+                                  MANAGER_LIMITS.gestor_ads,
+                                  field.onChange,
+                                )}
                               >
                                 <option value="" disabled>
                                   Selecione um gestor de ads
@@ -859,7 +953,7 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
                                 ) : (
                                   adsManagers.map((manager) => (
                                     <option key={manager.user_id} value={manager.user_id}>
-                                      {manager.name} ({manager.email})
+                                      {manager.name} — {gestorCounts[manager.user_id] || 0}/{MANAGER_LIMITS.gestor_ads}
                                     </option>
                                   ))
                                 )}
@@ -882,7 +976,14 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
                               <select
                                 className="input-apple"
                                 value={field.value || ''}
-                                onChange={(e) => field.onChange(e.target.value)}
+                                onChange={(e) => handleManagerSelect(
+                                  'assigned_comercial',
+                                  e.target.value,
+                                  treinadorCounts,
+                                  comercialConsultants,
+                                  MANAGER_LIMITS.consultor_comercial,
+                                  field.onChange,
+                                )}
                               >
                                 <option value="">Selecione o Treinador Comercial</option>
                                 {consultantsLoading ? (
@@ -896,7 +997,7 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
                                 ) : (
                                   comercialConsultants.map((consultant) => (
                                     <option key={consultant.user_id} value={consultant.user_id}>
-                                      {consultant.name} ({consultant.email})
+                                      {consultant.name} — {treinadorCounts[consultant.user_id] || 0}/{MANAGER_LIMITS.consultor_comercial}
                                     </option>
                                   ))
                                 )}
@@ -920,7 +1021,14 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
                               <select
                                 className="input-apple"
                                 value={field.value || ''}
-                                onChange={(e) => field.onChange(e.target.value)}
+                                onChange={(e) => handleManagerSelect(
+                                  'assigned_crm',
+                                  e.target.value,
+                                  crmCounts,
+                                  crmManagers,
+                                  MANAGER_LIMITS.gestor_crm,
+                                  field.onChange,
+                                )}
                               >
                                 <option value="">Selecione o Gestor de CRM</option>
                                 {crmLoading ? (
@@ -930,7 +1038,7 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
                                 ) : (
                                   crmManagers.map((manager) => (
                                     <option key={manager.user_id} value={manager.user_id}>
-                                      {manager.name} ({manager.email})
+                                      {manager.name} — {crmCounts[manager.user_id] || 0}/{MANAGER_LIMITS.gestor_crm}
                                     </option>
                                   ))
                                 )}
@@ -965,6 +1073,47 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
                                   rhUsers.map((rh) => (
                                     <option key={rh.user_id} value={rh.user_id}>
                                       {rh.name} ({rh.email})
+                                    </option>
+                                  ))
+                                )}
+                              </select>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {/* Outbound Manager (Millennials Outbound) */}
+                    {showOutboundManager && (
+                      <FormField
+                        control={form.control}
+                        name="assigned_outbound_manager"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Outbound Responsável</FormLabel>
+                            <FormControl>
+                              <select
+                                className="input-apple"
+                                value={field.value || ''}
+                                onChange={(e) => handleManagerSelect(
+                                  'assigned_outbound_manager',
+                                  e.target.value,
+                                  outboundCounts,
+                                  outboundManagers,
+                                  MANAGER_LIMITS.outbound,
+                                  field.onChange,
+                                )}
+                              >
+                                <option value="">Selecione o Outbound</option>
+                                {outboundLoading ? (
+                                  <option value="" disabled>Carregando...</option>
+                                ) : outboundManagers.length === 0 ? (
+                                  <option value="" disabled>Nenhum Outbound cadastrado ainda</option>
+                                ) : (
+                                  outboundManagers.map((manager) => (
+                                    <option key={manager.user_id} value={manager.user_id}>
+                                      {manager.name} — {outboundCounts[manager.user_id] || 0}/{MANAGER_LIMITS.outbound}
                                     </option>
                                   ))
                                 )}
@@ -1024,6 +1173,44 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
             )}
           </form>
         </Form>
+
+        {/* Dialog de confirmação para responsável com carteira cheia */}
+        <AlertDialog
+          open={overloadDialog.open}
+          onOpenChange={(open) => {
+            if (!open) {
+              setOverloadDialog(prev => ({ ...prev, open: false }));
+            }
+          }}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-destructive text-lg font-bold">
+                PERIGO.
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-base text-foreground">
+                Esse colaborador já possui o número máximo de clientes, tem certeza que quer continuar?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => {
+                setOverloadDialog(prev => ({ ...prev, open: false }));
+              }}>
+                Cancelar
+              </AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => {
+                  const { fieldName, value } = overloadDialog;
+                  form.setValue(fieldName as any, value, { shouldValidate: true });
+                  setOverloadDialog(prev => ({ ...prev, open: false }));
+                }}
+              >
+                Continuar mesmo assim
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
