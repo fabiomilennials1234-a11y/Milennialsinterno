@@ -20,17 +20,28 @@ const SUPABASE_PUBLISHABLE_KEY =
   (typeof window !== 'undefined' && window.__ENV__?.VITE_SUPABASE_PUBLISHABLE_KEY) ||
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+const isDev = import.meta.env.DEV;
+const missingEnv = !SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY;
+
+if (missingEnv) {
   const msg =
-    'Supabase não configurado. Defina VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY em Ambiente no Easypanel e faça um novo deploy.';
-  console.error(msg);
-  throw new Error(msg);
+    'Supabase não configurado. Defina VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY (copie .env.example para .env).';
+  if (isDev) {
+    console.warn(msg);
+  } else {
+    console.error(msg);
+    throw new Error(msg);
+  }
 }
+
+// Em dev sem .env: usa placeholders para a app carregar (login falhará até configurar)
+const effectiveUrl = missingEnv && isDev ? 'https://placeholder.supabase.co' : SUPABASE_URL!;
+const effectiveKey = missingEnv && isDev ? 'placeholder-anon-key' : SUPABASE_PUBLISHABLE_KEY!;
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+export const supabase = createClient<Database>(effectiveUrl, effectiveKey, {
   auth: {
     storage: localStorage,
     persistSession: true,

@@ -111,14 +111,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session?.user) {
-        fetchUserData(session.user.id).then((userData) => {
-          setUser(userData);
-          setIsLoading(false);
-        });
+        fetchUserData(session.user.id)
+          .then((userData) => setUser(userData))
+          .catch(() => setUser(null))
+          .finally(() => setIsLoading(false));
       } else {
         setIsLoading(false);
       }
-    });
+    }).catch(() => setIsLoading(false));
 
     return () => {
       subscription.unsubscribe();
