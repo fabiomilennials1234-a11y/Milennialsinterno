@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Users, Eye, AlertTriangle, GripVertical, Calendar, HelpCircle, MessageSquare } from 'lucide-react';
+import { useContractStatus } from '@/hooks/useContractStatus';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -48,20 +49,22 @@ const INITIAL_DOC_FORM: DocForm = {
   combinado_deadline: undefined,
 };
 
-function ClientItem({ 
-  tracking, 
-  onViewClient 
-}: { 
-  tracking: ComercialTracking; 
+function ClientItem({
+  tracking,
+  onViewClient
+}: {
+  tracking: ComercialTracking;
   onViewClient: (id: string) => void;
 }) {
   const isDelayed = isTrackingDelayed(tracking);
+  const { isContractSigned } = useContractStatus();
+  const macroStage = isContractSigned(tracking.client_id) ? 'Acompanhamento' : 'Onboarding';
 
   return (
-    <div 
+    <div
       className={`p-2 rounded-lg border text-xs ${
-        isDelayed 
-          ? 'bg-destructive/10 border-destructive/30' 
+        isDelayed
+          ? 'bg-destructive/10 border-destructive/30'
           : 'bg-card border-subtle'
       }`}
     >
@@ -77,6 +80,14 @@ function ClientItem({
         <div className="flex-1 min-w-0">
           <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/15 text-primary mb-1 truncate max-w-full">
             {tracking.manager_name}
+          </span>
+          {/* Macroetapa do cliente */}
+          <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium mb-1 ${
+            macroStage === 'Onboarding'
+              ? 'bg-amber-500/15 text-amber-600'
+              : 'bg-emerald-500/15 text-emerald-600'
+          }`}>
+            {macroStage}
           </span>
           <p className={`truncate font-medium ${isDelayed ? 'text-destructive' : ''}`}>
             {tracking.client?.name || 'Cliente'}

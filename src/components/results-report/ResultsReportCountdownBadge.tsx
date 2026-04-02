@@ -1,4 +1,4 @@
-import { Clock, AlertTriangle, BarChart3 } from 'lucide-react';
+import { Clock, AlertTriangle, BarChart3, FileQuestion } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useResultsReportStatus } from '@/hooks/useClientResultsReports';
 
@@ -13,7 +13,20 @@ export default function ResultsReportCountdownBadge({ clientId, className, alway
   const { daysLeft, daysSince, status, isLoading } = useResultsReportStatus(clientId);
 
   if (isLoading) return null;
-  if (!alwaysShow && status === 'normal') return null;
+  if (!alwaysShow && (status === 'normal' || status === 'pending')) return null;
+
+  // Sem contrato assinado — não exibir prazo, mostrar status pendente
+  if (status === 'pending') {
+    return (
+      <Badge
+        variant="outline"
+        className={`text-[10px] px-2 py-0.5 gap-1 border-muted-foreground/30 text-muted-foreground ${className || ''}`}
+      >
+        <FileQuestion size={10} />
+        Relatório pendente
+      </Badge>
+    );
+  }
 
   if (status === 'overdue') {
     return (

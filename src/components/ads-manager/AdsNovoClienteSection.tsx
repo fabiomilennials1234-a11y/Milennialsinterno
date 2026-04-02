@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import ClientViewModal from '@/components/client/ClientViewModal';
 import OverdueInvoiceBadge from '@/components/shared/OverdueInvoiceBadge';
 import ContractStatusBadge from '@/components/shared/ContractStatusBadge';
+import CXValidationBadge from '@/components/shared/CXValidationBadge';
 import ClientLabelBadge, { type ClientLabel } from '@/components/shared/ClientLabelBadge';
 
 export default function AdsNovoClienteSection() {
@@ -80,6 +81,8 @@ export default function AdsNovoClienteSection() {
                     isOverdue && "border-danger/50 bg-danger/5"
                   )}
                 >
+                  {/* CX Validation Badge */}
+                  <CXValidationBadge clientId={client.id} className="w-full justify-center mb-2" />
                   {/* Overdue Invoice Badge */}
                   <OverdueInvoiceBadge clientId={client.id} className="w-full justify-center mb-2" />
                   {/* Contract Status Badge */}
