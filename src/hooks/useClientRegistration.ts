@@ -275,8 +275,8 @@ export function useCreateClient() {
         .from('clients')
         .insert({
           name: clientData.name,
-          cnpj: clientData.cnpj,
-          cpf: clientData.cpf,
+          cnpj: clientData.cnpj?.trim() || null,
+          cpf: clientData.cpf?.trim() || null,
           razao_social: clientData.razao_social,
           niche: clientData.niche,
           general_info: clientData.general_info,
@@ -528,9 +528,15 @@ export function useCreateClient() {
     },
     onError: (error: Error) => {
       console.error('Error creating client:', error);
-      toast.error('Erro ao cadastrar cliente', {
-        description: error.message,
-      });
+      const isDuplicateCnpj = error.message?.includes('idx_clients_cnpj_unique');
+      toast.error(
+        isDuplicateCnpj ? 'CNPJ já cadastrado' : 'Erro ao cadastrar cliente',
+        {
+          description: isDuplicateCnpj
+            ? 'Já existe um cliente com esse CNPJ no sistema.'
+            : error.message,
+        }
+      );
     },
   });
 }

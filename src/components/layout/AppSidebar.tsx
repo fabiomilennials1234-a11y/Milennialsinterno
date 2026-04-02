@@ -1202,10 +1202,12 @@ export default function AppSidebar() {
         )}
 
         {/* ========== MINHA ORGANIZAÇÃO (USUÁRIO OPERACIONAL) ========== */}
+        {/* Renderiza igual ao CEO: grupo completo com coringas, squads e gestores individuais,
+            filtrado por canViewRole para mostrar apenas os kanbans permitidos. */}
         {!isAdminUser && userGroup && !isCollapsed && (
           <div className="space-y-1">
             <div className="sidebar-section-label"><span>Minha Organização</span></div>
-            
+
             <Collapsible
               open={openGroups[userGroup.id] ?? true}
               onOpenChange={() => toggleGroup(userGroup.id)}
@@ -1215,70 +1217,154 @@ export default function AppSidebar() {
                   <Building2 size={20} />
                   <span>{userGroup.name}</span>
                 </div>
-                <ChevronDown 
-                  size={16} 
-                  className={cn("transition-transform duration-200", (openGroups[userGroup.id] ?? true) && "rotate-180")} 
+                <ChevronDown
+                  size={16}
+                  className={cn("transition-transform duration-200", (openGroups[userGroup.id] ?? true) && "rotate-180")}
                 />
               </CollapsibleTrigger>
               <CollapsibleContent className="pl-4 space-y-1 mt-1 sidebar-tree">
-                {/* Com Squad */}
-                {userSquad && (
-                  <Collapsible
-                    open={openSquads[userSquad.id] ?? true}
-                    onOpenChange={() => toggleSquad(userSquad.id)}
-                  >
-                    <CollapsibleTrigger className="sidebar-item w-full text-sm py-1.5 justify-between">
-                      <div className="flex items-center gap-2">
-                        <Briefcase size={16} />
-                        <span>{userSquad.name}</span>
-                      </div>
-                      <ChevronDown
-                        size={14}
-                        className={cn("transition-transform duration-200", (openSquads[userSquad.id] ?? true) && "rotate-180")}
-                      />
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="pl-6 space-y-0.5 sidebar-open-indicator">
-                      {/* Rota especial (ex: Gestor de Ads PRO+) */}
-                      {userSpecialRoute && (
-                        <NavLink
-                          to={userSpecialRoute.path}
-                          className={({ isActive }) => cn(
-                            "flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg transition-colors",
-                            isActive 
-                              ? "bg-sidebar-primary text-sidebar-primary-foreground" 
-                              : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-                          )}
-                        >
-                          <userSpecialRoute.icon size={12} />
-                          <span className="truncate">{userSpecialRoute.label}</span>
-                        </NavLink>
-                      )}
-                      {/* Boards visíveis */}
-                      {renderVisibleBoards('sm')}
-                    </CollapsibleContent>
-                  </Collapsible>
-                )}
-
-                {/* Sem Squad (no grupo direto) */}
-                {!userSquad && (
-                  <div className="space-y-0.5">
-                    {userSpecialRoute && (
+                {/* Coringas (inclui Sucesso do Cliente) */}
+                {(getCoringaRoles(userGroup.id).length > 0 || getGroupRoles(userGroup.id).includes('sucesso_cliente')) && (
+                  <div className="pl-2 border-l-2 border-sidebar-border space-y-1">
+                    <span className="px-2 text-[10px] font-semibold text-sidebar-foreground/30 uppercase tracking-wider">
+                      Coringas
+                    </span>
+                    {getCoringaRoles(userGroup.id).map(role => (
                       <NavLink
-                        to={userSpecialRoute.path}
-                        className={({ isActive }) => cn(
-                          "flex items-center gap-2 px-2 py-1.5 text-sm rounded-lg transition-colors",
-                          isActive
+                        key={role}
+                        to={getRoleKanbanPath(role)}
+                        className={() => cn(
+                          "flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg transition-colors",
+                          isRoleActive(role)
                             ? "bg-sidebar-primary text-sidebar-primary-foreground"
                             : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                         )}
                       >
-                        <userSpecialRoute.icon size={14} />
-                        <span className="truncate">{userSpecialRoute.label}</span>
+                        <User size={12} />
+                        <span className="truncate">{ROLE_LABELS[role]}</span>
+                      </NavLink>
+                    ))}
+                    {getGroupRoles(userGroup.id).includes('sucesso_cliente') && (
+                      <NavLink
+                        to="/sucesso-cliente"
+                        className={() => cn(
+                          "flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg transition-colors",
+                          isRoleActive('sucesso_cliente')
+                            ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                            : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                        )}
+                      >
+                        <Target size={12} />
+                        <span className="truncate">Sucesso do Cliente PRO+</span>
                       </NavLink>
                     )}
-                    {renderVisibleBoards('md')}
                   </div>
                 )}
+
+                {/* Squads — mesma renderização que o CEO */}
+                {userGroup.squads.map(squad => {
+                  const squadRoles = getSquadRoles(squad.id);
+                  const nonAdsRoles = squadRoles.filter(role => role !== 'gestor_ads' && role !== 'outbound' && role !== 'sucesso_cliente' && role !== 'consultor_comercial');
+                  const squadAdsBoards = adsManagerBoards.filter(b => b.squad_id === squad.id);
+                  const squadOutboundBoards = outboundManagerBoards.filter(b => b.squad_id === squad.id);
+                  const squadCrmBoardsOp = crmManagerBoards.filter(b => b.squad_id === squad.id);
+
+                  return (
+                    <Collapsible
+                      key={squad.id}
+                      open={openSquads[squad.id] ?? (squad.id === userSquadId)}
+                      onOpenChange={() => toggleSquad(squad.id)}
+                    >
+                      <CollapsibleTrigger className="sidebar-item w-full text-xs py-1.5 justify-between">
+                        <div className="flex items-center gap-2">
+                          <Briefcase size={14} />
+                          <span>{squad.name}</span>
+                        </div>
+                        <ChevronDown
+                          size={12}
+                          className={cn("transition-transform duration-200", (openSquads[squad.id] ?? (squad.id === userSquadId)) && "rotate-180")}
+                        />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="pl-4 space-y-0.5 sidebar-open-indicator">
+                        {squadAdsBoards.map(adsBoard => (
+                          <NavLink
+                            key={adsBoard.id}
+                            to={`/gestor-ads/${adsBoard.owner_user_id}`}
+                            className={({ isActive }) => cn(
+                              "flex items-center gap-2 px-2 py-1 text-[10px] rounded-lg transition-colors",
+                              isActive
+                                ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                                : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                            )}
+                          >
+                            <Target size={10} />
+                            <span className="truncate flex-1">ADS ({adsBoard.owner_name})</span>
+                            {adsBoard.owner_user_id && (
+                              <span className={cn(
+                                "text-[9px] font-mono font-bold shrink-0 px-1 py-0.5 rounded",
+                                (gestorCounts[adsBoard.owner_user_id] || 0) >= 25 ? "bg-red-500/20 text-red-400" :
+                                (gestorCounts[adsBoard.owner_user_id] || 0) >= 20 ? "bg-amber-500/20 text-amber-400" :
+                                "bg-sidebar-foreground/10 text-sidebar-foreground/60"
+                              )}>
+                                {gestorCounts[adsBoard.owner_user_id] || 0}/25
+                              </span>
+                            )}
+                          </NavLink>
+                        ))}
+                        {squadOutboundBoards.map(outboundBoard => (
+                          <NavLink
+                            key={outboundBoard.id}
+                            to={`/millennials-outbound/${outboundBoard.owner_user_id}`}
+                            className={({ isActive }) => cn(
+                              "flex items-center gap-2 px-2 py-1 text-[10px] rounded-lg transition-colors",
+                              isActive
+                                ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                                : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                            )}
+                          >
+                            <Target size={10} />
+                            <span className="truncate flex-1">Outbound ({outboundBoard.owner_name})</span>
+                          </NavLink>
+                        ))}
+                        {squadCrmBoardsOp.map(crmBoard => (
+                          <NavLink
+                            key={crmBoard.id}
+                            to={`/gestor-crm/${crmBoard.owner_user_id}`}
+                            className={({ isActive }) => cn(
+                              "flex items-center gap-2 px-2 py-1 text-[10px] rounded-lg transition-colors",
+                              isActive
+                                ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                                : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                            )}
+                          >
+                            <Target size={10} />
+                            <span className="truncate flex-1">CRM ({crmBoard.owner_name})</span>
+                          </NavLink>
+                        ))}
+                        {nonAdsRoles.map(role => (
+                          <NavLink
+                            key={role}
+                            to={getRoleKanbanPath(role)}
+                            className={() => cn(
+                              "flex items-center gap-2 px-2 py-1 text-[10px] rounded-lg transition-colors",
+                              isRoleActive(role)
+                                ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                                : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                            )}
+                          >
+                            <User size={10} />
+                            <span className="truncate">{ROLE_LABELS[role]}</span>
+                          </NavLink>
+                        ))}
+                        {squadAdsBoards.length === 0 && squadOutboundBoards.length === 0 && nonAdsRoles.length === 0 && (
+                          <span className="px-2 text-[10px] text-sidebar-foreground/40 italic">
+                            Sem usuários
+                          </span>
+                        )}
+                      </CollapsibleContent>
+                    </Collapsible>
+                  );
+                })}
               </CollapsibleContent>
             </Collapsible>
           </div>
