@@ -152,10 +152,16 @@ export function useFinanceiroOnboarding() {
       expectedInvestment?: number | null;
       contractExpiresAt?: string;
     }) => {
+      const now = new Date().toISOString();
       const updateData: Record<string, any> = {
         current_step: targetStep,
-        updated_at: new Date().toISOString(),
+        updated_at: now,
       };
+
+      // Registrar timestamp de assinatura do contrato
+      if (targetStep === 'contrato_assinado') {
+        updateData.step_contrato_assinado_at = now;
+      }
 
       const { error } = await supabase
         .from('financeiro_client_onboarding')
@@ -201,10 +207,16 @@ export function useFinanceiroOnboarding() {
 
       const nextStep = ALL_STEPS[currentIndex + 1];
 
+      const now = new Date().toISOString();
       const updateData: Record<string, any> = {
         current_step: nextStep,
-        updated_at: new Date().toISOString(),
+        updated_at: now,
       };
+
+      // Registrar timestamp de assinatura do contrato
+      if (nextStep === 'contrato_assinado') {
+        updateData.step_contrato_assinado_at = now;
+      }
 
       const { error } = await supabase
         .from('financeiro_client_onboarding')

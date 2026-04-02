@@ -35,6 +35,7 @@ export interface CSClient {
   niche: string | null;
   client_label: 'otimo' | 'bom' | 'medio' | 'ruim' | null;
   distrato_step: string | null;
+  cx_validation_status: string | null;
 }
 
 export interface CSActionManual {

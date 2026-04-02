@@ -7,7 +7,7 @@ import {
   useResultsReportStatus,
 } from '@/hooks/useClientResultsReports';
 import ResultsReportBuilderModal from './ResultsReportBuilderModal';
-import { BarChart3, Plus, Eye, Trash2, Loader2, Clock, AlertTriangle } from 'lucide-react';
+import { BarChart3, Plus, Eye, Trash2, Loader2, Clock, AlertTriangle, FileQuestion } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -34,6 +34,7 @@ export default function ResultsReportSection({ clientId, clientName }: Props) {
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
+  const isPending = status === 'pending';
   const isOverdue = status === 'overdue';
   const isUrgent = status === 'alert';
 
@@ -67,35 +68,52 @@ export default function ResultsReportSection({ clientId, clientName }: Props) {
 
         <div className="p-4 space-y-3">
           {/* 30-day cycle counter */}
-          <div className={`p-3 rounded-lg border flex items-center justify-between ${
-            isOverdue
-              ? 'bg-destructive/10 border-destructive/20'
-              : isUrgent
-                ? 'bg-warning/10 border-warning/20'
-                : 'bg-primary/10 border-primary/20'
-          }`}>
-            <div className="flex items-center gap-2">
-              {isOverdue ? (
-                <AlertTriangle size={16} className="text-destructive" />
-              ) : (
-                <Clock size={16} className={isUrgent ? 'text-warning' : 'text-primary'} />
-              )}
-              <div>
-                <p className="text-xs font-medium">
-                  {isOverdue ? 'Relatório vencido!' : 'Próximo relatório'}
-                </p>
-                <p className="text-[10px] text-muted-foreground">
-                  {daysSince} dia{daysSince !== 1 ? 's' : ''} desde o último relatório
-                </p>
+          {isPending ? (
+            <div className="p-3 rounded-lg border bg-muted/30 border-muted-foreground/20 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileQuestion size={16} className="text-muted-foreground" />
+                <div>
+                  <p className="text-xs font-medium">Relatório pendente</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    Aguardando assinatura do contrato para iniciar contagem
+                  </p>
+                </div>
               </div>
+              <Badge variant="secondary" className="text-sm font-bold px-3">
+                --
+              </Badge>
             </div>
-            <Badge
-              variant={isOverdue ? 'destructive' : 'secondary'}
-              className="text-sm font-bold px-3"
-            >
-              {isOverdue ? `+${daysSince - 30}d` : `${daysLeft}d`}
-            </Badge>
-          </div>
+          ) : (
+            <div className={`p-3 rounded-lg border flex items-center justify-between ${
+              isOverdue
+                ? 'bg-destructive/10 border-destructive/20'
+                : isUrgent
+                  ? 'bg-warning/10 border-warning/20'
+                  : 'bg-primary/10 border-primary/20'
+            }`}>
+              <div className="flex items-center gap-2">
+                {isOverdue ? (
+                  <AlertTriangle size={16} className="text-destructive" />
+                ) : (
+                  <Clock size={16} className={isUrgent ? 'text-warning' : 'text-primary'} />
+                )}
+                <div>
+                  <p className="text-xs font-medium">
+                    {isOverdue ? 'Relatório vencido!' : 'Próximo relatório'}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {daysSince} dia{daysSince !== 1 ? 's' : ''} desde o último relatório
+                  </p>
+                </div>
+              </div>
+              <Badge
+                variant={isOverdue ? 'destructive' : 'secondary'}
+                className="text-sm font-bold px-3"
+              >
+                {isOverdue ? `+${daysSince - 30}d` : `${daysLeft}d`}
+              </Badge>
+            </div>
+          )}
 
           {/* Reports list */}
           {isLoading ? (

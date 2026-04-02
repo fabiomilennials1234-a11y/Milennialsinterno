@@ -299,6 +299,8 @@ export function useCreateClient() {
           // Campos para o Consultor Comercial
           comercial_status: 'novo',
           comercial_entered_at: new Date().toISOString(),
+          // CX Validation: novo cliente nasce aguardando validação
+          cx_validation_status: 'aguardando_validacao',
         })
         .select()
         .single();

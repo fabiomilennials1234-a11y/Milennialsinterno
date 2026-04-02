@@ -24,6 +24,7 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import ClientTierBadge from '@/components/shared/ClientTierBadge';
+import CXValidationBadge from '@/components/shared/CXValidationBadge';
 
 interface Props {
   compact?: boolean;
@@ -289,6 +290,8 @@ export default function AdsAcompanhamentoSection({ compact }: Props) {
                         >
                         <div className="flex flex-col gap-1">
                             {/* Overdue Invoice Badge - Full width at top */}
+                            {/* CX Validation Badge */}
+                            <CXValidationBadge clientId={item.client_id} className="w-full justify-center" />
                             <OverdueInvoiceBadge clientId={item.client_id} className="w-full justify-center" />
                             {/* Contract Status Badge */}
                             <ContractStatusBadge clientId={item.client_id} className="w-full justify-center" />

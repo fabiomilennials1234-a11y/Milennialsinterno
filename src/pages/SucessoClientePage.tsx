@@ -15,6 +15,9 @@ import CSComercialColumn from '@/components/sucesso-cliente/CSComercialColumn';
 import CSNPSSection from '@/components/sucesso-cliente/CSNPSSection';
 import ClientViewModal from '@/components/client/ClientViewModal';
 import CSClientDetailModal from '@/components/sucesso-cliente/CSClientDetailModal';
+import CXValidationPopup from '@/components/sucesso-cliente/CXValidationPopup';
+import CSPendenciaCXColumn from '@/components/sucesso-cliente/CSPendenciaCXColumn';
+import { useCXPendingClients } from '@/hooks/useCXValidation';
 export default function SucessoClientePage() {
   const {
     user,
@@ -38,6 +41,22 @@ export default function SucessoClientePage() {
     canViewDashboards,
     isViewOnly
   } = useCSPermissions();
+
+  // CX Validation: buscar clientes pendentes e controlar popup obrigatório
+  const { data: cxPendingClients = [] } = useCXPendingClients();
+  const cxAguardando = useMemo(() => cxPendingClients.filter(c => c.cx_validation_status === 'aguardando_validacao'), [cxPendingClients]);
+  const [cxPopupDismissed, setCxPopupDismissed] = useState<Set<string>>(new Set());
+
+  // Primeiro cliente aguardando que ainda não foi respondido nesta sessão
+  const cxCurrentClient = useMemo(() => {
+    return cxAguardando.find(c => !cxPopupDismissed.has(c.id)) || null;
+  }, [cxAguardando, cxPopupDismissed]);
+
+  const handleCxPopupClose = () => {
+    if (cxCurrentClient) {
+      setCxPopupDismissed(prev => new Set(prev).add(cxCurrentClient.id));
+    }
+  };
 
   // Access control - must be after all hooks
   const allowedRoles = ['sucesso_cliente', 'gestor_projetos', 'ceo', 'gestor_ads', 'financeiro'];
@@ -157,6 +176,9 @@ export default function SucessoClientePage() {
                 {/* Manager columns */}
                 {managers.map(manager => <CSManagerColumn key={manager.user_id} manager={manager} clients={clientsByManager.get(manager.user_id) || []} onClientClick={handleClientClick} />)}
 
+                {/* Pendência CX column - always visible */}
+                <CSPendenciaCXColumn clients={cxPendingClients} />
+
                 {/* Comercial column - right after managers */}
                 <CSComercialColumn />
 
@@ -190,5 +212,14 @@ export default function SucessoClientePage() {
       
       {/* CS Client detail modal - for classification columns with Action Plans */}
       {selectedCSClient && <CSClientDetailModal isOpen={!!selectedCSClient} onClose={() => setSelectedCSClient(null)} client={selectedCSClient} />}
+
+      {/* CX Validation Popup - obrigatório para novos clientes */}
+      {cxCurrentClient && (
+        <CXValidationPopup
+          client={cxCurrentClient}
+          isOpen={true}
+          onClose={handleCxPopupClose}
+        />
+      )}
     </MainLayout>;
 }

@@ -1230,6 +1230,10 @@ export type Database = {
           created_by: string | null
           cs_classification: string | null
           cs_classification_reason: string | null
+          cx_validated_at: string | null
+          cx_validated_by: string | null
+          cx_validation_notes: string | null
+          cx_validation_status: string | null
           distrato_entered_at: string | null
           distrato_step: string | null
           entry_date: string | null
@@ -1267,6 +1271,10 @@ export type Database = {
           created_by?: string | null
           cs_classification?: string | null
           cs_classification_reason?: string | null
+          cx_validated_at?: string | null
+          cx_validated_by?: string | null
+          cx_validation_notes?: string | null
+          cx_validation_status?: string | null
           distrato_entered_at?: string | null
           distrato_step?: string | null
           entry_date?: string | null
@@ -1304,6 +1312,10 @@ export type Database = {
           created_by?: string | null
           cs_classification?: string | null
           cs_classification_reason?: string | null
+          cx_validated_at?: string | null
+          cx_validated_by?: string | null
+          cx_validation_notes?: string | null
+          cx_validation_status?: string | null
           distrato_entered_at?: string | null
           distrato_step?: string | null
           entry_date?: string | null
