@@ -56,15 +56,17 @@ export function useCheckOverdueAdsTasks() {
       }
 
       // Filtrar apenas tarefas atrasadas (data de vencimento é anterior a hoje)
-      const today = new Date();
-      today.setHours(0, 0, 0, 0); // Início do dia de hoje
-      
+      // Usar string ISO 'YYYY-MM-DD' para evitar problemas de timezone
+      const todayStr = new Date().toLocaleDateString('en-CA'); // 'YYYY-MM-DD' no fuso local
+
       const overdueTasks = (tasks || []).filter(task => {
         if (!task.due_date) return false;
-        const dueDate = new Date(task.due_date);
-        dueDate.setHours(0, 0, 0, 0); // Normaliza para comparar apenas datas
-        // Tarefa está atrasada se a data de vencimento é anterior a hoje
-        return dueDate < today;
+        // due_date vem como 'YYYY-MM-DD' do banco — comparar direto como string
+        const dueDateStr = typeof task.due_date === 'string'
+          ? task.due_date.split('T')[0]
+          : new Date(task.due_date).toLocaleDateString('en-CA');
+        // Tarefa está atrasada se a data de vencimento é estritamente anterior a hoje
+        return dueDateStr < todayStr;
       });
 
       if (overdueTasks.length === 0) return [];
@@ -197,7 +199,7 @@ export function useSaveDelayJustification() {
           .from('ads_task_delay_justifications')
           .update({ justification })
           .eq('id', existing.id);
-        
+
         if (error) throw error;
       } else {
         // Criar nova justificativa
@@ -212,10 +214,78 @@ export function useSaveDelayJustification() {
 
         if (error) throw error;
       }
+
+      // Também salvar na tabela geral (task_delay_justifications) para aparecer na coluna Justificativa
+      // Buscar a notificação ads para obter o task_id
+      const { data: adsNotif } = await (supabase as any)
+        .from('ads_task_delay_notifications')
+        .select('ads_task_id, ads_manager_id, ads_manager_name, task_title, task_due_date')
+        .eq('id', notificationId)
+        .maybeSingle();
+
+      if (adsNotif) {
+        // Verificar se existe notificação correspondente na tabela geral
+        const { data: generalNotif } = await supabase
+          .from('task_delay_notifications')
+          .select('id')
+          .eq('task_id', adsNotif.ads_task_id)
+          .eq('task_table', 'ads_tasks')
+          .maybeSingle();
+
+        let generalNotifId = generalNotif?.id;
+
+        // Se não existe, criar a notificação na tabela geral
+        if (!generalNotifId) {
+          const { data: newNotif } = await supabase
+            .from('task_delay_notifications')
+            .insert({
+              task_id: adsNotif.ads_task_id,
+              task_table: 'ads_tasks',
+              task_owner_id: adsNotif.ads_manager_id,
+              task_owner_name: adsNotif.ads_manager_name,
+              task_owner_role: 'gestor_ads',
+              task_title: adsNotif.task_title,
+              task_due_date: adsNotif.task_due_date,
+            })
+            .select('id')
+            .maybeSingle();
+
+          generalNotifId = newNotif?.id;
+        }
+
+        // Criar justificativa na tabela geral se temos o notification_id
+        if (generalNotifId) {
+          const { data: existingGeneral } = await supabase
+            .from('task_delay_justifications')
+            .select('id')
+            .eq('notification_id', generalNotifId)
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+          if (existingGeneral) {
+            await supabase
+              .from('task_delay_justifications')
+              .update({ justification })
+              .eq('id', existingGeneral.id);
+          } else {
+            await supabase
+              .from('task_delay_justifications')
+              .insert({
+                notification_id: generalNotifId,
+                user_id: user.id,
+                user_role: user.role,
+                justification,
+              });
+          }
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ads-task-delay-notifications'] });
       queryClient.invalidateQueries({ queryKey: ['my-delay-justifications'] });
+      queryClient.invalidateQueries({ queryKey: ['task-delay-justifications-by-role'] });
+      queryClient.invalidateQueries({ queryKey: ['all-task-delay-justifications'] });
+      queryClient.invalidateQueries({ queryKey: ['task-delay-notifications'] });
       toast.success('Justificativa salva com sucesso!');
     },
     onError: (error: any) => {

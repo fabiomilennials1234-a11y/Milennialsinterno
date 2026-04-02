@@ -15,6 +15,7 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import ClientViewModal from '@/components/client/ClientViewModal';
 import OverdueInvoiceBadge from '@/components/shared/OverdueInvoiceBadge';
 import ContractStatusBadge from '@/components/shared/ContractStatusBadge';
+import ResultsReportCountdownBadge from '@/components/results-report/ResultsReportCountdownBadge';
 import ClientLabelBadge from '@/components/shared/ClientLabelBadge';
 import ClientLabelSelector from '@/components/shared/ClientLabelSelector';
 import type { ClientLabel } from '@/components/shared/ClientLabelBadge';
@@ -22,6 +23,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import ClientTierBadge from '@/components/shared/ClientTierBadge';
 
 interface Props {
   compact?: boolean;
@@ -290,7 +292,11 @@ export default function AdsAcompanhamentoSection({ compact }: Props) {
                             <OverdueInvoiceBadge clientId={item.client_id} className="w-full justify-center" />
                             {/* Contract Status Badge */}
                             <ContractStatusBadge clientId={item.client_id} className="w-full justify-center" />
-                            
+                            {/* Results Report Countdown */}
+                            <ResultsReportCountdownBadge clientId={item.client_id} className="w-full justify-center" alwaysShow />
+                            {/* Client Tier Badge */}
+                            <ClientTierBadge clientId={item.client_id} className="w-full justify-center" compact />
+
                             <div className="flex items-center gap-2">
                               <GripVertical size={12} className="text-muted-foreground shrink-0" />
                               {/* Avatar com iniciais */}
@@ -497,7 +503,8 @@ export default function AdsAcompanhamentoSection({ compact }: Props) {
 
       {selectedClientId && (
         <ClientViewModal
-          isOpen={!!selectedClientId}
+          key={selectedClientId}
+          isOpen={true}
           onClose={() => setSelectedClientId(null)}
           clientId={selectedClientId}
         />

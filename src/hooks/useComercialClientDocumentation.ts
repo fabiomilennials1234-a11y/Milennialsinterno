@@ -107,6 +107,7 @@ export function useUpsertComercialClientDoc() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['comercial-client-documentation'] });
+      queryClient.invalidateQueries({ queryKey: ['comercial-docs-today'] });
     },
     onError: () => {
       toast.error('Erro ao salvar documentação');

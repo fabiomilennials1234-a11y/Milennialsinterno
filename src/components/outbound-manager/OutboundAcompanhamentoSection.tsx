@@ -521,7 +521,8 @@ export default function OutboundAcompanhamentoSection({ compact }: Props) {
 
       {selectedClientId && (
         <ClientViewModal
-          isOpen={!!selectedClientId}
+          key={selectedClientId}
+          isOpen={true}
           onClose={() => setSelectedClientId(null)}
           clientId={selectedClientId}
         />

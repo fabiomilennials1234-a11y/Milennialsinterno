@@ -34,6 +34,7 @@ import ComercialMovimentacaoNotification from '@/components/comercial/ComercialM
 import AdsFerramentasSection from '@/components/ads-manager/AdsFerramentasSection';
 import AdsBonusSection from '@/components/ads-manager/AdsBonusSection';
 import AdsLemasSection from '@/components/ads-manager/AdsLemasSection';
+import { useDailyMovementDelayCheck } from '@/hooks/useDailyMovementDelayCheck';
 
 // Colunas do Consultor Comercial
 const COLUMNS = [
@@ -55,6 +56,8 @@ export default function ConsultorComercialPage() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
+
+  useDailyMovementDelayCheck();
 
   const checkScrollButtons = () => {
     const container = scrollContainerRef.current;

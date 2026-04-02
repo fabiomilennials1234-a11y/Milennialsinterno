@@ -3,7 +3,6 @@ import { Users, Eye, AlertTriangle, GripVertical, Calendar, HelpCircle, MessageS
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -25,6 +24,7 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import ClientViewModal from '@/components/client/ClientViewModal';
 import OverdueInvoiceBadge from '@/components/shared/OverdueInvoiceBadge';
 import ContractStatusBadge from '@/components/shared/ContractStatusBadge';
+import ResultsReportCountdownBadge from '@/components/results-report/ResultsReportCountdownBadge';
 import ClientLabelBadge from '@/components/shared/ClientLabelBadge';
 import type { ClientLabel } from '@/components/shared/ClientLabelBadge';
 import { format } from 'date-fns';
@@ -69,7 +69,9 @@ function ClientItem({
       <OverdueInvoiceBadge clientId={tracking.client_id} className="w-full justify-center mb-1" />
       {/* Contract Status Badge */}
       <ContractStatusBadge clientId={tracking.client_id} className="w-full justify-center mb-1" />
-      
+      {/* Results Report Countdown */}
+      <ResultsReportCountdownBadge clientId={tracking.client_id} className="w-full justify-center mb-1" alwaysShow />
+
       <div className="flex items-center gap-2">
         <GripVertical size={12} className="text-muted-foreground cursor-grab flex-shrink-0" />
         <div className="flex-1 min-w-0">
@@ -205,11 +207,14 @@ function ManagerColumn({
         </DragDropContext>
       </div>
 
-      <ClientViewModal
-        isOpen={!!selectedClientId}
-        clientId={selectedClientId || ''}
-        onClose={() => setSelectedClientId(null)}
-      />
+      {selectedClientId && (
+        <ClientViewModal
+          key={selectedClientId}
+          isOpen={true}
+          clientId={selectedClientId}
+          onClose={() => setSelectedClientId(null)}
+        />
+      )}
     </>
   );
 }
@@ -340,18 +345,18 @@ export default function ComercialAcompanhamentoSection() {
 
   return (
     <>
-      <ScrollArea className="w-full">
-        <div className="flex gap-4 pb-4">
+      <div className="w-full overflow-x-auto scrollbar-apple pb-2">
+        <div className="flex gap-4 pb-4" style={{ minWidth: 'max-content' }}>
           {managers.map((manager) => (
-            <ManagerColumn 
-              key={manager.user_id} 
+            <ManagerColumn
+              key={manager.user_id}
               manager={manager}
               allTracking={allTracking}
               onMoveClient={handleMoveClient}
             />
           ))}
         </div>
-      </ScrollArea>
+      </div>
 
       {/* Documentation Modal */}
       <Dialog open={docModal.open} onOpenChange={(open) => !open && handleCloseModal()}>

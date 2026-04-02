@@ -264,7 +264,8 @@ export default function AdsOnboardingSection() {
 
       {selectedClientId && (
         <ClientViewModal
-          isOpen={!!selectedClientId}
+          key={selectedClientId}
+          isOpen={true}
           onClose={() => setSelectedClientId(null)}
           clientId={selectedClientId}
         />

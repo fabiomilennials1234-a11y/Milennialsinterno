@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 
 export interface JustificationRequest {
@@ -41,6 +42,7 @@ let justificationIdCounter = 0;
 
 export function JustificationProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [queue, setQueue] = useState<JustificationRequest[]>([]);
   const [justificationText, setJustificationText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -96,10 +98,17 @@ export function JustificationProvider({ children }: { children: ReactNode }) {
           });
       }
 
-      // 3. Resolve the promise so the calling hook can continue
+      // 3. Invalidate queries so the Justificativa column updates
+      queryClient.invalidateQueries({ queryKey: ['task-delay-notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['task-delay-justifications'] });
+      queryClient.invalidateQueries({ queryKey: ['task-delay-justifications-by-role'] });
+      queryClient.invalidateQueries({ queryKey: ['all-task-delay-justifications'] });
+      queryClient.invalidateQueries({ queryKey: ['my-task-delay-justifications'] });
+
+      // 4. Resolve the promise so the calling hook can continue
       current.resolve(justificationText.trim());
 
-      // 4. Advance to next item in queue
+      // 5. Advance to next item in queue
       setQueue(prev => prev.slice(1));
       setJustificationText('');
     } finally {
