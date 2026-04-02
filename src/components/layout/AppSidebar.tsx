@@ -1272,7 +1272,7 @@ export default function AppSidebar() {
                   return (
                     <Collapsible
                       key={squad.id}
-                      open={openSquads[squad.id] ?? (squad.id === userSquadId)}
+                      open={openSquads[squad.id] ?? (squad.id === userSquad?.id)}
                       onOpenChange={() => toggleSquad(squad.id)}
                     >
                       <CollapsibleTrigger className="sidebar-item w-full text-xs py-1.5 justify-between">
@@ -1282,7 +1282,7 @@ export default function AppSidebar() {
                         </div>
                         <ChevronDown
                           size={12}
-                          className={cn("transition-transform duration-200", (openSquads[squad.id] ?? (squad.id === userSquadId)) && "rotate-180")}
+                          className={cn("transition-transform duration-200", (openSquads[squad.id] ?? (squad.id === userSquad?.id)) && "rotate-180")}
                         />
                       </CollapsibleTrigger>
                       <CollapsibleContent className="pl-4 space-y-0.5 sidebar-open-indicator">
