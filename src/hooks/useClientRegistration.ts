@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { addDays, addMonths, parseISO } from 'date-fns';
 import { createNewClientNotificationAndTask } from '@/hooks/useAdsNewClientNotifications';
+import { createWelcomeTaskForProjectManager } from '@/hooks/useProjectManagerWelcomeTasks';
 
 export interface OrganizationGroup {
   id: string;
@@ -483,6 +484,16 @@ export function useCreateClient() {
         }
       }
 
+      // --- GESTOR DE PROJETOS: Criar tarefa de boas-vindas (apenas Millennials Growth) ---
+      const isMillennialsGrowth = (clientData.contracted_products || []).includes('millennials-growth');
+      if (isMillennialsGrowth && client.group_id) {
+        try {
+          await createWelcomeTaskForProjectManager(client.id, client.name, client.group_id);
+        } catch (err) {
+          console.error('[useCreateClient] Erro ao criar tarefa de boas-vindas:', err);
+        }
+      }
+
       return client;
     },
     onSuccess: () => {
@@ -506,6 +517,7 @@ export function useCreateClient() {
       queryClient.invalidateQueries({ queryKey: ['financeiro-onboarding'] });
       queryClient.invalidateQueries({ queryKey: ['financeiro-active-clients'] });
       queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['pm-welcome-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['contract-onboarding-status'] });
       queryClient.invalidateQueries({ queryKey: ['contract-active-clients'] });
       toast.success('Cliente cadastrado com sucesso!', {

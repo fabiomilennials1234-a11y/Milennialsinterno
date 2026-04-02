@@ -418,6 +418,8 @@ export function useSaveTaskDelayJustification() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['task-delay-notifications'] });
       queryClient.invalidateQueries({ queryKey: ['task-delay-justifications'] });
+      queryClient.invalidateQueries({ queryKey: ['task-delay-justifications-by-role'] });
+      queryClient.invalidateQueries({ queryKey: ['all-task-delay-justifications'] });
       queryClient.invalidateQueries({ queryKey: ['my-task-delay-justifications'] });
       toast.success('Justificativa salva com sucesso!');
     },

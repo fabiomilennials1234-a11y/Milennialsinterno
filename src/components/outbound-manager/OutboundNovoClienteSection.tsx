@@ -162,7 +162,8 @@ export default function OutboundNovoClienteSection() {
 
       {selectedClientId && (
         <ClientViewModal
-          isOpen={!!selectedClientId}
+          key={selectedClientId}
+          isOpen={true}
           onClose={() => setSelectedClientId(null)}
           clientId={selectedClientId}
         />

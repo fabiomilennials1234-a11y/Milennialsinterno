@@ -173,7 +173,8 @@ export default function AdsNovoClienteSection() {
       {/* Client View Modal */}
       {selectedClientId && (
         <ClientViewModal
-          isOpen={!!selectedClientId}
+          key={selectedClientId}
+          isOpen={true}
           onClose={() => setSelectedClientId(null)}
           clientId={selectedClientId}
         />

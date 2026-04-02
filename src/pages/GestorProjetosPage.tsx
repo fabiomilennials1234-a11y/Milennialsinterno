@@ -6,9 +6,9 @@ import {
   ChevronLeft,
   ChevronRight,
   LayoutDashboard,
-  UserPlus,
   Clock,
   AlertTriangle,
+  ClipboardList,
   Users,
   Wrench,
   Gift,
@@ -17,19 +17,21 @@ import {
 import { Button } from '@/components/ui/button';
 import MeetingOneOnOneSection from '@/components/dash-gestores/MeetingOneOnOneSection';
 import SquadDepartmentMetricsSection from '@/components/gestor-projetos/SquadDepartmentMetricsSection';
-import SquadNewClientsByDepartmentSection from '@/components/gestor-projetos/SquadNewClientsByDepartmentSection';
 import SquadOnboardingSection from '@/components/gestor-projetos/SquadOnboardingSection';
 import SquadDelaysByDepartmentSection from '@/components/gestor-projetos/SquadDelaysByDepartmentSection';
+import SquadDelaysJustificationsSection from '@/components/gestor-projetos/SquadDelaysJustificationsSection';
 import AdsFerramentasSection from '@/components/ads-manager/AdsFerramentasSection';
 import AdsBonusSection from '@/components/ads-manager/AdsBonusSection';
 import AdsLemasSection from '@/components/ads-manager/AdsLemasSection';
+import ProjectManagerWelcomeModal from '@/components/gestor-projetos/ProjectManagerWelcomeModal';
+import { useDailyMovementDelayCheck } from '@/hooks/useDailyMovementDelayCheck';
 
 // Colunas do Gestor de Projetos - Focado em Gestão de Squad por Departamento
 const COLUMNS = [
   { id: 'metricas', title: 'Métricas por Área', icon: LayoutDashboard, headerClass: 'section-header-blue', iconColor: 'text-white' },
-  { id: 'novos-clientes', title: 'Clientes Novos', icon: UserPlus, headerClass: 'section-header-green', iconColor: 'text-white' },
   { id: 'onboarding', title: 'Status Onboarding', icon: Clock, headerClass: 'section-header-purple', iconColor: 'text-white' },
   { id: 'atrasados', title: 'Atrasados por Área', icon: AlertTriangle, headerClass: 'section-header-danger', iconColor: 'text-white' },
+  { id: 'atrasos-justificativas', title: 'Atrasos + Justificativas do Time', icon: ClipboardList, headerClass: 'section-header-orange', iconColor: 'text-white' },
   { id: 'reuniao-1a1', title: 'Reunião 1 a 1', icon: Users, headerClass: 'section-header-cyan', iconColor: 'text-white' },
   { id: 'ferramentas', title: 'Ferramentas PRO+', icon: Wrench, headerClass: 'section-header-purple', iconColor: 'text-white' },
   { id: 'bonus', title: 'Bônus Millennials', icon: Gift, headerClass: 'section-header-yellow', iconColor: 'text-foreground' },
@@ -41,6 +43,9 @@ export default function GestorProjetosPage() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
+
+  // Check for daily movement delays on page load
+  useDailyMovementDelayCheck();
 
   const allowedRoles = ['gestor_projetos', 'ceo'];
   const canAccess = user?.role && allowedRoles.includes(user.role);
@@ -83,12 +88,12 @@ export default function GestorProjetosPage() {
     switch (columnId) {
       case 'metricas':
         return <SquadDepartmentMetricsSection />;
-      case 'novos-clientes':
-        return <SquadNewClientsByDepartmentSection />;
       case 'onboarding':
         return <SquadOnboardingSection />;
       case 'atrasados':
         return <SquadDelaysByDepartmentSection />;
+      case 'atrasos-justificativas':
+        return <SquadDelaysJustificationsSection />;
       case 'reuniao-1a1':
         return <MeetingOneOnOneSection />;
       case 'ferramentas':
@@ -168,6 +173,9 @@ export default function GestorProjetosPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal bloqueante de boas-vindas — apenas para gestor_projetos */}
+      {user?.role === 'gestor_projetos' && <ProjectManagerWelcomeModal />}
     </MainLayout>
   );
 }

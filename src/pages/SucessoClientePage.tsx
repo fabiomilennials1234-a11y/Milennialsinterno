@@ -186,7 +186,7 @@ export default function SucessoClientePage() {
       </div>
 
       {/* Client detail modal - for manager columns */}
-      {selectedClientId && <ClientViewModal isOpen={!!selectedClientId} onClose={() => setSelectedClientId(null)} clientId={selectedClientId} />}
+      {selectedClientId && <ClientViewModal key={selectedClientId} isOpen={true} onClose={() => setSelectedClientId(null)} clientId={selectedClientId} />}
       
       {/* CS Client detail modal - for classification columns with Action Plans */}
       {selectedCSClient && <CSClientDetailModal isOpen={!!selectedCSClient} onClose={() => setSelectedCSClient(null)} client={selectedCSClient} />}

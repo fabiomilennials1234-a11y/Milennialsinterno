@@ -25,6 +25,12 @@ function getDateKeyInBrazilTZ(date: Date = new Date()): string {
   }).format(date);
 }
 
+// Parse date string (YYYY-MM-DD) without timezone conversion issues
+function parseDateString(dateStr: string): Date {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
 interface DocWithClient {
   id: string;
   comercial_user_id: string;
@@ -94,6 +100,12 @@ function DocCard({ doc }: { doc: DocWithClient }) {
               <Eye size={12} />
             </Button>
           </div>
+        </div>
+        <div className="flex items-center gap-1.5 mt-1.5">
+          <Calendar size={11} className="text-muted-foreground flex-shrink-0" />
+          <span className="text-[11px] text-muted-foreground">
+            {format(parseDateString(doc.documentation_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+          </span>
         </div>
         <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
           {doc.help_description}

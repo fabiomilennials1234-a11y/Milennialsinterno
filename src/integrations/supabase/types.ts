@@ -698,6 +698,86 @@ export type Database = {
           },
         ]
       }
+      client_results_reports: {
+        Row: {
+          id: string
+          client_id: string
+          created_by: string
+          actions_last_30_days: string | null
+          achievements: string | null
+          traffic_results: string | null
+          key_metrics: string | null
+          top_campaign: string | null
+          improvement_points: string | null
+          next_30_days: string | null
+          next_steps: string | null
+          client_logo_url: string | null
+          custom_content: Json | null
+          public_token: string | null
+          is_published: boolean
+          pdf_url: string | null
+          section_images: Json | null
+          cycle_start_date: string
+          cycle_end_date: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          created_by: string
+          actions_last_30_days?: string | null
+          achievements?: string | null
+          traffic_results?: string | null
+          key_metrics?: string | null
+          top_campaign?: string | null
+          improvement_points?: string | null
+          next_30_days?: string | null
+          next_steps?: string | null
+          client_logo_url?: string | null
+          custom_content?: Json | null
+          public_token?: string | null
+          is_published?: boolean
+          pdf_url?: string | null
+          section_images?: Json | null
+          cycle_start_date: string
+          cycle_end_date: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          created_by?: string
+          actions_last_30_days?: string | null
+          achievements?: string | null
+          traffic_results?: string | null
+          key_metrics?: string | null
+          top_campaign?: string | null
+          improvement_points?: string | null
+          next_30_days?: string | null
+          next_steps?: string | null
+          client_logo_url?: string | null
+          custom_content?: Json | null
+          public_token?: string | null
+          is_published?: boolean
+          pdf_url?: string | null
+          section_images?: Json | null
+          cycle_start_date?: string
+          cycle_end_date?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_results_reports_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_daily_tracking: {
         Row: {
           ads_manager_id: string

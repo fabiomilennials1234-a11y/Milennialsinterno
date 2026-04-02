@@ -33,6 +33,9 @@ import ClientLabelSelector from '@/components/shared/ClientLabelSelector';
 import { useClientInfo, useClientCallForm, useSaveClientCallForm, useUpdateClientInfo, ClientCallForm } from '@/hooks/useClientCallForm';
 import StrategyBuilderSection from '@/components/strategy/StrategyBuilderSection';
 import OutboundStrategyBuilderSection from '@/components/outbound-strategy/OutboundStrategyBuilderSection';
+import ResultsReportSection from '@/components/results-report/ResultsReportSection';
+import ResultsReportCountdownBadge from '@/components/results-report/ResultsReportCountdownBadge';
+import ClientTierBadge, { ClientCreativesLimit } from '@/components/shared/ClientTierBadge';
 import { PRODUCT_CONFIG } from '@/components/shared/ProductBadges';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
@@ -210,6 +213,8 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
                 )}
               </div>
               <ClientLabelBadge label={(clientInfo as any)?.client_label as ClientLabel} size="sm" />
+              <ClientTierBadge clientId={clientId} />
+              <ResultsReportCountdownBadge clientId={clientId} />
             </div>
             <div className="flex items-center gap-2">
               {canSetClientLabel && (
@@ -244,6 +249,9 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
         ) : (
           <ScrollArea className="flex-1 overflow-y-auto">
             <div className="px-6 py-4 space-y-6">
+              {/* Limite de criativos mensal */}
+              <ClientCreativesLimit clientId={clientId} className="px-1" />
+
               {/* Produtos Inclusos */}
               {clientInfo?.contracted_products && clientInfo.contracted_products.length > 0 && (
                 <div className="bg-muted/20 rounded-xl p-4 border border-border">
@@ -668,6 +676,14 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
               {/* Outbound Strategy Builder Section */}
               {clientInfo && (
                 <OutboundStrategyBuilderSection
+                  clientId={clientId}
+                  clientName={clientInfo.name}
+                />
+              )}
+
+              {/* Results Report Section */}
+              {clientInfo && (
+                <ResultsReportSection
                   clientId={clientId}
                   clientName={clientInfo.name}
                 />

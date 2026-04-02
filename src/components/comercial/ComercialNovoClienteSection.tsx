@@ -162,6 +162,7 @@ function ClientCard({ client }: { client: any }) {
       </div>
 
       <ClientViewModal
+        key={client.id}
         isOpen={showModal}
         clientId={client.id}
         onClose={() => setShowModal(false)}
