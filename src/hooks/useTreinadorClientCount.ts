@@ -209,6 +209,48 @@ export function useAllOutboundClientCounts() {
 }
 
 /**
+ * Retorna contagem de clientes para TODOS os consultores de MKT Place.
+ */
+export function useAllMktplaceClientCounts() {
+  return useQuery({
+    queryKey: ['all-mktplace-client-counts'],
+    queryFn: async () => {
+      const { data: consultores, error: cError } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'consultor_mktplace');
+
+      if (cError) throw cError;
+      if (!consultores || consultores.length === 0) return {};
+
+      const consultorIds = consultores.map(c => c.user_id);
+
+      const { data: clients, error: clError } = await supabase
+        .from('clients')
+        .select('assigned_mktplace')
+        .in('assigned_mktplace', consultorIds)
+        .eq('archived', false)
+        .neq('status', 'churned');
+
+      if (clError) throw clError;
+
+      const counts: Record<string, number> = {};
+      for (const id of consultorIds) {
+        counts[id] = 0;
+      }
+      for (const client of clients || []) {
+        if (client.assigned_mktplace && counts[client.assigned_mktplace] !== undefined) {
+          counts[client.assigned_mktplace]++;
+        }
+      }
+
+      return counts;
+    },
+    staleTime: 30000,
+  });
+}
+
+/**
  * Busca todos os gestores de ads e treinadores comerciais (para dropdowns).
  */
 export function useManagerOptions() {

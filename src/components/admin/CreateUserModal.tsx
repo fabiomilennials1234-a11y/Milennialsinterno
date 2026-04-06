@@ -36,7 +36,7 @@ const CORINGA_ROLES: UserRole[] = ['gestor_projetos'];
 const INDEPENDENT_ROLES: UserRole[] = ['rh', 'financeiro', 'produtora', 'atrizes_gravacao'];
 
 // Cargos com destino fixo (não pedem grupo, squad nem área)
-const FIXED_PADDOCK_ROLES: UserRole[] = ['consultor_comercial'];
+const FIXED_PADDOCK_ROLES: UserRole[] = ['consultor_comercial', 'consultor_mktplace'];
 const FIXED_TORQUE_ROLES: UserRole[] = ['gestor_crm'];
 const FIXED_OUTBOUND_ROLES: UserRole[] = ['outbound'];
 const ALL_FIXED_ROLES: UserRole[] = [...FIXED_PADDOCK_ROLES, ...FIXED_TORQUE_ROLES, ...FIXED_OUTBOUND_ROLES];
@@ -75,6 +75,7 @@ const DEFAULT_PAGES_BY_ROLE: Record<UserRole, string[]> = {
   produtora: ['produtora'],
   gestor_crm: ['gestor-crm'],
   consultor_comercial: ['consultor-comercial'],
+  consultor_mktplace: ['consultor-comercial'],
   financeiro: ['financeiro', 'cliente-list', 'comissoes'],
   rh: ['rh'],
 };
@@ -87,6 +88,7 @@ function getRoleAssignmentType(role: UserRole): 'group' | 'independent' | 'fixed
 }
 
 function getFixedDestinationLabel(role: UserRole): { title: string; description: string } | null {
+  if (role === 'consultor_mktplace') return { title: 'Educacional → Consultoria de MKT Place', description: 'Este cargo é vinculado automaticamente à Consultoria de MKT Place. Nenhuma configuração adicional necessária.' };
   if (FIXED_PADDOCK_ROLES.includes(role)) return { title: 'Educacional → Millennials Paddock', description: 'Este cargo é vinculado automaticamente ao Paddock. Nenhuma configuração adicional necessária.' };
   if (FIXED_TORQUE_ROLES.includes(role)) return { title: 'SaaS → Torque', description: 'Este cargo é vinculado automaticamente ao Torque. Nenhuma configuração adicional necessária.' };
   if (FIXED_OUTBOUND_ROLES.includes(role)) return { title: 'Outbound', description: 'Este cargo é vinculado automaticamente ao Outbound. Nenhuma configuração adicional necessária.' };

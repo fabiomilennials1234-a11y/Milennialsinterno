@@ -597,6 +597,9 @@ export default function ClientListPage() {
       queryClient.invalidateQueries({ queryKey: ['financeiro-distrato-clients'] });
       queryClient.invalidateQueries({ queryKey: ['all-gestor-client-counts'] });
       queryClient.invalidateQueries({ queryKey: ['all-treinador-client-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['all-mktplace-client-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['all-crm-client-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['all-outbound-client-counts'] });
       queryClient.invalidateQueries({ queryKey: ['product-churns'] });
     } catch (error: any) {
       toast.error('Erro ao restaurar cliente', {

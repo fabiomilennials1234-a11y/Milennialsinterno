@@ -34,6 +34,7 @@ import {
   useCrmManagers,
   useRhUsers,
   useOutboundManagers,
+  useMktplaceConsultants,
   useCreateClient,
 } from '@/hooks/useClientRegistration';
 import {
@@ -41,6 +42,7 @@ import {
   useAllTreinadorClientCounts,
   useAllCrmClientCounts,
   useAllOutboundClientCounts,
+  useAllMktplaceClientCounts,
 } from '@/hooks/useTreinadorClientCount';
 import {
   validateCNPJ,
@@ -55,6 +57,7 @@ import {
 const MANAGER_LIMITS: Record<string, number> = {
   gestor_ads: 25,
   consultor_comercial: 80,
+  consultor_mktplace: 80,
   gestor_crm: 80,
   outbound: 80,
 };
@@ -66,6 +69,7 @@ const AVAILABLE_PRODUCTS = [
   { slug: 'millennials-paddock', name: 'Millennials Paddock', requiresTeam: false },
   { slug: 'torque-crm', name: 'Torque CRM', requiresTeam: false },
   { slug: 'millennials-hunting', name: 'Millennials Hunting', requiresTeam: false },
+  { slug: 'gestor-mktplace', name: 'Gestor de MKT Place', requiresTeam: false },
 ];
 
 // Schema de validação com Zod
@@ -87,6 +91,9 @@ const clientSchema = z.object({
     .refine((val) => !val || validateCPF(val), {
       message: 'CPF inválido. Verifique os dígitos.',
     }),
+  phone: z
+    .string()
+    .optional(),
   razao_social: z
     .string()
     .trim()
@@ -133,6 +140,7 @@ const clientSchema = z.object({
   assigned_crm: z.string().optional(),
   assigned_rh: z.string().optional(),
   assigned_outbound_manager: z.string().optional(),
+  assigned_mktplace: z.string().optional(),
 }).refine((data) => {
   // Se Millennials Growth está selecionado, exige group_id e squad_id
   const hasMillennialsGrowth = data.contracted_products.includes('millennials-growth');
@@ -151,6 +159,15 @@ const clientSchema = z.object({
 }, {
   message: 'Selecione o Gestor de Ads responsável',
   path: ['assigned_ads_manager'],
+}).refine((data) => {
+  // Consultor de MKT Place é obrigatório quando o produto envolve MKT Place
+  const needsMktplace = data.contracted_products.includes('millennials-growth') ||
+    data.contracted_products.includes('gestor-mktplace');
+  if (needsMktplace) return !!data.assigned_mktplace;
+  return true;
+}, {
+  message: 'Selecione o Consultor(a) de MKT Place',
+  path: ['assigned_mktplace'],
 }).refine((data) => {
   // Validar que cada produto selecionado tem um valor
   if (data.contracted_products.length === 0) return true;
@@ -192,6 +209,7 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
   const { data: crmManagers = [], isLoading: crmLoading } = useCrmManagers();
   const { data: rhUsers = [], isLoading: rhLoading } = useRhUsers();
   const { data: outboundManagers = [], isLoading: outboundLoading } = useOutboundManagers();
+  const { data: mktplaceConsultants = [], isLoading: mktplaceLoading } = useMktplaceConsultants();
   const createClient = useCreateClient();
 
   // Contagens de clientes (mesma lógica da Sidebar)
@@ -199,6 +217,7 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
   const { data: treinadorCounts = {} } = useAllTreinadorClientCounts();
   const { data: crmCounts = {} } = useAllCrmClientCounts();
   const { data: outboundCounts = {} } = useAllOutboundClientCounts();
+  const { data: mktplaceCounts = {} } = useAllMktplaceClientCounts();
 
   const form = useForm<ClientFormData>({
     resolver: zodResolver(clientSchema),
@@ -206,6 +225,7 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
       name: '',
       cnpj: '',
       cpf: '',
+      phone: '',
       razao_social: '',
       niche: '',
       general_info: '',
@@ -223,6 +243,7 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
       assigned_crm: '',
       assigned_rh: '',
       assigned_outbound_manager: '',
+      assigned_mktplace: '',
     },
     mode: 'onChange',
   });
@@ -252,6 +273,11 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
     return Array.isArray(watchedProducts) && watchedProducts.includes('millennials-outbound');
   }, [watchedProducts]);
 
+  const hasGestorMktplace = useMemo(() => {
+    return Array.isArray(watchedProducts) && watchedProducts.includes('gestor-mktplace');
+  }, [watchedProducts]);
+
+  const showMktplace = hasMillennialsGrowth || hasGestorMktplace;
   const showComercial = hasMillennialsGrowth || hasMillennialsPaddock || hasTorqueCRM;
   const showCrmManager = hasTorqueCRM;
   const showRhUser = hasHunting;
@@ -333,6 +359,7 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
         name: data.name.trim(),
         cnpj: data.cnpj,
         cpf: data.cpf || undefined,
+        phone: data.phone || undefined,
         razao_social: data.razao_social.trim(),
         niche: data.niche.trim(),
         general_info: data.general_info.trim(),
@@ -350,6 +377,7 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
         assigned_crm: data.assigned_crm || undefined,
         assigned_rh: data.assigned_rh || undefined,
         assigned_outbound_manager: data.assigned_outbound_manager || undefined,
+        assigned_mktplace: data.assigned_mktplace || undefined,
         product_values: productValuesArray,
       });
 
@@ -610,6 +638,27 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
                           className="input-apple"
                           value={field.value}
                           onChange={(e) => field.onChange(formatCPF(e.target.value))}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Telefone</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="(00) 00000-0000"
+                          className="input-apple"
+                          maxLength={15}
+                          {...field}
                         />
                       </FormControl>
                       <FormMessage />
@@ -998,6 +1047,47 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
                                   comercialConsultants.map((consultant) => (
                                     <option key={consultant.user_id} value={consultant.user_id}>
                                       {consultant.name} — {treinadorCounts[consultant.user_id] || 0}/{MANAGER_LIMITS.consultor_comercial}
+                                    </option>
+                                  ))
+                                )}
+                              </select>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {/* Consultor(a) de MKT Place */}
+                    {showMktplace && (
+                      <FormField
+                        control={form.control}
+                        name="assigned_mktplace"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Consultor(a) de MKT Place</FormLabel>
+                            <FormControl>
+                              <select
+                                className="input-apple"
+                                value={field.value || ''}
+                                onChange={(e) => handleManagerSelect(
+                                  'assigned_mktplace',
+                                  e.target.value,
+                                  mktplaceCounts,
+                                  mktplaceConsultants,
+                                  MANAGER_LIMITS.consultor_mktplace,
+                                  field.onChange,
+                                )}
+                              >
+                                <option value="">Selecione o Consultor(a) de MKT Place</option>
+                                {mktplaceLoading ? (
+                                  <option value="" disabled>Carregando...</option>
+                                ) : mktplaceConsultants.length === 0 ? (
+                                  <option value="" disabled>Nenhum consultor encontrado</option>
+                                ) : (
+                                  mktplaceConsultants.map((consultant) => (
+                                    <option key={consultant.user_id} value={consultant.user_id}>
+                                      {consultant.name} — {mktplaceCounts[consultant.user_id] || 0}/{MANAGER_LIMITS.consultor_mktplace}
                                     </option>
                                   ))
                                 )}

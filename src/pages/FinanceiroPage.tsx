@@ -22,6 +22,7 @@ import FinanceiroProductChurnsSection from '@/components/financeiro/FinanceiroPr
 import FinanceiroContasSection from '@/components/financeiro/FinanceiroContasSection';
 import FinanceiroDRESection from '@/components/financeiro/FinanceiroDRESection';
 import { FinanceiroComissoesSection } from '@/components/financeiro/FinanceiroComissoesSection';
+import FinanceiroTarefasKanban from '@/components/financeiro/FinanceiroTarefasKanban';
 
 // Colunas do Kanban "Millennials Contratos"
 const CONTRATOS_COLUMNS = [
@@ -299,18 +300,24 @@ export default function FinanceiroPage() {
         {/* Header */}
         <div className="px-8 py-6 border-b border-subtle shrink-0">
           <h1 className="text-display text-foreground">
-            {activeTab === 'contratos' ? 'Millennials Contratos' : 'Contas a Pagar e Receber'}
+            {activeTab === 'contratos' ? 'Millennials Contratos' : activeTab === 'tarefas' ? 'Tarefas do Financeiro' : 'Contas a Pagar e Receber'}
           </h1>
           <p className="text-caption text-muted-foreground mt-1">
-            {activeTab === 'contratos' 
+            {activeTab === 'contratos'
               ? 'Gestão de contratos e onboarding de clientes'
+              : activeTab === 'tarefas'
+              ? 'Organização interna do time financeiro'
               : 'Contas a pagar, receber e DRE'
             }
           </p>
         </div>
 
         {/* Kanban Content */}
-        {activeTab === 'contratos'
+        {activeTab === 'tarefas' ? (
+          <div className="flex-1 overflow-auto p-6">
+            <FinanceiroTarefasKanban />
+          </div>
+        ) : activeTab === 'contratos'
           ? renderKanbanBoard(CONTRATOS_COLUMNS, contratosScrollRef, renderContratosColumnContent, true)
           : renderKanbanBoard(CONTAS_COLUMNS, contasScrollRef, renderContasColumnContent, false)
         }

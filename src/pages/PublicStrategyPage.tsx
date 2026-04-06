@@ -1315,6 +1315,154 @@ export default function PublicStrategyPage() {
         </div>
       </section>
 
+      {/* Profile Assessment Section */}
+      {(strategy.profile_bio || strategy.profile_destaques || strategy.profile_posts || strategy.profile_lp_site) && (
+        <section className="py-20 px-4">
+          <div className="container mx-auto max-w-6xl">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center mb-16"
+            >
+              <div
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-4"
+                style={{ backgroundColor: 'rgba(168, 85, 247, 0.2)' }}
+              >
+                <span className="text-2xl">📋</span>
+                <span className="text-purple-400 font-semibold">AVALIAÇÃO DE PERFIL</span>
+              </div>
+              <h2
+                className="text-3xl md:text-4xl font-bold mb-4"
+                style={{ color: COLORS.luzGalpao }}
+              >
+                Perfil do <span style={{ color: COLORS.farolCarga }}>Cliente</span>
+              </h2>
+            </motion.div>
+
+            <div className="grid md:grid-cols-2 gap-8">
+              {/* BIO */}
+              {strategy.profile_bio && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  className="p-6 rounded-2xl border"
+                  style={{ backgroundColor: `${COLORS.chaoFabrica}CC`, borderColor: `${COLORS.farolCarga}30` }}
+                >
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-xl">👤</span>
+                    <h3 className="text-lg font-bold" style={{ color: COLORS.luzGalpao }}>BIO</h3>
+                    <span className={`ml-auto px-2 py-0.5 rounded-full text-xs font-medium ${strategy.profile_bio.is_good ? 'bg-emerald-500/20 text-emerald-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+                      {strategy.profile_bio.is_good ? '✓ Aprovada' : '⚠ Precisa melhorar'}
+                    </span>
+                  </div>
+                  {!strategy.profile_bio.is_good && (strategy.profile_bio.line1 || strategy.profile_bio.line2 || strategy.profile_bio.line3) && (
+                    <div className="space-y-2 mt-3">
+                      <p className="text-xs font-medium" style={{ color: COLORS.farolCarga }}>Nova BIO sugerida:</p>
+                      {strategy.profile_bio.line1 && <p className="text-sm" style={{ color: COLORS.luzGalpao }}>{strategy.profile_bio.line1}</p>}
+                      {strategy.profile_bio.line2 && <p className="text-sm" style={{ color: COLORS.acoIndustrial }}>{strategy.profile_bio.line2}</p>}
+                      {strategy.profile_bio.line3 && <p className="text-sm" style={{ color: COLORS.acoIndustrial }}>{strategy.profile_bio.line3}</p>}
+                    </div>
+                  )}
+                </motion.div>
+              )}
+
+              {/* Destaques */}
+              {strategy.profile_destaques && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  className="p-6 rounded-2xl border"
+                  style={{ backgroundColor: `${COLORS.chaoFabrica}CC`, borderColor: `${COLORS.farolCarga}30` }}
+                >
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-xl">⭐</span>
+                    <h3 className="text-lg font-bold" style={{ color: COLORS.luzGalpao }}>Destaques</h3>
+                    <span className={`ml-auto px-2 py-0.5 rounded-full text-xs font-medium ${strategy.profile_destaques.is_good ? 'bg-emerald-500/20 text-emerald-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+                      {strategy.profile_destaques.is_good ? '✓ Aprovados' : '⚠ Precisa melhorar'}
+                    </span>
+                  </div>
+                  {!strategy.profile_destaques.is_good && strategy.profile_destaques.items && (
+                    <div className="space-y-2 mt-3">
+                      <p className="text-xs font-medium" style={{ color: COLORS.farolCarga }}>Novos destaques:</p>
+                      {strategy.profile_destaques.items.map((item: any, i: number) => (
+                        (item.capa || item.conteudo) && (
+                          <div key={i} className="p-2 rounded-lg" style={{ backgroundColor: `${COLORS.chaoFabrica}` }}>
+                            <p className="text-xs font-medium" style={{ color: COLORS.farolCarga }}>Destaque {i + 1}</p>
+                            {item.capa && <p className="text-sm" style={{ color: COLORS.luzGalpao }}>Capa: {item.capa}</p>}
+                            {item.conteudo && <p className="text-sm" style={{ color: COLORS.acoIndustrial }}>Conteúdo: {item.conteudo}</p>}
+                          </div>
+                        )
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
+              )}
+
+              {/* Posts */}
+              {strategy.profile_posts && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  className="p-6 rounded-2xl border"
+                  style={{ backgroundColor: `${COLORS.chaoFabrica}CC`, borderColor: `${COLORS.farolCarga}30` }}
+                >
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-xl">📸</span>
+                    <h3 className="text-lg font-bold" style={{ color: COLORS.luzGalpao }}>Posts</h3>
+                    <span className={`ml-auto px-2 py-0.5 rounded-full text-xs font-medium ${strategy.profile_posts.is_good ? 'bg-emerald-500/20 text-emerald-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+                      {strategy.profile_posts.is_good ? '✓ Aprovados' : '⚠ Precisa melhorar'}
+                    </span>
+                  </div>
+                  {!strategy.profile_posts.is_good && strategy.profile_posts.items && (
+                    <div className="space-y-3 mt-3">
+                      <p className="text-xs font-medium" style={{ color: COLORS.farolCarga }}>Posts fixados sugeridos:</p>
+                      {strategy.profile_posts.items.map((item: any, i: number) => (
+                        (item.roteiro || item.legenda) && (
+                          <div key={i} className="p-2 rounded-lg" style={{ backgroundColor: `${COLORS.chaoFabrica}` }}>
+                            <p className="text-xs font-medium" style={{ color: COLORS.farolCarga }}>Post {i + 1}</p>
+                            {item.roteiro && <p className="text-sm mt-1" style={{ color: COLORS.luzGalpao }}>Roteiro: {item.roteiro}</p>}
+                            {item.legenda && <p className="text-sm mt-1" style={{ color: COLORS.acoIndustrial }}>Legenda: {item.legenda}</p>}
+                          </div>
+                        )
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
+              )}
+
+              {/* LP / Site */}
+              {strategy.profile_lp_site && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  className="p-6 rounded-2xl border"
+                  style={{ backgroundColor: `${COLORS.chaoFabrica}CC`, borderColor: `${COLORS.farolCarga}30` }}
+                >
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-xl">🌐</span>
+                    <h3 className="text-lg font-bold" style={{ color: COLORS.luzGalpao }}>LP / Site</h3>
+                    <span className={`ml-auto px-2 py-0.5 rounded-full text-xs font-medium ${strategy.profile_lp_site.is_good ? 'bg-emerald-500/20 text-emerald-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+                      {strategy.profile_lp_site.is_good ? '✓ Aprovado' : '⚠ Precisa melhorar'}
+                    </span>
+                  </div>
+                  {!strategy.profile_lp_site.is_good && strategy.profile_lp_site.copy_text && (
+                    <div className="mt-3">
+                      <p className="text-xs font-medium" style={{ color: COLORS.farolCarga }}>Copy da nova LP/Site:</p>
+                      <p className="text-sm mt-2 whitespace-pre-wrap" style={{ color: COLORS.acoIndustrial }}>{strategy.profile_lp_site.copy_text}</p>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Meta Funnels Section */}
       {strategy.meta_enabled && (
         <section className="py-20 px-4">

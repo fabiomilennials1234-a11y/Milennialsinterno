@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
 
 export interface FinanceiroActiveClient {
   id: string;
@@ -20,6 +21,7 @@ export interface FinanceiroActiveClient {
     expected_investment: number | null;
     archived: boolean;
     client_label: 'otimo' | 'bom' | 'medio' | 'ruim' | null;
+    finance_display_name: string | null;
   };
 }
 
@@ -46,7 +48,7 @@ export function useFinanceiroActiveClients() {
         .from('financeiro_active_clients')
         .select(`
           *,
-          client:clients(id, name, razao_social, expected_investment, archived, client_label)
+          client:clients(id, name, razao_social, expected_investment, archived, client_label, finance_display_name)
         `)
         .order('activated_at', { ascending: false });
 
@@ -180,19 +182,72 @@ export function useFinanceiroActiveClients() {
     },
   });
 
-  // Toggle invoice status (uses record ID)
+  // Toggle invoice status (uses record ID) + sync with financeiro_contas_receber
   const toggleInvoiceStatus = useMutation({
     mutationFn: async ({ recordId, newStatus }: { recordId: string; newStatus: 'em_dia' | 'atrasada' }) => {
+      // Update financeiro_active_clients
       const { error } = await supabase
         .from('financeiro_active_clients')
         .update({ invoice_status: newStatus })
         .eq('id', recordId);
 
       if (error) throw error;
+
+      // Sync with financeiro_contas_receber for the current month
+      const currentMonth = format(new Date(), 'yyyy-MM');
+      const record = activeClients.find(c => c.id === recordId);
+      if (record) {
+        const contaReceberStatus = newStatus === 'atrasada' ? 'inadimplente' : 'em_dia';
+
+        // Check if entry exists for this month
+        const { data: existing } = await supabase
+          .from('financeiro_contas_receber')
+          .select('id, inadimplencia_count')
+          .eq('client_id', record.client_id)
+          .eq('produto_slug', record.product_slug)
+          .eq('mes_referencia', currentMonth)
+          .maybeSingle();
+
+        if (existing) {
+          // Update existing entry
+          const updateData: Record<string, any> = {
+            status: contaReceberStatus,
+            updated_at: new Date().toISOString(),
+          };
+          if (newStatus === 'atrasada') {
+            updateData.inadimplencia_count = (existing.inadimplencia_count || 0) > 0
+              ? existing.inadimplencia_count
+              : 1;
+          } else {
+            updateData.inadimplencia_count = 0;
+          }
+          await supabase
+            .from('financeiro_contas_receber')
+            .update(updateData)
+            .eq('id', existing.id);
+        } else {
+          // Create new entry for this month
+          await supabase
+            .from('financeiro_contas_receber')
+            .insert({
+              client_id: record.client_id,
+              produto_slug: record.product_slug,
+              valor: record.monthly_value,
+              status: contaReceberStatus,
+              mes_referencia: currentMonth,
+              is_recurring: true,
+              inadimplencia_count: newStatus === 'atrasada' ? 1 : 0,
+            });
+        }
+      }
+
       return newStatus;
     },
     onSuccess: (newStatus) => {
       queryClient.invalidateQueries({ queryKey: ['financeiro-active-clients'] });
+      queryClient.invalidateQueries({ queryKey: ['overdue-invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['financeiro-contas-receber'] });
+      queryClient.invalidateQueries({ queryKey: ['financeiro-dashboard'] });
       toast.success(newStatus === 'atrasada' ? 'Fatura marcada como atrasada' : 'Fatura marcada como em dia');
     },
     onError: () => {

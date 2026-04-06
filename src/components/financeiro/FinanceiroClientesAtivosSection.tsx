@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertTriangle, CheckCircle, Users, DollarSign, AlertCircle, Pencil, Check, X, TrendingDown, Eye, Package } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Users, DollarSign, AlertCircle, Pencil, Check, X, TrendingDown, Eye, Package, Plus } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,6 +13,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import ClientLabelBadge from '@/components/shared/ClientLabelBadge';
 import FinanceiroClientDetailModal from '@/components/financeiro/FinanceiroClientDetailModal';
+import RegistrarInadimplenciaDialog from '@/components/financeiro/RegistrarInadimplenciaDialog';
+import FinanceDisplayName from '@/components/financeiro/FinanceDisplayName';
 import type { ClientLabel } from '@/components/shared/ClientLabelBadge';
 
 function formatCurrency(value: number): string {
@@ -33,8 +35,9 @@ interface ClientCardProps {
 function ClientCard({ client, onToggleStatus, onUpdateValue, onViewDetail, isUpdating }: ClientCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(String(client.monthly_value));
+  const [showInadimplenciaDialog, setShowInadimplenciaDialog] = useState(false);
 
-  const displayName = client.client?.razao_social || client.client?.name || 'Cliente';
+  const originalName = client.client?.razao_social || client.client?.name || 'Cliente';
   const productName = client.product_name;
   const isOverdue = client.invoice_status === 'atrasada';
 
@@ -53,9 +56,8 @@ function ClientCard({ client, onToggleStatus, onUpdateValue, onViewDetail, isUpd
     setIsEditing(false);
   };
 
-  const handleToggle = () => {
-    const newStatus = isOverdue ? 'em_dia' : 'atrasada';
-    onToggleStatus(client.id, newStatus);
+  const handleMarkEmDia = () => {
+    onToggleStatus(client.id, 'em_dia');
   };
 
   return (
@@ -69,13 +71,14 @@ function ClientCard({ client, onToggleStatus, onUpdateValue, onViewDetail, isUpd
         <div className="space-y-2">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <h4
-                  className="font-medium text-sm text-foreground line-clamp-2 cursor-pointer hover:text-primary transition-colors"
-                  onClick={() => onViewDetail(client)}
-                >
-                  {displayName}
-                </h4>
+              <div className="flex items-center gap-2 flex-wrap">
+                <FinanceDisplayName
+                  clientId={client.client_id}
+                  originalName={originalName}
+                  financeDisplayName={client.client?.finance_display_name || null}
+                  className="text-sm"
+                  onNameClick={() => onViewDetail(client)}
+                />
                 <ClientLabelBadge label={client.client?.client_label as ClientLabel} size="sm" />
               </div>
 
@@ -159,32 +162,54 @@ function ClientCard({ client, onToggleStatus, onUpdateValue, onViewDetail, isUpd
             </div>
           </div>
 
-          <Button
-            size="sm"
-            variant={isOverdue ? "default" : "outline"}
-            className={cn(
-              "w-full h-7 text-xs",
-              isOverdue
-                ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                : "text-destructive border-destructive/30 hover:bg-destructive/10"
-            )}
-            onClick={handleToggle}
-            disabled={isUpdating}
-          >
-            {isOverdue ? (
-              <>
+          {isOverdue ? (
+            <div className="flex gap-1 w-full">
+              <Button
+                size="sm"
+                variant="default"
+                className="flex-1 h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                onClick={handleMarkEmDia}
+                disabled={isUpdating}
+              >
                 <CheckCircle size={12} className="mr-1" />
                 Marcar como Em Dia
-              </>
-            ) : (
-              <>
-                <AlertTriangle size={12} className="mr-1" />
-                Marcar Fatura Atrasada
-              </>
-            )}
-          </Button>
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs text-warning border-warning/30 hover:bg-warning/10"
+                onClick={() => setShowInadimplenciaDialog(true)}
+                disabled={isUpdating}
+                title="Adicionar nova inadimplência"
+              >
+                <Plus size={12} />
+              </Button>
+            </div>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full h-7 text-xs text-destructive border-destructive/30 hover:bg-destructive/10"
+              onClick={() => setShowInadimplenciaDialog(true)}
+              disabled={isUpdating}
+            >
+              <AlertTriangle size={12} className="mr-1" />
+              Registrar Inadimplência
+            </Button>
+          )}
         </div>
       </CardContent>
+
+      <RegistrarInadimplenciaDialog
+        open={showInadimplenciaDialog}
+        onOpenChange={setShowInadimplenciaDialog}
+        clientId={client.client_id}
+        clientName={client.client?.finance_display_name || originalName}
+        productSlug={client.product_slug}
+        productName={productName}
+        monthlyValue={client.monthly_value}
+        activeRecordId={client.id}
+      />
     </Card>
   );
 }

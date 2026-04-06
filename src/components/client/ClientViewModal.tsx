@@ -70,12 +70,13 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
 
   const canSetClientLabel = isCEO || isAdminUser || user?.role === 'sucesso_cliente';
 
-  // Buscar nomes dos responsáveis (Gestor, Treinador Comercial, CRM, RH)
+  // Buscar nomes dos responsáveis (Gestor, Treinador Comercial, CRM, RH, MKT Place)
   const gestorId = clientInfo?.assigned_ads_manager;
   const treinadorId = clientInfo?.assigned_comercial;
   const crmId = clientInfo?.assigned_crm;
   const rhId = clientInfo?.assigned_rh;
-  const responsibleIds = [gestorId, treinadorId, crmId, rhId].filter(Boolean) as string[];
+  const mktplaceId = (clientInfo as any)?.assigned_mktplace;
+  const responsibleIds = [gestorId, treinadorId, crmId, rhId, mktplaceId].filter(Boolean) as string[];
 
   const { data: responsibleNames = {} } = useQuery({
     queryKey: ['responsible-names', responsibleIds.join(',')],
@@ -275,6 +276,15 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
                         Paddock
                         <span className="text-[10px] font-normal opacity-70">
                           • {treinadorId && responsibleNames[treinadorId] ? responsibleNames[treinadorId] : 'Sem treinador'}
+                        </span>
+                      </span>
+                    )}
+                    {/* MKT Place */}
+                    {(clientInfo.contracted_products.includes('millennials-growth') || clientInfo.contracted_products.includes('gestor-mktplace')) && mktplaceId && (
+                      <span className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold bg-purple-500/10 text-purple-600 border-purple-500/20">
+                        MKT Place
+                        <span className="text-[10px] font-normal opacity-70">
+                          • {responsibleNames[mktplaceId] || 'Sem consultor'}
                         </span>
                       </span>
                     )}

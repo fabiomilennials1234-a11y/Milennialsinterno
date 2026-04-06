@@ -26,7 +26,8 @@ import {
   Cloud,
   Package,
   Coins,
-  VideoIcon
+  VideoIcon,
+  CheckSquare
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ROLE_LABELS, canViewBoard, UserRole } from '@/types/auth';
@@ -40,7 +41,7 @@ import {
   getBoardLabel,
   SPECIAL_ROUTES
 } from '@/hooks/useSidebarPermissions';
-import { useAllTreinadorClientCounts, useAllGestorClientCounts, useAllCrmClientCounts, useAllOutboundClientCounts } from '@/hooks/useTreinadorClientCount';
+import { useAllTreinadorClientCounts, useAllGestorClientCounts, useAllCrmClientCounts, useAllOutboundClientCounts, useAllMktplaceClientCounts } from '@/hooks/useTreinadorClientCount';
 import { useUsers } from '@/hooks/useUsers';
 
 // Ícones das categorias independentes
@@ -119,8 +120,10 @@ export default function AppSidebar() {
   const { data: gestorCounts = {} } = useAllGestorClientCounts();
   const { data: crmCounts = {} } = useAllCrmClientCounts();
   const { data: outboundCounts = {} } = useAllOutboundClientCounts();
+  const { data: mktplaceCounts = {} } = useAllMktplaceClientCounts();
   const { data: allSystemUsers = [] } = useUsers();
   const treinadores = allSystemUsers.filter(u => u.role === 'consultor_comercial');
+  const consultoresMktplace = allSystemUsers.filter(u => u.role === 'consultor_mktplace');
 
   const [openProductCategories, setOpenProductCategories] = useState<Record<string, boolean>>(() => {
     const saved = localStorage.getItem('sidebar-open-product-categories');
@@ -1003,6 +1006,87 @@ export default function AppSidebar() {
                       </Collapsible>
                     ))}
                     
+                    {/* Consultoria de MKT Place dentro de Educacional */}
+                    {productCategory.name?.toLowerCase().includes('educacional') && consultoresMktplace.length > 0 && (
+                      <Collapsible
+                        open={openProductCategories['mktplace']}
+                        onOpenChange={() => toggleProductCategory('mktplace')}
+                      >
+                        <CollapsibleTrigger className="sidebar-item w-full text-sm py-1.5 justify-between">
+                          <div className="flex items-center gap-2">
+                            <ShoppingCart size={16} />
+                            <span>Consultoria de MKT Place</span>
+                          </div>
+                          <ChevronDown
+                            size={14}
+                            className={cn("transition-transform duration-200", openProductCategories['mktplace'] && "rotate-180")}
+                          />
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="pl-4 space-y-1 mt-1 sidebar-open-indicator">
+                          {/* Dashboard - Premium Style (Violet) */}
+                          <NavLink
+                            to="/mktplace-dashboard"
+                            className={({ isActive }) => cn(
+                              "flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg transition-all duration-300 font-medium",
+                              "bg-gradient-to-r from-violet-500/15 via-purple-500/10 to-transparent",
+                              "border-l-2 border-violet-500/60",
+                              "hover:from-violet-500/25 hover:via-purple-500/15 hover:to-violet-500/5",
+                              "hover:shadow-[0_0_12px_rgba(139,92,246,0.2)]",
+                              isActive
+                                ? "bg-violet-500/20 text-violet-300 border-l-2 border-violet-400"
+                                : "text-violet-400 hover:text-violet-300"
+                            )}
+                          >
+                            <LayoutDashboard size={12} className="text-violet-400" />
+                            <span className="truncate">Dashboard</span>
+                          </NavLink>
+                          {/* Clientes - somente produto Gestor de MKT Place */}
+                          <NavLink
+                            to="/clientes/gestor-mktplace"
+                            className={({ isActive }) => cn(
+                              "flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg transition-colors",
+                              isActive
+                                ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                                : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                            )}
+                          >
+                            <List size={12} />
+                            <span className="truncate">Clientes</span>
+                          </NavLink>
+                          {/* Consultores de MKT Place */}
+                          <span className="px-2 text-[10px] font-semibold text-sidebar-foreground/30 uppercase tracking-wider">
+                            Consultores de MKT Place
+                          </span>
+                          {consultoresMktplace.map(consultor => {
+                            const clientCount = mktplaceCounts[consultor.user_id] || 0;
+                            return (
+                              <NavLink
+                                key={consultor.user_id}
+                                to="/consultor-mktplace"
+                                className={({ isActive }) => cn(
+                                  "flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg transition-colors",
+                                  isActive
+                                    ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                                    : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                                )}
+                              >
+                                <Target size={12} />
+                                <span className="truncate flex-1">{consultor.name}</span>
+                                <span className={cn(
+                                  "text-[10px] font-mono font-bold shrink-0 px-1.5 py-0.5 rounded",
+                                  clientCount >= 80 ? "bg-red-500/20 text-red-400" :
+                                  clientCount >= 60 ? "bg-amber-500/20 text-amber-400" :
+                                  "bg-sidebar-foreground/10 text-sidebar-foreground/60"
+                                )}>
+                                  {clientCount}/80
+                                </span>
+                              </NavLink>
+                            );
+                          })}
+                        </CollapsibleContent>
+                      </Collapsible>
+                    )}
+
                     {productCategory.groups.length === 0 && productCategory.subcategories.length === 0 && (
                       <span className="px-2 text-xs text-sidebar-foreground/40 italic">
                         Nenhum item
@@ -1507,6 +1591,18 @@ export default function AppSidebar() {
                       >
                         <LayoutDashboard size={14} />
                         <span className="truncate">Dashboard</span>
+                      </NavLink>
+                      <NavLink
+                        to="/financeiro?tab=tarefas"
+                        className={() => cn(
+                          "flex items-center gap-2 px-2 py-1.5 text-sm rounded-lg transition-colors",
+                          currentPath === '/financeiro' && new URLSearchParams(location.search).get('tab') === 'tarefas'
+                            ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                            : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                        )}
+                      >
+                        <CheckSquare size={14} />
+                        <span className="truncate">Tarefas</span>
                       </NavLink>
                       <NavLink
                         to="/financeiro?tab=contratos"

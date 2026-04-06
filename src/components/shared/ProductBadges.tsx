@@ -18,6 +18,7 @@ export const PRODUCT_CONFIG: Record<string, { name: string; color: string }> = {
   'organic': { name: 'Organic', color: 'bg-green-500/10 text-green-600 border-green-500/20' },
   'catalog-saas': { name: 'Catalog SAAS', color: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20' },
   'b2b-summit': { name: 'B2B Summit', color: 'bg-violet-500/10 text-violet-600 border-violet-500/20' },
+  'gestor-mktplace': { name: 'Gestor de MKT Place', color: 'bg-sky-500/10 text-sky-600 border-sky-500/20' },
 };
 
 interface ProductBadgesProps {

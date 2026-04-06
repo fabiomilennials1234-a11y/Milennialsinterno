@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Building2, FileText, MapPin, DollarSign, Calendar,
-  UserCheck, CheckCircle, Clock, Package
+  UserCheck, CheckCircle, Clock, Package, AlertTriangle, Phone
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format, parseISO } from 'date-fns';
@@ -24,6 +24,7 @@ interface ClientDetail {
   razao_social: string | null;
   cnpj: string | null;
   cpf: string | null;
+  phone: string | null;
   niche: string | null;
   entry_date: string | null;
   assigned_ads_manager: string | null;
@@ -43,6 +44,15 @@ interface ProductValueInfo {
   product_slug: string;
   product_name: string;
   monthly_value: number;
+}
+
+interface InadimplenciaRecord {
+  id: string;
+  mes_referencia: string;
+  produto_slug: string;
+  valor: number;
+  status: string;
+  inadimplencia_count: number;
 }
 
 interface AdsManagerInfo {
@@ -72,6 +82,7 @@ export default function FinanceiroClientDetailModal({
   const [client, setClient] = useState<ClientDetail | null>(null);
   const [tasks, setTasks] = useState<FinanceiroTaskInfo[]>([]);
   const [productValues, setProductValues] = useState<ProductValueInfo[]>([]);
+  const [inadimplencias, setInadimplencias] = useState<InadimplenciaRecord[]>([]);
   const [adsManager, setAdsManager] = useState<AdsManagerInfo | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -84,7 +95,7 @@ export default function FinanceiroClientDetailModal({
         // Fetch client details
         const { data: clientData } = await supabase
           .from('clients')
-          .select('id, name, razao_social, cnpj, cpf, niche, entry_date, assigned_ads_manager, contract_duration_months')
+          .select('id, name, razao_social, cnpj, cpf, phone, niche, entry_date, assigned_ads_manager, contract_duration_months')
           .eq('id', clientId)
           .single();
 
@@ -121,6 +132,16 @@ export default function FinanceiroClientDetailModal({
           .eq('client_id', clientId);
 
         setProductValues((pvData || []) as ProductValueInfo[]);
+
+        // Fetch inadimplência history
+        const { data: inadData } = await supabase
+          .from('financeiro_contas_receber')
+          .select('id, mes_referencia, produto_slug, valor, status, inadimplencia_count')
+          .eq('client_id', clientId)
+          .eq('status', 'inadimplente')
+          .order('mes_referencia', { ascending: false });
+
+        setInadimplencias((inadData || []) as InadimplenciaRecord[]);
       } catch (err) {
         console.error('Error fetching client detail:', err);
       } finally {
@@ -197,6 +218,19 @@ export default function FinanceiroClientDetailModal({
                   <CardContent className="p-3">
                     <p className="text-[10px] uppercase text-muted-foreground font-medium">CPF</p>
                     <p className="text-sm font-medium text-foreground mt-0.5">{client.cpf}</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Telefone */}
+              {client.phone && (
+                <Card className="border-subtle">
+                  <CardContent className="p-3">
+                    <div className="flex items-center gap-1">
+                      <Phone size={12} className="text-muted-foreground" />
+                      <p className="text-[10px] uppercase text-muted-foreground font-medium">Telefone</p>
+                    </div>
+                    <p className="text-sm font-medium text-foreground mt-0.5">{client.phone}</p>
                   </CardContent>
                 </Card>
               )}
@@ -279,6 +313,44 @@ export default function FinanceiroClientDetailModal({
                 )}
               </div>
             </div>
+
+            {/* Histórico de Inadimplências */}
+            {inadimplencias.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle size={14} className="text-warning" />
+                  <h4 className="text-sm font-semibold text-foreground">
+                    Inadimplências ({inadimplencias.length})
+                  </h4>
+                </div>
+                <div className="space-y-2">
+                  {inadimplencias.map((inad) => (
+                    <Card key={inad.id} className="border-subtle border-warning/30 bg-warning/5">
+                      <CardContent className="p-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium">
+                              {format(new Date(inad.mes_referencia + '-15'), "MMMM 'de' yyyy", { locale: ptBR })}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {inad.inadimplencia_count} {inad.inadimplencia_count === 1 ? 'fatura em atraso' : 'faturas em atraso'}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-semibold text-warning">
+                              {formatCurrency(inad.valor)}
+                            </p>
+                            <Badge variant="destructive" className="text-[10px] mt-1">
+                              Inadimplente
+                            </Badge>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Product Breakdown */}
             {productBreakdown.length > 0 && (
