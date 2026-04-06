@@ -60,6 +60,7 @@ export interface NewClientData {
   name: string;
   cnpj?: string;
   cpf?: string;
+  phone?: string;
   razao_social?: string;
   niche?: string;
   general_info?: string;
@@ -73,6 +74,7 @@ export interface NewClientData {
   assigned_crm?: string;
   assigned_rh?: string;
   assigned_outbound_manager?: string;
+  assigned_mktplace?: string;
   entry_date?: string;
   contract_duration_months?: number;
   payment_due_day?: number;
@@ -188,6 +190,31 @@ export function useComercialConsultants(squadId?: string) {
   });
 }
 
+// Fetch MKT Place consultants for dropdown
+export function useMktplaceConsultants() {
+  return useQuery({
+    queryKey: ['mktplace-consultants'],
+    queryFn: async () => {
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'consultor_mktplace');
+
+      if (roleError) throw roleError;
+      const userIds = roleData?.map(r => r.user_id) || [];
+      if (userIds.length === 0) return [];
+
+      const { data: profiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('user_id, name, email')
+        .in('user_id', userIds);
+
+      if (profileError) throw profileError;
+      return profiles as { user_id: string; name: string; email: string }[];
+    },
+  });
+}
+
 // Fetch CRM managers for dropdown (Torque CRM)
 export function useCrmManagers() {
   return useQuery({
@@ -277,6 +304,7 @@ export function useCreateClient() {
           name: clientData.name,
           cnpj: clientData.cnpj?.trim() || null,
           cpf: clientData.cpf?.trim() || null,
+          phone: clientData.phone?.trim() || null,
           razao_social: clientData.razao_social,
           niche: clientData.niche,
           general_info: clientData.general_info,
@@ -290,6 +318,7 @@ export function useCreateClient() {
           assigned_crm: clientData.assigned_crm || null,
           assigned_rh: clientData.assigned_rh || null,
           assigned_outbound_manager: clientData.assigned_outbound_manager || null,
+          assigned_mktplace: clientData.assigned_mktplace || null,
           entry_date: clientData.entry_date,
           contract_duration_months: clientData.contract_duration_months || null,
           payment_due_day: clientData.payment_due_day || null,
@@ -299,6 +328,9 @@ export function useCreateClient() {
           // Campos para o Consultor Comercial
           comercial_status: 'novo',
           comercial_entered_at: new Date().toISOString(),
+          // Campos para o Consultor de MKT Place
+          mktplace_status: clientData.assigned_mktplace ? 'novo' : null,
+          mktplace_entered_at: clientData.assigned_mktplace ? new Date().toISOString() : null,
           // CX Validation: novo cliente nasce aguardando validação
           cx_validation_status: 'aguardando_validacao',
         })
@@ -380,6 +412,24 @@ export function useCreateClient() {
           } as any);
         } catch (err) {
           console.error('[useCreateClient] Falha na notificação N5 para comercial:', err);
+        }
+      }
+
+      // N6: Notificar Consultor de MKT Place que um novo cliente foi atribuído
+      if (client.assigned_mktplace) {
+        try {
+          await supabase.from('system_notifications').insert({
+            recipient_id: client.assigned_mktplace,
+            recipient_role: 'consultor_mktplace',
+            notification_type: 'new_client_assigned_mktplace',
+            title: '🆕 Novo Cliente Atribuído',
+            message: `O cliente "${client.name}" foi cadastrado e atribuído a você como Consultor(a) de MKT Place.`,
+            client_id: client.id,
+            priority: 'high',
+            metadata: { created_by: user?.id },
+          } as any);
+        } catch (err) {
+          console.error('[useCreateClient] Falha na notificação N6 para mktplace:', err);
         }
       }
 
@@ -522,6 +572,14 @@ export function useCreateClient() {
       queryClient.invalidateQueries({ queryKey: ['pm-welcome-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['contract-onboarding-status'] });
       queryClient.invalidateQueries({ queryKey: ['contract-active-clients'] });
+      // Invalidar contadores da sidebar (gestor, treinador, mktplace, crm, outbound)
+      queryClient.invalidateQueries({ queryKey: ['all-gestor-client-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['all-treinador-client-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['all-mktplace-client-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['all-crm-client-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['all-outbound-client-counts'] });
+      // Invalidar queries do Consultor de MKT Place (kanban)
+      queryClient.invalidateQueries({ queryKey: ['mktplace-new-clients'] });
       toast.success('Cliente cadastrado com sucesso!', {
         description: 'Contrato assinado automaticamente. Tarefas do Financeiro criadas por produto.',
       });

@@ -12,6 +12,7 @@ export type UserRole =
   | 'produtora'
   | 'gestor_crm'
   | 'consultor_comercial'
+  | 'consultor_mktplace'
   | 'financeiro'
   | 'rh';
 
@@ -37,6 +38,7 @@ export const ROLE_HIERARCHY: Record<UserRole, number> = {
   produtora: 40,
   gestor_crm: 40,
   consultor_comercial: 40,
+  consultor_mktplace: 40,
   financeiro: 40,
   rh: 40,
 };
@@ -55,6 +57,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   produtora: 'Produtora',
   gestor_crm: 'Gestor de CRM',
   consultor_comercial: 'Treinador Comercial',
+  consultor_mktplace: 'Consultor(a) de MKT Place',
   financeiro: 'Financeiro',
   rh: 'RH',
 };
@@ -84,7 +87,8 @@ export const BOARD_VISIBILITY: Record<UserRole, string[]> = {
 
     // Outros cargos permitidos
     'gestor_crm', 'crm',
-    'consultor_comercial', 'comercial'
+    'consultor_comercial', 'comercial',
+    'consultor_mktplace', 'mktplace'
   ],
 
   // Outbound: Mesma visibilidade que Gestor de Ads
@@ -97,9 +101,10 @@ export const BOARD_VISIBILITY: Record<UserRole, string[]> = {
     'produtora',
     'atrizes_gravacao', 'atrizes',
     'gestor_crm', 'crm',
-    'consultor_comercial', 'comercial'
+    'consultor_comercial', 'comercial',
+    'consultor_mktplace', 'mktplace'
   ],
-  
+
   // Sucesso do Cliente: Vê apenas os listados
   sucesso_cliente: [
     'sucesso_cliente', 'sucesso',     // Próprio cargo
@@ -111,6 +116,7 @@ export const BOARD_VISIBILITY: Record<UserRole, string[]> = {
     'atrizes_gravacao', 'atrizes',    // Atrizes para Gravação (independente)
     'gestor_crm', 'crm',              // Gestor de CRM
     'consultor_comercial', 'comercial', // Treinador Comercial
+    'consultor_mktplace', 'mktplace', // Consultor MKT Place
     'rh'                              // RH
   ],
   
@@ -134,7 +140,10 @@ export const BOARD_VISIBILITY: Record<UserRole, string[]> = {
   
   // Treinador Comercial (ex-Consultor Comercial): Próprio cargo + paddock
   consultor_comercial: ['consultor_comercial', 'comercial', 'paddock'],
-  
+
+  // Consultor(a) de MKT Place: Próprio cargo + mktplace
+  consultor_mktplace: ['consultor_mktplace', 'mktplace'],
+
   // Financeiro: Apenas próprio cargo
   financeiro: ['financeiro'],
   

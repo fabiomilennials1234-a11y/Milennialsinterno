@@ -19,6 +19,7 @@ import StrategyLinkedInFunnels from './StrategyLinkedInFunnels';
 import StrategyGeneralSettings from './StrategyGeneralSettings';
 import CustomFunnelCards from './CustomFunnelCards';
 import StrategyTemplateCreatorModal from './StrategyTemplateCreatorModal';
+import StrategyProfileBlocks from './StrategyProfileBlocks';
 
 interface StrategyBuilderModalProps {
   isOpen: boolean;
@@ -54,6 +55,12 @@ export default function StrategyBuilderModal({
   const [adLocation, setAdLocation] = useState(existingStrategy?.ad_location || '');
   const [useClientMaterial, setUseClientMaterial] = useState(existingStrategy?.use_client_material || false);
   const [clientMaterialDetails, setClientMaterialDetails] = useState(existingStrategy?.client_material_details || '');
+
+  // Profile blocks
+  const [profileBio, setProfileBio] = useState(existingStrategy?.profile_bio || { is_good: true });
+  const [profileDestaques, setProfileDestaques] = useState(existingStrategy?.profile_destaques || { is_good: true });
+  const [profilePosts, setProfilePosts] = useState(existingStrategy?.profile_posts || { is_good: true });
+  const [profileLpSite, setProfileLpSite] = useState(existingStrategy?.profile_lp_site || { is_good: true });
 
   // Meta funnels
   const [metaMillennialsMensagem, setMetaMillennialsMensagem] = useState(existingStrategy?.meta_millennials_mensagem || { enabled: false, budget: 0 });
@@ -187,6 +194,10 @@ export default function StrategyBuilderModal({
       linkedin_vagas: linkedinEnabled && linkedinVagas.enabled ? linkedinVagas : null,
       linkedin_cadastro: linkedinEnabled && linkedinCadastro.enabled ? linkedinCadastro : null,
       custom_funnels: enabledCustomFunnels,
+      profile_bio: profileBio,
+      profile_destaques: profileDestaques,
+      profile_posts: profilePosts,
+      profile_lp_site: profileLpSite,
     };
 
     if (existingStrategy) {
@@ -323,6 +334,18 @@ export default function StrategyBuilderModal({
                 setUseClientMaterial={setUseClientMaterial}
                 clientMaterialDetails={clientMaterialDetails}
                 setClientMaterialDetails={setClientMaterialDetails}
+              />
+
+              {/* Profile Assessment Blocks */}
+              <StrategyProfileBlocks
+                bio={profileBio}
+                setBio={setProfileBio}
+                destaques={profileDestaques}
+                setDestaques={setProfileDestaques}
+                posts={profilePosts}
+                setPosts={setProfilePosts}
+                lpSite={profileLpSite}
+                setLpSite={setProfileLpSite}
               />
             </div>
           </ScrollArea>

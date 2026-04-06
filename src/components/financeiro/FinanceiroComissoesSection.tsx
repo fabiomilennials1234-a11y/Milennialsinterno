@@ -4,10 +4,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  DollarSign, 
-  Users, 
-  CheckCircle2, 
+import {
+  DollarSign,
+  Users,
+  CheckCircle2,
   Clock,
   TrendingUp,
   Building2,
@@ -15,7 +15,10 @@ import {
   ShoppingCart,
   ChevronDown,
   ChevronUp,
-  Coins
+  ChevronLeft,
+  ChevronRight,
+  Coins,
+  CalendarDays
 } from 'lucide-react';
 import { 
   useAllCommissions, 
@@ -23,7 +26,7 @@ import {
   getRoleLabel,
   type Commission 
 } from '@/hooks/useAllCommissions';
-import { format, isSameMonth } from 'date-fns';
+import { format, isSameMonth, addMonths, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface ClientCommissionGroup {
@@ -38,7 +41,10 @@ export function FinanceiroComissoesSection() {
   const { data, isLoading } = useAllCommissions();
   const markPaid = useMarkUpsellCommissionPaid();
   const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
-  const currentMonth = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(new Date());
+
+  const handlePreviousMonth = () => setSelectedMonth(prev => subMonths(prev, 1));
+  const handleNextMonth = () => setSelectedMonth(prev => addMonths(prev, 1));
 
   // Filter to current month and group by client
   const clientGroups: ClientCommissionGroup[] = [];
@@ -48,7 +54,7 @@ export function FinanceiroComissoesSection() {
     data.groups.forEach(userGroup => {
       userGroup.commissions.forEach(commission => {
         // Filter to current month
-        if (!isSameMonth(new Date(commission.created_at), currentMonth)) return;
+        if (!isSameMonth(new Date(commission.created_at), selectedMonth)) return;
 
         const clientId = commission.type === 'upsell' 
           ? (commission as any).upsell?.client_id 
@@ -83,16 +89,16 @@ export function FinanceiroComissoesSection() {
   }
 
   // Calculate totals for current month
-  const currentMonthTotals = {
+  const selectedMonthTotals = {
     total: clientGroups.reduce((sum, g) => sum + g.total, 0),
     pending: clientGroups.reduce((sum, g) => sum + g.pending, 0),
     paid: clientGroups.reduce((sum, g) => sum + (g.total - g.pending), 0),
   };
 
   // Filter user groups to current month only
-  const currentMonthUserGroups = data?.groups.map(group => {
+  const selectedMonthUserGroups = data?.groups.map(group => {
     const filteredCommissions = group.commissions.filter(c => 
-      isSameMonth(new Date(c.created_at), currentMonth)
+      isSameMonth(new Date(c.created_at), selectedMonth)
     );
     const total = filteredCommissions.reduce((sum, c) => sum + Number(c.commission_value), 0);
     const pending = filteredCommissions.filter(c => c.status === 'pending')
@@ -141,6 +147,30 @@ export function FinanceiroComissoesSection() {
 
   return (
     <div className="space-y-4">
+      {/* Month Selector */}
+      <div className="flex items-center justify-between">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          onClick={handlePreviousMonth}
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <span className="text-sm font-medium capitalize">
+          <CalendarDays className="h-3.5 w-3.5 inline mr-1.5 text-muted-foreground" />
+          {format(selectedMonth, "MMMM 'de' yyyy", { locale: ptBR })}
+        </span>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          onClick={handleNextMonth}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+
       {/* Summary Stats */}
       <div className="grid grid-cols-2 gap-3">
         <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
@@ -149,7 +179,7 @@ export function FinanceiroComissoesSection() {
             <span className="text-xs font-medium">A Pagar</span>
           </div>
           <p className="text-lg font-bold">
-            R$ {currentMonthTotals.pending.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            R$ {selectedMonthTotals.pending.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </p>
         </div>
         <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
@@ -158,7 +188,7 @@ export function FinanceiroComissoesSection() {
             <span className="text-xs font-medium">Pago</span>
           </div>
           <p className="text-lg font-bold">
-            R$ {currentMonthTotals.paid.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            R$ {selectedMonthTotals.paid.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </p>
         </div>
       </div>
@@ -294,14 +324,14 @@ export function FinanceiroComissoesSection() {
         {/* By User View */}
         <TabsContent value="users" className="mt-3">
           <ScrollArea className="h-[400px]">
-            {currentMonthUserGroups.length === 0 ? (
+            {selectedMonthUserGroups.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Users className="h-10 w-10 mx-auto mb-3 opacity-50" />
                 <p className="text-sm">Nenhuma comissão este mês</p>
               </div>
             ) : (
               <div className="space-y-2 pr-4">
-                {currentMonthUserGroups.map((userGroup) => (
+                {selectedMonthUserGroups.map((userGroup) => (
                   <div 
                     key={userGroup.user_id}
                     className="p-3 border rounded-lg"

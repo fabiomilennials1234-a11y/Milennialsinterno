@@ -36,6 +36,7 @@ const AVAILABLE_ROLES: UserRole[] = [
   'produtora',
   'gestor_crm',
   'consultor_comercial',
+  'consultor_mktplace',
   'financeiro',
   'rh',
 ];
@@ -74,6 +75,7 @@ const DEFAULT_PAGES_BY_ROLE: Record<UserRole, string[]> = {
   produtora: ['produtora'],
   gestor_crm: ['gestor-crm'],
   consultor_comercial: ['consultor-comercial'],
+  consultor_mktplace: ['consultor-comercial'],
   financeiro: ['financeiro', 'cliente-list', 'comissoes'],
   rh: ['rh'],
 };

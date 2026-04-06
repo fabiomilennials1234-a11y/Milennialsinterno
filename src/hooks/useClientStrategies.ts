@@ -67,6 +67,10 @@ export interface ClientStrategy {
   linkedin_vagas: LinkedInStrategy | null;
   linkedin_cadastro: LinkedInStrategy | null;
   custom_funnels: Record<string, { enabled: boolean; budget: number; [key: string]: any }> | null;
+  profile_bio: { is_good: boolean; line1?: string; line2?: string; line3?: string } | null;
+  profile_destaques: { is_good: boolean; items?: { capa: string; conteudo: string }[] } | null;
+  profile_posts: { is_good: boolean; items?: { roteiro: string; legenda: string }[] } | null;
+  profile_lp_site: { is_good: boolean; copy_text?: string } | null;
   public_token: string;
   is_published: boolean;
 }

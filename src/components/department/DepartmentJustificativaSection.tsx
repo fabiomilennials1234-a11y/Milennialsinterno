@@ -1,15 +1,16 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAddJustification } from '@/hooks/useTaskJustification';
 import { useTaskDelayJustificationsByRole, ROLE_LABELS } from '@/hooks/useTaskDelayNotifications';
-import { AlertTriangle, Clock, CheckCircle } from 'lucide-react';
+import { AlertTriangle, Clock, CheckCircle, Archive, ArchiveRestore, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { format, isPast, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { toast } from 'sonner';
 import {
   Tooltip,
   TooltipContent,
@@ -37,11 +38,13 @@ interface OverdueTask {
 
 export default function DepartmentJustificativaSection({ department, compact }: Props) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [justificationModal, setJustificationModal] = useState<{ open: boolean; task?: OverdueTask }>({ open: false });
-  
+  const [showArchived, setShowArchived] = useState(false);
+
   const addJustification = useAddJustification('department_tasks', ['department-overdue-tasks', department]);
-  
-  // Fetch overdue tasks for this department
+
+  // Fetch overdue tasks for this department (active)
   const { data: overdueTasks = [], isLoading } = useQuery({
     queryKey: ['department-overdue-tasks', department, user?.id],
     queryFn: async () => {
@@ -56,8 +59,7 @@ export default function DepartmentJustificativaSection({ department, compact }: 
         .order('due_date', { ascending: true });
 
       if (error) throw error;
-      
-      // Filter to only include truly overdue tasks and cast as any to handle justification fields
+
       const tasks = (data || []) as any[];
       return tasks.filter(task => {
         if (!task.due_date) return false;
@@ -66,6 +68,47 @@ export default function DepartmentJustificativaSection({ department, compact }: 
       }) as OverdueTask[];
     },
     enabled: !!user?.id,
+  });
+
+  // Fetch archived tasks
+  const { data: archivedTasks = [] } = useQuery({
+    queryKey: ['department-overdue-tasks-archived', department, user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('department_tasks')
+        .select('*')
+        .eq('user_id', user?.id)
+        .eq('department', department)
+        .eq('archived', true)
+        .not('due_date', 'is', null)
+        .order('due_date', { ascending: false });
+
+      if (error) throw error;
+      return (data || []) as any[] as OverdueTask[];
+    },
+    enabled: !!user?.id && showArchived,
+  });
+
+  // Archive/unarchive mutation
+  const archiveMutation = useMutation({
+    mutationFn: async ({ taskId, archive }: { taskId: string; archive: boolean }) => {
+      const { error } = await supabase
+        .from('department_tasks')
+        .update({
+          archived: archive,
+          archived_at: archive ? new Date().toISOString() : null,
+        })
+        .eq('id', taskId);
+      if (error) throw error;
+    },
+    onSuccess: (_, { archive }) => {
+      queryClient.invalidateQueries({ queryKey: ['department-overdue-tasks', department] });
+      queryClient.invalidateQueries({ queryKey: ['department-overdue-tasks-archived', department] });
+      toast.success(archive ? 'Justificativa arquivada' : 'Justificativa desarquivada');
+    },
+    onError: () => {
+      toast.error('Erro ao atualizar');
+    },
   });
 
   // Fetch justificativas de tarefas atrasadas DESTE CARGO (não do usuário logado)
@@ -245,7 +288,7 @@ export default function DepartmentJustificativaSection({ department, compact }: 
                   </div>
 
                   {/* Justification Section */}
-                  <div className="mt-3">
+                  <div className="mt-3 flex items-center justify-between">
                     {hasJustification ? (
                       <TooltipProvider>
                         <Tooltip>
@@ -265,8 +308,18 @@ export default function DepartmentJustificativaSection({ department, compact }: 
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
-                    ) : null}
+                    ) : <div />}
 
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-xs text-muted-foreground hover:text-foreground gap-1"
+                      onClick={() => archiveMutation.mutate({ taskId: task.id, archive: true })}
+                      disabled={archiveMutation.isPending}
+                    >
+                      <Archive size={12} />
+                      Arquivar
+                    </Button>
                   </div>
                 </div>
               );
@@ -287,6 +340,59 @@ export default function DepartmentJustificativaSection({ department, compact }: 
               </span>
             </div>
           </div>
+        )}
+
+        {/* Toggle Archived */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full h-7 text-xs text-muted-foreground hover:text-foreground gap-1.5"
+          onClick={() => setShowArchived(!showArchived)}
+        >
+          {showArchived ? <EyeOff size={12} /> : <Eye size={12} />}
+          {showArchived ? 'Ocultar arquivadas' : 'Ver arquivadas'}
+          {archivedTasks.length > 0 && showArchived && (
+            <span className="text-muted-foreground">({archivedTasks.length})</span>
+          )}
+        </Button>
+
+        {/* Archived List */}
+        {showArchived && archivedTasks.length > 0 && (
+          <div className="space-y-2 opacity-60">
+            <p className="text-xs font-medium text-muted-foreground px-1">Arquivadas</p>
+            {archivedTasks.map(task => (
+              <div
+                key={task.id}
+                className="p-3 bg-muted/30 border border-border rounded-lg"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-sm truncate text-muted-foreground">{task.title}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Clock size={10} />
+                        {format(new Date(task.due_date), 'dd/MM HH:mm', { locale: ptBR })}
+                      </div>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs text-muted-foreground hover:text-foreground gap-1 shrink-0"
+                    onClick={() => archiveMutation.mutate({ taskId: task.id, archive: false })}
+                    disabled={archiveMutation.isPending}
+                  >
+                    <ArchiveRestore size={12} />
+                    Desarquivar
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {showArchived && archivedTasks.length === 0 && (
+          <p className="text-xs text-muted-foreground text-center py-2">Nenhuma justificativa arquivada</p>
         )}
       </>
     );

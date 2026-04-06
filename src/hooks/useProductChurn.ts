@@ -195,6 +195,9 @@ export function useProductChurn(productSlug?: string) {
       // Invalidate counters
       queryClient.invalidateQueries({ queryKey: ['all-gestor-client-counts'] });
       queryClient.invalidateQueries({ queryKey: ['all-treinador-client-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['all-mktplace-client-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['all-crm-client-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['all-outbound-client-counts'] });
       // Invalidate kanban queries to show client in churn sections
       queryClient.invalidateQueries({ queryKey: ['assigned-clients'] });
       queryClient.invalidateQueries({ queryKey: ['comercial-churn-clients'] });

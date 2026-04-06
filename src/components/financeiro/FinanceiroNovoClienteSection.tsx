@@ -1,9 +1,12 @@
+import { useState } from 'react';
 import { useFinanceiroOnboarding } from '@/hooks/useFinanceiroOnboarding';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { FileX, DollarSign, Package } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { FileX, DollarSign, Package, Eye } from 'lucide-react';
+import ClientQuickViewModal from '@/components/financeiro/ClientQuickViewModal';
 
 function formatCurrency(value: number): string {
   return value.toLocaleString('pt-BR', {
@@ -15,6 +18,7 @@ function formatCurrency(value: number): string {
 export default function FinanceiroNovoClienteSection() {
   const { getClientsByStep, isLoading: onboardingLoading } = useFinanceiroOnboarding();
   const novoClientes = getClientsByStep('novo_cliente');
+  const [viewClientId, setViewClientId] = useState<string | null>(null);
 
   // Fetch product values for novo_cliente records
   const clientIds = [...new Set(novoClientes.map(r => r.client_id))];
@@ -74,10 +78,19 @@ export default function FinanceiroNovoClienteSection() {
               <div className="flex flex-col gap-2">
                 {/* Client name + value */}
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 flex items-center gap-1">
                     <h4 className="font-medium text-sm text-foreground truncate">
                       {clientName}
                     </h4>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 shrink-0 text-muted-foreground hover:text-primary"
+                      onClick={() => setViewClientId(record.client_id)}
+                      title="Ver detalhes"
+                    >
+                      <Eye size={12} />
+                    </Button>
                   </div>
                   {productValue > 0 && (
                     <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800 shrink-0">
@@ -109,6 +122,12 @@ export default function FinanceiroNovoClienteSection() {
           </Card>
         );
       })}
+
+      <ClientQuickViewModal
+        open={!!viewClientId}
+        onOpenChange={(open) => { if (!open) setViewClientId(null); }}
+        clientId={viewClientId}
+      />
     </div>
   );
 }

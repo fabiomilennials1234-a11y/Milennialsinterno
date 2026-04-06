@@ -20,6 +20,8 @@ import OutboundManagerIndividualPage from "./pages/OutboundManagerIndividualPage
 import OutboundDashboardPage from "./pages/OutboundDashboardPage";
 import SucessoClientePage from "./pages/SucessoClientePage";
 import ConsultorComercialPage from "./pages/ConsultorComercialPage";
+import ConsultorMKTPlacePage from "./pages/ConsultorMKTPlacePage";
+import MktplaceDashboardPage from "./pages/MktplaceDashboardPage";
 import FinanceiroPage from "./pages/FinanceiroPage";
 import FinanceiroDashboardPage from "./pages/FinanceiroDashboardPage";
 import GestorProjetosPage from "./pages/GestorProjetosPage";
@@ -140,6 +142,7 @@ function DefaultRedirect() {
     { id: 'produtora', path: '/kanban/produtora' },
     { id: 'gestor_crm', path: '/kanban/crm' },
     { id: 'consultor_comercial', path: '/kanban/comercial' },
+    { id: 'consultor_mktplace', path: '/consultor-mktplace' },
     { id: 'gestor_ads', path: '/kanban/ads' },
     { id: 'outbound', path: '/millennials-outbound' },
     { id: 'sucesso_cliente', path: '/kanban/sucesso' },
@@ -288,6 +291,20 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
       
+      {/* Consultoria de MKT Place - Dashboard */}
+      <Route path="/mktplace-dashboard" element={
+        <AdminRoute>
+          <MktplaceDashboardPage />
+        </AdminRoute>
+      } />
+
+      {/* Consultor MKT Place Route */}
+      <Route path="/consultor-mktplace" element={
+        <ProtectedRoute>
+          <ConsultorMKTPlacePage />
+        </ProtectedRoute>
+      } />
+
       {/* Financeiro Route */}
       <Route path="/financeiro" element={
         <ProtectedRoute>

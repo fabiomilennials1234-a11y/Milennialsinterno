@@ -1237,8 +1237,12 @@ export type Database = {
           distrato_entered_at: string | null
           distrato_step: string | null
           entry_date: string | null
+          assigned_mktplace: string | null
           expected_investment: number | null
+          finance_display_name: string | null
           general_info: string | null
+          mktplace_entered_at: string | null
+          mktplace_status: string | null
           group_id: string | null
           id: string
           last_cs_contact_at: string | null
@@ -1247,6 +1251,7 @@ export type Database = {
           niche: string | null
           onboarding_started_at: string | null
           payment_due_day: number | null
+          phone: string | null
           razao_social: string | null
           sales_percentage: number
           squad_id: string | null
@@ -1258,6 +1263,7 @@ export type Database = {
           archived_at?: string | null
           assigned_ads_manager?: string | null
           assigned_comercial?: string | null
+          assigned_mktplace?: string | null
           campaign_published_at?: string | null
           client_label?: string | null
           cnpj?: string | null
@@ -1279,15 +1285,19 @@ export type Database = {
           distrato_step?: string | null
           entry_date?: string | null
           expected_investment?: number | null
+          finance_display_name?: string | null
           general_info?: string | null
           group_id?: string | null
           id?: string
           last_cs_contact_at?: string | null
+          mktplace_entered_at?: string | null
+          mktplace_status?: string | null
           monthly_value?: number | null
           name: string
           niche?: string | null
           onboarding_started_at?: string | null
           payment_due_day?: number | null
+          phone?: string | null
           razao_social?: string | null
           sales_percentage?: number
           squad_id?: string | null
@@ -1299,6 +1309,7 @@ export type Database = {
           archived_at?: string | null
           assigned_ads_manager?: string | null
           assigned_comercial?: string | null
+          assigned_mktplace?: string | null
           campaign_published_at?: string | null
           client_label?: string | null
           cnpj?: string | null
@@ -1320,15 +1331,19 @@ export type Database = {
           distrato_step?: string | null
           entry_date?: string | null
           expected_investment?: number | null
+          finance_display_name?: string | null
           general_info?: string | null
           group_id?: string | null
           id?: string
           last_cs_contact_at?: string | null
+          mktplace_entered_at?: string | null
+          mktplace_status?: string | null
           monthly_value?: number | null
           name?: string
           niche?: string | null
           onboarding_started_at?: string | null
           payment_due_day?: number | null
+          phone?: string | null
           razao_social?: string | null
           sales_percentage?: number
           squad_id?: string | null
@@ -2641,6 +2656,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      financeiro_kanban_tasks: {
+        Row: {
+          id: string
+          title: string
+          description: string | null
+          status: string
+          position: number
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          description?: string | null
+          status?: string
+          position?: number
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string | null
+          status?: string
+          position?: number
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       financeiro_contas_pagar: {
         Row: {
