@@ -3425,6 +3425,168 @@ export type Database = {
         }
         Relationships: []
       }
+      mrr_changes: {
+        Row: {
+          id: string
+          client_id: string
+          product_slug: string
+          product_name: string
+          previous_value: number
+          new_value: number
+          change_value: number
+          change_type: string
+          source: string
+          effective_date: string
+          changed_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          product_slug: string
+          product_name: string
+          previous_value?: number
+          new_value?: number
+          change_value?: number
+          change_type: string
+          source?: string
+          effective_date?: string
+          changed_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          product_slug?: string
+          product_name?: string
+          previous_value?: number
+          new_value?: number
+          change_value?: number
+          change_type?: string
+          source?: string
+          effective_date?: string
+          changed_by?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mrr_changes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mktplace_daily_tracking: {
+        Row: {
+          id: string
+          client_id: string
+          consultor_id: string
+          current_day: string
+          last_moved_at: string
+          is_delayed: boolean
+          tracking_type: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          consultor_id: string
+          current_day?: string
+          last_moved_at?: string
+          is_delayed?: boolean
+          tracking_type?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          consultor_id?: string
+          current_day?: string
+          last_moved_at?: string
+          is_delayed?: boolean
+          tracking_type?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mktplace_daily_tracking_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mktplace_daily_documentation: {
+        Row: {
+          id: string
+          client_id: string | null
+          consultor_id: string
+          documentation_date: string
+          tracking_type: string
+          falou_com_cliente: string | null
+          falou_justificativa: string | null
+          fez_algo_novo: string | null
+          fez_algo_justificativa: string | null
+          fez_algo_descricao: string | null
+          combinado: string | null
+          combinado_descricao: string | null
+          combinado_prazo: string | null
+          combinado_justificativa: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          client_id?: string | null
+          consultor_id: string
+          documentation_date?: string
+          tracking_type?: string
+          falou_com_cliente?: string | null
+          falou_justificativa?: string | null
+          fez_algo_novo?: string | null
+          fez_algo_justificativa?: string | null
+          fez_algo_descricao?: string | null
+          combinado?: string | null
+          combinado_descricao?: string | null
+          combinado_prazo?: string | null
+          combinado_justificativa?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          client_id?: string | null
+          consultor_id?: string
+          documentation_date?: string
+          tracking_type?: string
+          falou_com_cliente?: string | null
+          falou_justificativa?: string | null
+          fez_algo_novo?: string | null
+          fez_algo_justificativa?: string | null
+          fez_algo_descricao?: string | null
+          combinado?: string | null
+          combinado_descricao?: string | null
+          combinado_prazo?: string | null
+          combinado_justificativa?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mktplace_daily_documentation_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nps_responses: {
         Row: {
           communication_other: string | null

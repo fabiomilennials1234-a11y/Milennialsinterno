@@ -141,6 +141,13 @@ export default function FinanceiroDashboardPage() {
         }
       }
 
+      // Datas de início/fim do mês selecionado para filtros
+      const [selYear, selMonth] = selectedMonth.split('-').map(Number);
+      const startOfSelectedMonth = new Date(selYear, selMonth - 1, 1);
+      const endOfSelectedMonth = new Date(selYear, selMonth, 0, 23, 59, 59, 999);
+      const startISO = startOfSelectedMonth.toISOString();
+      const endISO = endOfSelectedMonth.toISOString();
+
       const [
         { data: contasPagar },
         { data: contasPagarLastMonth },
@@ -149,6 +156,8 @@ export default function FinanceiroDashboardPage() {
         { data: allClients },
         { data: productValues },
         { data: dreData },
+        { data: mrrChanges },
+        { data: upsellsData },
       ] = await Promise.all([
         supabase.from('financeiro_contas_pagar').select('*').eq('mes_referencia', selectedMonth),
         supabase.from('financeiro_contas_pagar').select('*').eq('mes_referencia', previousMonth),
@@ -157,6 +166,8 @@ export default function FinanceiroDashboardPage() {
         supabase.from('clients').select('id, name, status, archived, distrato_step, monthly_value, entry_date, contracted_products'),
         supabase.from('client_product_values').select('client_id, monthly_value, product_name, product_slug'),
         supabase.from('financeiro_dre').select('*').eq('mes_referencia', selectedMonth).maybeSingle(),
+        supabase.from('mrr_changes').select('*').gte('effective_date', startOfSelectedMonth.toISOString().split('T')[0]).lte('effective_date', endOfSelectedMonth.toISOString().split('T')[0]),
+        supabase.from('upsells').select('*').gte('created_at', startISO).lte('created_at', endISO).neq('status', 'cancelled'),
       ]);
 
       // Build product value map (sum all products per client)
@@ -166,8 +177,7 @@ export default function FinanceiroDashboardPage() {
       });
 
       // Selected month boundaries for entry_date filter
-      const [selYear, selMonth] = selectedMonth.split('-').map(Number);
-      const monthEnd = new Date(selYear, selMonth, 0, 23, 59, 59, 999); // last day of selected month
+      const monthEnd = endOfSelectedMonth;
 
       // Active clients = not archived, not churned, entered before or during selected month
       const activeClientsList = allClients?.filter(c => {
@@ -270,35 +280,61 @@ export default function FinanceiroDashboardPage() {
           (Number(dreData.outras_despesas) || 0)
         : 0;
 
+      // ===== MRR EXPANSION & DEPRECIATION =====
+      // IDs de clientes que entraram neste mês (novos) — excluídos de expansion
+      const newClientIds = new Set(
+        allClients?.filter(c => {
+          const entryDate = c.entry_date ? new Date(c.entry_date) : null;
+          return entryDate && entryDate >= startOfSelectedMonth && entryDate <= endOfSelectedMonth && !c.archived;
+        }).map(c => c.id) || []
+      );
+
+      // Mudanças manuais de valor (mrr_changes) — apenas de clientes já existentes
+      const manualExpansion = (mrrChanges || [])
+        .filter((mc: any) => mc.change_type === 'expansion' && !newClientIds.has(mc.client_id))
+        .reduce((sum: number, mc: any) => sum + Number(mc.change_value || 0), 0);
+
+      const manualDepreciation = (mrrChanges || [])
+        .filter((mc: any) => mc.change_type === 'depreciation' && !newClientIds.has(mc.client_id))
+        .reduce((sum: number, mc: any) => sum + Number(mc.change_value || 0), 0);
+
+      // Upsells (novos produtos para clientes existentes) — apenas clientes que NÃO são novos
+      const upsellExpansion = (upsellsData || [])
+        .filter((u: any) => !newClientIds.has(u.client_id))
+        .reduce((sum: number, u: any) => sum + Number(u.monthly_value || 0), 0);
+
+      const mrrExpansion = manualExpansion + upsellExpansion;
+      const mrrDepreciation = manualDepreciation;
+
       return {
         // Clientes
         totalActiveClients,
         totalMonthlyValue,
         distratoClients: distratoClients.length,
         distratoValue,
-        
+
         // Receber
         totalReceivable,
         totalRecebido,
         totalOverdue,
         overdueCount,
         overdueClientCount,
-        
+
         // Pagar
         totalPayable,
         totalPaid,
         totalPending,
         pendingCount,
         custosPorCategoria,
-        
+
         // Comparação
-        receivableChange: lastMonthReceivable > 0 
-          ? ((totalReceivable - lastMonthReceivable) / lastMonthReceivable) * 100 
+        receivableChange: lastMonthReceivable > 0
+          ? ((totalReceivable - lastMonthReceivable) / lastMonthReceivable) * 100
           : 0,
-        payableChange: lastMonthPayable > 0 
-          ? ((totalPayable - lastMonthPayable) / lastMonthPayable) * 100 
+        payableChange: lastMonthPayable > 0
+          ? ((totalPayable - lastMonthPayable) / lastMonthPayable) * 100
           : 0,
-        
+
         // Resultado
         result,
         marginPercent,
@@ -306,6 +342,10 @@ export default function FinanceiroDashboardPage() {
 
         // Por produto
         faturamentoPorProduto,
+
+        // MRR Expansion & Depreciation
+        mrrExpansion,
+        mrrDepreciation,
       };
     },
     refetchInterval: 60000,
@@ -538,6 +578,55 @@ export default function FinanceiroDashboardPage() {
               </p>
               <p className="text-xs text-muted-foreground mt-2">
                 {formatCurrency(dashboardData.distratoValue)} em risco
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* MRR Expansion & Depreciation */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* MRR Expansion */}
+          <Card className="border-l-4 border-l-emerald-500">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-lg bg-emerald-500/10">
+                    <ArrowUpRight size={16} className="text-emerald-500" />
+                  </div>
+                  <div>
+                    <span className="text-sm font-semibold text-foreground">MRR Expansion</span>
+                    <p className="text-[10px] text-muted-foreground">Aumento de receita recorrente em clientes ativos</p>
+                  </div>
+                </div>
+              </div>
+              <p className="text-3xl font-bold text-emerald-600">
+                {formatCurrency(dashboardData.mrrExpansion)}
+              </p>
+              <p className="text-xs text-muted-foreground mt-2">
+                Upsells + reajustes positivos no mês
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* MRR Depreciation */}
+          <Card className="border-l-4 border-l-amber-500">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-lg bg-amber-500/10">
+                    <ArrowDownRight size={16} className="text-amber-500" />
+                  </div>
+                  <div>
+                    <span className="text-sm font-semibold text-foreground">MRR Depreciation</span>
+                    <p className="text-[10px] text-muted-foreground">Redução de receita recorrente em clientes ativos</p>
+                  </div>
+                </div>
+              </div>
+              <p className="text-3xl font-bold text-amber-600">
+                {formatCurrency(dashboardData.mrrDepreciation)}
+              </p>
+              <p className="text-xs text-muted-foreground mt-2">
+                Downgrades + reajustes negativos no mês
               </p>
             </CardContent>
           </Card>

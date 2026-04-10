@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 export interface ClientProductValue {
@@ -52,27 +53,60 @@ export function useAllClientProductValues(clientIds?: string[]) {
   });
 }
 
-// Atualizar valor de um produto
+// Atualizar valor de um produto (com registro de mudança de MRR)
 export function useUpdateProductValue() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ 
-      id, 
-      monthly_value 
-    }: { 
-      id: string; 
+    mutationFn: async ({
+      id,
+      monthly_value
+    }: {
+      id: string;
       monthly_value: number;
     }) => {
+      // Buscar valor anterior para registrar a mudança
+      const { data: current, error: fetchError } = await supabase
+        .from('client_product_values')
+        .select('client_id, product_slug, product_name, monthly_value')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const previousValue = Number(current.monthly_value || 0);
+      const newValue = Number(monthly_value);
+      const diff = newValue - previousValue;
+
+      // Atualizar o valor
       const { error } = await supabase
         .from('client_product_values')
         .update({ monthly_value })
         .eq('id', id);
-      
+
       if (error) throw error;
+
+      // Registrar mudança de MRR se houver diferença real
+      if (diff !== 0) {
+        await supabase.from('mrr_changes').insert({
+          client_id: current.client_id,
+          product_slug: current.product_slug,
+          product_name: current.product_name,
+          previous_value: previousValue,
+          new_value: newValue,
+          change_value: Math.abs(diff),
+          change_type: diff > 0 ? 'expansion' : 'depreciation',
+          source: 'manual',
+          changed_by: user?.id || null,
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['client-product-values'] });
+      queryClient.invalidateQueries({ queryKey: ['mrr-changes'] });
+      queryClient.invalidateQueries({ queryKey: ['financeiro-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['ceo-indicadores'] });
       toast.success('Valor atualizado!');
     },
     onError: (error: Error) => {

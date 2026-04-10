@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -39,6 +40,7 @@ const EXPIRATION_WARNING_DAYS = 30;
 
 export function useFinanceiroActiveClients() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   // Fetch all active client-products, adjusting for churned products
   const { data: activeClients = [], isLoading } = useQuery({
@@ -255,18 +257,49 @@ export function useFinanceiroActiveClients() {
     },
   });
 
-  // Update monthly value (uses record ID)
+  // Update monthly value (uses record ID) com registro de mudança de MRR
   const updateMonthlyValue = useMutation({
     mutationFn: async ({ recordId, monthlyValue }: { recordId: string; monthlyValue: number }) => {
+      // Buscar valor anterior para registrar a mudança
+      const { data: current, error: fetchError } = await supabase
+        .from('financeiro_active_clients')
+        .select('client_id, product_slug, product_name, monthly_value')
+        .eq('id', recordId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const previousValue = Number(current.monthly_value || 0);
+      const newValue = Number(monthlyValue);
+      const diff = newValue - previousValue;
+
       const { error } = await supabase
         .from('financeiro_active_clients')
         .update({ monthly_value: monthlyValue })
         .eq('id', recordId);
 
       if (error) throw error;
+
+      // Registrar mudança de MRR se houver diferença real
+      if (diff !== 0) {
+        await supabase.from('mrr_changes').insert({
+          client_id: current.client_id,
+          product_slug: current.product_slug,
+          product_name: current.product_name,
+          previous_value: previousValue,
+          new_value: newValue,
+          change_value: Math.abs(diff),
+          change_type: diff > 0 ? 'expansion' : 'depreciation',
+          source: 'manual',
+          changed_by: user?.id || null,
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['financeiro-active-clients'] });
+      queryClient.invalidateQueries({ queryKey: ['mrr-changes'] });
+      queryClient.invalidateQueries({ queryKey: ['financeiro-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['ceo-indicadores'] });
       toast.success('Valor atualizado');
     },
     onError: () => {

@@ -41,6 +41,7 @@ import PublicOutboundStrategyPage from "./pages/PublicOutboundStrategyPage";
 import PublicNPSPage from "./pages/PublicNPSPage";
 import PublicExitFormPage from "./pages/PublicExitFormPage";
 import PublicResultsReportPage from "./pages/PublicResultsReportPage";
+import PublicDiagnosticoPage from "./pages/PublicDiagnosticoPage";
 import UpsellsPage from "./pages/UpsellsPage";
 import ComissoesPage from "./pages/ComissoesPage";
 import ProvasSociaisPage from "./pages/ProvasSociaisPage";
@@ -460,7 +461,10 @@ function AppRoutes() {
 
       {/* Public Results Report Page - accessible without authentication */}
       <Route path="/resultados/:token" element={<PublicResultsReportPage />} />
-      
+
+      {/* Public MKT Place Diagnostic Page - accessible without authentication */}
+      <Route path="/diagnostico-mktplace/:token" element={<PublicDiagnosticoPage />} />
+
       {/* Default Redirect baseado no cargo */}
       <Route path="/" element={
         <ProtectedRoute>

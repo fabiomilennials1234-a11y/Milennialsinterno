@@ -146,6 +146,51 @@ export default function FinanceiroOverviewDashboard() {
     },
   });
 
+  // Fetch MRR changes do mês atual
+  const { data: mrrMetrics } = useQuery({
+    queryKey: ['financeiro-mrr-metrics', currentMonth],
+    queryFn: async () => {
+      const now = new Date();
+      const startOfMonthDate = startOfMonth(now);
+      const endOfMonthDate = endOfMonth(now);
+      const startDate = format(startOfMonthDate, 'yyyy-MM-dd');
+      const endDate = format(endOfMonthDate, 'yyyy-MM-dd');
+      const startISO = startOfMonthDate.toISOString();
+      const endISO = endOfMonthDate.toISOString();
+
+      const [{ data: changes }, { data: upsells }, { data: clients }] = await Promise.all([
+        supabase.from('mrr_changes').select('*').gte('effective_date', startDate).lte('effective_date', endDate),
+        supabase.from('upsells').select('client_id, monthly_value').gte('created_at', startISO).lte('created_at', endISO).neq('status', 'cancelled'),
+        supabase.from('clients').select('id, entry_date, created_at, archived').eq('archived', false),
+      ]);
+
+      // IDs de clientes novos neste mês
+      const newClientIds = new Set(
+        clients?.filter(c => {
+          const entryDate = c.entry_date ? new Date(c.entry_date) : new Date(c.created_at);
+          return entryDate >= startOfMonthDate && entryDate <= endOfMonthDate;
+        }).map(c => c.id) || []
+      );
+
+      const manualExpansion = (changes || [])
+        .filter((mc: any) => mc.change_type === 'expansion' && !newClientIds.has(mc.client_id))
+        .reduce((sum: number, mc: any) => sum + Number(mc.change_value || 0), 0);
+
+      const manualDepreciation = (changes || [])
+        .filter((mc: any) => mc.change_type === 'depreciation' && !newClientIds.has(mc.client_id))
+        .reduce((sum: number, mc: any) => sum + Number(mc.change_value || 0), 0);
+
+      const upsellExpansion = (upsells || [])
+        .filter((u: any) => !newClientIds.has(u.client_id))
+        .reduce((sum: number, u: any) => sum + Number(u.monthly_value || 0), 0);
+
+      return {
+        expansion: manualExpansion + upsellExpansion,
+        depreciation: manualDepreciation,
+      };
+    },
+  });
+
   // Fetch contratos expirando (próximos 30 dias)
   const { data: contratosExpirando = [] } = useQuery({
     queryKey: ['financeiro-contratos-expirando-count'],
@@ -385,6 +430,42 @@ export default function FinanceiroOverviewDashboard() {
               {distratosCount}
             </span>
           </div>
+
+          {/* MRR Expansion */}
+          {(mrrMetrics?.expansion ?? 0) > 0 && (
+            <div className="flex items-center justify-between p-2.5 bg-emerald-500/5 rounded-lg border border-emerald-500/10">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                  <ArrowUpRight size={12} className="text-emerald-500" />
+                </div>
+                <div>
+                  <span className="text-xs font-medium">MRR Expansion</span>
+                  <p className="text-[10px] text-muted-foreground">Upsells + reajustes</p>
+                </div>
+              </div>
+              <span className="text-sm font-bold text-emerald-600">
+                {formatCurrencyCompact(mrrMetrics!.expansion)}
+              </span>
+            </div>
+          )}
+
+          {/* MRR Depreciation */}
+          {(mrrMetrics?.depreciation ?? 0) > 0 && (
+            <div className="flex items-center justify-between p-2.5 bg-amber-500/5 rounded-lg border border-amber-500/10">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center">
+                  <ArrowDownRight size={12} className="text-amber-500" />
+                </div>
+                <div>
+                  <span className="text-xs font-medium">MRR Depreciation</span>
+                  <p className="text-[10px] text-muted-foreground">Downgrades + reduções</p>
+                </div>
+              </div>
+              <span className="text-sm font-bold text-amber-600">
+                {formatCurrencyCompact(mrrMetrics!.depreciation)}
+              </span>
+            </div>
+          )}
 
           {/* Churn do Mês */}
           {stats.monthlyChurnValue > 0 && (

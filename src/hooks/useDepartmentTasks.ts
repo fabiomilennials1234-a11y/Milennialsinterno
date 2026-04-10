@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActionJustification } from '@/contexts/JustificationContext';
 import { toast } from 'sonner';
+import { CONSULTORIA_TASK_MAP, GESTAO_TASK_MAP, getCurrentWeekday } from '@/hooks/useMktplaceKanban';
 
 export interface DepartmentTask {
   id: string;
@@ -304,10 +305,99 @@ export function useUpdateDepartmentTaskStatus(department: string) {
         }
       }
 
-      return { _source: 'department' as const, status, financeiroCompleted, allClientTasksDone };
+      // ===== MKT PLACE AUTOMATION =====
+      let mktplaceAdvanced = false;
+      if (status === 'done') {
+        const taskInfo = await supabase
+          .from('department_tasks')
+          .select('related_client_id, department')
+          .eq('id', taskId)
+          .single();
+
+        if (taskInfo.data?.department === 'consultor_mktplace' && taskInfo.data.related_client_id) {
+          const clientId = taskInfo.data.related_client_id;
+
+          // Get client current status and type
+          const { data: client } = await supabase
+            .from('clients')
+            .select('mktplace_status, contracted_products, name, razao_social, assigned_mktplace')
+            .eq('id', clientId)
+            .single();
+
+          if (client?.mktplace_status) {
+            const products = (client.contracted_products as string[]) || [];
+            const isGestao = products.includes('gestor-mktplace');
+            const clientName = client.razao_social || client.name || 'Cliente';
+
+            // Next step maps
+            const CONSULTORIA_NEXT: Record<string, string> = {
+              novo: 'consultoria_marcada',
+              consultoria_marcada: 'enviar_diagnostico',
+              enviar_diagnostico: 'diagnostico_enviado',
+              diagnostico_enviado: 'acompanhamento',
+            };
+            const GESTAO_NEXT: Record<string, string> = {
+              novo: 'onboarding_marcado',
+              onboarding_marcado: 'apresentar_estrategia',
+              apresentar_estrategia: 'estrategia_apresentada',
+              estrategia_apresentada: 'acessos_pegados',
+              acessos_pegados: 'iniciar_plano',
+              iniciar_plano: 'acompanhamento',
+            };
+
+            const nextMap = isGestao ? GESTAO_NEXT : CONSULTORIA_NEXT;
+            const taskMap = isGestao ? GESTAO_TASK_MAP : CONSULTORIA_TASK_MAP;
+            const nextStatus = nextMap[client.mktplace_status];
+
+            if (nextStatus) {
+              if (nextStatus === 'acompanhamento') {
+                // Move to acompanhamento
+                const trackingType = isGestao ? 'gestao' : 'consultoria';
+                const acompStatus = isGestao ? 'acompanhamento_gestao' : 'acompanhamento_consultoria';
+                const weekday = getCurrentWeekday();
+
+                await supabase.from('clients').update({ mktplace_status: acompStatus }).eq('id', clientId);
+                await (supabase as any).from('mktplace_daily_tracking').upsert({
+                  client_id: clientId,
+                  consultor_id: client.assigned_mktplace || user?.id,
+                  current_day: weekday,
+                  last_moved_at: new Date().toISOString(),
+                  tracking_type: trackingType,
+                }, { onConflict: 'client_id' });
+              } else {
+                // Move to next onboarding step
+                await supabase.from('clients').update({ mktplace_status: nextStatus }).eq('id', clientId);
+
+                // Create next task
+                const taskNameFn = taskMap[nextStatus];
+                if (taskNameFn && user?.id) {
+                  await supabase.from('department_tasks').insert({
+                    user_id: user.id,
+                    title: taskNameFn(clientName),
+                    task_type: 'daily',
+                    status: 'todo',
+                    priority: 'high',
+                    department: 'consultor_mktplace',
+                    related_client_id: clientId,
+                  } as any);
+                }
+              }
+              mktplaceAdvanced = true;
+            }
+          }
+        }
+      }
+
+      return { _source: 'department' as const, status, financeiroCompleted, allClientTasksDone, mktplaceAdvanced };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
+      if (result?.mktplaceAdvanced) {
+        queryClient.invalidateQueries({ queryKey: ['mktplace-all-clients'] });
+        queryClient.invalidateQueries({ queryKey: ['mktplace-new-clients'] });
+        queryClient.invalidateQueries({ queryKey: ['mktplace-tracking'] });
+        toast.success('Cliente avançado automaticamente!');
+      }
       if (result?.financeiroCompleted) {
         queryClient.invalidateQueries({ queryKey: ['financeiro-active-clients'] });
         queryClient.invalidateQueries({ queryKey: ['financeiro-onboarding'] });
