@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
@@ -32,6 +33,7 @@ import ClientLabelBadge, { type ClientLabel } from '@/components/shared/ClientLa
 import ClientLabelSelector from '@/components/shared/ClientLabelSelector';
 import { useClientInfo, useClientCallForm, useSaveClientCallForm, useUpdateClientInfo, ClientCallForm } from '@/hooks/useClientCallForm';
 import StrategyBuilderSection from '@/components/strategy/StrategyBuilderSection';
+import MktplaceDiagnosticoSection from '@/components/mktplace/MktplaceDiagnosticoSection';
 import OutboundStrategyBuilderSection from '@/components/outbound-strategy/OutboundStrategyBuilderSection';
 import ResultsReportSection from '@/components/results-report/ResultsReportSection';
 import ResultsReportCountdownBadge from '@/components/results-report/ResultsReportCountdownBadge';
@@ -70,13 +72,11 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
 
   const canSetClientLabel = isCEO || isAdminUser || user?.role === 'sucesso_cliente';
 
-  // Buscar nomes dos responsáveis (Gestor, Treinador Comercial, CRM, RH, MKT Place)
+  // Buscar nomes dos responsáveis (Gestor, Treinador Comercial, MKT Place)
   const gestorId = clientInfo?.assigned_ads_manager;
   const treinadorId = clientInfo?.assigned_comercial;
-  const crmId = clientInfo?.assigned_crm;
-  const rhId = clientInfo?.assigned_rh;
-  const mktplaceId = (clientInfo as any)?.assigned_mktplace;
-  const responsibleIds = [gestorId, treinadorId, crmId, rhId, mktplaceId].filter(Boolean) as string[];
+  const mktplaceId = clientInfo?.assigned_mktplace;
+  const responsibleIds = [gestorId, treinadorId, mktplaceId].filter(Boolean) as string[];
 
   const { data: responsibleNames = {} } = useQuery({
     queryKey: ['responsible-names', responsibleIds.join(',')],
@@ -215,6 +215,14 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
               </div>
               <ClientLabelBadge label={(clientInfo as any)?.client_label as ClientLabel} size="sm" />
               <ClientTierBadge clientId={clientId} />
+              {mktplaceId && responsibleNames[mktplaceId] && (
+                <Badge
+                  variant="outline"
+                  className="text-[10px] px-2 py-0.5 gap-1 bg-purple-100 text-purple-800 border-purple-300"
+                >
+                  MKT Place • {responsibleNames[mktplaceId]}
+                </Badge>
+              )}
               <ResultsReportCountdownBadge clientId={clientId} />
             </div>
             <div className="flex items-center gap-2">
@@ -295,12 +303,7 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
                         const config = PRODUCT_CONFIG[slug];
                         if (!config) return null;
                         // Responsável por produto
-                        let responsibleName: string | null = null;
-                        if (slug === 'torque-crm' && crmId && responsibleNames[crmId]) {
-                          responsibleName = responsibleNames[crmId];
-                        } else if (slug === 'millennials-hunting' && rhId && responsibleNames[rhId]) {
-                          responsibleName = responsibleNames[rhId];
-                        }
+                        const responsibleName: string | null = null;
                         return (
                           <span key={slug} className={cn("inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold", config.color)}>
                             {config.name}
@@ -678,6 +681,14 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
               {/* Strategy Builder Section - Replaces old Mindmeister section */}
               {clientInfo && (
                 <StrategyBuilderSection
+                  clientId={clientId}
+                  clientName={clientInfo.name}
+                />
+              )}
+
+              {/* MKT Place Diagnóstico Section */}
+              {clientInfo && (
+                <MktplaceDiagnosticoSection
                   clientId={clientId}
                   clientName={clientInfo.name}
                 />

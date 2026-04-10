@@ -91,6 +91,7 @@ export function useCEOIndicadores(selectedMonth?: string) {
         { data: produtos },
         { data: upsells },
         { data: clientSales },
+        { data: mrrChangesData },
       ] = await Promise.all([
         supabase.from('financeiro_contas_receber').select('*').eq('mes_referencia', currentMonth),
         supabase.from('financeiro_contas_receber').select('*').eq('mes_referencia', previousMonth),
@@ -103,6 +104,7 @@ export function useCEOIndicadores(selectedMonth?: string) {
         supabase.from('financeiro_produtos').select('*').eq('ativo', true),
         supabase.from('upsells').select('*'),
         supabase.from('client_sales').select('*'),
+        supabase.from('mrr_changes').select('*').gte('effective_date', startOfCurrentMonth.toISOString().split('T')[0]).lte('effective_date', monthEnd.toISOString().split('T')[0]),
       ]);
 
       // ===== ACTIVE CLIENTS (real, from clients table) =====
@@ -213,14 +215,35 @@ export function useCEOIndicadores(selectedMonth?: string) {
         return createdAt >= startOfCurrentMonth && createdAt <= monthEnd && u.status !== 'cancelled';
       }) || [];
 
-      const mrrExpansion = upsellsMes.reduce((sum, u) => sum + Number(u.monthly_value || 0), 0);
-
       const churnsMes = churns?.filter(c => {
         const enteredAt = new Date(c.distrato_entered_at);
         return enteredAt >= startOfCurrentMonth && enteredAt <= monthEnd;
       }) || [];
 
-      const mrrDepreciation = churnsMes.reduce((sum, c) => sum + Number(c.monthly_value || 0), 0);
+      // IDs de clientes novos neste mês — excluídos de expansion/depreciation
+      const newClientIdSet = new Set(
+        allClients?.filter(c => {
+          const entryDate = c.entry_date ? new Date(c.entry_date) : new Date(c.created_at);
+          return entryDate >= startOfCurrentMonth && entryDate <= monthEnd && !c.archived;
+        }).map(c => c.id) || []
+      );
+
+      // Mudanças manuais de valor (mrr_changes) — apenas clientes existentes
+      const manualExpansion = (mrrChangesData || [])
+        .filter((mc: any) => mc.change_type === 'expansion' && !newClientIdSet.has(mc.client_id))
+        .reduce((sum: number, mc: any) => sum + Number(mc.change_value || 0), 0);
+
+      const manualDepreciation = (mrrChangesData || [])
+        .filter((mc: any) => mc.change_type === 'depreciation' && !newClientIdSet.has(mc.client_id))
+        .reduce((sum: number, mc: any) => sum + Number(mc.change_value || 0), 0);
+
+      // Upsells de clientes existentes
+      const upsellExpansion = upsellsMes
+        .filter(u => !newClientIdSet.has(u.client_id))
+        .reduce((sum, u) => sum + Number(u.monthly_value || 0), 0);
+
+      const mrrExpansion = manualExpansion + upsellExpansion;
+      const mrrDepreciation = manualDepreciation + churnsMes.reduce((sum, c) => sum + Number(c.monthly_value || 0), 0);
 
       const mrrInicial = mrrAnterior;
 

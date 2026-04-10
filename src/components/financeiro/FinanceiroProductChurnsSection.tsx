@@ -186,13 +186,6 @@ export default function FinanceiroProductChurnsSection() {
     );
   }
 
-  // Check if there are any churns
-  const totalChurns = productChurns.length;
-
-  if (totalChurns === 0) {
-    return null;
-  }
-
   return (
     <>
       <ScrollArea className="w-full">

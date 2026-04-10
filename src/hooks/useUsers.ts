@@ -163,23 +163,39 @@ export function useDeleteUser() {
   return useMutation({
     mutationFn: async (userId: string) => {
       const { data: session } = await supabase.auth.getSession();
+      const accessToken = session.session?.access_token;
 
-      const response = await supabase.functions.invoke('delete-user', {
-        body: { userId },
+      if (!accessToken) {
+        throw new Error('Sessão expirada. Faça login novamente.');
+      }
+
+      // Usar fetch direto para capturar o erro real da Edge Function
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL ||
+        (typeof window !== 'undefined' && window.__ENV__?.VITE_SUPABASE_URL);
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+        (typeof window !== 'undefined' && window.__ENV__?.VITE_SUPABASE_PUBLISHABLE_KEY);
+
+      const res = await fetch(`${supabaseUrl}/functions/v1/delete-user`, {
+        method: 'POST',
         headers: {
-          Authorization: `Bearer ${session.session?.access_token}`
-        }
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+          'apikey': anonKey,
+        },
+        body: JSON.stringify({ userId }),
       });
 
-      if (response.error) {
-        throw new Error(response.error.message || 'Erro ao remover usuário');
+      const body = await res.json();
+
+      if (!res.ok) {
+        throw new Error(body?.error || `Erro ${res.status}: ${res.statusText}`);
       }
 
-      if (response.data?.error) {
-        throw new Error(response.data.error);
+      if (body?.error) {
+        throw new Error(body.error);
       }
 
-      return response.data;
+      return body;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
