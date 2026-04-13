@@ -134,6 +134,44 @@ export function useCreateUpsell() {
             related_client_id: upsell.client_id,
             due_date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
           } as any);
+
+        // Up-sell de Gestão de MKT Place → criar tarefa automática para o consultor
+        if (upsell.product_slug === 'gestor-mktplace') {
+          // Buscar o consultor MKT Place atribuído ao cliente
+          const { data: clientMkt } = await supabase
+            .from('clients')
+            .select('assigned_mktplace')
+            .eq('id', upsell.client_id)
+            .single();
+
+          const consultorId = clientMkt?.assigned_mktplace || user.id;
+
+          // Verificar se já existe tarefa igual para evitar duplicação
+          const { data: existingTask } = await supabase
+            .from('department_tasks')
+            .select('id')
+            .eq('related_client_id', upsell.client_id)
+            .eq('department', 'consultor_mktplace')
+            .like('title', '%Marcar apresentação de estratégia Gestão de Mkt Place%')
+            .eq('status', 'todo')
+            .maybeSingle();
+
+          if (!existingTask) {
+            await supabase
+              .from('department_tasks')
+              .insert({
+                user_id: consultorId,
+                title: `Marcar apresentação de estratégia Gestão de Mkt Place (${clientName})`,
+                description: 'gestor-mktplace',
+                task_type: 'daily',
+                status: 'todo',
+                priority: 'high',
+                department: 'consultor_mktplace',
+                related_client_id: upsell.client_id,
+                due_date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+              } as any);
+          }
+        }
       }
 
       return data;
