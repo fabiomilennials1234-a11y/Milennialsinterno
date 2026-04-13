@@ -1,8 +1,11 @@
+import { useState } from 'react';
 import { useMktplaceClients, MKTPLACE_CONSULTORIA_STEPS, MKTPLACE_GESTAO_STEPS } from '@/hooks/useMktplaceKanban';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { FileText } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { FileText, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import ClientViewModal from '@/components/client/ClientViewModal';
 
 const CONSULTORIA_STEP_LABELS: Record<string, string> = {
   consultoria_marcada: '[ 1 ] Consultoria Marcada',
@@ -39,6 +42,7 @@ const COLUMNS = [
 
 export default function MktplaceOnboardingSection() {
   const { data: clients = [] } = useMktplaceClients();
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
 
   return (
     <>
@@ -105,6 +109,15 @@ export default function MktplaceOnboardingSection() {
                                   </p>
                                 )}
                               </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-1.5 text-[10px] gap-0.5 shrink-0"
+                                onClick={() => setSelectedClientId(client.id)}
+                              >
+                                <Eye size={10} />
+                                Ver
+                              </Button>
                             </div>
 
                             {/* Avanço é automático pela conclusão da tarefa */}
@@ -119,6 +132,15 @@ export default function MktplaceOnboardingSection() {
           </div>
         );
       })}
+
+      {selectedClientId && (
+        <ClientViewModal
+          key={selectedClientId}
+          isOpen
+          onClose={() => setSelectedClientId(null)}
+          clientId={selectedClientId}
+        />
+      )}
     </>
   );
 }

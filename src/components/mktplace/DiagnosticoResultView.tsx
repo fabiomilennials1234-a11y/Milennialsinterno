@@ -251,7 +251,7 @@ export default function DiagnosticoResultView({ isOpen, onClose, diagnostico }: 
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[92vh] p-0 flex flex-col">
+      <DialogContent className="max-w-3xl max-h-[92vh] p-0 !grid-rows-[auto_1fr] overflow-hidden">
         <DialogHeader className="px-6 py-4 border-b border-border shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -270,7 +270,7 @@ export default function DiagnosticoResultView({ isOpen, onClose, diagnostico }: 
           </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 px-6 py-4">
+        <ScrollArea className="min-h-0 px-6 py-4">
           <div className="space-y-6 pb-6">
             {/* ── Info Header ── */}
             <div className="flex flex-wrap items-center gap-4 text-sm">
