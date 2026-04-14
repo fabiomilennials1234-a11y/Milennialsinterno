@@ -18,6 +18,7 @@ function generateLocalSummary(problems: WeeklyProblem[]): string {
   const delays = problems.filter(p => p.problem_type?.startsWith('delay_'));
   const observations = problems.filter(p => p.problem_type === 'observation');
   const clientProblems = problems.filter(p => p.problem_type === 'client_problem');
+  const cases = problems.filter(p => p.problem_type === 'case');
 
   const lines: string[] = [];
 
@@ -58,6 +59,15 @@ function generateLocalSummary(problems: WeeklyProblem[]): string {
     clientProblems.forEach(cp => {
       lines.push(`  • ${cp.problem_text}`);
       if (cp.manager_name) lines.push(`    Reportado por: ${cp.manager_name}`);
+    });
+    lines.push('');
+  }
+
+  if (cases.length > 0) {
+    lines.push('💡 CASES DA SEMANA:');
+    cases.forEach(c => {
+      lines.push(`  • ${c.problem_text}`);
+      if (c.manager_name) lines.push(`    — ${c.manager_name}`);
     });
     lines.push('');
   }

@@ -15,6 +15,7 @@ export interface MeetingOneOnOne {
   delay_crm: boolean;
   delay_automation: boolean;
   main_challenges: string[];
+  cases_da_semana: string[];
   general_observations: string | null;
   meeting_date: string;
   created_by: string | null;
@@ -75,6 +76,7 @@ export interface MeetingFormData {
   delay_crm: boolean;
   delay_automation: boolean;
   main_challenges: string[];
+  cases_da_semana: string[];
   general_observations: string | null;
   meeting_date: string;
   created_by_name: string | null;
@@ -159,6 +161,7 @@ export function useMeetingsOneOnOne() {
         delay_crm: data.delay_crm,
         delay_automation: data.delay_automation,
         main_challenges: data.main_challenges,
+        cases_da_semana: data.cases_da_semana ?? [],
         general_observations: data.general_observations,
         meeting_date: data.meeting_date,
         created_by: user?.id || null,
@@ -259,6 +262,23 @@ export function useMeetingsOneOnOne() {
           manager_name: data.evaluated_manager_name,
           week_start: weekStart,
         });
+      }
+
+      // Adicionar cases positivos da semana (vão para OKRs Milennials junto
+      // com os demais problem_types — viram bloco "💡 CASES DA SEMANA")
+      if (data.cases_da_semana?.length) {
+        for (const caseText of data.cases_da_semana) {
+          if (caseText.trim()) {
+            problemsToInsert.push({
+              problem_text: caseText.trim(),
+              source_meeting_id: meeting.id,
+              problem_type: 'case',
+              manager_id: data.evaluated_manager_id,
+              manager_name: data.evaluated_manager_name,
+              week_start: weekStart,
+            });
+          }
+        }
       }
 
       // Adicionar clientes com problemas

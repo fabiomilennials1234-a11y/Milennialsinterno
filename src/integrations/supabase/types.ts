@@ -3405,6 +3405,7 @@ export type Database = {
           general_observations: string | null
           id: string
           main_challenges: string[] | null
+          cases_da_semana: string[] | null
           meeting_date: string | null
           updated_at: string | null
         }
@@ -3426,6 +3427,7 @@ export type Database = {
           general_observations?: string | null
           id?: string
           main_challenges?: string[] | null
+          cases_da_semana?: string[] | null
           meeting_date?: string | null
           updated_at?: string | null
         }
@@ -3447,6 +3449,7 @@ export type Database = {
           general_observations?: string | null
           id?: string
           main_challenges?: string[] | null
+          cases_da_semana?: string[] | null
           meeting_date?: string | null
           updated_at?: string | null
         }

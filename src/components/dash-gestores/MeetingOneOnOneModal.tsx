@@ -11,7 +11,7 @@ import { useMeetingsOneOnOne, MeetingFormData } from '@/hooks/useMeetingsOneOnOn
 import { useSquadManagers } from '@/hooks/useSquadManagers';
 import { useClientsWithSales } from '@/hooks/useClientList';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, Plus, X, Search, Users, AlertCircle } from 'lucide-react';
+import { Loader2, Plus, X, Search, Users, AlertCircle, Sparkles } from 'lucide-react';
 
 interface MeetingOneOnOneModalProps {
   open: boolean;
@@ -37,6 +37,8 @@ export default function MeetingOneOnOneModal({ open, onOpenChange }: MeetingOneO
   const [observations, setObservations] = useState('');
   const [clientSearch, setClientSearch] = useState('');
   const [clientProblems, setClientProblems] = useState<Record<string, string>>({});
+  const [casesDaSemana, setCasesDaSemana] = useState<string[]>([]);
+  const [newCase, setNewCase] = useState('');
 
   // Active clients only (not archived, not churned)
   const activeClients = useMemo(() => {
@@ -87,6 +89,20 @@ export default function MeetingOneOnOneModal({ open, onOpenChange }: MeetingOneO
     setObservations('');
     setClientSearch('');
     setClientProblems({});
+    setCasesDaSemana([]);
+    setNewCase('');
+  };
+
+  const addCase = () => {
+    const text = newCase.trim();
+    if (!text) return;
+    if (casesDaSemana.includes(text)) return;
+    setCasesDaSemana(prev => [...prev, text]);
+    setNewCase('');
+  };
+
+  const removeCase = (text: string) => {
+    setCasesDaSemana(prev => prev.filter(c => c !== text));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -116,6 +132,7 @@ export default function MeetingOneOnOneModal({ open, onOpenChange }: MeetingOneO
       delay_crm: delayCRM,
       delay_automation: delayAutomation,
       main_challenges: selectedChallenges,
+      cases_da_semana: casesDaSemana,
       general_observations: observations.trim() || null,
       meeting_date: new Date().toISOString().split('T')[0],
       created_by_name: user?.name || null,
@@ -282,6 +299,60 @@ export default function MeetingOneOnOneModal({ open, onOpenChange }: MeetingOneO
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
+          </div>
+
+          {/* Cases da Semana */}
+          <div>
+            <Label className="text-muted-foreground uppercase text-xs tracking-wider flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              Cases da semana
+            </Label>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Conquistas, vitórias ou casos de sucesso reportados — vão para o resumo de OKRs Milennials.
+            </p>
+            <div className="flex gap-2 mt-2">
+              <Input
+                placeholder="Ex: cliente X bateu meta de R$50k em vendas..."
+                value={newCase}
+                onChange={(e) => setNewCase(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addCase();
+                  }
+                }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={addCase}
+                disabled={!newCase.trim()}
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+            {casesDaSemana.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {casesDaSemana.map((c, i) => (
+                  <Badge
+                    key={`${c}-${i}`}
+                    variant="outline"
+                    className="gap-1.5 bg-amber-500/10 text-amber-700 border-amber-500/30"
+                  >
+                    <Sparkles className="w-3 h-3" />
+                    {c}
+                    <button
+                      type="button"
+                      onClick={() => removeCase(c)}
+                      className="hover:text-destructive"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Clientes com Problemas */}
