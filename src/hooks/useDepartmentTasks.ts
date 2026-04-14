@@ -486,7 +486,7 @@ export function useUpdateDepartmentTaskStatus(department: string) {
                   .eq('id', cfg.id);
                 crmConfigFinalized = true;
               } else {
-                // Avança step + cria próxima tarefa
+                // Avança step + cria próxima tarefa (idempotente)
                 await (supabase as any)
                   .from('crm_configuracoes')
                   .update({ current_step: next })
@@ -502,16 +502,31 @@ export function useUpdateDepartmentTaskStatus(department: string) {
 
                 const titleFn = CRM_TASK_TITLE[produto][next];
                 if (titleFn && user?.id) {
-                  await supabase.from('department_tasks').insert({
-                    user_id: user.id,
-                    title: titleFn(clientName),
-                    description: `crm-config:${produto}`,
-                    task_type: 'daily',
-                    status: 'todo',
-                    priority: 'high',
-                    department: 'gestor_crm',
-                    related_client_id: cfgTask.related_client_id,
-                  } as any);
+                  // Guarda: só cria a próxima tarefa se não houver uma ativa
+                  // (todo/doing) com a mesma tag para este cliente.
+                  // Protege contra double-fire do React Query / drag-drop.
+                  const { data: existingNext } = await (supabase as any)
+                    .from('department_tasks')
+                    .select('id')
+                    .eq('related_client_id', cfgTask.related_client_id)
+                    .eq('department', 'gestor_crm')
+                    .eq('description', `crm-config:${produto}`)
+                    .in('status', ['todo', 'doing'])
+                    .eq('archived', false)
+                    .limit(1);
+
+                  if (!existingNext || existingNext.length === 0) {
+                    await supabase.from('department_tasks').insert({
+                      user_id: user.id,
+                      title: titleFn(clientName),
+                      description: `crm-config:${produto}`,
+                      task_type: 'daily',
+                      status: 'todo',
+                      priority: 'high',
+                      department: 'gestor_crm',
+                      related_client_id: cfgTask.related_client_id,
+                    } as any);
+                  }
                 }
                 crmConfigAdvanced = true;
               }
