@@ -589,59 +589,85 @@ export function useCreateCrmConfiguracoes() {
       if (!produtos.length) throw new Error('Selecione ao menos um produto');
       if (!user?.id) throw new Error('Usuário não autenticado');
 
-      const created: { produto: CrmProduto; existed: boolean }[] = [];
+      const created: { produto: CrmProduto; configExisted: boolean; taskCreated: boolean }[] = [];
 
       for (const produto of produtos) {
-        // Já existe?
-        const { data: existing } = await (supabase as any)
+        // 1. Config já existe? (UNIQUE client_id+produto garante no máx 1)
+        const { data: existingCfg } = await (supabase as any)
           .from('crm_configuracoes')
-          .select('id')
+          .select('id, current_step')
           .eq('client_id', clientId)
           .eq('produto', produto)
           .limit(1);
 
-        if (existing && existing.length > 0) {
-          created.push({ produto, existed: true });
-          continue;
+        let configId: string;
+        let currentStep: string;
+        let configExisted = false;
+
+        if (existingCfg && existingCfg.length > 0) {
+          // Já existe — reusa
+          configId = existingCfg[0].id;
+          currentStep = existingCfg[0].current_step;
+          configExisted = true;
+        } else {
+          // Cria nova
+          const initialStep = CRM_STEPS_BY_PRODUTO[produto][0];
+          const formData = formDataByProduto[produto] || {};
+
+          const { data: inserted, error: insertErr } = await (supabase as any)
+            .from('crm_configuracoes')
+            .insert({
+              client_id: clientId,
+              gestor_id: gestorId,
+              produto,
+              current_step: initialStep,
+              is_finalizado: false,
+              form_data: formData,
+            })
+            .select('id')
+            .single();
+          if (insertErr) throw insertErr;
+
+          configId = inserted.id;
+          currentStep = initialStep;
         }
 
-        const initialStep = CRM_STEPS_BY_PRODUTO[produto][0];
-        const formData = formDataByProduto[produto] || {};
+        // 2. Garante que exista UMA tarefa ativa para o step atual desta
+        // configuração. Independente do config já existir ou não: se não
+        // houver tarefa ativa (todo/doing), cria. Isso impede o cenário
+        // "3 cards mas só 1 tarefa" quando o usuário reabre o form.
+        const expectedTitle = CRM_TASK_TITLE[produto]?.[currentStep]?.(clientName);
+        if (expectedTitle) {
+          const { data: existingTask } = await (supabase as any)
+            .from('department_tasks')
+            .select('id')
+            .eq('related_client_id', clientId)
+            .eq('department', 'gestor_crm')
+            .eq('description', `crm-config:${produto}`)
+            .in('status', ['todo', 'doing'])
+            .eq('archived', false)
+            .limit(1);
 
-        const { error: insertErr } = await (supabase as any)
-          .from('crm_configuracoes')
-          .insert({
-            client_id: clientId,
-            gestor_id: gestorId,
-            produto,
-            current_step: initialStep,
-            is_finalizado: false,
-            form_data: formData,
-          });
-        if (insertErr) throw insertErr;
+          let taskCreated = false;
+          if (!existingTask || existingTask.length === 0) {
+            const { error: taskErr } = await supabase.from('department_tasks').insert({
+              user_id: user.id,
+              title: expectedTitle,
+              description: `crm-config:${produto}`,
+              task_type: 'daily',
+              status: 'todo',
+              priority: 'high',
+              department: 'gestor_crm',
+              related_client_id: clientId,
+            } as any);
+            if (taskErr) throw taskErr;
+            taskCreated = true;
+          }
 
-        // Cria primeira tarefa com user_id = usuário logado (respeita RLS
-        // do department_tasks que exige auth.uid() = user_id).
-        // `description` recebe a tag 'crm-config:{produto}' — isso identifica
-        // INEQUIVOCAMENTE qual configuração avançar quando a tarefa for concluída
-        // (sem essa tag haveria ambiguidade se o mesmo cliente tem V8 + Automation
-        // na mesma etapa, já que o título é idêntico).
-        const titleFn = CRM_TASK_TITLE[produto][initialStep];
-        if (titleFn) {
-          const { error: taskErr } = await supabase.from('department_tasks').insert({
-            user_id: user.id,
-            title: titleFn(clientName),
-            description: `crm-config:${produto}`,
-            task_type: 'daily',
-            status: 'todo',
-            priority: 'high',
-            department: 'gestor_crm',
-            related_client_id: clientId,
-          } as any);
-          if (taskErr) throw taskErr;
+          created.push({ produto, configExisted, taskCreated });
+        } else {
+          created.push({ produto, configExisted, taskCreated: false });
         }
-
-        created.push({ produto, existed: false });
       }
 
       return created;
