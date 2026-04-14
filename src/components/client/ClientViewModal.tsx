@@ -41,7 +41,7 @@ import PaddockDiagnosticoSection from '@/components/comercial/PaddockDiagnostico
 import PaddockDiagnosticoListSection from '@/components/comercial/PaddockDiagnosticoListSection';
 import WarRoomSection from '@/components/comercial/WarRoomSection';
 import ClientTierBadge, { ClientCreativesLimit } from '@/components/shared/ClientTierBadge';
-import { PRODUCT_CONFIG } from '@/components/shared/ProductBadges';
+import { PRODUCT_CONFIG, TorqueCRMProductBadges } from '@/components/shared/ProductBadges';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -317,6 +317,13 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
                         );
                       })}
                   </div>
+                  {/* Sub-produtos do Torque CRM (V8/Automation/Copilot) */}
+                  {(clientInfo as any).torque_crm_products && (clientInfo as any).torque_crm_products.length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold mb-1.5">Torque CRM — Produtos</p>
+                      <TorqueCRMProductBadges products={(clientInfo as any).torque_crm_products} size="md" />
+                    </div>
+                  )}
                 </div>
               )}
 

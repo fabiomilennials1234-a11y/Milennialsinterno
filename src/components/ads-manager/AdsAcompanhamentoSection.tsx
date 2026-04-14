@@ -19,6 +19,7 @@ import ResultsReportCountdownBadge from '@/components/results-report/ResultsRepo
 import ClientLabelBadge from '@/components/shared/ClientLabelBadge';
 import ClientLabelSelector from '@/components/shared/ClientLabelSelector';
 import type { ClientLabel } from '@/components/shared/ClientLabelBadge';
+import { TorqueCRMProductBadges } from '@/components/shared/ProductBadges';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -323,6 +324,7 @@ export default function AdsAcompanhamentoSection({ compact }: Props) {
                                   )}
                                   <p className="text-xs font-medium truncate">{item.client?.name || 'Cliente'}</p>
                                   <ClientLabelBadge label={(item.client as any)?.client_label as ClientLabel} size="sm" />
+                                  <TorqueCRMProductBadges products={(item.client as any)?.torque_crm_products} size="sm" />
 
                                   <div className="ml-auto flex items-center gap-1">
                                     {canSetClientLabel && (

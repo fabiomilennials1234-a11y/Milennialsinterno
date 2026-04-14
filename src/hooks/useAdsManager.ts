@@ -146,7 +146,7 @@ export function useAssignedClients() {
   return useQuery({
     queryKey: ['assigned-clients', effectiveUserId, shouldFilterByManager],
     queryFn: async () => {
-      const selectFields = 'id,name,cnpj,cpf,razao_social,general_info,expected_investment,group_id,squad_id,assigned_ads_manager,status,onboarding_started_at,campaign_published_at,created_at,updated_at,archived,archived_at,sales_percentage,entry_date,client_label,contracted_products';
+      const selectFields = 'id,name,cnpj,cpf,razao_social,general_info,expected_investment,group_id,squad_id,assigned_ads_manager,status,onboarding_started_at,campaign_published_at,created_at,updated_at,archived,archived_at,sales_percentage,entry_date,client_label,contracted_products,torque_crm_products';
       let query = supabase
         .from('clients')
         .select(selectFields)

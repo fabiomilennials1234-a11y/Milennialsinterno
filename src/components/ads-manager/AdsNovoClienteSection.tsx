@@ -12,6 +12,7 @@ import OverdueInvoiceBadge from '@/components/shared/OverdueInvoiceBadge';
 import ContractStatusBadge from '@/components/shared/ContractStatusBadge';
 import CXValidationBadge from '@/components/shared/CXValidationBadge';
 import ClientLabelBadge, { type ClientLabel } from '@/components/shared/ClientLabelBadge';
+import ProductBadges, { TorqueCRMProductBadges } from '@/components/shared/ProductBadges';
 
 export default function AdsNovoClienteSection() {
   const { data: clients = [], isLoading: clientsLoading, error: clientsError } = useAssignedClients();
@@ -125,6 +126,11 @@ export default function AdsNovoClienteSection() {
                         <Clock size={10} />
                         {format(new Date(client.created_at), 'dd/MM', { locale: ptBR })}
                       </span>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <ProductBadges products={(client as any).contracted_products} size="sm" maxVisible={4} />
+                      <TorqueCRMProductBadges products={(client as any).torque_crm_products} size="sm" />
                     </div>
 
                     {client.expected_investment && (

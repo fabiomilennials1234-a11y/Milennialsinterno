@@ -266,6 +266,23 @@
   .section-header-gray {
     background: hsl(215 14% 45%);
   }
+
+  .section-header-emerald {
+    background: hsl(152 76% 40%);
+  }
+
+  .section-header-sky {
+    background: hsl(199 89% 48%);
+  }
+
+  .section-header-violet {
+    background: hsl(263 70% 60%);
+  }
+
+  .section-header-amber {
+    background: hsl(45 100% 55%);
+    color: hsl(14 13% 20%);
+  }
   
   /* Kanban Column Headers - Coloridos */
   .kanban-header-todo {
