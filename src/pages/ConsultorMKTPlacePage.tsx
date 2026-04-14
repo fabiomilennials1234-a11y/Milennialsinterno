@@ -45,7 +45,7 @@ function MktplaceNovoClienteSection() {
     queryFn: async () => {
       let query = supabase
         .from('clients')
-        .select('id, name, razao_social, contracted_products, monthly_value, mktplace_status, mktplace_entered_at, assigned_mktplace, assigned_ads_manager, assigned_comercial, assigned_crm')
+        .select('id, name, razao_social, contracted_products, torque_crm_products, monthly_value, mktplace_status, mktplace_entered_at, assigned_mktplace, assigned_ads_manager, assigned_comercial, assigned_crm')
         .eq('mktplace_status', 'novo')
         .eq('archived', false)
         .not('assigned_mktplace', 'is', null)

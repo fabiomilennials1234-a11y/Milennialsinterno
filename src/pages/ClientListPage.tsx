@@ -7,7 +7,7 @@ import { useFinanceiroActiveClients } from '@/hooks/useFinanceiroActiveClients';
 import { useUpsells } from '@/hooks/useUpsells';
 import { useProductChurn } from '@/hooks/useProductChurn';
 import ClientLabelBadge from '@/components/shared/ClientLabelBadge';
-import ProductBadges, { PRODUCT_CONFIG } from '@/components/shared/ProductBadges';
+import ProductBadges, { PRODUCT_CONFIG, TorqueCRMProductBadges } from '@/components/shared/ProductBadges';
 import type { ClientLabel } from '@/components/shared/ClientLabelBadge';
 import { 
   Search, 
@@ -671,7 +671,10 @@ export default function ClientListPage() {
                       </span>
                     )}
                   </div>
-                  <ProductBadges products={(client as any).contracted_products} size="sm" maxVisible={4} />
+                  <div className="flex flex-col gap-1">
+                    <ProductBadges products={(client as any).contracted_products} size="sm" maxVisible={4} />
+                    <TorqueCRMProductBadges products={(client as any).torque_crm_products} size="sm" />
+                  </div>
                   {client.razao_social && (
                     <p className="text-xs text-muted-foreground truncate max-w-[200px]">
                       {client.razao_social}

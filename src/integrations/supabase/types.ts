@@ -1249,6 +1249,9 @@ export type Database = {
           crm_status: string | null
           crm_entered_at: string | null
           torque_crm_products: string[] | null
+          assigned_crm: string | null
+          assigned_rh: string | null
+          assigned_outbound_manager: string | null
           group_id: string | null
           id: string
           last_cs_contact_at: string | null
@@ -1304,6 +1307,9 @@ export type Database = {
           crm_status?: string | null
           crm_entered_at?: string | null
           torque_crm_products?: string[] | null
+          assigned_crm?: string | null
+          assigned_rh?: string | null
+          assigned_outbound_manager?: string | null
           monthly_value?: number | null
           name: string
           niche?: string | null
@@ -1356,6 +1362,9 @@ export type Database = {
           crm_status?: string | null
           crm_entered_at?: string | null
           torque_crm_products?: string[] | null
+          assigned_crm?: string | null
+          assigned_rh?: string | null
+          assigned_outbound_manager?: string | null
           monthly_value?: number | null
           name?: string
           niche?: string | null

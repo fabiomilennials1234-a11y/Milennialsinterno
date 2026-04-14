@@ -11,6 +11,7 @@ import ClientViewModal from '@/components/client/ClientViewModal';
 import OverdueInvoiceBadge from '@/components/shared/OverdueInvoiceBadge';
 import ContractStatusBadge from '@/components/shared/ContractStatusBadge';
 import ClientLabelBadge, { type ClientLabel } from '@/components/shared/ClientLabelBadge';
+import ProductBadges, { TorqueCRMProductBadges } from '@/components/shared/ProductBadges';
 import PaddockDiagnosticoBadge from './PaddockDiagnosticoBadge';
 import { fireCelebration } from '@/lib/confetti';
 
@@ -91,6 +92,10 @@ function ClientCard({ client }: { client: any }) {
             {client.razao_social && (
               <p className="text-xs text-muted-foreground truncate">{client.razao_social}</p>
             )}
+            <div className="flex flex-col gap-1 mt-1">
+              <ProductBadges products={(client as any).contracted_products} size="sm" maxVisible={4} />
+              <TorqueCRMProductBadges products={(client as any).torque_crm_products} size="sm" />
+            </div>
           </div>
           <Button
             variant="ghost"

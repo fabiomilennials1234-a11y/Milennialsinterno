@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useActionJustification } from '@/contexts/JustificationContext';
 import { toast } from 'sonner';
 import { CONSULTORIA_TASK_MAP, GESTAO_TASK_MAP, getCurrentWeekday } from '@/hooks/useMktplaceKanban';
+import { getCurrentWeekday as getCurrentWeekdayCrm, welcomeTaskTitle as crmWelcomeTaskTitle } from '@/hooks/useCrmKanban';
 
 export interface DepartmentTask {
   id: string;
@@ -388,10 +389,66 @@ export function useUpdateDepartmentTaskStatus(department: string) {
         }
       }
 
-      return { _source: 'department' as const, status, financeiroCompleted, allClientTasksDone, mktplaceAdvanced };
+      // ===== GESTOR DE CRM AUTOMATION =====
+      // Se a tarefa concluída é do departamento 'gestor_crm' e seu título bate
+      // exatamente com o template de boas-vindas do cliente (por `related_client_id`),
+      // movemos o cliente de 'boas_vindas' para 'acompanhamento' e criamos uma
+      // entrada em `crm_daily_tracking` no dia útil REAL da conclusão.
+      let crmWelcomeAdvanced = false;
+      if (status === 'done') {
+        const { data: crmTask } = await supabase
+          .from('department_tasks')
+          .select('related_client_id, department, title')
+          .eq('id', taskId)
+          .single();
+
+        if (
+          crmTask?.department === 'gestor_crm' &&
+          crmTask.related_client_id
+        ) {
+          const clientId = crmTask.related_client_id;
+          const { data: client } = await supabase
+            .from('clients')
+            .select('name, razao_social, crm_status, assigned_crm' as any)
+            .eq('id', clientId)
+            .single();
+
+          const clientAny = client as any;
+          if (clientAny?.crm_status === 'boas_vindas') {
+            const clientName = clientAny.razao_social || clientAny.name || 'Cliente';
+            const expectedTitle = crmWelcomeTaskTitle(clientName);
+            // Só avança se o título da tarefa for exatamente a de boas-vindas
+            if (crmTask.title === expectedTitle) {
+              const weekday = getCurrentWeekdayCrm();
+              await supabase
+                .from('clients')
+                .update({ crm_status: 'acompanhamento' } as any)
+                .eq('id', clientId);
+
+              await (supabase as any).from('crm_daily_tracking').upsert({
+                client_id: clientId,
+                gestor_id: clientAny.assigned_crm || user?.id,
+                current_day: weekday,
+                last_moved_at: new Date().toISOString(),
+                is_delayed: false,
+              }, { onConflict: 'client_id' });
+              crmWelcomeAdvanced = true;
+            }
+          }
+        }
+      }
+
+      return { _source: 'department' as const, status, financeiroCompleted, allClientTasksDone, mktplaceAdvanced, crmWelcomeAdvanced };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
+      if (result?.crmWelcomeAdvanced) {
+        queryClient.invalidateQueries({ queryKey: ['crm-novos-clientes'] });
+        queryClient.invalidateQueries({ queryKey: ['crm-boasvindas-clientes'] });
+        queryClient.invalidateQueries({ queryKey: ['crm-kanban-clients'] });
+        queryClient.invalidateQueries({ queryKey: ['crm-tracking'] });
+        toast.success('Cliente movido para acompanhamento diário!');
+      }
       if (result?.mktplaceAdvanced) {
         queryClient.invalidateQueries({ queryKey: ['mktplace-all-clients'] });
         queryClient.invalidateQueries({ queryKey: ['mktplace-new-clients'] });

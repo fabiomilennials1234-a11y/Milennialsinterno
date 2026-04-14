@@ -52,7 +52,7 @@ export function useClientsWithSales() {
       // Include distrato_step and distrato_entered_at to match Financeiro churn calculation
       const { data: clients, error: clientsError } = await supabase
         .from('clients')
-        .select('id, name, razao_social, cnpj, cpf, sales_percentage, assigned_ads_manager, assigned_comercial, created_at, status, entry_date, archived, archived_at, campaign_published_at, onboarding_started_at, distrato_step, distrato_entered_at, client_label, contracted_products, monthly_value')
+        .select('id, name, razao_social, cnpj, cpf, sales_percentage, assigned_ads_manager, assigned_comercial, created_at, status, entry_date, archived, archived_at, campaign_published_at, onboarding_started_at, distrato_step, distrato_entered_at, client_label, contracted_products, torque_crm_products, monthly_value')
         .order('name', { ascending: true });
 
       if (clientsError) throw clientsError;
