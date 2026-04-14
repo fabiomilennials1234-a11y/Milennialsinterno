@@ -42,6 +42,9 @@ import PublicNPSPage from "./pages/PublicNPSPage";
 import PublicExitFormPage from "./pages/PublicExitFormPage";
 import PublicResultsReportPage from "./pages/PublicResultsReportPage";
 import PublicDiagnosticoPage from "./pages/PublicDiagnosticoPage";
+import PublicPaddockDiagnosticoPage from "./pages/PublicPaddockDiagnosticoPage";
+import WarRoom2Page from "./pages/WarRoom2Page";
+import WarRoom3Page from "./pages/WarRoom3Page";
 import UpsellsPage from "./pages/UpsellsPage";
 import ComissoesPage from "./pages/ComissoesPage";
 import ProvasSociaisPage from "./pages/ProvasSociaisPage";
@@ -464,6 +467,13 @@ function AppRoutes() {
 
       {/* Public MKT Place Diagnostic Page - accessible without authentication */}
       <Route path="/diagnostico-mktplace/:token" element={<PublicDiagnosticoPage />} />
+
+      {/* Public Paddock Diagnostic Page - accessible without authentication */}
+      <Route path="/diagnostico-paddock/:token" element={<PublicPaddockDiagnosticoPage />} />
+
+      {/* War Room pages - accessible without authentication */}
+      <Route path="/war-room-2" element={<WarRoom2Page />} />
+      <Route path="/war-room-3" element={<WarRoom3Page />} />
 
       {/* Default Redirect baseado no cargo */}
       <Route path="/" element={

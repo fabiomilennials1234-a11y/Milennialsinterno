@@ -397,6 +397,10 @@ export default function AppSidebar() {
                     {/* Subcategorias dentro da categoria principal */}
                     {productCategory.subcategories
                     .filter(sub => !isHiddenItem(sub.name?.toLowerCase().replace(/\s+/g, '-') || '', sub.name || ''))
+                    .filter(sub => {
+                      const n = sub.name?.toLowerCase() || '';
+                      return !n.includes('hunting') && !n.includes('outbound');
+                    })
                     .map(subcategory => {
                       const SubcategoryIcon = productCategoryIcons[subcategory.icon || ''] || TrendingUp;
                       const hasGroups = subcategory.groups.length > 0;
@@ -486,40 +490,6 @@ export default function AppSidebar() {
                                       >
                                         <Target size={12} />
                                         <span className="truncate flex-1">{crmBoard.owner_name}</span>
-                                        <span className={cn(
-                                          "text-[10px] font-mono font-bold shrink-0 px-1.5 py-0.5 rounded",
-                                          clientCount >= 80 ? "bg-red-500/20 text-red-400" :
-                                          clientCount >= 60 ? "bg-amber-500/20 text-amber-400" :
-                                          "bg-sidebar-foreground/10 text-sidebar-foreground/60"
-                                        )}>
-                                          {clientCount}/80
-                                        </span>
-                                      </NavLink>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                              {/* Outbound managers dentro do Hunting/Outbound */}
-                              {(subcategory.name.toLowerCase().includes('hunting') || subcategory.name.toLowerCase().includes('outbound') || board.slug?.includes('outbound')) && outboundManagerBoards.length > 0 && (
-                                <div className="mt-1.5 space-y-1">
-                                  <span className="px-2 text-[10px] font-semibold text-sidebar-foreground/30 uppercase tracking-wider">
-                                    Outbound Managers
-                                  </span>
-                                  {outboundManagerBoards.map(outboundBoard => {
-                                    const clientCount = outboundCounts[outboundBoard.owner_user_id] || 0;
-                                    return (
-                                      <NavLink
-                                        key={outboundBoard.owner_user_id}
-                                        to={`/millennials-outbound/${outboundBoard.owner_user_id}`}
-                                        className={({ isActive }) => cn(
-                                          "flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg transition-colors",
-                                          isActive
-                                            ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                                            : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-                                        )}
-                                      >
-                                        <Target size={12} />
-                                        <span className="truncate flex-1">{outboundBoard.owner_name}</span>
                                         <span className={cn(
                                           "text-[10px] font-mono font-bold shrink-0 px-1.5 py-0.5 rounded",
                                           clientCount >= 80 ? "bg-red-500/20 text-red-400" :
@@ -728,29 +698,6 @@ export default function AppSidebar() {
                                               )}
                                             </NavLink>
                                           ))}
-                                          {squadOutboundBoards.map(outboundBoard => (
-                                            <NavLink
-                                              key={outboundBoard.id}
-                                              to={`/millennials-outbound/${outboundBoard.owner_user_id}`}
-                                              className={({ isActive }) => cn(
-                                                "flex items-center gap-2 px-2 py-1 text-[10px] rounded-lg transition-colors",
-                                                isActive
-                                                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                                                  : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-                                              )}
-                                            >
-                                              <Target size={10} />
-                                              <span className="truncate flex-1">Outbound ({outboundBoard.owner_name})</span>
-                                              <span className={cn(
-                                                "text-[9px] font-mono font-bold shrink-0 px-1 py-0.5 rounded",
-                                                (outboundCounts[outboundBoard.owner_user_id] || 0) >= 80 ? "bg-red-500/20 text-red-400" :
-                                                (outboundCounts[outboundBoard.owner_user_id] || 0) >= 60 ? "bg-amber-500/20 text-amber-400" :
-                                                "bg-sidebar-foreground/10 text-sidebar-foreground/60"
-                                              )}>
-                                                {outboundCounts[outboundBoard.owner_user_id] || 0}/80
-                                              </span>
-                                            </NavLink>
-                                          ))}
                                           {squadCrmBoards.map(crmBoard => (
                                             <NavLink
                                               key={crmBoard.id}
@@ -791,7 +738,7 @@ export default function AppSidebar() {
                                             </NavLink>
                                           ))}
 
-                                          {squadAdsBoards.length === 0 && squadOutboundBoards.length === 0 && nonAdsRoles.length === 0 && (
+                                          {squadAdsBoards.length === 0 && nonAdsRoles.length === 0 && (
                                             <span className="px-2 text-[10px] text-sidebar-foreground/40 italic">
                                               Sem usuários
                                             </span>
@@ -924,29 +871,6 @@ export default function AppSidebar() {
                                       </span>
                                     </NavLink>
                                   ))}
-                                  {squadOutboundBoards.map(outboundBoard => (
-                                    <NavLink
-                                      key={outboundBoard.id}
-                                      to={`/millennials-outbound/${outboundBoard.owner_user_id}`}
-                                      className={({ isActive }) => cn(
-                                        "flex items-center gap-2 px-2 py-1 text-[10px] rounded-lg transition-colors",
-                                        isActive
-                                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                                          : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-                                      )}
-                                    >
-                                      <Target size={10} />
-                                      <span className="truncate flex-1">Outbound ({outboundBoard.owner_name})</span>
-                                      <span className={cn(
-                                        "text-[9px] font-mono font-bold shrink-0 px-1 py-0.5 rounded",
-                                        (outboundCounts[outboundBoard.owner_user_id] || 0) >= 80 ? "bg-red-500/20 text-red-400" :
-                                        (outboundCounts[outboundBoard.owner_user_id] || 0) >= 60 ? "bg-amber-500/20 text-amber-400" :
-                                        "bg-sidebar-foreground/10 text-sidebar-foreground/60"
-                                      )}>
-                                        {outboundCounts[outboundBoard.owner_user_id] || 0}/80
-                                      </span>
-                                    </NavLink>
-                                  ))}
                                   {squadCrmBoards2.map(crmBoard => (
                                     <NavLink
                                       key={crmBoard.id}
@@ -987,7 +911,7 @@ export default function AppSidebar() {
                                     </NavLink>
                                   ))}
 
-                                  {squadAdsBoards.length === 0 && squadOutboundBoards.length === 0 && nonAdsRoles.length === 0 && (
+                                  {squadAdsBoards.length === 0 && nonAdsRoles.length === 0 && (
                                     <span className="px-2 text-[10px] text-sidebar-foreground/40 italic">
                                       Sem usuários
                                     </span>
@@ -1207,29 +1131,6 @@ export default function AppSidebar() {
                               </span>
                             </NavLink>
                           ))}
-                          {squadOutboundBoards.map(outboundBoard => (
-                            <NavLink
-                              key={outboundBoard.id}
-                              to={`/millennials-outbound/${outboundBoard.owner_user_id}`}
-                              className={({ isActive }) => cn(
-                                "flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg transition-colors",
-                                isActive
-                                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                                  : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-                              )}
-                            >
-                              <Target size={12} />
-                              <span className="truncate flex-1">Outbound ({outboundBoard.owner_name})</span>
-                              <span className={cn(
-                                "text-[9px] font-mono font-bold shrink-0 px-1 py-0.5 rounded",
-                                (outboundCounts[outboundBoard.owner_user_id] || 0) >= 80 ? "bg-red-500/20 text-red-400" :
-                                (outboundCounts[outboundBoard.owner_user_id] || 0) >= 60 ? "bg-amber-500/20 text-amber-400" :
-                                "bg-sidebar-foreground/10 text-sidebar-foreground/60"
-                              )}>
-                                {outboundCounts[outboundBoard.owner_user_id] || 0}/80
-                              </span>
-                            </NavLink>
-                          ))}
                           {squadCrmBoards3.map(crmBoard => (
                             <NavLink
                               key={crmBoard.id}
@@ -1270,7 +1171,7 @@ export default function AppSidebar() {
                             </NavLink>
                           ))}
 
-                          {squadAdsBoards.length === 0 && squadOutboundBoards.length === 0 && nonAdsRoles.length === 0 && (
+                          {squadAdsBoards.length === 0 && nonAdsRoles.length === 0 && (
                             <span className="px-2 text-xs text-sidebar-foreground/40 italic">
                               Sem usuários
                             </span>
@@ -1395,21 +1296,6 @@ export default function AppSidebar() {
                             )}
                           </NavLink>
                         ))}
-                        {squadOutboundBoards.map(outboundBoard => (
-                          <NavLink
-                            key={outboundBoard.id}
-                            to={`/millennials-outbound/${outboundBoard.owner_user_id}`}
-                            className={({ isActive }) => cn(
-                              "flex items-center gap-2 px-2 py-1 text-[10px] rounded-lg transition-colors",
-                              isActive
-                                ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                                : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-                            )}
-                          >
-                            <Target size={10} />
-                            <span className="truncate flex-1">Outbound ({outboundBoard.owner_name})</span>
-                          </NavLink>
-                        ))}
                         {squadCrmBoardsOp.map(crmBoard => (
                           <NavLink
                             key={crmBoard.id}
@@ -1440,7 +1326,7 @@ export default function AppSidebar() {
                             <span className="truncate">{ROLE_LABELS[role]}</span>
                           </NavLink>
                         ))}
-                        {squadAdsBoards.length === 0 && squadOutboundBoards.length === 0 && nonAdsRoles.length === 0 && (
+                        {squadAdsBoards.length === 0 && nonAdsRoles.length === 0 && (
                           <span className="px-2 text-[10px] text-sidebar-foreground/40 italic">
                             Sem usuários
                           </span>
@@ -1547,7 +1433,7 @@ export default function AppSidebar() {
         {user?.role && !isCollapsed && (
           <div className="space-y-1.5 pb-4">
             <div className="sidebar-section-label"><span>Administrativo</span></div>
-            {visibleCategories.map(category => {
+            {visibleCategories.filter(cat => !cat.slug?.toLowerCase().includes('atrizes')).map(category => {
               const IconComponent = categoryIcons[category.icon || ''] || Folder;
               const categoryBoard = category.boards[0];
               

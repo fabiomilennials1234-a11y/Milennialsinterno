@@ -31,33 +31,41 @@ export interface ComercialDelayJustification {
   created_at: string;
 }
 
-// Fetch pending delay notifications for current user
+// Fetch pending delay notifications for current user (CEO sees all)
 export function useComercialDelayNotifications() {
-  const { user } = useAuth();
+  const { user, isCEO } = useAuth();
   const queryClient = useQueryClient();
 
   const query = useQuery({
     queryKey: ['comercial-delay-notifications', user?.id],
     queryFn: async (): Promise<ComercialDelayNotification[]> => {
       // Get notifications that don't have justifications yet
-      const { data: notifications, error: notifError } = await supabase
+      let notifQuery = supabase
         .from('comercial_delay_notifications')
         .select('*')
-        .eq('user_id', user?.id)
         .order('created_at', { ascending: true });
 
+      if (user?.role === 'consultor_comercial') {
+        notifQuery = notifQuery.eq('user_id', user?.id);
+      }
+
+      const { data: notifications, error: notifError } = await notifQuery;
       if (notifError) throw notifError;
 
       // Get justifications to filter out already justified
-      const { data: justifications, error: justError } = await supabase
+      let justQuery = supabase
         .from('comercial_delay_justifications')
-        .select('notification_id')
-        .eq('user_id', user?.id);
+        .select('notification_id');
 
+      if (user?.role === 'consultor_comercial') {
+        justQuery = justQuery.eq('user_id', user?.id);
+      }
+
+      const { data: justifications, error: justError } = await justQuery;
       if (justError) throw justError;
 
       const justifiedIds = new Set(justifications?.map(j => j.notification_id) || []);
-      
+
       return (notifications || []).filter(n => !justifiedIds.has(n.id)) as ComercialDelayNotification[];
     },
     enabled: !!user,
@@ -185,18 +193,24 @@ export function useSaveComercialJustification() {
   });
 }
 
-// Fetch all justifications (for viewing in Justificativa column)
+// Fetch all justifications (for viewing in Justificativa column - CEO sees all, others see own)
 export function useComercialJustifications() {
   const { user, isCEO } = useAuth();
 
   return useQuery({
     queryKey: ['comercial-delay-justifications', user?.id],
     queryFn: async (): Promise<ComercialDelayJustification[]> => {
-      const { data, error } = await supabase
+      let queryBuilder = supabase
         .from('comercial_delay_justifications')
         .select('*')
         .eq('archived', false)
         .order('created_at', { ascending: false });
+
+      if (user?.role === 'consultor_comercial') {
+        queryBuilder = queryBuilder.eq('user_id', user?.id);
+      }
+
+      const { data, error } = await queryBuilder;
 
       if (error) throw error;
       return (data || []) as ComercialDelayJustification[];

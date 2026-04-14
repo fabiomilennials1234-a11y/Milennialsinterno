@@ -28,18 +28,23 @@ export interface ComercialClientDoc {
   updated_at: string;
 }
 
-// Fetch all documentation for the current user
+// Fetch all documentation for the current user (CEO sees all)
 export function useComercialClientDocumentation() {
-  const { user } = useAuth();
+  const { user, isCEO } = useAuth();
 
   return useQuery({
     queryKey: ['comercial-client-documentation', user?.id],
     queryFn: async (): Promise<ComercialClientDoc[]> => {
-      const { data, error } = await supabase
+      let queryBuilder = supabase
         .from('comercial_client_documentation')
         .select('*')
-        .eq('comercial_user_id', user?.id)
         .order('documentation_date', { ascending: false });
+
+      if (user?.role === 'consultor_comercial') {
+        queryBuilder = queryBuilder.eq('comercial_user_id', user?.id);
+      }
+
+      const { data, error } = await queryBuilder;
 
       if (error) throw error;
       return (data || []) as ComercialClientDoc[];

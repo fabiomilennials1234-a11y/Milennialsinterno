@@ -49,18 +49,23 @@ interface DocWithClient {
 }
 
 function useComercialDocsToday() {
-  const { user } = useAuth();
+  const { user, isCEO } = useAuth();
   const today = getDateKeyInBrazilTZ();
 
   return useQuery({
     queryKey: ['comercial-docs-today', user?.id, today],
     queryFn: async (): Promise<DocWithClient[]> => {
-      const { data, error } = await supabase
+      let queryBuilder = supabase
         .from('comercial_client_documentation')
         .select('*, client:clients(id, name)')
-        .eq('comercial_user_id', user?.id)
         .eq('documentation_date', today)
         .order('created_at', { ascending: false });
+
+      if (user?.role === 'consultor_comercial') {
+        queryBuilder = queryBuilder.eq('comercial_user_id', user?.id);
+      }
+
+      const { data, error } = await queryBuilder;
 
       if (error) throw error;
       return (data || []) as DocWithClient[];

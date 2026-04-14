@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Users, Eye, AlertTriangle, GripVertical, Calendar, HelpCircle, MessageSquare } from 'lucide-react';
 import { useContractStatus } from '@/hooks/useContractStatus';
+import PaddockDiagnosticoBadge from './PaddockDiagnosticoBadge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -25,7 +26,6 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import ClientViewModal from '@/components/client/ClientViewModal';
 import OverdueInvoiceBadge from '@/components/shared/OverdueInvoiceBadge';
 import ContractStatusBadge from '@/components/shared/ContractStatusBadge';
-import ResultsReportCountdownBadge from '@/components/results-report/ResultsReportCountdownBadge';
 import ClientLabelBadge from '@/components/shared/ClientLabelBadge';
 import type { ClientLabel } from '@/components/shared/ClientLabelBadge';
 import { format } from 'date-fns';
@@ -68,12 +68,12 @@ function ClientItem({
           : 'bg-card border-subtle'
       }`}
     >
+      {/* Diagnóstico Comercial 30 dias */}
+      <PaddockDiagnosticoBadge clientId={tracking.client_id} className="w-full justify-center mb-1" />
       {/* Overdue Invoice Badge - Full width at top */}
       <OverdueInvoiceBadge clientId={tracking.client_id} className="w-full justify-center mb-1" />
       {/* Contract Status Badge */}
       <ContractStatusBadge clientId={tracking.client_id} className="w-full justify-center mb-1" />
-      {/* Results Report Countdown */}
-      <ResultsReportCountdownBadge clientId={tracking.client_id} className="w-full justify-center mb-1" alwaysShow />
 
       <div className="flex items-center gap-2">
         <GripVertical size={12} className="text-muted-foreground cursor-grab flex-shrink-0" />

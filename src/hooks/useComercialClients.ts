@@ -19,6 +19,9 @@ export interface ComercialClient {
   assigned_ads_manager?: string;
   group_id?: string;
   squad_id?: string;
+  paddock_onboarding_step?: string | null;
+  paddock_diagnostico_link?: string | null;
+  paddock_diagnostico_submitted_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -38,7 +41,7 @@ export function useComercialAssignedClients() {
         .order('created_at', { ascending: false });
 
       // CEO can see all clients, others see only assigned
-      if (!isCEO) {
+      if (user?.role === 'consultor_comercial') {
         queryBuilder = queryBuilder.eq('assigned_comercial', user?.id);
       }
 
@@ -91,7 +94,7 @@ export function useComercialClientsByStatus(status: string) {
         .eq('archived', false)
         .order('comercial_entered_at', { ascending: true });
 
-      if (!isCEO) {
+      if (user?.role === 'consultor_comercial') {
         queryBuilder = queryBuilder.eq('assigned_comercial', user?.id);
       }
 
@@ -118,7 +121,7 @@ export function useComercialNewClients() {
         .eq('archived', false)
         .order('comercial_entered_at', { ascending: true });
 
-      if (!isCEO) {
+      if (user?.role === 'consultor_comercial') {
         queryBuilder = queryBuilder.eq('assigned_comercial', user?.id);
       }
 
@@ -131,7 +134,7 @@ export function useComercialNewClients() {
   });
 }
 
-// Fetch clients in onboarding (consultoria_marcada or consultoria_realizada)
+// Fetch clients in onboarding (consultoria_marcada, consultoria_realizada, or onboarding_paddock)
 export function useComercialOnboardingClients() {
   const { user, isCEO } = useAuth();
 
@@ -141,11 +144,38 @@ export function useComercialOnboardingClients() {
       let queryBuilder = supabase
         .from('clients')
         .select('*')
-        .in('comercial_status', ['consultoria_marcada', 'consultoria_realizada'])
+        .in('comercial_status', ['consultoria_marcada', 'consultoria_realizada', 'onboarding_paddock'])
         .eq('archived', false)
         .order('comercial_onboarding_started_at', { ascending: true });
 
-      if (!isCEO) {
+      if (user?.role === 'consultor_comercial') {
+        queryBuilder = queryBuilder.eq('assigned_comercial', user?.id);
+      }
+
+      const { data, error } = await queryBuilder;
+
+      if (error) throw error;
+      return (data || []) as ComercialClient[];
+    },
+    enabled: !!user,
+  });
+}
+
+// Fetch clients in Paddock onboarding specifically
+export function useComercialPaddockClients() {
+  const { user, isCEO } = useAuth();
+
+  return useQuery({
+    queryKey: ['comercial-paddock-clients', user?.id],
+    queryFn: async (): Promise<ComercialClient[]> => {
+      let queryBuilder = supabase
+        .from('clients')
+        .select('*')
+        .eq('comercial_status', 'onboarding_paddock')
+        .eq('archived', false)
+        .order('comercial_onboarding_started_at', { ascending: true });
+
+      if (user?.role === 'consultor_comercial') {
         queryBuilder = queryBuilder.eq('assigned_comercial', user?.id);
       }
 
@@ -172,7 +202,7 @@ export function useComercialAcompanhamentoClients() {
         .eq('archived', false)
         .order('updated_at', { ascending: false });
 
-      if (!isCEO) {
+      if (user?.role === 'consultor_comercial') {
         queryBuilder = queryBuilder.eq('assigned_comercial', user?.id);
       }
 
@@ -186,7 +216,7 @@ export function useComercialAcompanhamentoClients() {
 }
 
 // Comercial status hierarchy (higher index = further along)
-const COMERCIAL_STATUS_ORDER = ['novo_cliente', 'consultoria_marcada', 'em_acompanhamento'];
+const COMERCIAL_STATUS_ORDER = ['novo_cliente', 'onboarding_paddock', 'consultoria_marcada', 'em_acompanhamento'];
 
 // Update client comercial status
 export function useUpdateComercialStatus() {
@@ -271,7 +301,7 @@ export function isClientDelayed(client: ComercialClient): boolean {
   if (client.comercial_status === 'novo') {
     return getHoursSinceEntry(client.comercial_entered_at) >= 24;
   }
-  if (['consultoria_marcada', 'consultoria_realizada'].includes(client.comercial_status)) {
+  if (['consultoria_marcada', 'consultoria_realizada', 'onboarding_paddock'].includes(client.comercial_status)) {
     return getDaysSinceOnboardingStart(client.comercial_onboarding_started_at) >= 5;
   }
   return false;
@@ -291,7 +321,7 @@ export function useComercialChurnClients() {
         .order('updated_at', { ascending: false });
 
       // CEO can see all clients, others see only assigned
-      if (!isCEO) {
+      if (user?.role === 'consultor_comercial') {
         queryBuilder = queryBuilder.eq('assigned_comercial', user?.id);
       }
 

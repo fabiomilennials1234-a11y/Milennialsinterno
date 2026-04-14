@@ -51,7 +51,7 @@ function MktplaceNovoClienteSection() {
         .not('assigned_mktplace', 'is', null)
         .order('mktplace_entered_at', { ascending: true });
 
-      if (!isCEO && !isAdminUser) {
+      if (user?.role === 'consultor_mktplace') {
         query = query.eq('assigned_mktplace', user?.id);
       }
 
