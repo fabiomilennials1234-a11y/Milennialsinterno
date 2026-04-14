@@ -12,6 +12,7 @@ import {
   type CrmProduto,
 } from '@/hooks/useCrmKanban';
 import CrmConfigViewModal from './CrmConfigViewModal';
+import CrmDeadlineBadge from './CrmDeadlineBadge';
 
 /**
  * Coluna "CRMs Finalizados" — lista todas as configurações com
@@ -80,7 +81,12 @@ export default function CrmFinalizadosSection() {
                   </Button>
                 </div>
 
-                <Badge className={`${color} border text-[10px]`}>{label}</Badge>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <Badge className={`${color} border text-[10px]`}>{label}</Badge>
+                  {cfg.created_at && (
+                    <CrmDeadlineBadge createdAt={cfg.created_at} produto={produto} finalizado />
+                  )}
+                </div>
 
                 {finalizadoDate && (
                   <p className="text-[10px] text-emerald-700">
