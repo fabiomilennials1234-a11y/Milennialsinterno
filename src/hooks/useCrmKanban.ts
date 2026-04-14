@@ -585,6 +585,7 @@ export function useCreateCrmConfiguracoes() {
     }) => {
       if (!gestorId) throw new Error('Gestor de CRM não atribuído');
       if (!produtos.length) throw new Error('Selecione ao menos um produto');
+      if (!user?.id) throw new Error('Usuário não autenticado');
 
       const created: { produto: CrmProduto; existed: boolean }[] = [];
 
@@ -617,11 +618,12 @@ export function useCreateCrmConfiguracoes() {
           });
         if (insertErr) throw insertErr;
 
-        // Cria primeira tarefa
+        // Cria primeira tarefa com user_id = usuário logado (respeita RLS
+        // do department_tasks que exige auth.uid() = user_id)
         const titleFn = CRM_TASK_TITLE[produto][initialStep];
         if (titleFn) {
           const { error: taskErr } = await supabase.from('department_tasks').insert({
-            user_id: gestorId,
+            user_id: user.id,
             title: titleFn(clientName),
             task_type: 'daily',
             status: 'todo',
@@ -660,6 +662,7 @@ export function useCreateCrmConfiguracoes() {
  */
 export function useAdvanceCrmConfiguracao() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({
@@ -668,14 +671,14 @@ export function useAdvanceCrmConfiguracao() {
       clientName,
       produto,
       currentStep,
-      gestorId,
     }: {
       configId: string;
       clientId: string;
       clientName: string;
       produto: CrmProduto;
       currentStep: string;
-      gestorId: string;
+      /** @deprecated mantido por compatibilidade — não é usado; a tarefa é criada para user.id */
+      gestorId?: string;
     }) => {
       const next = getNextStep(produto, currentStep);
 
@@ -699,11 +702,12 @@ export function useAdvanceCrmConfiguracao() {
         .eq('id', configId);
       if (updErr) throw updErr;
 
-      // Cria nova tarefa
+      // Cria nova tarefa com user_id = usuário logado (respeita RLS
+      // do department_tasks que exige auth.uid() = user_id)
       const titleFn = CRM_TASK_TITLE[produto][next];
-      if (titleFn && gestorId) {
+      if (titleFn && user?.id) {
         const { error: taskErr } = await supabase.from('department_tasks').insert({
-          user_id: gestorId,
+          user_id: user.id,
           title: titleFn(clientName),
           task_type: 'daily',
           status: 'todo',
