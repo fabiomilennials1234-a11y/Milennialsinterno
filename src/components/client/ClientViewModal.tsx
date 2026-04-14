@@ -40,6 +40,7 @@ import ResultsReportCountdownBadge from '@/components/results-report/ResultsRepo
 import PaddockDiagnosticoSection from '@/components/comercial/PaddockDiagnosticoSection';
 import PaddockDiagnosticoListSection from '@/components/comercial/PaddockDiagnosticoListSection';
 import WarRoomSection from '@/components/comercial/WarRoomSection';
+import CrmGerarTarefaSection from '@/components/gestor-crm/CrmGerarTarefaSection';
 import ClientTierBadge, { ClientCreativesLimit } from '@/components/shared/ClientTierBadge';
 import { PRODUCT_CONFIG, TorqueCRMProductBadges } from '@/components/shared/ProductBadges';
 import { cn } from '@/lib/utils';
@@ -728,6 +729,14 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
               {/* Diagnóstico Comercial pós War #2 */}
               {clientInfo && (clientInfo.contracted_products?.includes('millennials-growth') || clientInfo.contracted_products?.includes('millennials-paddock')) && (
                 <PaddockDiagnosticoListSection
+                  clientId={clientId}
+                  clientName={clientInfo.name}
+                />
+              )}
+
+              {/* Gerar tarefa Gestor de CRM — só para clientes com Torque CRM contratado */}
+              {clientInfo && clientInfo.contracted_products?.includes('torque-crm') && (
+                <CrmGerarTarefaSection
                   clientId={clientId}
                   clientName={clientInfo.name}
                 />

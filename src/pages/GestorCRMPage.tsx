@@ -12,6 +12,7 @@ import DepartmentJustificativaSection from '@/components/department/DepartmentJu
 import CrmNovoClienteSection from '@/components/gestor-crm/CrmNovoClienteSection';
 import CrmBoasVindasSection from '@/components/gestor-crm/CrmBoasVindasSection';
 import CrmAcompanhamentoSection from '@/components/gestor-crm/CrmAcompanhamentoSection';
+import CrmConfigColumnSection from '@/components/gestor-crm/CrmConfigColumnSection';
 import { CrmSectionBoundary } from '@/components/gestor-crm/CrmSectionBoundary';
 
 // Colunas do kanban do Gestor de CRM — mesma lógica estrutural do Consultor de MKT Place.
@@ -81,11 +82,11 @@ export default function GestorCRMPage() {
       case 'acompanhamento':
         return <CrmSectionBoundary name="Acompanhamento"><CrmAcompanhamentoSection /></CrmSectionBoundary>;
       case 'config-v8':
-        return <ComingSoonPlaceholder label="Cards V8 — Commit 3" />;
+        return <CrmSectionBoundary name="Config V8"><CrmConfigColumnSection produto="v8" /></CrmSectionBoundary>;
       case 'config-automation':
-        return <ComingSoonPlaceholder label="Cards Automation — Commit 3" />;
+        return <CrmSectionBoundary name="Config Automation"><CrmConfigColumnSection produto="automation" /></CrmSectionBoundary>;
       case 'config-copilot':
-        return <ComingSoonPlaceholder label="Cards Copilot — Commit 3" />;
+        return <CrmSectionBoundary name="Config Copilot"><CrmConfigColumnSection produto="copilot" /></CrmSectionBoundary>;
       case 'justificativa':
         return <DepartmentJustificativaSection department="gestor_crm" />;
       case 'finalizados':
