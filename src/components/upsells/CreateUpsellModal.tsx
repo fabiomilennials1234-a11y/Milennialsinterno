@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useClientsWithSales } from '@/hooks/useClientList';
 import { useCreateUpsell } from '@/hooks/useUpsells';
 import { supabase } from '@/integrations/supabase/client';
-import { PRODUCT_CONFIG } from '@/components/shared/ProductBadges';
+import { PRODUCT_CONFIG, UPSELL_ONLY_PRODUCT_CONFIG, getAnyProductName } from '@/components/shared/ProductBadges';
 import { TrendingUp, DollarSign, User, Package } from 'lucide-react';
 
 interface CreateUpsellModalProps {
@@ -68,16 +68,25 @@ export function CreateUpsellModal({ open, onOpenChange }: CreateUpsellModalProps
   // Get selected client's current products
   const selectedClient = activeClients.find(c => c.id === clientId);
   const clientProducts = selectedClient?.contracted_products || [];
+  const clientTorqueSubs = ((selectedClient as any)?.torque_crm_products as string[] | undefined) || [];
 
-  // Filter products that the client doesn't have yet
-  const availableProducts = Object.entries(PRODUCT_CONFIG).filter(
+  // Catálogo principal + sub-produtos Torque CRM (upsell-only). Filtra os que
+  // o cliente já tem:
+  //   - catálogo: testa se slug já está em contracted_products
+  //   - torque sub: só oferece se o cliente ainda não tem aquele sub em
+  //     torque_crm_products (o slug 'torque-crm-<sub>' mapeia para <sub>)
+  const catalogProducts = Object.entries(PRODUCT_CONFIG).filter(
     ([slug]) => !clientProducts.includes(slug)
   );
+  const torqueSubProducts = Object.entries(UPSELL_ONLY_PRODUCT_CONFIG).filter(
+    ([slug]) => {
+      const sub = slug.replace('torque-crm-', '');
+      return !clientTorqueSubs.includes(sub);
+    }
+  );
+  const availableProducts = [...catalogProducts, ...torqueSubProducts];
 
-  // Get product name helper
-  const getProductName = (slug: string) => {
-    return PRODUCT_CONFIG[slug as keyof typeof PRODUCT_CONFIG]?.name || slug;
-  };
+  const getProductName = (slug: string) => getAnyProductName(slug);
 
   // Calculate commission preview
   const commissionPreview = monthlyValue ? Number(monthlyValue) * 0.07 : 0;

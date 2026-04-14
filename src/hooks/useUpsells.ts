@@ -109,6 +109,42 @@ export function useCreateUpsell() {
 
       if (error) throw error;
 
+      // Upsell de sub-produto Torque CRM (v8/automation/copilot):
+      // adiciona o sub em clients.torque_crm_products (idempotente).
+      // Não mexe em contracted_products — o trigger process_upsell já cuida
+      // desse campo automaticamente.
+      if (upsell.product_slug.startsWith('torque-crm-')) {
+        const sub = upsell.product_slug.replace('torque-crm-', '');
+        if (['v8', 'automation', 'copilot'].includes(sub)) {
+          const { data: clientRow } = await supabase
+            .from('clients')
+            .select('torque_crm_products' as any)
+            .eq('id', upsell.client_id)
+            .single();
+          const current = ((clientRow as any)?.torque_crm_products as string[] | null) || [];
+          if (!current.includes(sub)) {
+            await supabase
+              .from('clients')
+              .update({ torque_crm_products: [...current, sub] } as any)
+              .eq('id', upsell.client_id);
+          }
+          // Garante que torque-crm principal também esteja em contracted_products
+          // caso o cliente tenha sido cadastrado sem ele (caso raro).
+          const { data: cp } = await supabase
+            .from('clients')
+            .select('contracted_products')
+            .eq('id', upsell.client_id)
+            .single();
+          const prods = (cp?.contracted_products as string[] | null) || [];
+          if (!prods.includes('torque-crm')) {
+            await supabase
+              .from('clients')
+              .update({ contracted_products: [...prods, 'torque-crm'] })
+              .eq('id', upsell.client_id);
+          }
+        }
+      }
+
       // The process_upsell trigger creates financeiro_client_onboarding,
       // financeiro_active_clients, and financeiro_tasks.
       // We also need to create a department_task for the financeiro daily board.
