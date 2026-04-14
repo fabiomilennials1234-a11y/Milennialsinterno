@@ -79,6 +79,7 @@ export interface NewClientData {
   contract_duration_months?: number;
   payment_due_day?: number;
   contracted_products?: string[];
+  torque_crm_products?: ('v8' | 'automation' | 'copilot')[];
   product_values?: ProductValueInput[];
 }
 
@@ -323,6 +324,7 @@ export function useCreateClient() {
           contract_duration_months: clientData.contract_duration_months || null,
           payment_due_day: clientData.payment_due_day || null,
           contracted_products: clientData.contracted_products,
+          torque_crm_products: clientData.torque_crm_products ?? [],
           created_by: user?.id,
           status: 'new_client',
           // Campos para o Consultor Comercial
@@ -331,9 +333,12 @@ export function useCreateClient() {
           // Campos para o Consultor de MKT Place
           mktplace_status: clientData.assigned_mktplace ? 'novo' : null,
           mktplace_entered_at: clientData.assigned_mktplace ? new Date().toISOString() : null,
+          // Campos para o Gestor de CRM (só entra no fluxo se há gestor atribuído)
+          crm_status: clientData.assigned_crm ? 'novo' : null,
+          crm_entered_at: clientData.assigned_crm ? new Date().toISOString() : null,
           // CX Validation: novo cliente nasce aguardando validação
           cx_validation_status: 'aguardando_validacao',
-        })
+        } as any)
         .select()
         .single();
       

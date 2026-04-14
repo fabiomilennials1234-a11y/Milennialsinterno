@@ -1246,6 +1246,9 @@ export type Database = {
           paddock_diagnostico_link: string | null
           paddock_diagnostico_submitted_at: string | null
           paddock_onboarding_step: string | null
+          crm_status: string | null
+          crm_entered_at: string | null
+          torque_crm_products: string[] | null
           group_id: string | null
           id: string
           last_cs_contact_at: string | null
@@ -1298,6 +1301,9 @@ export type Database = {
           paddock_diagnostico_link?: string | null
           paddock_diagnostico_submitted_at?: string | null
           paddock_onboarding_step?: string | null
+          crm_status?: string | null
+          crm_entered_at?: string | null
+          torque_crm_products?: string[] | null
           monthly_value?: number | null
           name: string
           niche?: string | null
@@ -1347,6 +1353,9 @@ export type Database = {
           paddock_diagnostico_link?: string | null
           paddock_diagnostico_submitted_at?: string | null
           paddock_onboarding_step?: string | null
+          crm_status?: string | null
+          crm_entered_at?: string | null
+          torque_crm_products?: string[] | null
           monthly_value?: number | null
           name?: string
           niche?: string | null
