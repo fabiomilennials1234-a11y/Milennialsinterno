@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Eye, Wrench, Clock } from 'lucide-react';
+import { Eye, Wrench } from 'lucide-react';
 import {
   useCrmConfiguracoes,
   CRM_PRODUTO_LABEL,
@@ -20,16 +20,13 @@ interface Props {
 /**
  * Coluna de configuração de um produto (V8 / Automation / Copilot).
  *
- * Lista cards onde `crm_configuracoes.produto = {produto}` e
- * `is_finalizado = false`. Cada card:
- *   - Nome do cliente
- *   - Etiqueta do produto (única deste card, não compartilhada)
- *   - Etapa atual + % de progresso na state-machine
- *   - Olhinho para abrir os dados do formulário (CrmConfigViewModal)
+ * Renderiza uma faixa por etapa da state-machine do produto (padrão
+ * visual do Paddock Onboarding) — cada etapa é uma barra cinza com
+ * numeração `[N] Nome da etapa`. Os cards dos clientes aparecem logo
+ * abaixo da faixa da etapa ATUAL deles.
  *
- * Independência total: conclusão/avanço em outro produto do mesmo cliente
- * não afeta este card (cada linha em crm_configuracoes tem seu próprio
- * `current_step` e `is_finalizado`).
+ * Independência total: cada crm_configuracoes tem seu próprio
+ * current_step, então nada compartilha avanço entre cards.
  */
 export default function CrmConfigColumnSection({ produto }: Props) {
   const { data: configs = [], isLoading } = useCrmConfiguracoes({ produto, finalizado: false });
@@ -38,6 +35,17 @@ export default function CrmConfigColumnSection({ produto }: Props) {
   const label = CRM_PRODUTO_LABEL[produto];
   const color = CRM_PRODUTO_COLOR[produto];
   const steps = CRM_STEPS_BY_PRODUTO[produto];
+
+  // Agrupa configs por step para render O(1) por step
+  const configsByStep = useMemo(() => {
+    const map = new Map<string, any[]>();
+    for (const s of steps) map.set(s, []);
+    for (const cfg of configs as any[]) {
+      const arr = map.get(cfg.current_step);
+      if (arr) arr.push(cfg);
+    }
+    return map;
+  }, [configs, steps]);
 
   if (isLoading) {
     return (
@@ -48,61 +56,89 @@ export default function CrmConfigColumnSection({ produto }: Props) {
   }
 
   if (configs.length === 0) {
+    // Mesmo sem cards, mostra as etapas vazias para o gestor enxergar o fluxo
     return (
-      <div className="text-center py-8 text-muted-foreground">
-        <Wrench size={32} className="mx-auto mb-2 opacity-50" />
-        <p className="text-sm">Nenhum card {label}</p>
-        <p className="text-[11px] mt-1 opacity-70">Use "Gerar tarefa" no olhinho do cliente</p>
-      </div>
+      <>
+        <div className="space-y-2">
+          {steps.map((stepId, idx) => {
+            const stepLabel = CRM_STEP_LABEL[stepId] || stepId;
+            return (
+              <div
+                key={stepId}
+                className="p-2.5 bg-gradient-to-r from-muted/80 to-muted/60 rounded-xl border border-border/50 backdrop-blur-sm"
+              >
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-semibold text-foreground">
+                    [{idx + 1}] {stepLabel}
+                  </h4>
+                </div>
+              </div>
+            );
+          })}
+          <div className="text-center py-4 text-muted-foreground">
+            <Wrench size={24} className="mx-auto mb-1.5 opacity-40" />
+            <p className="text-xs">Nenhum card {label}</p>
+            <p className="text-[10px] mt-0.5 opacity-70">Use "Gerar tarefa" no olhinho do cliente</p>
+          </div>
+        </div>
+        <CrmConfigViewModal
+          isOpen={!!selectedConfig}
+          onClose={() => setSelectedConfig(null)}
+          config={selectedConfig}
+        />
+      </>
     );
   }
 
   return (
     <>
-      <div className="space-y-2">
-        {configs.map((cfg: any) => {
-          const clientName = cfg.clients?.razao_social || cfg.clients?.name || 'Cliente';
-          const stepIdx = steps.indexOf(cfg.current_step);
-          const progress = stepIdx >= 0 ? Math.round(((stepIdx + 1) / steps.length) * 100) : 0;
-          const stepLabel = CRM_STEP_LABEL[cfg.current_step] || cfg.current_step;
+      <div className="space-y-3">
+        {steps.map((stepId, idx) => {
+          const stepLabel = CRM_STEP_LABEL[stepId] || stepId;
+          const stepConfigs = configsByStep.get(stepId) || [];
 
           return (
-            <Card key={cfg.id} className="border-subtle hover:shadow-apple-hover transition-shadow">
-              <CardContent className="p-3 space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <h4 className="font-medium text-sm text-foreground line-clamp-1">{clientName}</h4>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-1.5 text-[10px] gap-1 shrink-0"
-                    onClick={() => setSelectedConfig(cfg)}
-                  >
-                    <Eye size={12} />
-                    Ver
-                  </Button>
+            <div key={stepId} className="space-y-2">
+              {/* Faixa da etapa (igual Paddock Onboarding) */}
+              <div className="p-2.5 bg-gradient-to-r from-muted/80 to-muted/60 rounded-xl border border-border/50 backdrop-blur-sm">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-semibold text-foreground">
+                    [{idx + 1}] {stepLabel}
+                  </h4>
+                  {stepConfigs.length > 0 && (
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                      {stepConfigs.length}
+                    </Badge>
+                  )}
                 </div>
+              </div>
 
-                <Badge className={`${color} border text-[10px]`}>{label}</Badge>
-
-                <div className="space-y-1.5 pt-1">
-                  <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                    <Clock size={10} />
-                    <span className="line-clamp-1">{stepLabel}</span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                    <div
-                      className="h-full bg-primary transition-all"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">
-                    Etapa {stepIdx + 1} de {steps.length}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+              {/* Cards do passo */}
+              {stepConfigs.map((cfg: any) => {
+                const clientName = cfg.clients?.razao_social || cfg.clients?.name || 'Cliente';
+                return (
+                  <Card key={cfg.id} className="border-subtle hover:shadow-apple-hover transition-shadow">
+                    <CardContent className="p-3 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <h4 className="font-medium text-sm text-foreground line-clamp-2">{clientName}</h4>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-1.5 text-[10px] gap-1 shrink-0"
+                          onClick={() => setSelectedConfig(cfg)}
+                        >
+                          <Eye size={12} />
+                          Ver
+                        </Button>
+                      </div>
+                      <Badge className={`${color} border text-[10px]`}>{label}</Badge>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
           );
         })}
       </div>
