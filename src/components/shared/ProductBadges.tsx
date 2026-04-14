@@ -21,10 +21,52 @@ export const PRODUCT_CONFIG: Record<string, { name: string; color: string }> = {
   'gestor-mktplace': { name: 'Gestor de MKT Place', color: 'bg-sky-500/10 text-sky-600 border-sky-500/20' },
 };
 
+// Sub-produtos do Torque CRM (V8 / Automation / Copilot)
+export const TORQUE_CRM_SUBPRODUCT_CONFIG: Record<string, { name: string; color: string }> = {
+  v8: { name: 'V8', color: 'bg-sky-500/10 text-sky-700 border-sky-500/30' },
+  automation: { name: 'Automation', color: 'bg-violet-500/10 text-violet-700 border-violet-500/30' },
+  copilot: { name: 'Copilot', color: 'bg-amber-500/10 text-amber-700 border-amber-500/30' },
+};
+
 interface ProductBadgesProps {
   products: string[] | null | undefined;
   size?: 'sm' | 'md';
   maxVisible?: number;
+}
+
+interface TorqueCRMProductBadgesProps {
+  products: string[] | null | undefined;
+  size?: 'sm' | 'md';
+}
+
+/**
+ * Renderiza etiquetas para os sub-produtos do Torque CRM (V8/Automation/Copilot).
+ * Usar sempre que o contexto exigir exibir quais produtos Torque CRM foram contratados:
+ * cards do Gestor de CRM, Consultor Comercial, Gestor de Ads e Novo Cliente.
+ */
+export function TorqueCRMProductBadges({ products, size = 'sm' }: TorqueCRMProductBadgesProps) {
+  if (!products || products.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap gap-1">
+      {products.map((slug) => {
+        const config = TORQUE_CRM_SUBPRODUCT_CONFIG[slug];
+        if (!config) return null;
+        return (
+          <span
+            key={slug}
+            className={cn(
+              'inline-flex items-center rounded-full border font-semibold',
+              config.color,
+              size === 'sm' ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-0.5 text-xs'
+            )}
+          >
+            {config.name}
+          </span>
+        );
+      })}
+    </div>
+  );
 }
 
 export default function ProductBadges({ products, size = 'sm', maxVisible = 3 }: ProductBadgesProps) {

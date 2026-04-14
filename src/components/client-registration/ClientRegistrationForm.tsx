@@ -115,6 +115,8 @@ const clientSchema = z.object({
     }),
   // Valores mensais por produto - objeto dinâmico
   product_values: z.record(z.string(), z.string()).default({}),
+  // Sub-produtos do Torque CRM (V8, Automation, Copilot) — obrigatório se 'torque-crm' estiver contratado
+  torque_crm_products: z.array(z.enum(['v8', 'automation', 'copilot'])).default([]),
   sales_percentage: z
     .number()
     .min(0, 'Porcentagem deve ser entre 0 e 100')
@@ -169,7 +171,7 @@ const clientSchema = z.object({
 }).refine((data) => {
   // Validar que cada produto selecionado tem um valor
   if (data.contracted_products.length === 0) return true;
-  
+
   for (const product of data.contracted_products) {
     const value = data.product_values[product];
     if (!value || parseCurrency(value) <= 0) {
@@ -180,6 +182,24 @@ const clientSchema = z.object({
 }, {
   message: 'Informe o valor mensal para cada produto contratado',
   path: ['product_values'],
+}).refine((data) => {
+  // Se Torque CRM está contratado, exige pelo menos um sub-produto (V8/Automation/Copilot)
+  const hasTorque = data.contracted_products.includes('torque-crm');
+  if (hasTorque) {
+    return Array.isArray(data.torque_crm_products) && data.torque_crm_products.length > 0;
+  }
+  return true;
+}, {
+  message: 'Selecione ao menos um produto do Torque CRM (V8, Automation ou Copilot)',
+  path: ['torque_crm_products'],
+}).refine((data) => {
+  // Se Torque CRM está contratado, exige Gestor de CRM responsável
+  const hasTorque = data.contracted_products.includes('torque-crm');
+  if (hasTorque) return !!data.assigned_crm;
+  return true;
+}, {
+  message: 'Selecione o Gestor de CRM responsável',
+  path: ['assigned_crm'],
 });
 
 type ClientFormData = z.infer<typeof clientSchema>;
@@ -229,6 +249,7 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
       general_info: '',
       expected_investment: '',
       product_values: {},
+      torque_crm_products: [],
       sales_percentage: 0,
       entry_date: format(new Date(), 'yyyy-MM-dd'),
       contract_duration_months: 0,
@@ -329,6 +350,23 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
         setSelectedGroupId('');
         setSelectedSquadId('');
       }
+
+      // If unchecking torque-crm, clear sub-products and CRM manager
+      if (slug === 'torque-crm') {
+        form.setValue('torque_crm_products', [], { shouldValidate: true });
+        form.setValue('assigned_crm', '');
+      }
+    }
+  }, [form]);
+
+  const toggleTorqueSubproduct = useCallback((sub: 'v8' | 'automation' | 'copilot', checked: boolean) => {
+    const current = (form.getValues('torque_crm_products') as ('v8' | 'automation' | 'copilot')[]) || [];
+    if (checked) {
+      if (!current.includes(sub)) {
+        form.setValue('torque_crm_products', [...current, sub], { shouldValidate: true });
+      }
+    } else {
+      form.setValue('torque_crm_products', current.filter(p => p !== sub), { shouldValidate: true });
     }
   }, [form]);
 
@@ -367,6 +405,9 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
         entry_date: data.entry_date,
         contract_duration_months: data.contract_duration_months,
         contracted_products: data.contracted_products,
+        torque_crm_products: data.contracted_products.includes('torque-crm')
+          ? (data.torque_crm_products || [])
+          : [],
         payment_due_day: data.payment_due_day,
         group_id: hasMillennialsGrowth ? data.group_id : undefined,
         squad_id: hasMillennialsGrowth ? data.squad_id : undefined,
@@ -477,6 +518,64 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
                 }}
               />
             </div>
+
+            {/* Sub-produtos do Torque CRM (V8, Automation, Copilot) — obrigatório se Torque CRM marcado */}
+            {hasTorqueCRM && (
+              <div className="space-y-3 pt-2 animate-fade-in">
+                <div className="text-xs font-semibold text-emerald-700 uppercase tracking-wide flex items-center gap-2">
+                  <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
+                  Produtos do Torque CRM *
+                </div>
+                <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-3">
+                  <FormField
+                    control={form.control}
+                    name="torque_crm_products"
+                    render={() => {
+                      const subProducts = (form.watch('torque_crm_products') || []) as ('v8' | 'automation' | 'copilot')[];
+                      const TORQUE_SUBS: { slug: 'v8' | 'automation' | 'copilot'; name: string }[] = [
+                        { slug: 'v8', name: 'V8' },
+                        { slug: 'automation', name: 'Automation' },
+                        { slug: 'copilot', name: 'Copilot' },
+                      ];
+                      return (
+                        <FormItem>
+                          <div className="grid grid-cols-3 gap-2">
+                            {TORQUE_SUBS.map(sub => {
+                              const isSelected = subProducts.includes(sub.slug);
+                              const id = `torque-sub-${sub.slug}`;
+                              return (
+                                <label
+                                  key={sub.slug}
+                                  htmlFor={id}
+                                  className={`flex items-center justify-center gap-2 p-2.5 rounded-lg border text-sm font-medium cursor-pointer transition-colors ${
+                                    isSelected
+                                      ? 'bg-emerald-500/15 border-emerald-500 text-emerald-700'
+                                      : 'bg-background border-border hover:border-emerald-500/50 text-foreground'
+                                  }`}
+                                >
+                                  <input
+                                    id={id}
+                                    type="checkbox"
+                                    className="h-4 w-4 rounded border-emerald-500/40"
+                                    checked={isSelected}
+                                    onChange={(e) => toggleTorqueSubproduct(sub.slug, e.target.checked)}
+                                  />
+                                  {sub.name}
+                                </label>
+                              );
+                            })}
+                          </div>
+                          <FormDescription className="text-xs mt-2">
+                            Selecione um, dois ou os três. Pelo menos um é obrigatório.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Section: Valores por Produto - Aparece quando há produtos selecionados */}
             {watchedProducts && watchedProducts.length > 0 && (
