@@ -28,6 +28,35 @@ export const TORQUE_CRM_SUBPRODUCT_CONFIG: Record<string, { name: string; color:
   copilot: { name: 'Copilot', color: 'bg-amber-500/10 text-amber-700 border-amber-500/30' },
 };
 
+/**
+ * Catálogo SOMENTE para o modal de upsell (não entra em PRODUCT_CONFIG
+ * pra evitar duplicação visual nas etiquetas). O financeiro trata esses
+ * slugs como produtos normais via o trigger `process_upsell`, mas as
+ * etiquetas V8/Automation/Copilot são renderizadas por
+ * TorqueCRMProductBadges a partir do campo torque_crm_products.
+ */
+export const UPSELL_ONLY_PRODUCT_CONFIG: Record<string, { name: string; color: string }> = {
+  'torque-crm-v8': { name: 'Torque CRM — V8', color: 'bg-sky-500/10 text-sky-700 border-sky-500/30' },
+  'torque-crm-automation': { name: 'Torque CRM — Automation', color: 'bg-violet-500/10 text-violet-700 border-violet-500/30' },
+  'torque-crm-copilot': { name: 'Torque CRM — Copilot', color: 'bg-amber-500/10 text-amber-700 border-amber-500/30' },
+};
+
+/** Resolve nome de um product_slug olhando em ambos os catálogos. */
+export function getAnyProductName(slug: string): string {
+  return (
+    PRODUCT_CONFIG[slug]?.name ||
+    UPSELL_ONLY_PRODUCT_CONFIG[slug]?.name ||
+    slug
+  );
+}
+
+/**
+ * Slugs que não devem aparecer no ProductBadges visível (são cabeados
+ * por outros componentes — TorqueCRMProductBadges). Mantemos como Set
+ * para lookup O(1).
+ */
+const HIDDEN_FROM_BADGES = new Set(Object.keys(UPSELL_ONLY_PRODUCT_CONFIG));
+
 interface ProductBadgesProps {
   products: string[] | null | undefined;
   size?: 'sm' | 'md';
@@ -74,8 +103,13 @@ export default function ProductBadges({ products, size = 'sm', maxVisible = 3 }:
     return null;
   }
 
-  const visibleProducts = products.slice(0, maxVisible);
-  const hiddenCount = products.length - maxVisible;
+  // Oculta slugs de sub-produto (ex: torque-crm-v8) — esses aparecem
+  // via TorqueCRMProductBadges e ficariam redundantes aqui.
+  const filtered = products.filter(p => !HIDDEN_FROM_BADGES.has(p));
+  if (filtered.length === 0) return null;
+
+  const visibleProducts = filtered.slice(0, maxVisible);
+  const hiddenCount = filtered.length - maxVisible;
 
   return (
     <div className="flex flex-wrap gap-1">
