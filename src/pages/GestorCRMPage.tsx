@@ -14,6 +14,7 @@ import CrmBoasVindasSection from '@/components/gestor-crm/CrmBoasVindasSection';
 import CrmAcompanhamentoSection from '@/components/gestor-crm/CrmAcompanhamentoSection';
 import CrmConfigColumnSection from '@/components/gestor-crm/CrmConfigColumnSection';
 import CrmFinalizadosSection from '@/components/gestor-crm/CrmFinalizadosSection';
+import CrmDocumentacaoSection from '@/components/gestor-crm/CrmDocumentacaoSection';
 import { CrmSectionBoundary } from '@/components/gestor-crm/CrmSectionBoundary';
 
 // Colunas do kanban do Gestor de CRM — mesma lógica estrutural do Consultor de MKT Place.
@@ -31,15 +32,6 @@ const COLUMNS = [
   { id: 'justificativa', title: 'Justificativa', icon: AlertCircle, headerClass: 'section-header-danger', iconColor: 'text-white' },
   { id: 'finalizados', title: 'CRMs Finalizados', icon: CheckCircle2, headerClass: 'section-header-purple', iconColor: 'text-white' },
 ];
-
-function ComingSoonPlaceholder({ label }: { label: string }) {
-  return (
-    <div className="text-center py-8 text-muted-foreground">
-      <p className="text-sm font-medium">Disponível em breve</p>
-      <p className="text-xs mt-1 opacity-70">{label}</p>
-    </div>
-  );
-}
 
 export default function GestorCRMPage() {
   const { user, isCEO, isAdminUser } = useAuth();
@@ -73,7 +65,7 @@ export default function GestorCRMPage() {
   const renderColumnContent = (columnId: string) => {
     switch (columnId) {
       case 'documentacao':
-        return <ComingSoonPlaceholder label="Documentação diária — Commit 5" />;
+        return <CrmSectionBoundary name="Documentação"><CrmDocumentacaoSection /></CrmSectionBoundary>;
       case 'tarefas-diarias':
         return <DepartmentTarefasSection department="gestor_crm" type="daily" />;
       case 'novos-clientes':
