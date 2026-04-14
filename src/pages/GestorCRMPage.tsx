@@ -13,6 +13,7 @@ import CrmNovoClienteSection from '@/components/gestor-crm/CrmNovoClienteSection
 import CrmBoasVindasSection from '@/components/gestor-crm/CrmBoasVindasSection';
 import CrmAcompanhamentoSection from '@/components/gestor-crm/CrmAcompanhamentoSection';
 import CrmConfigColumnSection from '@/components/gestor-crm/CrmConfigColumnSection';
+import CrmFinalizadosSection from '@/components/gestor-crm/CrmFinalizadosSection';
 import { CrmSectionBoundary } from '@/components/gestor-crm/CrmSectionBoundary';
 
 // Colunas do kanban do Gestor de CRM — mesma lógica estrutural do Consultor de MKT Place.
@@ -90,7 +91,7 @@ export default function GestorCRMPage() {
       case 'justificativa':
         return <DepartmentJustificativaSection department="gestor_crm" />;
       case 'finalizados':
-        return <ComingSoonPlaceholder label="CRMs Finalizados — Commit 4" />;
+        return <CrmSectionBoundary name="CRMs Finalizados"><CrmFinalizadosSection /></CrmSectionBoundary>;
       default:
         return null;
     }

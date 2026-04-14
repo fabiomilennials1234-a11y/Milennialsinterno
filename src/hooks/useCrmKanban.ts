@@ -619,12 +619,17 @@ export function useCreateCrmConfiguracoes() {
         if (insertErr) throw insertErr;
 
         // Cria primeira tarefa com user_id = usuário logado (respeita RLS
-        // do department_tasks que exige auth.uid() = user_id)
+        // do department_tasks que exige auth.uid() = user_id).
+        // `description` recebe a tag 'crm-config:{produto}' — isso identifica
+        // INEQUIVOCAMENTE qual configuração avançar quando a tarefa for concluída
+        // (sem essa tag haveria ambiguidade se o mesmo cliente tem V8 + Automation
+        // na mesma etapa, já que o título é idêntico).
         const titleFn = CRM_TASK_TITLE[produto][initialStep];
         if (titleFn) {
           const { error: taskErr } = await supabase.from('department_tasks').insert({
             user_id: user.id,
             title: titleFn(clientName),
+            description: `crm-config:${produto}`,
             task_type: 'daily',
             status: 'todo',
             priority: 'high',
@@ -702,13 +707,14 @@ export function useAdvanceCrmConfiguracao() {
         .eq('id', configId);
       if (updErr) throw updErr;
 
-      // Cria nova tarefa com user_id = usuário logado (respeita RLS
-      // do department_tasks que exige auth.uid() = user_id)
+      // Cria nova tarefa com user_id = usuário logado + tag do produto
+      // em description (ver useCreateCrmConfiguracoes para explicação).
       const titleFn = CRM_TASK_TITLE[produto][next];
       if (titleFn && user?.id) {
         const { error: taskErr } = await supabase.from('department_tasks').insert({
           user_id: user.id,
           title: titleFn(clientName),
+          description: `crm-config:${produto}`,
           task_type: 'daily',
           status: 'todo',
           priority: 'high',

@@ -4,7 +4,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useActionJustification } from '@/contexts/JustificationContext';
 import { toast } from 'sonner';
 import { CONSULTORIA_TASK_MAP, GESTAO_TASK_MAP, getCurrentWeekday } from '@/hooks/useMktplaceKanban';
-import { getCurrentWeekday as getCurrentWeekdayCrm, welcomeTaskTitle as crmWelcomeTaskTitle } from '@/hooks/useCrmKanban';
+import {
+  getCurrentWeekday as getCurrentWeekdayCrm,
+  welcomeTaskTitle as crmWelcomeTaskTitle,
+  getNextStep as getNextCrmStep,
+  CRM_TASK_TITLE,
+  type CrmProduto,
+} from '@/hooks/useCrmKanban';
 
 export interface DepartmentTask {
   id: string;
@@ -438,10 +444,96 @@ export function useUpdateDepartmentTaskStatus(department: string) {
         }
       }
 
-      return { _source: 'department' as const, status, financeiroCompleted, allClientTasksDone, mktplaceAdvanced, crmWelcomeAdvanced };
+      // ===== GESTOR DE CRM — MOTOR DE CONFIGURAÇÃO (V8 / Automation / Copilot) =====
+      // Se a tarefa tem description='crm-config:{produto}', identifica a configuração
+      // pela combinação (client_id, produto) — sem ambiguidade entre cards de produtos
+      // diferentes do mesmo cliente — e avança o step. Ao concluir o último step
+      // ('finalizar'), marca `is_finalizado=true` para o card ir para "CRMs Finalizados".
+      let crmConfigAdvanced = false;
+      let crmConfigFinalized = false;
+      if (status === 'done') {
+        const { data: cfgTask } = await supabase
+          .from('department_tasks')
+          .select('related_client_id, department, description')
+          .eq('id', taskId)
+          .single();
+
+        const desc = (cfgTask as any)?.description as string | null | undefined;
+        if (
+          cfgTask?.department === 'gestor_crm' &&
+          cfgTask.related_client_id &&
+          desc &&
+          desc.startsWith('crm-config:')
+        ) {
+          const produto = desc.slice('crm-config:'.length) as CrmProduto;
+          if (['v8', 'automation', 'copilot'].includes(produto)) {
+            const { data: cfg } = await (supabase as any)
+              .from('crm_configuracoes')
+              .select('id, current_step, is_finalizado')
+              .eq('client_id', cfgTask.related_client_id)
+              .eq('produto', produto)
+              .eq('is_finalizado', false)
+              .maybeSingle();
+
+            if (cfg && !cfg.is_finalizado) {
+              const next = getNextCrmStep(produto, cfg.current_step);
+
+              if (next === null) {
+                // Último step concluído → finaliza configuração (card vai para CRMs Finalizados)
+                await (supabase as any)
+                  .from('crm_configuracoes')
+                  .update({ is_finalizado: true, finalizado_at: new Date().toISOString() })
+                  .eq('id', cfg.id);
+                crmConfigFinalized = true;
+              } else {
+                // Avança step + cria próxima tarefa
+                await (supabase as any)
+                  .from('crm_configuracoes')
+                  .update({ current_step: next })
+                  .eq('id', cfg.id);
+
+                // Nome do cliente para o título da próxima tarefa
+                const { data: client } = await supabase
+                  .from('clients')
+                  .select('name, razao_social')
+                  .eq('id', cfgTask.related_client_id)
+                  .single();
+                const clientName = (client?.razao_social as string | null) || client?.name || 'Cliente';
+
+                const titleFn = CRM_TASK_TITLE[produto][next];
+                if (titleFn && user?.id) {
+                  await supabase.from('department_tasks').insert({
+                    user_id: user.id,
+                    title: titleFn(clientName),
+                    description: `crm-config:${produto}`,
+                    task_type: 'daily',
+                    status: 'todo',
+                    priority: 'high',
+                    department: 'gestor_crm',
+                    related_client_id: cfgTask.related_client_id,
+                  } as any);
+                }
+                crmConfigAdvanced = true;
+              }
+            }
+          }
+        }
+      }
+
+      return { _source: 'department' as const, status, financeiroCompleted, allClientTasksDone, mktplaceAdvanced, crmWelcomeAdvanced, crmConfigAdvanced, crmConfigFinalized };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
+      if (result?.crmConfigAdvanced) {
+        queryClient.invalidateQueries({ queryKey: ['crm-configuracoes'] });
+        queryClient.invalidateQueries({ queryKey: ['crm-configs-for-client'] });
+        toast.success('Etapa concluída — próxima tarefa criada!');
+      }
+      if (result?.crmConfigFinalized) {
+        queryClient.invalidateQueries({ queryKey: ['crm-configuracoes'] });
+        queryClient.invalidateQueries({ queryKey: ['crm-configs-for-client'] });
+        toast.success('CRM finalizado! Card movido para "CRMs Finalizados".');
+      }
       if (result?.crmWelcomeAdvanced) {
         queryClient.invalidateQueries({ queryKey: ['crm-novos-clientes'] });
         queryClient.invalidateQueries({ queryKey: ['crm-boasvindas-clientes'] });
