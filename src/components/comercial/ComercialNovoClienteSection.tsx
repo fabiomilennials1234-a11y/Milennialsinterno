@@ -6,11 +6,12 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useComercialNewClients, getHoursSinceEntry } from '@/hooks/useComercialClients';
 import { useComercialTasksByClient } from '@/hooks/useComercialTasks';
-import { useAutoCreateTasksForNewClients, useCompleteComercialTaskWithAutomation, AUTO_TASK_TYPES } from '@/hooks/useComercialAutomation';
+import { useAutoCreateTasksForNewClients, useCompleteComercialTaskWithAutomation, AUTO_TASK_TYPES, PADDOCK_AUTO_TASK_TYPES } from '@/hooks/useComercialAutomation';
 import ClientViewModal from '@/components/client/ClientViewModal';
 import OverdueInvoiceBadge from '@/components/shared/OverdueInvoiceBadge';
 import ContractStatusBadge from '@/components/shared/ContractStatusBadge';
 import ClientLabelBadge, { type ClientLabel } from '@/components/shared/ClientLabelBadge';
+import PaddockDiagnosticoBadge from './PaddockDiagnosticoBadge';
 import { fireCelebration } from '@/lib/confetti';
 
 function getTaskDeadlineInfo(dueDate?: string) {
@@ -47,7 +48,7 @@ function ClientCard({ client }: { client: any }) {
   const hours = getHoursSinceEntry(client.comercial_entered_at);
   const isDelayed = hours >= 24;
   const pendingTask = tasks.find(
-    t => t.status !== 'done' && t.auto_task_type === AUTO_TASK_TYPES.MARCAR_CONSULTORIA
+    t => t.status !== 'done' && (t.auto_task_type === AUTO_TASK_TYPES.MARCAR_CONSULTORIA || t.auto_task_type === PADDOCK_AUTO_TASK_TYPES.MARCAR_WAR1)
   );
 
   const handleCompleteTask = async () => {
@@ -71,6 +72,8 @@ function ClientCard({ client }: { client: any }) {
             : 'bg-card border-subtle hover:shadow-md'
         }`}
       >
+        {/* Diagnóstico Comercial 30 dias */}
+        <PaddockDiagnosticoBadge clientId={client.id} className="w-full justify-center mb-2" />
         {/* Overdue Invoice Badge */}
         <OverdueInvoiceBadge clientId={client.id} className="w-full justify-center mb-2" />
         {/* Contract Status Badge */}

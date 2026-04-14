@@ -65,10 +65,8 @@ const MANAGER_LIMITS: Record<string, number> = {
 // Lista de produtos disponíveis
 const AVAILABLE_PRODUCTS = [
   { slug: 'millennials-growth', name: 'Millennials Growth', requiresTeam: true },
-  { slug: 'millennials-outbound', name: 'Millennials Outbound', requiresTeam: false },
   { slug: 'millennials-paddock', name: 'Millennials Paddock', requiresTeam: false },
   { slug: 'torque-crm', name: 'Torque CRM', requiresTeam: false },
-  { slug: 'millennials-hunting', name: 'Millennials Hunting', requiresTeam: false },
   { slug: 'gestor-mktplace', name: 'Gestor de MKT Place', requiresTeam: false },
 ];
 
@@ -961,7 +959,7 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
 
             {/* Section: Responsáveis - Sempre visível */}
             <div className="space-y-4 pt-4 border-t border-border">
-              {(showAdsManager || showComercial || showCrmManager || showOutboundManager) && (
+              {(showAdsManager || showComercial || showCrmManager) && (
                 <>
                   <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
                     Responsáveis
@@ -1140,80 +1138,6 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
                       />
                     )}
 
-                    {/* RH (Millennials Hunting) */}
-                    {showRhUser && (
-                      <FormField
-                        control={form.control}
-                        name="assigned_rh"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>RH Responsável</FormLabel>
-                            <FormControl>
-                              <select
-                                className="input-apple"
-                                value={field.value || ''}
-                                onChange={(e) => field.onChange(e.target.value)}
-                              >
-                                <option value="">Selecione o RH</option>
-                                {rhLoading ? (
-                                  <option value="" disabled>Carregando...</option>
-                                ) : rhUsers.length === 0 ? (
-                                  <option value="" disabled>Nenhum RH cadastrado ainda</option>
-                                ) : (
-                                  rhUsers.map((rh) => (
-                                    <option key={rh.user_id} value={rh.user_id}>
-                                      {rh.name} ({rh.email})
-                                    </option>
-                                  ))
-                                )}
-                              </select>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
-
-                    {/* Outbound Manager (Millennials Outbound) */}
-                    {showOutboundManager && (
-                      <FormField
-                        control={form.control}
-                        name="assigned_outbound_manager"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Outbound Responsável</FormLabel>
-                            <FormControl>
-                              <select
-                                className="input-apple"
-                                value={field.value || ''}
-                                onChange={(e) => handleManagerSelect(
-                                  'assigned_outbound_manager',
-                                  e.target.value,
-                                  outboundCounts,
-                                  outboundManagers,
-                                  MANAGER_LIMITS.outbound,
-                                  field.onChange,
-                                )}
-                              >
-                                <option value="">Selecione o Outbound</option>
-                                {outboundLoading ? (
-                                  <option value="" disabled>Carregando...</option>
-                                ) : outboundManagers.length === 0 ? (
-                                  <option value="" disabled>Nenhum Outbound cadastrado ainda</option>
-                                ) : (
-                                  outboundManagers.map((manager) => (
-                                    <option key={manager.user_id} value={manager.user_id}>
-                                      {manager.name} — {outboundCounts[manager.user_id] || 0}/{MANAGER_LIMITS.outbound}
-                                    </option>
-                                  ))
-                                )}
-                              </select>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
                   </div>
                 </>
               )}

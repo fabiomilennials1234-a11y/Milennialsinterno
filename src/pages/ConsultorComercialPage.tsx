@@ -12,7 +12,6 @@ import {
   ChevronRight,
   Wrench,
   FileText,
-  Calendar,
   CalendarCheck,
   AlertCircle,
   UserX
@@ -29,6 +28,7 @@ import ComercialDocumentacaoSection from '@/components/comercial/ComercialDocume
 import ComercialChurnSection from '@/components/comercial/ComercialChurnSection';
 import ComercialDelayModal from '@/components/comercial/ComercialDelayModal';
 import ComercialMovimentacaoNotification from '@/components/comercial/ComercialMovimentacaoNotification';
+import PaddockOnboardingSection from '@/components/comercial/PaddockOnboardingSection';
 
 // Componentes reutilizados do Ads Manager
 import AdsFerramentasSection from '@/components/ads-manager/AdsFerramentasSection';
@@ -40,9 +40,8 @@ import { useDailyMovementDelayCheck } from '@/hooks/useDailyMovementDelayCheck';
 const COLUMNS = [
   { id: 'documentacao', title: 'Documentação do Dia', icon: FileText, headerClass: 'section-header-blue', iconColor: 'text-white' },
   { id: 'tarefas-diarias', title: 'Tarefas Diárias', icon: CheckSquare, headerClass: 'section-header-yellow', iconColor: 'text-foreground' },
-  { id: 'tarefas-semana', title: 'Tarefas da Semana', icon: Calendar, headerClass: 'section-header-purple', iconColor: 'text-white' },
   { id: 'novo-cliente', title: 'Novo Cliente', icon: UserPlus, headerClass: 'section-header-green', iconColor: 'text-white' },
-  { id: 'consultoria-marcada', title: 'Consultoria Marcada', icon: CalendarCheck, headerClass: 'section-header-orange', iconColor: 'text-white' },
+  { id: 'onboarding-paddock', title: 'Onboarding Paddock', icon: CalendarCheck, headerClass: 'section-header-green', iconColor: 'text-white' },
   { id: 'acompanhamento', title: 'Acompanhamento', icon: Users, headerClass: 'section-header-blue', iconColor: 'text-white', fullWidth: true },
   { id: 'justificativa', title: 'Justificativa', icon: AlertCircle, headerClass: 'section-header-danger', iconColor: 'text-white' },
   { id: 'churn', title: 'Churns', icon: UserX, headerClass: 'section-header-danger', iconColor: 'text-white' },
@@ -102,12 +101,10 @@ export default function ConsultorComercialPage() {
         return <ComercialDocumentacaoSection />;
       case 'tarefas-diarias':
         return <ComercialTarefasSection taskType="daily" />;
-      case 'tarefas-semana':
-        return <ComercialTarefasSection taskType="weekly" />;
+      case 'onboarding-paddock':
+        return <PaddockOnboardingSection />;
       case 'novo-cliente':
         return <ComercialNovoClienteSection />;
-      case 'consultoria-marcada':
-        return <ComercialConsultoriaMarcadaSection />;
       case 'acompanhamento':
         return <ComercialAcompanhamentoSection />;
       case 'churn':

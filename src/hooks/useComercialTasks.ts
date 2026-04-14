@@ -4,8 +4,70 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useEffect } from 'react';
 import { fireCelebration } from '@/lib/confetti';
-import { getCurrentDayPortuguese } from './useComercialAutomation';
+import { getCurrentDayPortuguese, PADDOCK_AUTO_TASK_TYPES } from './useComercialAutomation';
 import { useActionJustification } from '@/contexts/JustificationContext';
+
+// Paddock step progression maps (mirrored from useComercialAutomation)
+const PADDOCK_TASK_TO_STEP: Record<string, string> = {
+  [PADDOCK_AUTO_TASK_TYPES.MARCAR_WAR1]: 'war1_marcada',
+  [PADDOCK_AUTO_TASK_TYPES.REALIZAR_WAR1]: 'diagnostico_crm_criado',
+  [PADDOCK_AUTO_TASK_TYPES.ENVIAR_DIAGNOSTICO_COMERCIAL]: 'diagnostico_crm_enviado',
+  [PADDOCK_AUTO_TASK_TYPES.GERAR_TAREFA_CRM]: 'crm_solicitado',
+  [PADDOCK_AUTO_TASK_TYPES.MARCAR_WAR2]: 'war2_marcada',
+  [PADDOCK_AUTO_TASK_TYPES.CONSCIENTIZAR_CRM]: 'war2_marcada',
+  [PADDOCK_AUTO_TASK_TYPES.REALIZAR_WAR2]: 'gerar_novo_diagnostico',
+  [PADDOCK_AUTO_TASK_TYPES.GERAR_NOVO_DIAGNOSTICO]: 'marcar_war3',
+  [PADDOCK_AUTO_TASK_TYPES.MARCAR_WAR3]: 'war3_marcada',
+  [PADDOCK_AUTO_TASK_TYPES.REALIZAR_WAR3]: 'acompanhamento',
+};
+
+interface PaddockTaskTemplate {
+  taskType: string;
+  titleFn: (clientName: string) => string;
+  deadlineDays: number;
+}
+
+const PADDOCK_STEP_TASKS: Record<string, PaddockTaskTemplate[]> = {
+  war1_marcada: [{ taskType: PADDOCK_AUTO_TASK_TYPES.REALIZAR_WAR1, titleFn: (n) => `Realizar War #1 ${n}`, deadlineDays: 3 }],
+  diagnostico_crm_criado: [{ taskType: PADDOCK_AUTO_TASK_TYPES.ENVIAR_DIAGNOSTICO_COMERCIAL, titleFn: (n) => `Enviar diagnóstico Comercial ${n}`, deadlineDays: 1 }],
+  diagnostico_crm_enviado: [{ taskType: PADDOCK_AUTO_TASK_TYPES.GERAR_TAREFA_CRM, titleFn: (n) => `Gerar tarefa de implementação para Gestor de CRM ${n}`, deadlineDays: 1 }],
+  crm_solicitado: [
+    { taskType: PADDOCK_AUTO_TASK_TYPES.MARCAR_WAR2, titleFn: (n) => `Marcar War #2 para daqui 7 dias ${n}`, deadlineDays: 7 },
+    { taskType: PADDOCK_AUTO_TASK_TYPES.CONSCIENTIZAR_CRM, titleFn: (n) => `Conscientizar o tempo de espera da criação do CRM ${n}`, deadlineDays: 1 },
+  ],
+  war2_marcada: [{ taskType: PADDOCK_AUTO_TASK_TYPES.REALIZAR_WAR2, titleFn: (n) => `Realizar War #2 ${n}`, deadlineDays: 7 }],
+  gerar_novo_diagnostico: [{ taskType: PADDOCK_AUTO_TASK_TYPES.GERAR_NOVO_DIAGNOSTICO, titleFn: (n) => `Gerar novo Diagnóstico comercial ${n}`, deadlineDays: 7 }],
+  marcar_war3: [{ taskType: PADDOCK_AUTO_TASK_TYPES.MARCAR_WAR3, titleFn: (n) => `Marcar War #3 ${n}`, deadlineDays: 7 }],
+  war3_marcada: [{ taskType: PADDOCK_AUTO_TASK_TYPES.REALIZAR_WAR3, titleFn: (n) => `Realizar War #3 ${n}`, deadlineDays: 3 }],
+};
+
+const DUAL_TASK_STEP = 'crm_solicitado';
+const DUAL_TASK_TYPES = [PADDOCK_AUTO_TASK_TYPES.MARCAR_WAR2, PADDOCK_AUTO_TASK_TYPES.CONSCIENTIZAR_CRM];
+
+async function createPaddockTaskFromTemplate(userId: string, clientId: string, template: PaddockTaskTemplate, clientName: string) {
+  const { data: existingList } = await supabase
+    .from('comercial_tasks')
+    .select('id')
+    .eq('related_client_id', clientId)
+    .eq('auto_task_type', template.taskType)
+    .neq('status', 'done')
+    .limit(1);
+
+  if (existingList && existingList.length > 0) return;
+
+  await supabase.from('comercial_tasks').insert({
+    user_id: userId,
+    title: template.titleFn(clientName),
+    description: `Tarefa automática do Onboarding Paddock para ${clientName}`,
+    task_type: 'daily',
+    status: 'todo',
+    priority: 'high',
+    related_client_id: clientId,
+    is_auto_generated: true,
+    auto_task_type: template.taskType,
+    due_date: new Date(Date.now() + template.deadlineDays * 24 * 60 * 60 * 1000).toISOString(),
+  });
+}
 
 export interface ComercialTask {
   id: string;
@@ -31,9 +93,9 @@ export interface ComercialTask {
   };
 }
 
-// Fetch all tasks for the current comercial user
+// Fetch all tasks for the current comercial user (CEO sees all)
 export function useComercialTasks(taskType?: 'daily' | 'weekly') {
-  const { user } = useAuth();
+  const { user, isCEO } = useAuth();
   const queryClient = useQueryClient();
 
   const query = useQuery({
@@ -42,9 +104,13 @@ export function useComercialTasks(taskType?: 'daily' | 'weekly') {
       let queryBuilder = supabase
         .from('comercial_tasks')
         .select('*, client:clients(id, name)')
-        .eq('user_id', user?.id)
         .or('archived.is.null,archived.eq.false')
         .order('created_at', { ascending: false });
+
+      // CEO sees all tasks, others see only their own
+      if (user?.role === 'consultor_comercial') {
+        queryBuilder = queryBuilder.eq('user_id', user?.id);
+      }
 
       if (taskType) {
         queryBuilder = queryBuilder.eq('task_type', taskType);
@@ -173,21 +239,136 @@ export function useUpdateComercialTaskStatus() {
       // If moving to done and it's an auto-generated task, trigger automation
       if (status === 'done' && task?.is_auto_generated && task?.auto_task_type) {
         const clientId = task.related_client_id;
-        const clientName = task.client?.name;
-        
-        if (task.auto_task_type === 'marcar_consultoria' && clientId) {
-          // Move client to consultoria_marcada
+        const clientName = task.client?.name || 'Cliente';
+        const allPaddockTypes = Object.values(PADDOCK_AUTO_TASK_TYPES);
+
+        // -------------------------------------------------------
+        // PADDOCK 9-STEP AUTOMATION
+        // -------------------------------------------------------
+        if (allPaddockTypes.includes(task.auto_task_type) && clientId && user?.id) {
+          const { data: client } = await supabase
+            .from('clients')
+            .select('comercial_status, paddock_onboarding_step, name, razao_social, assigned_ads_manager')
+            .eq('id', clientId)
+            .single();
+
+          const cName = client?.razao_social || client?.name || clientName;
+          const currentStep = client?.paddock_onboarding_step;
+
+          // Dual-task check: tarefa_gestor_crm_gerada creates 2 tasks, both must be done
+          if (currentStep === DUAL_TASK_STEP && DUAL_TASK_TYPES.includes(task.auto_task_type)) {
+            const { count } = await supabase
+              .from('comercial_tasks')
+              .select('id', { count: 'exact', head: true })
+              .eq('related_client_id', clientId)
+              .in('auto_task_type', DUAL_TASK_TYPES)
+              .neq('status', 'done');
+
+            if (count && count > 0) {
+              // Other task still pending, don't advance yet
+              return { taskId, status, isAutoGenerated: true };
+            }
+
+            // Both done → advance to war2_marcada
+            const nextStep = 'war2_marcada';
+            await supabase
+              .from('clients')
+              .update({ paddock_onboarding_step: nextStep })
+              .eq('id', clientId);
+
+            const templates = PADDOCK_STEP_TASKS[nextStep];
+            if (templates) {
+              for (const tmpl of templates) {
+                await createPaddockTaskFromTemplate(user.id, clientId, tmpl, cName);
+              }
+            }
+            return { taskId, status, isAutoGenerated: true };
+          }
+
+          // Standard paddock progression
+          let nextStep: string | undefined;
+
+          if (task.auto_task_type === PADDOCK_AUTO_TASK_TYPES.MARCAR_WAR1) {
+            nextStep = 'war1_marcada';
+            await supabase
+              .from('clients')
+              .update({
+                comercial_status: 'onboarding_paddock',
+                paddock_onboarding_step: nextStep,
+                comercial_onboarding_started_at: new Date().toISOString(),
+              })
+              .eq('id', clientId);
+          } else {
+            // Standard progression via map
+            nextStep = PADDOCK_TASK_TO_STEP[task.auto_task_type];
+            if (nextStep && nextStep !== 'acompanhamento') {
+              await supabase
+                .from('clients')
+                .update({ paddock_onboarding_step: nextStep })
+                .eq('id', clientId);
+            }
+          }
+
+          // Handle transition to acompanhamento
+          if (nextStep === 'acompanhamento') {
+            await supabase
+              .from('clients')
+              .update({
+                comercial_status: 'em_acompanhamento',
+                paddock_onboarding_step: null,
+              })
+              .eq('id', clientId);
+
+            const mId = client?.assigned_ads_manager;
+            if (mId) {
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('name')
+                .eq('id', mId)
+                .single();
+
+              const { data: existingTracking } = await supabase
+                .from('comercial_tracking')
+                .select('id')
+                .eq('client_id', clientId)
+                .eq('comercial_user_id', user.id)
+                .maybeSingle();
+
+              if (!existingTracking) {
+                await supabase
+                  .from('comercial_tracking')
+                  .insert({
+                    comercial_user_id: user.id,
+                    client_id: clientId,
+                    manager_id: mId,
+                    manager_name: profile?.name || 'Gestor',
+                    current_day: getCurrentDayPortuguese(),
+                  });
+              }
+            }
+          } else if (nextStep) {
+            // Create next task(s) for the new step
+            const templates = PADDOCK_STEP_TASKS[nextStep];
+            if (templates) {
+              for (const tmpl of templates) {
+                await createPaddockTaskFromTemplate(user.id, clientId, tmpl, cName);
+              }
+            }
+          }
+
+        // -------------------------------------------------------
+        // LEGACY AUTOMATION (backward compat)
+        // -------------------------------------------------------
+        } else if (task.auto_task_type === 'marcar_consultoria' && clientId) {
           await supabase
             .from('clients')
-            .update({ 
+            .update({
               comercial_status: 'consultoria_marcada',
               comercial_onboarding_started_at: new Date().toISOString(),
             })
             .eq('id', clientId);
 
-          // Create next task "Realizar Consultoria Inicial"
           if (clientName && user?.id) {
-            // Check if task already exists
             const { data: existing } = await supabase
               .from('comercial_tasks')
               .select('id')
@@ -207,19 +388,17 @@ export function useUpdateComercialTaskStatus() {
                   related_client_id: clientId,
                   is_auto_generated: true,
                   auto_task_type: 'realizar_consultoria',
-                  due_date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days from now
+                  due_date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
                 });
             }
           }
         } else if (task.auto_task_type === 'realizar_consultoria' && clientId) {
-          // Get manager info from client
           const { data: clientData } = await supabase
             .from('clients')
             .select('assigned_ads_manager')
             .eq('id', clientId)
             .single();
 
-          // Get manager name
           let managerName = 'Gestor';
           if (clientData?.assigned_ads_manager) {
             const { data: profile } = await supabase
@@ -230,13 +409,11 @@ export function useUpdateComercialTaskStatus() {
             managerName = profile?.name || 'Gestor';
           }
 
-          // Move client to em_acompanhamento
           await supabase
             .from('clients')
             .update({ comercial_status: 'em_acompanhamento' })
             .eq('id', clientId);
 
-          // Add to tracking
           if (clientData?.assigned_ads_manager && user?.id) {
             const { data: existingTracking } = await supabase
               .from('comercial_tracking')
@@ -258,13 +435,12 @@ export function useUpdateComercialTaskStatus() {
             }
           }
 
-          // N7: Notify assigned gestor de tráfego that consultoria is done
           if (clientData?.assigned_ads_manager) {
             await supabase.from('system_notifications').insert({
               recipient_id: clientData.assigned_ads_manager,
               recipient_role: 'gestor_ads',
               notification_type: 'comercial_consultoria_completed',
-              title: '🤝 Consultoria Comercial Concluída',
+              title: 'Consultoria Comercial Concluída',
               message: `A consultoria comercial do cliente "${clientName}" foi concluída. O cliente está pronto para acompanhamento.`,
               client_id: clientId,
               priority: 'high',
@@ -311,8 +487,12 @@ export function useUpdateComercialTaskStatus() {
       queryClient.invalidateQueries({ queryKey: ['comercial-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['comercial-clients'] });
       queryClient.invalidateQueries({ queryKey: ['comercial-new-clients'] });
+      queryClient.invalidateQueries({ queryKey: ['comercial-onboarding-clients'] });
+      queryClient.invalidateQueries({ queryKey: ['comercial-paddock-clients'] });
       queryClient.invalidateQueries({ queryKey: ['comercial-clients-status'] });
       queryClient.invalidateQueries({ queryKey: ['comercial-tracking'] });
+      queryClient.invalidateQueries({ queryKey: ['comercial-tasks-client'] });
+      queryClient.invalidateQueries({ queryKey: ['paddock-pending-tasks'] });
     },
   });
 }

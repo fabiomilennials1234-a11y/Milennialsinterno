@@ -96,7 +96,7 @@ export function useMktplaceClients() {
         .not('mktplace_status', 'is', null)
         .order('mktplace_entered_at', { ascending: true });
 
-      if (!isCEO && !isAdminUser) {
+      if (user?.role === 'consultor_mktplace') {
         query = query.eq('assigned_mktplace', user?.id);
       }
 
@@ -120,7 +120,7 @@ export function useMktplaceTracking() {
         .select('*, clients:client_id(id, name, razao_social, contracted_products, monthly_value, client_label)')
         .order('last_moved_at', { ascending: true });
 
-      if (!isCEO && !isAdminUser) {
+      if (user?.role === 'consultor_mktplace') {
         query = query.eq('consultor_id', user?.id);
       }
 
@@ -144,7 +144,7 @@ export function useMktplaceDocumentation() {
         .select('*, clients:client_id(id, name, razao_social)')
         .order('documentation_date', { ascending: false });
 
-      if (!isCEO && !isAdminUser) {
+      if (user?.role === 'consultor_mktplace') {
         query = query.eq('consultor_id', user?.id);
       }
 

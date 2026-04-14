@@ -37,6 +37,9 @@ import MktplaceDiagnosticoSection from '@/components/mktplace/MktplaceDiagnostic
 import OutboundStrategyBuilderSection from '@/components/outbound-strategy/OutboundStrategyBuilderSection';
 import ResultsReportSection from '@/components/results-report/ResultsReportSection';
 import ResultsReportCountdownBadge from '@/components/results-report/ResultsReportCountdownBadge';
+import PaddockDiagnosticoSection from '@/components/comercial/PaddockDiagnosticoSection';
+import PaddockDiagnosticoListSection from '@/components/comercial/PaddockDiagnosticoListSection';
+import WarRoomSection from '@/components/comercial/WarRoomSection';
 import ClientTierBadge, { ClientCreativesLimit } from '@/components/shared/ClientTierBadge';
 import { PRODUCT_CONFIG } from '@/components/shared/ProductBadges';
 import { cn } from '@/lib/utils';
@@ -694,17 +697,30 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
                 />
               )}
 
-              {/* Outbound Strategy Builder Section */}
+              {/* Results Report Section */}
               {clientInfo && (
-                <OutboundStrategyBuilderSection
+                <ResultsReportSection
                   clientId={clientId}
                   clientName={clientInfo.name}
                 />
               )}
 
-              {/* Results Report Section */}
-              {clientInfo && (
-                <ResultsReportSection
+              {/* War Room Guides - only for Paddock clients */}
+              {clientInfo && (clientInfo.contracted_products?.includes('millennials-growth') || clientInfo.contracted_products?.includes('millennials-paddock')) && (
+                <WarRoomSection />
+              )}
+
+              {/* Paddock Diagnóstico Comercial Section - after War Rooms */}
+              {clientInfo && (clientInfo.contracted_products?.includes('millennials-growth') || clientInfo.contracted_products?.includes('millennials-paddock')) && (
+                <PaddockDiagnosticoSection
+                  clientId={clientId}
+                  clientName={clientInfo.name}
+                />
+              )}
+
+              {/* Diagnóstico Comercial pós War #2 */}
+              {clientInfo && (clientInfo.contracted_products?.includes('millennials-growth') || clientInfo.contracted_products?.includes('millennials-paddock')) && (
+                <PaddockDiagnosticoListSection
                   clientId={clientId}
                   clientName={clientInfo.name}
                 />

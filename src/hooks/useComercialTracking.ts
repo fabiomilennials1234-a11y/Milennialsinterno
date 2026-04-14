@@ -31,19 +31,24 @@ export interface ManagerGroup {
   tracking: ComercialTracking[];
 }
 
-// Fetch all tracking for the current comercial user
+// Fetch all tracking for the current comercial user (CEO sees all)
 export function useComercialTracking() {
-  const { user } = useAuth();
+  const { user, isCEO } = useAuth();
   const queryClient = useQueryClient();
 
   const query = useQuery({
     queryKey: ['comercial-tracking', user?.id],
     queryFn: async (): Promise<ComercialTracking[]> => {
-      const { data, error } = await supabase
+      let queryBuilder = supabase
         .from('comercial_tracking')
         .select('*, client:clients(id, name, comercial_status, client_label)')
-        .eq('comercial_user_id', user?.id)
         .order('manager_name', { ascending: true });
+
+      if (user?.role === 'consultor_comercial') {
+        queryBuilder = queryBuilder.eq('comercial_user_id', user?.id);
+      }
+
+      const { data, error } = await queryBuilder;
 
       if (error) throw error;
       return (data || []) as ComercialTracking[];

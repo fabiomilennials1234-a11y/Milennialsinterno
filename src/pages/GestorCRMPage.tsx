@@ -49,7 +49,7 @@ function useCrmClients(targetUserId?: string) {
       // Se tem um userId alvo (via URL), filtrar por ele
       if (targetUserId) {
         query = query.eq('assigned_crm', targetUserId);
-      } else if (!isCEO && user?.role !== 'gestor_projetos') {
+      } else if (user?.role === 'gestor_crm') {
         query = query.eq('assigned_crm', user?.id);
       }
 
