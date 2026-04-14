@@ -118,10 +118,11 @@ export function useCreateUpsell() {
         if (['v8', 'automation', 'copilot'].includes(sub)) {
           const { data: clientRow } = await supabase
             .from('clients')
-            .select('torque_crm_products' as any)
+            .select('torque_crm_products, name, razao_social, assigned_comercial' as any)
             .eq('id', upsell.client_id)
             .single();
-          const current = ((clientRow as any)?.torque_crm_products as string[] | null) || [];
+          const clientAny = clientRow as any;
+          const current = (clientAny?.torque_crm_products as string[] | null) || [];
           if (!current.includes(sub)) {
             await supabase
               .from('clients')
@@ -141,6 +142,40 @@ export function useCreateUpsell() {
               .from('clients')
               .update({ contracted_products: [...prods, 'torque-crm'] })
               .eq('id', upsell.client_id);
+          }
+
+          // Cria tarefa automática para o Treinador Comercial:
+          // "Briefar configuração [Produto Torque] [Cliente]". A description
+          // carrega tag 'torque-briefing:{slug}' usada pela automação em
+          // useComercialTasks para gerar a tarefa de confirmação ao concluir.
+          const treinadorId = clientAny?.assigned_comercial as string | null;
+          const clientName = clientAny?.razao_social || clientAny?.name || 'Cliente';
+          const productLabel = upsell.product_name || sub.toUpperCase();
+          if (treinadorId) {
+            // Idempotência: não duplica se já existe uma briefing ativa para
+            // este (cliente, produto)
+            const briefingTag = `torque-briefing:${upsell.product_slug}`;
+            const { data: existingBrief } = await supabase
+              .from('comercial_tasks')
+              .select('id')
+              .eq('related_client_id', upsell.client_id)
+              .eq('description', briefingTag)
+              .neq('status', 'done')
+              .limit(1);
+
+            if (!existingBrief || existingBrief.length === 0) {
+              await supabase.from('comercial_tasks').insert({
+                user_id: treinadorId,
+                title: `Briefar configuração ${productLabel} ${clientName}`,
+                description: briefingTag,
+                task_type: 'daily',
+                status: 'todo',
+                priority: 'high',
+                related_client_id: upsell.client_id,
+                is_auto_generated: true,
+                auto_task_type: 'briefar_torque_config',
+              } as any);
+            }
           }
         }
       }
