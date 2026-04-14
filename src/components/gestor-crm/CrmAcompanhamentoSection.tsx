@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useCrmTracking, useMoveClientCrm, useSaveCrmDoc, CRM_DAYS, getTorqueCrmProducts } from '@/hooks/useCrmKanban';
+import { useCrmTracking, useMoveClientCrm, useSaveCrmDoc, useCrmTodayDocumentedClients, CRM_DAYS, getTorqueCrmProducts } from '@/hooks/useCrmKanban';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import ClientViewModal from '@/components/client/ClientViewModal';
 import ProductBadges, { TorqueCRMProductBadges } from '@/components/shared/ProductBadges';
-import { Eye, GripVertical, Clock, Calendar as CalendarIcon } from 'lucide-react';
+import { Eye, GripVertical, Clock, Calendar as CalendarIcon, AlertTriangle, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -48,10 +48,11 @@ const emptyForm: DocForm = {
  */
 export default function CrmAcompanhamentoSection() {
   const { data: tracking = [] } = useCrmTracking();
+  const { data: documentedToday = new Set<string>() } = useCrmTodayDocumentedClients();
   const moveClient = useMoveClientCrm();
   const saveDoc = useSaveCrmDoc();
 
-  const [docModal, setDocModal] = useState<{ open: boolean; clientId?: string; clientName?: string; newDay?: string }>({ open: false });
+  const [docModal, setDocModal] = useState<{ open: boolean; clientId?: string; clientName?: string; newDay?: string; justifyOnly?: boolean }>({ open: false });
   const [docForm, setDocForm] = useState<DocForm>({ ...emptyForm });
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -75,7 +76,15 @@ export default function CrmAcompanhamentoSection() {
 
     const clientName = tracking.find((t: any) => t.client_id === clientId)?.clients?.name || 'Cliente';
     setDocForm({ ...emptyForm });
-    setDocModal({ open: true, clientId, clientName, newDay });
+    setDocModal({ open: true, clientId, clientName, newDay, justifyOnly: false });
+  };
+
+  // Abre o modal SEM movimentação — para documentar atividade do dia sem
+  // trocar a coluna do cliente. Usado para justificar/registrar a atividade
+  // obrigatória diária em clientes que ainda não foram tocados hoje.
+  const handleJustifyToday = (clientId: string, currentDay: string, clientName: string) => {
+    setDocForm({ ...emptyForm });
+    setDocModal({ open: true, clientId, clientName, newDay: currentDay, justifyOnly: true });
   };
 
   const validateForm = (): boolean => {
@@ -134,7 +143,11 @@ export default function CrmAcompanhamentoSection() {
         combinado_prazo: docForm.combinado_prazo ? format(docForm.combinado_prazo, 'yyyy-MM-dd') : undefined,
         combinado_justificativa: docForm.combinado_justificativa || undefined,
       });
-      await moveClient.mutateAsync({ clientId: docModal.clientId, newDay: docModal.newDay });
+      // Só move se não for justify-only (quando for apenas registro do dia,
+      // a coluna permanece a mesma — só garante o doc de hoje)
+      if (!docModal.justifyOnly) {
+        await moveClient.mutateAsync({ clientId: docModal.clientId, newDay: docModal.newDay });
+      }
       setDocModal({ open: false });
     } catch {
       // handled by hooks
@@ -168,13 +181,19 @@ export default function CrmAcompanhamentoSection() {
                     {dayClients.map((item: any, index: number) => {
                       const clientName = item.client?.razao_social || item.client?.name || 'Cliente';
                       const torqueProducts = getTorqueCrmProducts(item.client || {});
+                      const needsToday = !documentedToday.has(item.client_id);
                       return (
                         <Draggable key={item.client_id} draggableId={item.client_id} index={index}>
                           {(dragProvided) => (
                             <div
                               ref={dragProvided.innerRef}
                               {...dragProvided.draggableProps}
-                              className="bg-card rounded-lg border border-subtle p-2 mb-1.5 shadow-sm space-y-1.5"
+                              className={cn(
+                                'rounded-lg border p-2 mb-1.5 shadow-sm space-y-1.5',
+                                needsToday
+                                  ? 'bg-destructive/5 border-destructive/40'
+                                  : 'bg-card border-subtle'
+                              )}
                             >
                               <div className="flex items-center gap-1.5">
                                 <div {...dragProvided.dragHandleProps} className="cursor-grab">
@@ -200,6 +219,24 @@ export default function CrmAcompanhamentoSection() {
                                   </Badge>
                                 )}
                               </div>
+
+                              {needsToday && (
+                                <div className="flex items-center justify-between gap-1.5 rounded-md bg-destructive/10 border border-destructive/30 px-1.5 py-1">
+                                  <span className="flex items-center gap-1 text-[10px] font-semibold text-destructive">
+                                    <AlertTriangle size={10} />
+                                    Sem movimentação hoje
+                                  </span>
+                                  <Button
+                                    size="sm"
+                                    className="h-5 px-1.5 text-[10px] gap-0.5 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    onClick={() => handleJustifyToday(item.client_id, item.current_day, clientName)}
+                                  >
+                                    <FileText size={10} />
+                                    Documentar hoje
+                                  </Button>
+                                </div>
+                              )}
+
                               <div className="flex flex-col gap-1 pl-4">
                                 <ProductBadges products={item.client?.contracted_products} size="sm" maxVisible={4} />
                                 {torqueProducts.length > 0 && (
@@ -224,7 +261,10 @@ export default function CrmAcompanhamentoSection() {
       <Dialog open={docModal.open} onOpenChange={(open) => { if (!open && !isSaving) setDocModal({ open: false }); }}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-base">Documentação Diária — {docModal.clientName}</DialogTitle>
+            <DialogTitle className="text-base">
+              {docModal.justifyOnly ? 'Registro do dia — ' : 'Documentação Diária — '}
+              {docModal.clientName}
+            </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-5 mt-2">
@@ -348,7 +388,11 @@ export default function CrmAcompanhamentoSection() {
             </div>
 
             <Button onClick={handleDocSubmit} disabled={isSaving} className="w-full">
-              {isSaving ? 'Salvando...' : 'Confirmar e Mover'}
+              {isSaving
+                ? 'Salvando...'
+                : docModal.justifyOnly
+                  ? 'Registrar atividade do dia'
+                  : 'Confirmar e Mover'}
             </Button>
           </div>
         </DialogContent>

@@ -356,6 +356,41 @@ export function useCrmTracking() {
   });
 }
 
+/**
+ * Lookup rápido: IDs de clientes que TÊM documentação registrada HOJE
+ * (data do servidor). Usado para marcar como "atrasado" qualquer cliente
+ * em acompanhamento que ainda não foi tocado hoje.
+ */
+export function useCrmTodayDocumentedClients() {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['crm-today-documented', user?.id, user?.role],
+    queryFn: async () => {
+      const today = format(new Date(), 'yyyy-MM-dd');
+      let query = (supabase as any)
+        .from('crm_daily_documentation')
+        .select('client_id')
+        .eq('documentation_date', today);
+
+      if (user?.role === 'gestor_crm') {
+        query = query.eq('gestor_id', user?.id);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      const ids = new Set<string>();
+      (data || []).forEach((row: any) => {
+        if (row.client_id) ids.add(row.client_id);
+      });
+      return ids;
+    },
+    enabled: !!user?.id,
+    // Re-verifica a cada 60s caso o dia vire
+    refetchInterval: 60_000,
+  });
+}
+
 /** Documentação diária. */
 export function useCrmDocumentation() {
   const { user } = useAuth();
@@ -845,6 +880,7 @@ export function useSaveCrmDoc() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['crm-documentation'] });
+      queryClient.invalidateQueries({ queryKey: ['crm-today-documented'] });
       queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
       toast.success('Documentação salva!');
     },
