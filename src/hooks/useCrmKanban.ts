@@ -430,6 +430,7 @@ export function useCreateCrmWelcomeTask() {
       gestorId: string;
     }) => {
       if (!gestorId) throw new Error('Gestor de CRM não atribuído');
+      if (!user?.id) throw new Error('Usuário não autenticado');
 
       // Deduplicação: procura tarefa de boas-vindas existente para o cliente
       const title = welcomeTaskTitle(clientName);
@@ -444,17 +445,18 @@ export function useCreateCrmWelcomeTask() {
 
       if (existing && existing.length > 0) {
         // Só garante que o cliente esteja em 'boas_vindas'
-        await supabase
+        await (supabase as any)
           .from('clients')
-          .update({ crm_status: 'boas_vindas' } as any)
+          .update({ crm_status: 'boas_vindas' })
           .eq('id', clientId)
-          .eq('crm_status' as any, 'novo');
+          .eq('crm_status', 'novo');
         return;
       }
 
-      // Cria tarefa
+      // Cria tarefa com user_id = usuário logado (espelha padrão MKT Place e
+      // respeita a RLS do department_tasks que exige auth.uid() = user_id).
       const { error: taskError } = await supabase.from('department_tasks').insert({
-        user_id: gestorId,
+        user_id: user.id,
         title,
         task_type: 'daily',
         status: 'todo',
