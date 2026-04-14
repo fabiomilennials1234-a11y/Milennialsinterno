@@ -3,7 +3,7 @@ import MainLayout from '@/layouts/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import {
-  UserPlus, CheckSquare, ChevronLeft, ChevronRight,
+  UserPlus, CheckSquare, ChevronLeft, ChevronRight, Users,
   FileText, AlertCircle, Sparkles, Settings, CheckCircle2, Wrench
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import DepartmentJustificativaSection from '@/components/department/DepartmentJu
 import CrmNovoClienteSection from '@/components/gestor-crm/CrmNovoClienteSection';
 import CrmBoasVindasSection from '@/components/gestor-crm/CrmBoasVindasSection';
 import CrmAcompanhamentoSection from '@/components/gestor-crm/CrmAcompanhamentoSection';
+import { CrmSectionBoundary } from '@/components/gestor-crm/CrmSectionBoundary';
 
 // Colunas do kanban do Gestor de CRM — mesma lógica estrutural do Consultor de MKT Place.
 // As três colunas de "Configuração" (V8/Automation/Copilot) e "CRMs Finalizados" entram
@@ -74,11 +75,11 @@ export default function GestorCRMPage() {
       case 'tarefas-diarias':
         return <DepartmentTarefasSection department="gestor_crm" type="daily" />;
       case 'novos-clientes':
-        return <CrmNovoClienteSection />;
+        return <CrmSectionBoundary name="Novos clientes"><CrmNovoClienteSection /></CrmSectionBoundary>;
       case 'boas-vindas':
-        return <CrmBoasVindasSection />;
+        return <CrmSectionBoundary name="Boas-vindas"><CrmBoasVindasSection /></CrmSectionBoundary>;
       case 'acompanhamento':
-        return <CrmAcompanhamentoSection />;
+        return <CrmSectionBoundary name="Acompanhamento"><CrmAcompanhamentoSection /></CrmSectionBoundary>;
       case 'config-v8':
         return <ComingSoonPlaceholder label="Cards V8 — Commit 3" />;
       case 'config-automation':
