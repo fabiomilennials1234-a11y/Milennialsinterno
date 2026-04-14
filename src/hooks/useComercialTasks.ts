@@ -447,6 +447,42 @@ export function useUpdateComercialTaskStatus() {
               metadata: { comercial_user_id: user?.id, client_name: clientName },
             } as any);
           }
+        // -------------------------------------------------------
+        // TORQUE CRM SUB-PRODUCT BRIEFING → CONFIRMAÇÃO
+        // -------------------------------------------------------
+        // Ao concluir "Briefar configuração [Produto] [Cliente]", cria a tarefa
+        // de confirmação com prazo de 7 dias. A tag em description identifica
+        // qual sub-produto Torque CRM (v8/automation/copilot).
+        } else if (task.auto_task_type === 'briefar_torque_config' && clientId && user?.id) {
+          const desc = (task as any).description as string | null;
+          if (desc && desc.startsWith('torque-briefing:')) {
+            const productSlug = desc.replace('torque-briefing:', '');
+            const productLabel = task.title?.match(/Briefar configuração (.+) [^ ]+$/)?.[1] || productSlug;
+            const confirmTag = `torque-confirm:${productSlug}`;
+            // Idempotência: não duplica
+            const { data: existingConfirm } = await supabase
+              .from('comercial_tasks')
+              .select('id')
+              .eq('related_client_id', clientId)
+              .eq('description', confirmTag)
+              .neq('status', 'done')
+              .limit(1);
+
+            if (!existingConfirm || existingConfirm.length === 0) {
+              await supabase.from('comercial_tasks').insert({
+                user_id: user.id,
+                title: `Confirmar implementação ${productLabel} ${clientName}`,
+                description: confirmTag,
+                task_type: 'daily',
+                status: 'todo',
+                priority: 'high',
+                related_client_id: clientId,
+                is_auto_generated: true,
+                auto_task_type: 'confirmar_torque_impl',
+                due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+              } as any);
+            }
+          }
         }
       }
 
