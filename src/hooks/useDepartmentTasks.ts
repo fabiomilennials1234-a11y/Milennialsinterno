@@ -8,6 +8,7 @@ import {
   getCurrentWeekday as getCurrentWeekdayCrm,
   welcomeTaskTitle as crmWelcomeTaskTitle,
   getNextStep as getNextCrmStep,
+  getConfigDueDate as getCrmConfigDueDate,
   CRM_TASK_TITLE,
   type CrmProduto,
 } from '@/hooks/useCrmKanban';
@@ -469,7 +470,7 @@ export function useUpdateDepartmentTaskStatus(department: string) {
           if (['v8', 'automation', 'copilot'].includes(produto)) {
             const { data: cfg } = await (supabase as any)
               .from('crm_configuracoes')
-              .select('id, current_step, is_finalizado')
+              .select('id, current_step, is_finalizado, created_at')
               .eq('client_id', cfgTask.related_client_id)
               .eq('produto', produto)
               .eq('is_finalizado', false)
@@ -516,6 +517,9 @@ export function useUpdateDepartmentTaskStatus(department: string) {
                     .limit(1);
 
                   if (!existingNext || existingNext.length === 0) {
+                    const dueDate = cfg.created_at
+                      ? getCrmConfigDueDate(cfg.created_at, produto)
+                      : undefined;
                     await supabase.from('department_tasks').insert({
                       user_id: user.id,
                       title: titleFn(clientName),
@@ -525,6 +529,7 @@ export function useUpdateDepartmentTaskStatus(department: string) {
                       priority: 'high',
                       department: 'gestor_crm',
                       related_client_id: cfgTask.related_client_id,
+                      due_date: dueDate,
                     } as any);
                   }
                 }

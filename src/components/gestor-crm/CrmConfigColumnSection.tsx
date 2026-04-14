@@ -12,6 +12,7 @@ import {
   type CrmProduto,
 } from '@/hooks/useCrmKanban';
 import CrmConfigViewModal from './CrmConfigViewModal';
+import CrmDeadlineBadge from './CrmDeadlineBadge';
 
 interface Props {
   produto: CrmProduto;
@@ -133,7 +134,12 @@ export default function CrmConfigColumnSection({ produto }: Props) {
                           Ver
                         </Button>
                       </div>
-                      <Badge className={`${color} border text-[10px]`}>{label}</Badge>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <Badge className={`${color} border text-[10px]`}>{label}</Badge>
+                        {cfg.created_at && (
+                          <CrmDeadlineBadge createdAt={cfg.created_at} produto={produto} />
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 );

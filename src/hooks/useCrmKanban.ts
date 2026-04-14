@@ -40,6 +40,29 @@ export const CRM_PRODUTO_COLOR: Record<CrmProduto, string> = {
 
 export const CRM_PRODUTOS_VALIDOS: readonly CrmProduto[] = ['v8', 'automation', 'copilot'] as const;
 
+/**
+ * Prazo máximo (em dias) para concluir TODA a configuração do produto,
+ * contando a partir de `crm_configuracoes.created_at`. Todas as tarefas
+ * geradas para uma mesma configuração compartilham esse prazo (é o prazo
+ * global do produto, não por etapa).
+ *
+ * Ao passar do prazo, a tarefa atual aparece automaticamente na coluna
+ * "Justificativa" (via DepartmentJustificativaSection) onde o gestor
+ * registra o motivo do atraso.
+ */
+export const CRM_CONFIG_DEADLINE_DAYS: Record<CrmProduto, number> = {
+  v8: 7,
+  automation: 7,
+  copilot: 10,
+};
+
+/** Calcula o due_date ISO (UTC) de uma configuração com base em createdAt + prazo do produto. */
+export function getConfigDueDate(createdAtISO: string, produto: CrmProduto): string {
+  const d = new Date(createdAtISO);
+  d.setDate(d.getDate() + CRM_CONFIG_DEADLINE_DAYS[produto]);
+  return d.toISOString();
+}
+
 // ================= STATE MACHINES POR PRODUTO =================
 
 // Cada state-machine é uma lista ORDENADA de steps. Ao concluir a tarefa
@@ -234,17 +257,17 @@ export function useCrmKanbanClients() {
   return useQuery({
     queryKey: ['crm-kanban-clients', user?.id, user?.role],
     queryFn: async () => {
-      let query = supabase
+      let query = (supabase as any)
         .from('clients')
         .select('id, name, razao_social, contracted_products, torque_crm_products, monthly_value, crm_status, crm_entered_at, assigned_crm, assigned_ads_manager, assigned_comercial, assigned_mktplace, client_label')
         .eq('archived', false)
-        .not('assigned_crm' as any, 'is', null)
-        .not('crm_status' as any, 'is', null)
-        .order('crm_entered_at' as any, { ascending: true });
+        .not('assigned_crm', 'is', null)
+        .not('crm_status', 'is', null)
+        .order('crm_entered_at', { ascending: true });
 
       // Operational role vê apenas seus clientes; demais papéis com acesso veem tudo.
       if (user?.role === 'gestor_crm') {
-        query = query.eq('assigned_crm' as any, user?.id);
+        query = query.eq('assigned_crm', user?.id);
       }
 
       const { data, error } = await query;
@@ -595,19 +618,21 @@ export function useCreateCrmConfiguracoes() {
         // 1. Config já existe? (UNIQUE client_id+produto garante no máx 1)
         const { data: existingCfg } = await (supabase as any)
           .from('crm_configuracoes')
-          .select('id, current_step')
+          .select('id, current_step, created_at')
           .eq('client_id', clientId)
           .eq('produto', produto)
           .limit(1);
 
         let configId: string;
         let currentStep: string;
+        let configCreatedAt: string;
         let configExisted = false;
 
         if (existingCfg && existingCfg.length > 0) {
           // Já existe — reusa
           configId = existingCfg[0].id;
           currentStep = existingCfg[0].current_step;
+          configCreatedAt = existingCfg[0].created_at;
           configExisted = true;
         } else {
           // Cria nova
@@ -624,12 +649,13 @@ export function useCreateCrmConfiguracoes() {
               is_finalizado: false,
               form_data: formData,
             })
-            .select('id')
+            .select('id, created_at')
             .single();
           if (insertErr) throw insertErr;
 
           configId = inserted.id;
           currentStep = initialStep;
+          configCreatedAt = inserted.created_at;
         }
 
         // 2. Garante que exista UMA tarefa ativa para o step atual desta
@@ -650,6 +676,7 @@ export function useCreateCrmConfiguracoes() {
 
           let taskCreated = false;
           if (!existingTask || existingTask.length === 0) {
+            const dueDate = getConfigDueDate(configCreatedAt, produto);
             const { error: taskErr } = await supabase.from('department_tasks').insert({
               user_id: user.id,
               title: expectedTitle,
@@ -659,6 +686,7 @@ export function useCreateCrmConfiguracoes() {
               priority: 'high',
               department: 'gestor_crm',
               related_client_id: clientId,
+              due_date: dueDate,
             } as any);
             if (taskErr) throw taskErr;
             taskCreated = true;
@@ -675,7 +703,7 @@ export function useCreateCrmConfiguracoes() {
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['crm-configuracoes'] });
       queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
-      const novos = result.filter(r => !r.existed).length;
+      const novos = result.filter(r => !r.configExisted || r.taskCreated).length;
       if (novos > 0) {
         toast.success(`${novos} configuração(ões) de CRM criada(s)`);
       } else {
