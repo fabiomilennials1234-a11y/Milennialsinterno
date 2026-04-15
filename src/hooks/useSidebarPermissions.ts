@@ -21,6 +21,7 @@ export const SPECIAL_ROUTES: Record<string, { path: string; label: string; icon:
   outbound: { path: '/millennials-outbound', label: 'Outbound PRO+', icon: Target },
   sucesso_cliente: { path: '/sucesso-cliente', label: 'Sucesso do Cliente PRO+', icon: Target },
   consultor_comercial: { path: '/consultor-comercial', label: 'Treinador Comercial PRO+', icon: Target },
+  consultor_mktplace: { path: '/consultor-mktplace', label: 'Consultor(a) de MKT Place PRO+', icon: Target },
   financeiro: { path: '/financeiro', label: 'Financeiro PRO+', icon: Target },
   gestor_projetos: { path: '/gestor-projetos', label: 'Gestão de Projetos PRO+', icon: Target },
   gestor_crm: { path: '/gestor-crm', label: 'CRM PRO+', icon: Target },
@@ -85,6 +86,9 @@ export const ROLE_BOARD_SLUGS: Record<UserRole, string[][]> = {
   // Treinador Comercial: kanban comercial (dentro do Paddock)
   consultor_comercial: [['comercial']],
 
+  // Consultor(a) de MKT Place: próprio kanban
+  consultor_mktplace: [['mktplace']],
+
   // Financeiro: apenas próprio
   financeiro: [['financeiro', 'financeiro-board']],
 
@@ -110,6 +114,7 @@ export const ROLE_INDEPENDENT_CATEGORIES: Record<UserRole, string[]> = {
   produtora: ['produtora'],
   gestor_crm: [],
   consultor_comercial: [],
+  consultor_mktplace: ['mktplace'],
   financeiro: ['financeiro'],
   rh: ['rh'],
 };
@@ -119,26 +124,35 @@ export const ROLE_INDEPENDENT_CATEGORIES: Record<UserRole, string[]> = {
 // ============================================
 
 /**
- * Verifica se um board é do tipo "Gestor de Ads" (deve redirecionar para PRO+)
+ * Verifica se um board é do tipo "Gestor de Ads" (deve redirecionar para PRO+).
+ * Match preciso por slug (evita falsos positivos como 'downloads' ou 'gestao-ads-especial'),
+ * com fallback por nome exato para compatibilidade.
  */
 export function isAdsBoard(board: { slug: string; name: string }): boolean {
+  const slug = board.slug.toLowerCase();
+  const name = board.name.toLowerCase();
   return (
-    board.slug === 'ads' ||
-    board.slug.includes('ads') ||
-    board.name.toLowerCase().includes('gestor de ads') ||
-    board.name.toLowerCase().includes('gestão de tráfego')
+    slug === 'ads' ||
+    slug.startsWith('ads-') ||
+    name === 'gestor de ads' ||
+    name === 'gestão de tráfego' ||
+    name.startsWith('gestor de ads ') ||
+    name.startsWith('gestão de tráfego ')
   );
 }
 
 /**
- * Verifica se um board é do tipo "Outbound" (deve redirecionar para PRO+)
+ * Verifica se um board é do tipo "Outbound" (deve redirecionar para PRO+).
  */
 export function isOutboundBoard(board: { slug: string; name: string }): boolean {
+  const slug = board.slug.toLowerCase();
+  const name = board.name.toLowerCase();
   return (
-    board.slug.startsWith('outbound') ||
-    board.slug === 'millennials-outbound' ||
-    board.slug.includes('outbound') ||
-    board.name.toLowerCase().includes('outbound')
+    slug === 'outbound' ||
+    slug.startsWith('outbound-') ||
+    slug === 'millennials-outbound' ||
+    name === 'outbound' ||
+    name.startsWith('outbound ')
   );
 }
 

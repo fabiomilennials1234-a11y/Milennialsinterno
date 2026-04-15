@@ -161,18 +161,27 @@ export const CAN_CREATE_WORKBENCHES: UserRole[] = ['ceo', 'gestor_projetos'];
 export const CAN_MOVE_CARDS_FREELY: UserRole[] = ['ceo', 'gestor_projetos'];
 
 // Verificar se usuário pode ver um board baseado no slug/nome
+// Matching é por segmento para evitar falsos positivos (ex: 'ads' não casar com 'downloads').
+// Aceita: slug exato, prefixo seguido de '-' (ou '_' / espaço) ou algum segmento igual.
 export function canViewBoard(role: UserRole, boardSlugOrName: string): boolean {
   const visibility = BOARD_VISIBILITY[role];
   if (visibility.includes('*')) return true;
-  
-  // Normalize the board slug/name for comparison
+
   const normalized = boardSlugOrName.toLowerCase();
-  
-  // Check if any visibility pattern matches the board
+  // Split em segmentos por hífen, underscore ou espaço
+  const segments = normalized.split(/[-_\s]+/).filter(Boolean);
+
   return visibility.some(pattern => {
     const normalizedPattern = pattern.toLowerCase();
-    // Check if the board name/slug contains the pattern
-    return normalized.includes(normalizedPattern);
+    if (normalized === normalizedPattern) return true;
+    if (
+      normalized.startsWith(normalizedPattern + '-') ||
+      normalized.startsWith(normalizedPattern + '_') ||
+      normalized.startsWith(normalizedPattern + ' ')
+    ) {
+      return true;
+    }
+    return segments.includes(normalizedPattern);
   });
 }
 
