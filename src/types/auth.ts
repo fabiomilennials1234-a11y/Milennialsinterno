@@ -1,6 +1,7 @@
 // Tipos de Cargo do Sistema
 export type UserRole =
   | 'ceo'
+  | 'cto'
   | 'gestor_projetos'
   | 'gestor_ads'
   | 'outbound'
@@ -27,6 +28,7 @@ export interface User {
 // Hierarquia de cargos
 export const ROLE_HIERARCHY: Record<UserRole, number> = {
   ceo: 100,
+  cto: 100,
   gestor_projetos: 90,
   gestor_ads: 60,
   outbound: 50,
@@ -46,6 +48,7 @@ export const ROLE_HIERARCHY: Record<UserRole, number> = {
 // Labels dos cargos
 export const ROLE_LABELS: Record<UserRole, string> = {
   ceo: 'CEO',
+  cto: 'CTO',
   gestor_projetos: 'Gestor de Projetos',
   gestor_ads: 'Gestor de Ads',
   outbound: 'Outbound',
@@ -67,7 +70,10 @@ export const ROLE_LABELS: Record<UserRole, string> = {
 export const BOARD_VISIBILITY: Record<UserRole, string[]> = {
   // CEO: Acesso total a todos os Kanban/Cargo
   ceo: ['*'],
-  
+
+  // CTO: Mesmo acesso que CEO
+  cto: ['*'],
+
   // Gestor de Projetos: Acesso total a todos os Kanban/Cargo
   gestor_projetos: ['*'],
   
@@ -152,13 +158,13 @@ export const BOARD_VISIBILITY: Record<UserRole, string[]> = {
 };
 
 // Permissões de criação de abas
-export const CAN_CREATE_TABS: UserRole[] = ['ceo', 'gestor_projetos'];
+export const CAN_CREATE_TABS: UserRole[] = ['ceo', 'cto', 'gestor_projetos'];
 
 // Permissões de criação de bancadas
-export const CAN_CREATE_WORKBENCHES: UserRole[] = ['ceo', 'gestor_projetos'];
+export const CAN_CREATE_WORKBENCHES: UserRole[] = ['ceo', 'cto', 'gestor_projetos'];
 
 // Permissões de movimento livre de cards
-export const CAN_MOVE_CARDS_FREELY: UserRole[] = ['ceo', 'gestor_projetos'];
+export const CAN_MOVE_CARDS_FREELY: UserRole[] = ['ceo', 'cto', 'gestor_projetos'];
 
 // Verificar se usuário pode ver um board baseado no slug/nome
 // Matching é por segmento para evitar falsos positivos (ex: 'ads' não casar com 'downloads').
@@ -187,8 +193,7 @@ export function canViewBoard(role: UserRole, boardSlugOrName: string): boolean {
 
 // Verificar se um cargo pode ver outro cargo/kanban
 export function canViewRole(viewerRole: UserRole, targetRole: UserRole): boolean {
-  // CEO e Gestor de Projetos veem tudo
-  if (viewerRole === 'ceo' || viewerRole === 'gestor_projetos') return true;
+  if (isExecutive(viewerRole) || viewerRole === 'gestor_projetos') return true;
   
   const visibility = BOARD_VISIBILITY[viewerRole];
   if (visibility.includes('*')) return true;
@@ -226,17 +231,18 @@ export function canMoveCardsFreely(role: UserRole): boolean {
   return CAN_MOVE_CARDS_FREELY.includes(role);
 }
 
-// Verificar se é admin (CEO ou Gestor de Projetos)
-export function isAdmin(role: UserRole): boolean {
-  return role === 'ceo' || role === 'gestor_projetos';
+export function isExecutive(role: UserRole | null | undefined): boolean {
+  return role === 'ceo' || role === 'cto';
 }
 
-// Verificar se pode gerenciar usuários (CEO, Gestor de Projetos ou Sucesso do Cliente)
-export function canManageUsers(role: UserRole): boolean {
-  return role === 'ceo' || role === 'gestor_projetos' || role === 'sucesso_cliente';
+export function isAdmin(role: UserRole | null | undefined): boolean {
+  return isExecutive(role) || role === 'gestor_projetos';
 }
 
-// Verificar se pode cadastrar clientes (CEO, Gestor de Projetos ou Sucesso do Cliente)
-export function canRegisterClients(role: UserRole): boolean {
-  return role === 'ceo' || role === 'gestor_projetos' || role === 'sucesso_cliente';
+export function canManageUsers(role: UserRole | null | undefined): boolean {
+  return isExecutive(role) || role === 'sucesso_cliente' || role === 'gestor_projetos';
+}
+
+export function canRegisterClients(role: UserRole | null | undefined): boolean {
+  return isExecutive(role) || role === 'sucesso_cliente' || role === 'gestor_projetos';
 }
