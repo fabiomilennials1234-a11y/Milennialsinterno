@@ -1,6 +1,8 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Plus, Search, Inbox } from 'lucide-react';
+import { Plus, Search, Inbox, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import { isExecutive } from '@/types/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTechTasks, type TechTaskFilters } from '../hooks/useTechTasks';
@@ -14,11 +16,19 @@ import type { TechTaskType } from '../types';
 const TYPE_TABS: string[] = ['BUG', 'FEATURE', 'HOTFIX', 'CHORE', 'DONE'];
 
 export function BacklogTab() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('BUG');
   const [search, setSearch] = useState('');
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const { activeTaskId } = useActiveTimer();
+  const isExec = isExecutive(user?.role);
+
+  const handleCopyFormLink = useCallback(() => {
+    const url = `${window.location.origin}/milennials-tech/submit`;
+    navigator.clipboard.writeText(url);
+    toast.success('Link do formulário copiado!');
+  }, []);
 
   const handleOpenTask = useCallback((id: string) => {
     if (activeTaskId && activeTaskId !== id) {
@@ -51,6 +61,18 @@ export function BacklogTab() {
       {/* Toolbar */}
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg font-medium text-[var(--mtech-text)]">Backlog</h2>
+        <div className="flex items-center gap-2">
+          {isExec && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleCopyFormLink}
+              className="border-[var(--mtech-border)] text-[var(--mtech-text-muted)] hover:text-[var(--mtech-text)] hover:border-[var(--mtech-border-strong)] gap-1.5"
+            >
+              <Share2 className="h-3.5 w-3.5" />
+              Compartilhar formulário
+            </Button>
+          )}
         <Button
           size="sm"
           onClick={() => setShowCreateModal(true)}
@@ -59,6 +81,7 @@ export function BacklogTab() {
           <Plus className="h-4 w-4" />
           Nova Task
         </Button>
+        </div>
       </div>
 
       {/* Search + tabs */}
