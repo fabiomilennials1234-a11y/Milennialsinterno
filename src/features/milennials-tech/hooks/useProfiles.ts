@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -21,19 +22,22 @@ export function useTechProfiles() {
   });
 }
 
-/** Get a name lookup map from the profiles query */
+/** Get a name lookup map from the profiles query (memoised) */
 export function useProfileMap(): Record<string, string> {
   const { data } = useTechProfiles();
-  if (!data) return {};
-  const map: Record<string, string> = {};
-  for (const p of data) {
-    map[p.user_id] = p.name;
-  }
-  return map;
+  return useMemo(() => {
+    if (!data) return {};
+    const map: Record<string, string> = {};
+    for (const p of data) {
+      map[p.user_id] = p.name;
+    }
+    return map;
+  }, [data]);
 }
 
 /** Extract initials from a name: "Gabriel Gipp" → "GG" */
 export function getInitials(name: string): string {
+  if (!name || !name.trim()) return '??';
   const parts = name.trim().split(/\s+/);
   if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   return name.slice(0, 2).toUpperCase();
