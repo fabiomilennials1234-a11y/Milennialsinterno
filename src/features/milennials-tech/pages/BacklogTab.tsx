@@ -27,7 +27,11 @@ export function BacklogTab() {
   const handleCopyFormLink = useCallback(() => {
     const url = `${window.location.origin}/submit-task`;
     navigator.clipboard.writeText(url);
-    toast.success('Link do formulário copiado!');
+    toast.success('Link copiado! Cole e envie para quem precisar.');
+  }, []);
+
+  const handleOpenForm = useCallback(() => {
+    window.open('/submit-task', '_blank');
   }, []);
 
   const handleOpenTask = useCallback((id: string) => {
@@ -63,15 +67,25 @@ export function BacklogTab() {
         <h2 className="text-lg font-medium text-[var(--mtech-text)]">Backlog</h2>
         <div className="flex items-center gap-2">
           {isExec && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleCopyFormLink}
-              className="border-[var(--mtech-border)] text-[var(--mtech-text-muted)] hover:text-[var(--mtech-text)] hover:border-[var(--mtech-border-strong)] gap-1.5"
-            >
-              <Share2 className="h-3.5 w-3.5" />
-              Compartilhar formulário
-            </Button>
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleOpenForm}
+                className="border-[var(--mtech-border)] text-[var(--mtech-text-muted)] hover:text-[var(--mtech-text)] hover:border-[var(--mtech-border-strong)] gap-1.5"
+              >
+                Abrir formulário
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleCopyFormLink}
+                className="border-[var(--mtech-border)] text-[var(--mtech-text-muted)] hover:text-[var(--mtech-text)] hover:border-[var(--mtech-border-strong)] gap-1.5"
+              >
+                <Share2 className="h-3.5 w-3.5" />
+                Copiar link
+              </Button>
+            </>
           )}
         <Button
           size="sm"

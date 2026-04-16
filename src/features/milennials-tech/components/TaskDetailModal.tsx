@@ -46,6 +46,7 @@ import { TimerButton } from './TimerButton';
 import { TagPicker } from './TagPicker';
 import { useProfileMap } from '../hooks/useProfiles';
 import { useTechAttachments, getAttachmentUrl } from '../hooks/useTechAttachments';
+import { useTechTimeTotals, formatTimeTotal } from '../hooks/useTechTimeTotals';
 import type { TechTask, TechTaskType, TechTaskPriority, ChecklistItem } from '../types';
 
 interface TaskDetailModalProps {
@@ -94,6 +95,7 @@ export function TaskDetailModal({ taskId, open, onOpenChange, onClose }: TaskDet
   const { data: tasks } = useTechTasks();
   const { data: activities } = useTechTaskActivities(taskId);
   const { data: attachments = [] } = useTechAttachments(taskId);
+  const { data: timeTotals = {} } = useTechTimeTotals();
   const { sendToReview, approve, reject, block, unblock } = useTechTimer();
   const updateTask = useUpdateTechTask();
   const deleteTask = useDeleteTechTask();
@@ -243,6 +245,12 @@ export function TaskDetailModal({ taskId, open, onOpenChange, onClose }: TaskDet
                 <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-[var(--mtech-danger)]">
                   <Lock className="h-3 w-3" />
                   {task.blocker_reason || 'Bloqueada'}
+                </span>
+              )}
+
+              {(timeTotals[task.id] ?? 0) > 0 && (
+                <span data-mono className="text-xs text-[var(--mtech-text-muted)] px-2 py-0.5 rounded-full border border-[var(--mtech-border)]">
+                  ⏱ {formatTimeTotal(timeTotals[task.id])}
                 </span>
               )}
             </div>

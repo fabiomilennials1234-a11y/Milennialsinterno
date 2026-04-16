@@ -8,6 +8,7 @@ export function useTechTimer() {
     qc.invalidateQueries({ queryKey: ['tech', 'tasks'] });
     qc.invalidateQueries({ queryKey: ['tech', 'activeTimer'] });
     qc.invalidateQueries({ queryKey: ['tech', 'activities'] });
+    qc.invalidateQueries({ queryKey: ['tech', 'timeTotals'] });
   };
 
   const start = useMutation({

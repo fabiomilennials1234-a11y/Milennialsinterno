@@ -6,6 +6,7 @@ import { useProfileMap, getInitials } from '../hooks/useProfiles';
 import { TimerButton } from './TimerButton';
 import { TaskTagBadges } from './TagPicker';
 import { useTechTags, useTechTaskTags } from '../hooks/useTechTags';
+import { useTechTimeTotals, formatTimeTotal } from '../hooks/useTechTimeTotals';
 
 interface TaskCardProps {
   task: TechTask;
@@ -40,6 +41,8 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
   const profileMap = useProfileMap();
   const { data: allTags = [] } = useTechTags();
   const { data: allTaskTags = [] } = useTechTaskTags();
+  const { data: timeTotals = {} } = useTechTimeTotals();
+  const totalTime = formatTimeTotal(timeTotals[task.id] ?? 0);
 
   const assigneeName = task.assignee_id ? profileMap[task.assignee_id] : null;
   const initials = assigneeName ? getInitials(assigneeName) : null;
@@ -105,9 +108,12 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
             </span>
           )}
         </div>
-        <span onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+          {totalTime && (
+            <span data-mono className="text-[10px] text-[var(--mtech-text-subtle)]">{totalTime}</span>
+          )}
           <TimerButton taskId={task.id} />
-        </span>
+        </div>
       </div>
     </motion.div>
   );
