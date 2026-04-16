@@ -5,7 +5,9 @@ export function useTechTimer() {
   const qc = useQueryClient();
 
   const invalidate = () => {
-    qc.invalidateQueries({ queryKey: ['tech'] });
+    qc.invalidateQueries({ queryKey: ['tech', 'tasks'] });
+    qc.invalidateQueries({ queryKey: ['tech', 'activeTimer'] });
+    qc.invalidateQueries({ queryKey: ['tech', 'activities'] });
   };
 
   const start = useMutation({

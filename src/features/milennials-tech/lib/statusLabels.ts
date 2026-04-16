@@ -23,3 +23,17 @@ export const PRIORITY_LABEL: Record<TechTaskPriority, string> = {
   MEDIUM: 'Média',
   LOW: 'Baixa',
 };
+
+export const ACTIVITY_LABEL: Record<string, string> = {
+  task_created: 'Task criada',
+  status_changed: 'Status alterado',
+  timer_started: 'Timer iniciado',
+  timer_paused: 'Timer pausado',
+  timer_resumed: 'Timer retomado',
+  timer_stopped: 'Timer parado',
+  sent_to_review: 'Enviada para review',
+  approved: 'Aprovada',
+  rejected: 'Rejeitada',
+  task_blocked: 'Bloqueada',
+  task_unblocked: 'Desbloqueada',
+};

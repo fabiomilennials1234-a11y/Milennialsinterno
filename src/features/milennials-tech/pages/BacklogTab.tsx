@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Inbox } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTechTasks, type TechTaskFilters } from '../hooks/useTechTasks';
@@ -66,12 +66,36 @@ export function BacklogTab() {
 
       {/* Task table */}
       {isLoading ? (
-        <div className="flex items-center justify-center h-40 text-[var(--mtech-text-muted)] text-sm">
-          Carregando...
+        <div className="rounded-[var(--mtech-radius-md)] border border-[var(--mtech-border)] bg-[var(--mtech-surface)] overflow-hidden">
+          <div className="flex items-center gap-3 h-9 px-3 border-b border-[var(--mtech-border)] bg-[var(--mtech-surface-elev)]">
+            {[88, 200, 80, 64, 64, 64, 56].map((w, i) => (
+              <div key={i} className="animate-pulse rounded bg-[var(--mtech-surface)] h-3" style={{ width: w }} />
+            ))}
+          </div>
+          {[0, 1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex items-center gap-3 h-10 px-3 border-b border-[var(--mtech-border)]">
+              <div className="w-[88px] flex-shrink-0"><div className="h-4 w-16 rounded-full bg-[var(--mtech-surface-elev)] animate-pulse" /></div>
+              <div className="flex-1"><div className="h-4 rounded bg-[var(--mtech-surface-elev)] animate-pulse" style={{ width: `${60 + (i * 7) % 30}%` }} /></div>
+              <div className="w-20 flex-shrink-0"><div className="h-3 w-14 ml-auto rounded bg-[var(--mtech-surface-elev)] animate-pulse" /></div>
+            </div>
+          ))}
         </div>
       ) : tasks.length === 0 ? (
-        <div className="flex items-center justify-center h-40 text-[var(--mtech-text-muted)] text-sm">
-          Nenhuma task encontrada.
+        <div className="flex flex-col items-center justify-center py-16 gap-3">
+          <Inbox className="h-12 w-12 text-[var(--mtech-text-subtle)] opacity-40" />
+          <p className="text-sm text-[var(--mtech-text-muted)]">
+            {search ? 'Nenhuma task corresponde à busca.' : 'Nenhuma task nesta categoria.'}
+          </p>
+          {!search && (
+            <Button
+              size="sm"
+              onClick={() => setShowCreateModal(true)}
+              className="bg-[var(--mtech-accent)] text-[var(--mtech-bg)] hover:bg-[var(--mtech-accent)]/90 font-semibold gap-1.5 mt-1"
+            >
+              <Plus className="h-4 w-4" />
+              Criar primeira task
+            </Button>
+          )}
         </div>
       ) : (
         <div className="rounded-[var(--mtech-radius-md)] border border-[var(--mtech-border)] bg-[var(--mtech-surface)] overflow-hidden">

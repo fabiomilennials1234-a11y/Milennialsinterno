@@ -36,7 +36,7 @@ export function useActiveTimer(): ActiveTimerState {
   const isActive =
     lastEntry?.type === 'START' || lastEntry?.type === 'RESUME';
 
-  const activeTaskId = isActive ? lastEntry!.task_id : null;
+  const activeTaskId = isActive ? lastEntry?.task_id ?? null : null;
 
   // Compute the initial elapsed offset from the last entry timestamp
   useEffect(() => {
