@@ -7,6 +7,20 @@ export const checklistItemSchema = z.object({
 });
 
 export const taskFormSchema = z.object({
+  title: z.string().min(1, 'Título é obrigatório').max(200),
+  what: z.string().min(1, 'Descreva o que precisa ser feito'),
+  why: z.string().min(1, 'Explique por que isso é importante'),
+  acceptance_criteria: z.string().min(1, 'Defina como saber que está pronto'),
+  type: z.enum(['BUG', 'FEATURE', 'HOTFIX', 'CHORE']),
+  priority: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']),
+  assignee_id: z.string().uuid().nullable().optional(),
+  deadline: z.string().nullable().optional(),
+  technical_context: z.string().nullable().optional(),
+  extra_notes: z.string().nullable().optional(),
+});
+
+/** Full schema used internally for updates (includes all DB fields) */
+export const taskUpdateSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().optional().nullable(),
   type: z.enum(['BUG', 'FEATURE', 'HOTFIX', 'CHORE']),
@@ -32,4 +46,5 @@ export const sprintFormSchema = z.object({
 });
 
 export type TaskFormValues = z.infer<typeof taskFormSchema>;
+export type TaskUpdateValues = z.infer<typeof taskUpdateSchema>;
 export type SprintFormValues = z.infer<typeof sprintFormSchema>;

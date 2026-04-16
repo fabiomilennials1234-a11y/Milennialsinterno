@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { ChevronDown } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -21,125 +22,118 @@ import {
 } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
 import { taskFormSchema, type TaskFormValues } from '../schemas/task';
-import { useCreateTechTask, useUpdateTechTask } from '../hooks/useTechTasks';
-import { TYPE_LABEL, PRIORITY_LABEL } from '../lib/statusLabels';
-import type { TechTask, TechTaskType, TechTaskPriority, ChecklistItem } from '../types';
+import { useCreateTechTask } from '../hooks/useTechTasks';
+import { useTechProfiles } from '../hooks/useProfiles';
+import { TYPE_LABEL_FRIENDLY, PRIORITY_LABEL_FRIENDLY } from '../lib/statusLabels';
+import type { TechTaskType, TechTaskPriority } from '../types';
 
 interface TaskFormModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  task?: TechTask;
 }
 
-const TYPE_OPTIONS = Object.entries(TYPE_LABEL) as [TechTaskType, string][];
-const PRIORITY_OPTIONS = Object.entries(PRIORITY_LABEL) as [TechTaskPriority, string][];
+const TYPE_OPTIONS = Object.entries(TYPE_LABEL_FRIENDLY) as [TechTaskType, { label: string; hint: string }][];
+const PRIORITY_OPTIONS = Object.entries(PRIORITY_LABEL_FRIENDLY) as [TechTaskPriority, { label: string; hint: string }][];
 
-export function TaskFormModal({ open, onOpenChange, task }: TaskFormModalProps) {
+export function TaskFormModal({ open, onOpenChange }: TaskFormModalProps) {
   const { user } = useAuth();
-  const isEdit = !!task;
-
   const createTask = useCreateTechTask();
-  const updateTask = useUpdateTechTask();
+  const { data: profiles = [] } = useTechProfiles();
+  const [showMore, setShowMore] = useState(false);
+
+  // Filter assignable users: devs + cto + ceo
+  const assignableUsers = profiles.filter(
+    (p) => p.user_id !== user?.id || true, // show all — RLS filters server-side
+  );
 
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskFormSchema),
     defaultValues: {
       title: '',
-      description: null,
+      what: '',
+      why: '',
+      acceptance_criteria: '',
       type: 'FEATURE',
       priority: 'MEDIUM',
-      sprint_id: null,
       assignee_id: null,
       deadline: null,
-      estimated_hours: null,
-      acceptance_criteria: null,
       technical_context: null,
-      git_branch: null,
-      checklist: [],
+      extra_notes: null,
     },
   });
 
-  // Populate form when editing
-  useEffect(() => {
-    if (task) {
-      form.reset({
-        title: task.title,
-        description: task.description ?? null,
-        type: task.type,
-        priority: task.priority,
-        sprint_id: task.sprint_id ?? null,
-        assignee_id: task.assignee_id ?? null,
-        deadline: task.deadline ?? null,
-        estimated_hours: task.estimated_hours ?? null,
-        acceptance_criteria: task.acceptance_criteria ?? null,
-        technical_context: task.technical_context ?? null,
-        git_branch: task.git_branch ?? null,
-        checklist: (task.checklist as ChecklistItem[] | null) ?? [],
-      });
-    } else {
-      form.reset();
-    }
-  }, [task, form]);
-
   const onSubmit = (values: TaskFormValues) => {
-    if (isEdit && task) {
-      updateTask.mutate(
-        { id: task.id, patch: values },
-        { onSuccess: () => onOpenChange(false) },
-      );
-    } else {
-      if (!user?.id) return;
-      createTask.mutate(
-        {
-          ...values,
-          created_by: user.id,
-          checklist: values.checklist as unknown as undefined,
-        },
-        { onSuccess: () => onOpenChange(false) },
-      );
+    if (!user?.id) return;
+
+    // Build description from structured fields
+    const descParts: string[] = [];
+    descParts.push(`**O que precisa ser feito:**\n${values.what}`);
+    descParts.push(`**Por que é importante:**\n${values.why}`);
+    if (values.extra_notes?.trim()) {
+      descParts.push(`**Notas:**\n${values.extra_notes}`);
     }
+
+    createTask.mutate(
+      {
+        title: values.title,
+        description: descParts.join('\n\n'),
+        type: values.type,
+        priority: values.priority,
+        assignee_id: values.assignee_id || null,
+        deadline: values.deadline || null,
+        acceptance_criteria: values.acceptance_criteria,
+        technical_context: values.technical_context || null,
+        created_by: user.id,
+      },
+      {
+        onSuccess: () => {
+          form.reset();
+          setShowMore(false);
+          onOpenChange(false);
+        },
+      },
+    );
   };
 
-  const isPending = createTask.isPending || updateTask.isPending;
+  const isPending = createTask.isPending;
+  const errors = form.formState.errors;
 
-  // Style tokens for dark inputs
   const inputCls =
     'bg-[var(--mtech-surface-elev)] border-[var(--mtech-border)] text-[var(--mtech-text)] placeholder:text-[var(--mtech-text-subtle)] focus-visible:ring-[var(--mtech-accent)] focus-visible:ring-1 focus-visible:ring-offset-0';
   const labelCls = 'text-xs font-medium text-[var(--mtech-text-muted)]';
+  const errorCls = 'text-[11px] text-[var(--mtech-danger)] mt-0.5';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="mtech-scope max-w-2xl border-[var(--mtech-border)] bg-[var(--mtech-surface)] text-[var(--mtech-text)]"
+        className="mtech-scope max-w-lg max-h-[90vh] overflow-y-auto border-[var(--mtech-border)] bg-[var(--mtech-surface)] text-[var(--mtech-text)]"
         style={{ boxShadow: '0 24px 64px rgba(0,0,0,0.6)' }}
       >
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold tracking-tight text-[var(--mtech-text)]">
-            {isEdit ? 'Editar Task' : 'Nova Task'}
+            Nova Task
           </DialogTitle>
           <DialogDescription className="text-sm text-[var(--mtech-text-subtle)]">
-            {isEdit ? 'Atualize os campos abaixo.' : 'Preencha as informações da nova task.'}
+            Descreva o que precisa ser feito. Os devs cuidam do resto.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 mt-2">
           {/* Title */}
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             <Label htmlFor="title" className={labelCls}>Título</Label>
             <Input
               id="title"
-              placeholder="Título da task"
+              placeholder="Ex: Corrigir bug no login, Adicionar filtro de data..."
               className={inputCls}
               {...form.register('title')}
             />
-            {form.formState.errors.title && (
-              <p className="text-xs text-[var(--mtech-danger)]">{form.formState.errors.title.message}</p>
-            )}
+            {errors.title && <p className={errorCls}>{errors.title.message}</p>}
           </div>
 
-          {/* Type + Priority row */}
+          {/* Type + Priority */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <Label className={labelCls}>Tipo</Label>
               <Select
                 value={form.watch('type')}
@@ -149,14 +143,16 @@ export function TaskFormModal({ open, onOpenChange, task }: TaskFormModalProps) 
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-[var(--mtech-surface-elev)] border-[var(--mtech-border)] text-[var(--mtech-text)]">
-                  {TYPE_OPTIONS.map(([value, label]) => (
-                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  {TYPE_OPTIONS.map(([value, { label, hint }]) => (
+                    <SelectItem key={value} value={value}>
+                      <span>{label}</span>
+                      <span className="ml-2 text-[10px] text-[var(--mtech-text-subtle)]">{hint}</span>
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <Label className={labelCls}>Prioridade</Label>
               <Select
                 value={form.watch('priority')}
@@ -166,116 +162,142 @@ export function TaskFormModal({ open, onOpenChange, task }: TaskFormModalProps) 
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-[var(--mtech-surface-elev)] border-[var(--mtech-border)] text-[var(--mtech-text)]">
-                  {PRIORITY_OPTIONS.map(([value, label]) => (
-                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  {PRIORITY_OPTIONS.map(([value, { label, hint }]) => (
+                    <SelectItem key={value} value={value}>
+                      <span>{label}</span>
+                      <span className="ml-2 text-[10px] text-[var(--mtech-text-subtle)]">{hint}</span>
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          {/* Description */}
-          <div className="space-y-1.5">
-            <Label htmlFor="description" className={labelCls}>Descrição</Label>
+          {/* What */}
+          <div className="space-y-1">
+            <Label htmlFor="what" className={labelCls}>O que precisa ser feito? *</Label>
             <Textarea
-              id="description"
-              placeholder="Descrição da task..."
-              rows={3}
+              id="what"
+              placeholder="Descreva claramente a tarefa..."
+              rows={2}
               className={inputCls}
-              {...form.register('description')}
+              {...form.register('what')}
             />
+            {errors.what && <p className={errorCls}>{errors.what.message}</p>}
           </div>
 
-          {/* Assignee + Sprint row */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="assignee_id" className={labelCls}>Responsável</Label>
-              <Input
-                id="assignee_id"
-                placeholder="UUID do responsável"
-                className={inputCls}
-                {...form.register('assignee_id')}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="sprint_id" className={labelCls}>Sprint</Label>
-              <Input
-                id="sprint_id"
-                placeholder="UUID do sprint"
-                className={inputCls}
-                {...form.register('sprint_id')}
-              />
-            </div>
-          </div>
-
-          {/* Deadline + Estimated hours */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="deadline" className={labelCls}>Deadline</Label>
-              <Input
-                id="deadline"
-                type="datetime-local"
-                className={inputCls}
-                {...form.register('deadline')}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="estimated_hours" className={labelCls}>Horas estimadas</Label>
-              <Input
-                id="estimated_hours"
-                type="number"
-                step="0.5"
-                min="0"
-                placeholder="Ex: 4"
-                className={inputCls}
-                {...form.register('estimated_hours', { valueAsNumber: true })}
-              />
-            </div>
+          {/* Why */}
+          <div className="space-y-1">
+            <Label htmlFor="why" className={labelCls}>Por que isso é importante? *</Label>
+            <Textarea
+              id="why"
+              placeholder="Qual o impacto? O que acontece se não fizermos?"
+              rows={2}
+              className={inputCls}
+              {...form.register('why')}
+            />
+            {errors.why && <p className={errorCls}>{errors.why.message}</p>}
           </div>
 
           {/* Acceptance criteria */}
-          <div className="space-y-1.5">
-            <Label htmlFor="acceptance_criteria" className={labelCls}>Critérios de aceite</Label>
+          <div className="space-y-1">
+            <Label htmlFor="acceptance_criteria" className={labelCls}>Como saber que está pronto? *</Label>
             <Textarea
               id="acceptance_criteria"
-              placeholder="Critérios para aceitar a task como pronta..."
+              placeholder="Ex: O botão funciona, o dado aparece corretamente, o cliente consegue..."
               rows={2}
               className={inputCls}
               {...form.register('acceptance_criteria')}
             />
+            {errors.acceptance_criteria && <p className={errorCls}>{errors.acceptance_criteria.message}</p>}
           </div>
 
-          {/* Technical context */}
-          <div className="space-y-1.5">
-            <Label htmlFor="technical_context" className={labelCls}>Contexto técnico</Label>
-            <Textarea
-              id="technical_context"
-              placeholder="Referências técnicas, links, decisões..."
-              rows={2}
-              className={inputCls}
-              {...form.register('technical_context')}
+          {/* Assignee + Deadline */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className={labelCls}>Responsável</Label>
+              <Select
+                value={form.watch('assignee_id') ?? '__none__'}
+                onValueChange={(v) => form.setValue('assignee_id', v === '__none__' ? null : v)}
+              >
+                <SelectTrigger className={inputCls}>
+                  <SelectValue placeholder="Atribuir depois" />
+                </SelectTrigger>
+                <SelectContent className="bg-[var(--mtech-surface-elev)] border-[var(--mtech-border)] text-[var(--mtech-text)]">
+                  <SelectItem value="__none__">Atribuir depois</SelectItem>
+                  {assignableUsers.map((p) => (
+                    <SelectItem key={p.user_id} value={p.user_id}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="deadline" className={labelCls}>Prazo</Label>
+              <Input
+                id="deadline"
+                type="date"
+                className={inputCls}
+                {...form.register('deadline')}
+              />
+            </div>
+          </div>
+
+          {/* Expandable: more details */}
+          <button
+            type="button"
+            onClick={() => setShowMore(!showMore)}
+            className="flex items-center gap-1.5 text-xs text-[var(--mtech-text-muted)] hover:text-[var(--mtech-text)] transition-colors py-1"
+          >
+            <ChevronDown
+              className="h-3.5 w-3.5 transition-transform"
+              style={{ transform: showMore ? 'rotate(180deg)' : 'rotate(0deg)' }}
             />
-          </div>
+            {showMore ? 'Menos detalhes' : 'Mais detalhes'}
+          </button>
 
-          {/* Git branch */}
-          <div className="space-y-1.5">
-            <Label htmlFor="git_branch" className={labelCls}>Git branch</Label>
-            <Input
-              id="git_branch"
-              placeholder="feat/nome-da-branch"
-              className={inputCls}
-              {...form.register('git_branch')}
-            />
-          </div>
+          {showMore && (
+            <div className="grid gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="space-y-1">
+                <Label htmlFor="technical_context" className={labelCls}>Contexto / Referências</Label>
+                <Textarea
+                  id="technical_context"
+                  placeholder="Links, prints, conversas relevantes, exemplos..."
+                  rows={2}
+                  className={inputCls}
+                  {...form.register('technical_context')}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="extra_notes" className={labelCls}>Notas adicionais</Label>
+                <Textarea
+                  id="extra_notes"
+                  placeholder="Qualquer outra informação útil..."
+                  rows={2}
+                  className={inputCls}
+                  {...form.register('extra_notes')}
+                />
+              </div>
+            </div>
+          )}
 
-          {/* Submit */}
-          <div className="flex justify-end pt-2">
+          {/* Actions */}
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => onOpenChange(false)}
+              className="text-[var(--mtech-text-muted)] hover:text-[var(--mtech-text)] h-9 px-4 text-sm"
+            >
+              Cancelar
+            </Button>
             <Button
               type="submit"
               disabled={isPending}
               className="bg-[var(--mtech-accent)] text-black font-semibold hover:brightness-110 rounded-[var(--mtech-radius-sm)] h-9 px-5 text-sm"
             >
-              {isPending ? '...' : isEdit ? 'Salvar' : 'Criar Task'}
+              {isPending ? 'Criando...' : 'Criar Task'}
             </Button>
           </div>
         </form>
