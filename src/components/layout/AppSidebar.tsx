@@ -27,10 +27,11 @@ import {
   Package,
   Coins,
   VideoIcon,
-  CheckSquare
+  CheckSquare,
+  Cpu
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ROLE_LABELS, canViewBoard, UserRole } from '@/types/auth';
+import { ROLE_LABELS, canViewBoard, isExecutive, UserRole } from '@/types/auth';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
@@ -334,6 +335,21 @@ export default function AppSidebar() {
               <NavLink to="/tv-dashboard" className={({ isActive }) => cn("sidebar-item", isActive && "active")}>
                 <LayoutDashboard size={20} />
                 {!isCollapsed && <span>TV Dashboard</span>}
+              </NavLink>
+            </NavTooltip>
+          </div>
+        )}
+
+        {/* ========== MILENNIALS TECH ========== */}
+        {(isExecutive(user?.role) || user?.role === 'devs') && (
+          <div className="space-y-1.5 pb-5">
+            {!isCollapsed && (
+              <div className="sidebar-section-label"><span>Engineering</span></div>
+            )}
+            <NavTooltip label="Milennials Tech">
+              <NavLink to="/milennials-tech" className={({ isActive }) => cn("sidebar-item", isActive && "active")}>
+                <Cpu size={20} />
+                {!isCollapsed && <span>Milennials Tech</span>}
               </NavLink>
             </NavTooltip>
           </div>
