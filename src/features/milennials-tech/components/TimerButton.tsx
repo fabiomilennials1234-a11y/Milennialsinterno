@@ -3,49 +3,58 @@ import { motion } from 'framer-motion';
 import { Play, Pause, Square } from 'lucide-react';
 import { useActiveTimer } from '../hooks/useActiveTimer';
 import { useTechTimer } from '../hooks/useTechTimer';
+import { useTechTimeTotals } from '../hooks/useTechTimeTotals';
 
 interface TimerButtonProps {
   taskId: string;
 }
 
-function formatElapsed(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
+function formatTimer(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
 export function TimerButton({ taskId }: TimerButtonProps) {
   const { activeTaskId, elapsed } = useActiveTimer();
-  const { start, pause, resume, stop } = useTechTimer();
+  const { start, pause, stop } = useTechTimer();
+  const { data: timeTotals = {} } = useTechTimeTotals();
 
   const isThisActive = activeTaskId === taskId;
   const anotherActive = activeTaskId != null && activeTaskId !== taskId;
+  const accumulatedSeconds = timeTotals[taskId] ?? 0;
 
   const handleToggle = useCallback(() => {
     if (isThisActive) {
       pause.mutate(taskId);
-    } else if (anotherActive) {
-      // Another task is running -- start will auto-pause it on the backend
-      start.mutate(taskId);
     } else {
       start.mutate(taskId);
     }
-  }, [isThisActive, anotherActive, taskId, pause, start]);
+  }, [isThisActive, taskId, pause, start]);
 
   const handleStop = useCallback(() => {
     stop.mutate(taskId);
   }, [taskId, stop]);
 
-  const isPending = start.isPending || pause.isPending || resume.isPending || stop.isPending;
+  const isPending = start.isPending || pause.isPending || stop.isPending;
 
-  const display = useMemo(() => formatElapsed(isThisActive ? elapsed : 0), [isThisActive, elapsed]);
+  // When active: show accumulated + current session elapsed
+  // When inactive: show accumulated total
+  const displaySeconds = isThisActive
+    ? accumulatedSeconds + elapsed
+    : accumulatedSeconds;
+
+  const display = formatTimer(displaySeconds);
 
   return (
     <span className="inline-flex items-center gap-1">
       <button
         type="button"
-        disabled={isPending}
+        disabled={isPending || (anotherActive && !isThisActive)}
         onClick={handleToggle}
+        title={anotherActive ? 'Pare o timer da outra task primeiro' : undefined}
         className="inline-flex items-center gap-1.5 h-7 px-2 rounded-[var(--mtech-radius-sm)] text-xs font-medium transition-colors border border-[var(--mtech-border)] bg-[var(--mtech-surface)] hover:border-[var(--mtech-border-strong)] disabled:opacity-40"
       >
         {isThisActive ? (
@@ -63,7 +72,7 @@ export function TimerButton({ taskId }: TimerButtonProps) {
         ) : (
           <>
             <Play className="h-3 w-3 text-[var(--mtech-text-muted)]" />
-            <span data-mono className="text-[var(--mtech-text-muted)]">
+            <span data-mono className={accumulatedSeconds > 0 ? 'text-[var(--mtech-text)]' : 'text-[var(--mtech-text-muted)]'}>
               {display}
             </span>
           </>
