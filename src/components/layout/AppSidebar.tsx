@@ -97,7 +97,7 @@ export default function AppSidebar() {
   const {
     user,
     isAdminUser,
-    isCEO,
+    isCEO: _isCEO,
     userGroup,
     userSquad,
     userSpecialRoute,
@@ -115,6 +115,9 @@ export default function AppSidebar() {
     getRoleKanbanPath,
     canViewBoard: userCanViewBoard,
   } = useSidebarPermissions();
+
+  // CTO mirrors CEO in the sidebar — use isExecutive for all CEO-gated sections
+  const isCEO = isExecutive(user?.role);
 
   // Dados dos treinadores comerciais (para sidebar do Paddock)
   const { data: treinadorCounts = {} } = useAllTreinadorClientCounts();
