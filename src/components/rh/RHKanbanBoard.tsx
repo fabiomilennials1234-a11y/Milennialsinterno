@@ -76,12 +76,12 @@ function useRHPermissions() {
   const role = user?.role;
   
   return {
-    canCreate: role === 'ceo' || role === 'gestor_projetos',
-    canMove: role === 'ceo' || role === 'gestor_projetos',
-    canComment: role === 'ceo' || role === 'gestor_projetos',
-    canEdit: role === 'ceo',
-    canDelete: role === 'ceo',
-    isViewOnly: role !== 'ceo' && role !== 'gestor_projetos',
+    canCreate: role === 'ceo' || role === 'cto' || role === 'gestor_projetos',
+    canMove: role === 'ceo' || role === 'cto' || role === 'gestor_projetos',
+    canComment: role === 'ceo' || role === 'cto' || role === 'gestor_projetos',
+    canEdit: role === 'ceo' || role === 'cto',
+    canDelete: role === 'ceo' || role === 'cto',
+    isViewOnly: role !== 'ceo' && role !== 'cto' && role !== 'gestor_projetos',
   };
 }
 

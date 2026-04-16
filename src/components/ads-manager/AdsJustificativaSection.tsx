@@ -17,7 +17,7 @@ export default function AdsJustificativaSection({
   const {
     user
   } = useAuth();
-  const isCEO = user?.role === 'ceo';
+  const isCEO = user?.role === 'ceo' || user?.role === 'cto';
 
   // Buscar justificativas pelo cargo da página (não pelo usuário logado)
   const {

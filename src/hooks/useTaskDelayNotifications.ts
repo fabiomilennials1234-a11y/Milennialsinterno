@@ -519,7 +519,7 @@ export function useAllTaskDelayJustifications() {
       
       return { active, archived };
     },
-    enabled: !!user?.id && user.role === 'ceo',
+    enabled: !!user?.id && (user.role === 'ceo' || user.role === 'cto'),
   });
 }
 

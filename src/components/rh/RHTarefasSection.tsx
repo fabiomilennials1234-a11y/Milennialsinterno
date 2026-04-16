@@ -306,7 +306,7 @@ export default function RHTarefasSection() {
   // State for registration modal
   const [registrarVagaModal, setRegistrarVagaModal] = useState<{ tarefa: RHTarefa; vaga: RHVaga } | null>(null);
 
-  const canMove = user?.role === 'ceo' || user?.role === 'gestor_projetos';
+  const canMove = user?.role === 'ceo' || user?.role === 'cto' || user?.role === 'gestor_projetos';
 
   // Create briefings map
   const briefingsMap = useMemo(() => {

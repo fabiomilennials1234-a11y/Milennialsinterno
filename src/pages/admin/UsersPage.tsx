@@ -250,7 +250,7 @@ export default function UsersPage() {
                       <td className="px-6 py-4">
                         <span className={cn(
                           "inline-flex px-3 py-1 rounded-full text-xs font-medium",
-                          user.role === 'ceo' ? "bg-primary/20 text-primary-foreground" :
+                          user.role === 'ceo' || user.role === 'cto' ? "bg-primary/20 text-primary-foreground" :
                           user.role === 'gestor_projetos' ? "bg-info/10 text-info" :
                           "bg-muted text-muted-foreground"
                         )}>

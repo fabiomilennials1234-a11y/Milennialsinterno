@@ -75,7 +75,7 @@ export default function TaskDelayModal() {
     }
   };
 
-  const isCeo = user?.role === 'ceo';
+  const isCeo = user?.role === 'ceo' || user?.role === 'cto';
 
   const handleSkip = () => {
     if (!currentNotification) return;

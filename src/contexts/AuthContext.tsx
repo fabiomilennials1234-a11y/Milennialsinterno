@@ -165,7 +165,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [fetchUserData, session?.user?.id]);
 
-  const isCEO = user?.role === 'ceo';
+  const isCEO = user?.role === 'ceo' || user?.role === 'cto';
   const isAdminUser = user ? isAdmin(user.role) : false;
   const canManageUsersFlag = user ? canManageUsers(user.role) : false;
   const canCreateTabs = user ? canCreateTab(user.role) : false;

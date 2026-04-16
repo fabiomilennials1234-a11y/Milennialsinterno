@@ -29,7 +29,7 @@ export default function ComissoesPage() {
   const markAsPaid = useMarkUpsellCommissionPaid();
   const { user } = useAuth();
 
-  const canMarkAsPaid = user?.role === 'ceo' || user?.role === 'financeiro';
+  const canMarkAsPaid = user?.role === 'ceo' || user?.role === 'cto' || user?.role === 'financeiro';
 
   // Filter commissions by selected month
   const filteredData = useMemo(() => {

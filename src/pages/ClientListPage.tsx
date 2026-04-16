@@ -118,7 +118,7 @@ export default function ClientListPage() {
   const [editValue, setEditValue] = useState('');
   const [editCommission, setEditCommission] = useState('');
 
-  const isCEO = user?.role === 'ceo';
+  const isCEO = user?.role === 'ceo' || user?.role === 'cto';
 
   const handleSaveMonthlyValue = async (clientId: string) => {
     const parsed = parseFloat(editValue.replace(/[^\d,.-]/g, '').replace(',', '.'));

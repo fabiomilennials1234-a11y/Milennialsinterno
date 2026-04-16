@@ -557,7 +557,7 @@ export default function ProcessoSeletivoModal({ vaga, briefing, isOpen, onClose 
   } | null>(null);
   const [contratadosStep, setContratadosStep] = useState<'question' | 'success' | 'blocked'>('question');
 
-  const canMove = user?.role === 'ceo' || user?.role === 'gestor_projetos';
+  const canMove = user?.role === 'ceo' || user?.role === 'cto' || user?.role === 'gestor_projetos';
 
   // Group candidatos by status
   const candidatosByStatus = useMemo(() => {

@@ -13,7 +13,7 @@ interface Props {
 
 export default function OutboundJustificativaSection({ compact, role = 'outbound' }: Props) {
   const { user } = useAuth();
-  const isCEO = user?.role === 'ceo';
+  const isCEO = user?.role === 'ceo' || user?.role === 'cto';
 
   const { data: justificationsByRole, isLoading } = useTaskDelayJustificationsByRole(role);
   const archiveMutation = useArchiveTaskDelayJustification();

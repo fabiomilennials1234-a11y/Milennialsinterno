@@ -18,8 +18,9 @@ export function useRHDelayNotifications() {
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
 
   // Check if user can see delay notifications (CEO, Gestor Projetos, or RH roles)
-  const canSeeNotifications = user?.role === 'ceo' || 
-                              user?.role === 'gestor_projetos' || 
+  const canSeeNotifications = user?.role === 'ceo' ||
+                              user?.role === 'cto' ||
+                              user?.role === 'gestor_projetos' ||
                               user?.role === 'rh';
 
   // Find overdue vagas that haven't been justified yet

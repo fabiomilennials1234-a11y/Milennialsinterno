@@ -241,7 +241,7 @@ export default function EditUserModal({ isOpen, user, onClose, onSubmit, isLoadi
 
   if (!isOpen || !user) return null;
 
-  const isCEO = user.role === 'ceo';
+  const isCEO = user.role === 'ceo' || user.role === 'cto';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
