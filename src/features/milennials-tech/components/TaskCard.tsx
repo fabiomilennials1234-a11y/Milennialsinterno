@@ -1,8 +1,9 @@
 import { motion } from 'framer-motion';
 import { Bug, Sparkles, Flame, Wrench, Lock } from 'lucide-react';
 import type { TechTask, TechTaskType, TechTaskPriority } from '../types';
-import { TYPE_LABEL } from '../lib/statusLabels';
+import { TYPE_LABEL_FRIENDLY } from '../lib/statusLabels';
 import { useProfileMap, getInitials } from '../hooks/useProfiles';
+import { TimerButton } from './TimerButton';
 
 interface TaskCardProps {
   task: TechTask;
@@ -62,7 +63,7 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
           style={{ color: typeColor, backgroundColor: typeBg }}
         >
           <TypeIcon className="h-3 w-3" />
-          {TYPE_LABEL[task.type]}
+          {TYPE_LABEL_FRIENDLY[task.type].label}
         </span>
 
         {task.is_blocked && (
@@ -73,25 +74,35 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
         )}
       </div>
 
-      {/* Row 2: title + priority + avatar */}
-      <div className="flex items-center gap-2">
-        {/* Priority dot */}
+      {/* Row 2: title + priority */}
+      <div className="flex items-center gap-2 mb-2">
         <span
           className="flex-shrink-0 rounded-full"
           style={{ width: 6, height: 6, backgroundColor: dotColor }}
           aria-label={`Prioridade ${task.priority}`}
         />
-
         <span className="flex-1 truncate text-sm font-medium text-[var(--mtech-text)]">
           {task.title}
         </span>
+      </div>
 
-        {/* Assignee initials avatar */}
-        {initials && (
-          <span className="flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-[var(--mtech-surface-elev)] border border-[var(--mtech-border)] text-[10px] font-semibold text-[var(--mtech-text-muted)] select-none">
-            {initials}
-          </span>
-        )}
+      {/* Row 3: assignee + timer */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 min-w-0">
+          {initials && (
+            <span className="flex-shrink-0 flex items-center justify-center h-5 w-5 rounded-full bg-[var(--mtech-surface-elev)] border border-[var(--mtech-border)] text-[9px] font-semibold text-[var(--mtech-text-muted)] select-none">
+              {initials}
+            </span>
+          )}
+          {assigneeName && (
+            <span className="truncate text-[11px] text-[var(--mtech-text-muted)]">
+              {assigneeName}
+            </span>
+          )}
+        </div>
+        <span onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+          <TimerButton taskId={task.id} />
+        </span>
       </div>
     </motion.div>
   );
