@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { isExecutive } from "@/types/auth";
 import { JustificationProvider } from "@/contexts/JustificationContext";
 
 // Pages
@@ -67,18 +68,17 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-// Admin Only Route (CEO only)
-function CEORoute({ children }: { children: React.ReactNode }) {
+function ExecutiveRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, user } = useAuth();
-  
+
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
-  
-  if (user?.role !== 'ceo') {
+
+  if (!isExecutive(user?.role)) {
     return <Navigate to="/dashboard" replace />;
   }
-  
+
   return <>{children}</>;
 }
 
@@ -175,9 +175,9 @@ function AppRoutes() {
       
       {/* CEO Strategic Dashboard */}
       <Route path="/ceo" element={
-        <CEORoute>
+        <ExecutiveRoute>
           <CEODashboardPage />
-        </CEORoute>
+        </ExecutiveRoute>
       } />
       
       {/* Millennials Growth Dashboard - CEO and Gestor de Projetos */}
