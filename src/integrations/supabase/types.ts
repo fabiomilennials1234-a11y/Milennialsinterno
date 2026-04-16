@@ -1039,18 +1039,285 @@ export type Database = {
           },
         ]
       }
+      tech_sprints: {
+        Row: {
+          created_at: string
+          end_date: string
+          goal: string | null
+          id: string
+          name: string
+          start_date: string
+          status: Database["public"]["Enums"]["tech_sprint_status"]
+        }
+        Insert: {
+          created_at?: string
+          end_date: string
+          goal?: string | null
+          id?: string
+          name: string
+          start_date: string
+          status?: Database["public"]["Enums"]["tech_sprint_status"]
+        }
+        Update: {
+          created_at?: string
+          end_date?: string
+          goal?: string | null
+          id?: string
+          name?: string
+          start_date?: string
+          status?: Database["public"]["Enums"]["tech_sprint_status"]
+        }
+        Relationships: []
+      }
+      tech_task_activities: {
+        Row: {
+          created_at: string
+          data: Json
+          id: string
+          task_id: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          id?: string
+          task_id: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          id?: string
+          task_id?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tech_task_activities_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tech_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tech_task_collaborators: {
+        Row: {
+          added_at: string
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tech_task_collaborators_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tech_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tech_tasks: {
+        Row: {
+          acceptance_criteria: string | null
+          assignee_id: string | null
+          blocker_reason: string | null
+          checklist: Json
+          created_at: string
+          created_by: string
+          deadline: string | null
+          description: string | null
+          estimated_hours: number | null
+          git_branch: string | null
+          id: string
+          is_blocked: boolean
+          priority: Database["public"]["Enums"]["tech_task_priority"]
+          sprint_id: string | null
+          status: Database["public"]["Enums"]["tech_task_status"]
+          technical_context: string | null
+          title: string
+          type: Database["public"]["Enums"]["tech_task_type"]
+          updated_at: string
+        }
+        Insert: {
+          acceptance_criteria?: string | null
+          assignee_id?: string | null
+          blocker_reason?: string | null
+          checklist?: Json
+          created_at?: string
+          created_by: string
+          deadline?: string | null
+          description?: string | null
+          estimated_hours?: number | null
+          git_branch?: string | null
+          id?: string
+          is_blocked?: boolean
+          priority: Database["public"]["Enums"]["tech_task_priority"]
+          sprint_id?: string | null
+          status?: Database["public"]["Enums"]["tech_task_status"]
+          technical_context?: string | null
+          title: string
+          type: Database["public"]["Enums"]["tech_task_type"]
+          updated_at?: string
+        }
+        Update: {
+          acceptance_criteria?: string | null
+          assignee_id?: string | null
+          blocker_reason?: string | null
+          checklist?: Json
+          created_at?: string
+          created_by?: string
+          deadline?: string | null
+          description?: string | null
+          estimated_hours?: number | null
+          git_branch?: string | null
+          id?: string
+          is_blocked?: boolean
+          priority?: Database["public"]["Enums"]["tech_task_priority"]
+          sprint_id?: string | null
+          status?: Database["public"]["Enums"]["tech_task_status"]
+          technical_context?: string | null
+          title?: string
+          type?: Database["public"]["Enums"]["tech_task_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tech_tasks_sprint_id_fkey"
+            columns: ["sprint_id"]
+            isOneToOne: false
+            referencedRelation: "tech_sprints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tech_time_entries: {
+        Row: {
+          created_at: string
+          id: string
+          task_id: string
+          type: Database["public"]["Enums"]["tech_time_entry_type"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          task_id: string
+          type: Database["public"]["Enums"]["tech_time_entry_type"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          task_id?: string
+          type?: Database["public"]["Enums"]["tech_time_entry_type"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tech_time_entries_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tech_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      tech_task_time_totals: {
+        Row: {
+          task_id: string | null
+          total_seconds: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tech_time_entries_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tech_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       app_user_role: {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      can_see_tech: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       is_admin: { Args: never; Returns: boolean }
       is_executive: { Args: { _user_id: string }; Returns: boolean }
       stage_display_label: { Args: { p_stage: string }; Returns: string }
+      tech_approve_task: {
+        Args: { _task_id: string }
+        Returns: undefined
+      }
+      tech_block_task: {
+        Args: { _reason: string; _task_id: string }
+        Returns: undefined
+      }
+      tech_can_edit_task: {
+        Args: { _task_id: string }
+        Returns: boolean
+      }
+      tech_end_sprint: {
+        Args: { _sprint_id: string }
+        Returns: undefined
+      }
+      tech_pause_timer: {
+        Args: { _task_id: string }
+        Returns: undefined
+      }
+      tech_reject_task: {
+        Args: { _task_id: string }
+        Returns: undefined
+      }
+      tech_resume_timer: {
+        Args: { _task_id: string }
+        Returns: undefined
+      }
+      tech_send_to_review: {
+        Args: { _task_id: string }
+        Returns: undefined
+      }
+      tech_start_sprint: {
+        Args: { _sprint_id: string }
+        Returns: undefined
+      }
+      tech_start_timer: {
+        Args: { _task_id: string }
+        Returns: undefined
+      }
+      tech_stop_timer: {
+        Args: { _task_id: string }
+        Returns: undefined
+      }
+      tech_timer_is_active: {
+        Args: { _task_id: string; _user_id: string }
+        Returns: boolean
+      }
+      tech_unblock_task: {
+        Args: { _task_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       approval_status: "pending" | "approved" | "rejected"
@@ -1065,6 +1332,11 @@ export type Database = {
       SprintStatus: "PLANNING" | "ACTIVE" | "COMPLETED"
       TaskStatus: "BACKLOG" | "TODO" | "IN_PROGRESS" | "REVIEW" | "DONE"
       TaskType: "BUG" | "FEATURE" | "HOTFIX" | "CHORE"
+      tech_sprint_status: "PLANNING" | "ACTIVE" | "COMPLETED"
+      tech_task_priority: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW"
+      tech_task_status: "BACKLOG" | "TODO" | "IN_PROGRESS" | "REVIEW" | "DONE"
+      tech_task_type: "BUG" | "FEATURE" | "HOTFIX" | "CHORE"
+      tech_time_entry_type: "START" | "PAUSE" | "RESUME" | "STOP"
       TimeEntryType: "START" | "PAUSE" | "RESUME" | "STOP"
       user_role:
         | "admin"
@@ -1213,6 +1485,11 @@ export const Constants = {
       SprintStatus: ["PLANNING", "ACTIVE", "COMPLETED"],
       TaskStatus: ["BACKLOG", "TODO", "IN_PROGRESS", "REVIEW", "DONE"],
       TaskType: ["BUG", "FEATURE", "HOTFIX", "CHORE"],
+      tech_sprint_status: ["PLANNING", "ACTIVE", "COMPLETED"],
+      tech_task_priority: ["CRITICAL", "HIGH", "MEDIUM", "LOW"],
+      tech_task_status: ["BACKLOG", "TODO", "IN_PROGRESS", "REVIEW", "DONE"],
+      tech_task_type: ["BUG", "FEATURE", "HOTFIX", "CHORE"],
+      tech_time_entry_type: ["START", "PAUSE", "RESUME", "STOP"],
       TimeEntryType: ["START", "PAUSE", "RESUME", "STOP"],
       user_role: ["admin", "cto", "redator", "filmmaker", "editor", "cliente"],
       warning_level: ["first", "second", "third"],
