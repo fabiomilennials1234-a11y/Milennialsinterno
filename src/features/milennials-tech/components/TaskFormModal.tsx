@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Paperclip, X, Image } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -24,6 +24,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { taskFormSchema, type TaskFormValues } from '../schemas/task';
 import { useCreateTechTask } from '../hooks/useTechTasks';
+import { useUploadAttachments } from '../hooks/useTechAttachments';
 import { useTechProfiles } from '../hooks/useProfiles';
 import { TYPE_LABEL_FRIENDLY, PRIORITY_LABEL_FRIENDLY } from '../lib/statusLabels';
 import type { TechTaskType, TechTaskPriority } from '../types';
@@ -39,8 +40,12 @@ const PRIORITY_OPTIONS = Object.entries(PRIORITY_LABEL_FRIENDLY) as [TechTaskPri
 export function TaskFormModal({ open, onOpenChange }: TaskFormModalProps) {
   const { user } = useAuth();
   const createTask = useCreateTechTask();
+  const uploadAttachments = useUploadAttachments();
   const { data: profiles = [] } = useTechProfiles();
   const [showMore, setShowMore] = useState(false);
+  const [files, setFiles] = useState<File[]>([]);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Filter assignable users: devs + cto + ceo
   const assignableUsers = profiles.filter(
@@ -63,8 +68,15 @@ export function TaskFormModal({ open, onOpenChange }: TaskFormModalProps) {
     },
   });
 
-  const onSubmit = (values: TaskFormValues) => {
+  const onSubmit = async (values: TaskFormValues) => {
     if (!user?.id) return;
+
+    // Validate at least 1 attachment
+    if (files.length === 0) {
+      setFileError('Anexe pelo menos um print ou arquivo.');
+      return;
+    }
+    setFileError(null);
 
     // Build description from structured fields
     const descParts: string[] = [];
@@ -74,11 +86,10 @@ export function TaskFormModal({ open, onOpenChange }: TaskFormModalProps) {
       descParts.push(`**Notas:**\n${values.extra_notes}`);
     }
 
-    // If assignee is set, auto-promote to TODO (appears in Kanban)
     const hasAssignee = !!values.assignee_id;
 
-    createTask.mutate(
-      {
+    try {
+      const task = await createTask.mutateAsync({
         title: values.title,
         description: descParts.join('\n\n'),
         type: values.type,
@@ -89,19 +100,38 @@ export function TaskFormModal({ open, onOpenChange }: TaskFormModalProps) {
         acceptance_criteria: values.acceptance_criteria,
         technical_context: values.technical_context || null,
         created_by: user.id,
-      },
-      {
-        onSuccess: () => {
-          toast.success('Task criada com sucesso');
-          form.reset();
-          setShowMore(false);
-          onOpenChange(false);
-        },
-      },
-    );
+      });
+
+      // Upload attachments
+      await uploadAttachments.mutateAsync({
+        taskId: task.id,
+        files,
+        userId: user.id,
+      });
+
+      toast.success(`Task criada com ${files.length} anexo(s)`);
+      form.reset();
+      setFiles([]);
+      setShowMore(false);
+      onOpenChange(false);
+    } catch {
+      toast.error('Erro ao criar task');
+    }
   };
 
-  const isPending = createTask.isPending;
+  const isPending = createTask.isPending || uploadAttachments.isPending;
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+      setFileError(null);
+    }
+    e.target.value = ''; // allow re-selecting same file
+  };
+
+  const removeFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
   const errors = form.formState.errors;
 
   const inputCls =
@@ -216,6 +246,74 @@ export function TaskFormModal({ open, onOpenChange }: TaskFormModalProps) {
               {...form.register('acceptance_criteria')}
             />
             {errors.acceptance_criteria && <p className={errorCls}>{errors.acceptance_criteria.message}</p>}
+          </div>
+
+          {/* Attachments (mandatory) */}
+          <div className="space-y-2">
+            <Label className={labelCls}>
+              <Paperclip className="inline h-3 w-3 mr-1" />
+              Prints / Anexos *
+            </Label>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+
+            {/* File previews */}
+            {files.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {files.map((file, i) => {
+                  const isImage = file.type.startsWith('image/');
+                  return (
+                    <div
+                      key={`${file.name}-${i}`}
+                      className="relative group rounded-[var(--mtech-radius-sm)] border border-[var(--mtech-border)] bg-[var(--mtech-surface-elev)] overflow-hidden"
+                      style={{ width: 72, height: 72 }}
+                    >
+                      {isImage ? (
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt={file.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center h-full p-1">
+                          <Image className="h-5 w-5 text-[var(--mtech-text-subtle)]" />
+                          <span className="text-[8px] text-[var(--mtech-text-subtle)] truncate w-full text-center mt-1">
+                            {file.name}
+                          </span>
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeFile(i)}
+                        className="absolute top-0.5 right-0.5 h-4 w-4 rounded-full bg-black/70 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              className="border-dashed border-[var(--mtech-border-strong)] text-[var(--mtech-text-muted)] hover:text-[var(--mtech-text)] hover:border-[var(--mtech-accent)] h-8 text-xs gap-1.5"
+            >
+              <Paperclip className="h-3 w-3" />
+              {files.length === 0 ? 'Anexar prints' : 'Adicionar mais'}
+            </Button>
+
+            {fileError && <p className={errorCls}>{fileError}</p>}
           </div>
 
           {/* Assignee + Deadline */}

@@ -45,6 +45,7 @@ import { TYPE_LABEL_FRIENDLY, STATUS_LABEL_PT, PRIORITY_LABEL_FRIENDLY, ACTIVITY
 import { TimerButton } from './TimerButton';
 import { TagPicker } from './TagPicker';
 import { useProfileMap } from '../hooks/useProfiles';
+import { useTechAttachments, getAttachmentUrl } from '../hooks/useTechAttachments';
 import type { TechTask, TechTaskType, TechTaskPriority, ChecklistItem } from '../types';
 
 interface TaskDetailModalProps {
@@ -92,6 +93,7 @@ export function TaskDetailModal({ taskId, open, onOpenChange, onClose }: TaskDet
   const profileMap = useProfileMap();
   const { data: tasks } = useTechTasks();
   const { data: activities } = useTechTaskActivities(taskId);
+  const { data: attachments = [] } = useTechAttachments(taskId);
   const { sendToReview, approve, reject, block, unblock } = useTechTimer();
   const updateTask = useUpdateTechTask();
   const deleteTask = useDeleteTechTask();
@@ -247,6 +249,42 @@ export function TaskDetailModal({ taskId, open, onOpenChange, onClose }: TaskDet
 
             {/* Tags */}
             <TagPicker taskId={task.id} />
+
+            {/* Attachments */}
+            {attachments.length > 0 && (
+              <div>
+                <h3 className="text-xs font-semibold text-[var(--mtech-text-muted)] uppercase tracking-wide mb-2">
+                  Anexos ({attachments.length})
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {attachments.map((att) => {
+                    const url = getAttachmentUrl(att.file_path);
+                    const isImage = att.content_type?.startsWith('image/');
+                    return (
+                      <a
+                        key={att.id}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block rounded-[var(--mtech-radius-sm)] border border-[var(--mtech-border)] bg-[var(--mtech-surface-elev)] overflow-hidden hover:border-[var(--mtech-accent)] transition-colors"
+                        style={{ width: 96, height: 96 }}
+                      >
+                        {isImage ? (
+                          <img src={url} alt={att.file_name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="flex flex-col items-center justify-center h-full p-2">
+                            <span className="text-lg">📎</span>
+                            <span className="text-[8px] text-[var(--mtech-text-subtle)] truncate w-full text-center mt-1">
+                              {att.file_name}
+                            </span>
+                          </div>
+                        )}
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Description — render structured sections from form */}
             {task.description && (
