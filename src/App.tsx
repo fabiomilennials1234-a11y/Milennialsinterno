@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { isExecutive } from "@/types/auth";
 import { JustificationProvider } from "@/contexts/JustificationContext";
 
 // Pages
@@ -53,6 +54,10 @@ import TVDashboardPage from "./pages/TVDashboardPage";
 import TreinamentosPage from "./pages/TreinamentosPage";
 import RecordedMeetingsPage from "./pages/RecordedMeetingsPage";
 import NotFound from "./pages/NotFound";
+import { MilennialsTechPage } from "./features/milennials-tech/pages/MilennialsTechPage";
+import { BacklogTab } from "./features/milennials-tech/pages/BacklogTab";
+import { KanbanTab } from "./features/milennials-tech/pages/KanbanTab";
+import { SprintsTab } from "./features/milennials-tech/pages/SprintsTab";
 
 const queryClient = new QueryClient();
 
@@ -67,18 +72,26 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-// Admin Only Route (CEO only)
-function CEORoute({ children }: { children: React.ReactNode }) {
+function ExecutiveRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, user } = useAuth();
-  
+
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
-  
-  if (user?.role !== 'ceo') {
+
+  if (!isExecutive(user?.role)) {
     return <Navigate to="/dashboard" replace />;
   }
-  
+
+  return <>{children}</>;
+}
+
+function MilennialsTechRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, user } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!(isExecutive(user?.role) || user?.role === 'devs')) {
+    return <Navigate to="/dashboard" replace />;
+  }
   return <>{children}</>;
 }
 
@@ -175,9 +188,9 @@ function AppRoutes() {
       
       {/* CEO Strategic Dashboard */}
       <Route path="/ceo" element={
-        <CEORoute>
+        <ExecutiveRoute>
           <CEODashboardPage />
-        </CEORoute>
+        </ExecutiveRoute>
       } />
       
       {/* Millennials Growth Dashboard - CEO and Gestor de Projetos */}
@@ -482,6 +495,16 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
       
+      {/* Milennials Tech */}
+      <Route path="/milennials-tech" element={
+        <MilennialsTechRoute><MilennialsTechPage /></MilennialsTechRoute>
+      }>
+        <Route index element={<Navigate to="kanban" replace />} />
+        <Route path="backlog" element={<BacklogTab />} />
+        <Route path="kanban" element={<KanbanTab />} />
+        <Route path="sprints" element={<SprintsTab />} />
+      </Route>
+
       {/* 404 */}
       <Route path="*" element={<NotFound />} />
     </Routes>
