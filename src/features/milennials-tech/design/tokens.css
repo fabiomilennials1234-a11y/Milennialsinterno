@@ -1,39 +1,27 @@
-.mtech-scope {
-  /* Backgrounds — increased separation between layers */
+/* Mtech tokens on :root so Radix portals (Select, AlertDialog) can access them */
+:root {
   --mtech-bg: #09090B;
   --mtech-surface: #131316;
   --mtech-surface-elev: #1E1E24;
-
-  /* Borders — visible enough to define structure */
   --mtech-border: rgba(255, 255, 255, 0.10);
   --mtech-border-strong: rgba(255, 255, 255, 0.18);
-
-  /* Text — WCAG AA compliant contrast ratios */
-  --mtech-text: #F0F0F3;          /* primary: 15.8:1 on bg */
-  --mtech-text-muted: #A0A0AD;    /* secondary: 7.2:1 on bg — labels, meta */
-  --mtech-text-subtle: #6E6E7A;   /* tertiary: 4.5:1 on bg — hints, placeholders */
-
-  /* Accent */
+  --mtech-text: #F0F0F3;
+  --mtech-text-muted: #A0A0AD;
+  --mtech-text-subtle: #6E6E7A;
   --mtech-accent: #F4C430;
   --mtech-accent-muted: rgba(244, 196, 48, 0.15);
-
-  /* Semantic */
   --mtech-danger: #E5484D;
   --mtech-success: #30A46C;
-
-  /* Radii */
   --mtech-radius-sm: 6px;
   --mtech-radius-md: 8px;
   --mtech-radius-lg: 12px;
-
-  /* Shadows */
   --mtech-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.25);
-
-  /* Input-specific — elevated enough to stand out from surface */
   --mtech-input-bg: #1A1A22;
   --mtech-input-border: rgba(255, 255, 255, 0.14);
   --mtech-input-focus: rgba(244, 196, 48, 0.4);
+}
 
+.mtech-scope {
   color: var(--mtech-text);
   background: var(--mtech-bg);
   font-family: 'Geist', 'Inter', system-ui, sans-serif;

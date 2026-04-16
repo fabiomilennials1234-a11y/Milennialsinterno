@@ -144,7 +144,7 @@ export function TaskFormModal({ open, onOpenChange }: TaskFormModalProps) {
                 <SelectTrigger className={inputCls}>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-[var(--mtech-surface-elev)] border-[var(--mtech-border)] text-[var(--mtech-text)]">
+                <SelectContent className="bg-[var(--mtech-surface-elev)] border border-[var(--mtech-border-strong)] text-[var(--mtech-text)] shadow-xl z-50">
                   {TYPE_OPTIONS.map(([value, { label, hint }]) => (
                     <SelectItem key={value} value={value}>
                       <span>{label}</span>
@@ -163,7 +163,7 @@ export function TaskFormModal({ open, onOpenChange }: TaskFormModalProps) {
                 <SelectTrigger className={inputCls}>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-[var(--mtech-surface-elev)] border-[var(--mtech-border)] text-[var(--mtech-text)]">
+                <SelectContent className="bg-[var(--mtech-surface-elev)] border border-[var(--mtech-border-strong)] text-[var(--mtech-text)] shadow-xl z-50">
                   {PRIORITY_OPTIONS.map(([value, { label, hint }]) => (
                     <SelectItem key={value} value={value}>
                       <span>{label}</span>
@@ -225,7 +225,7 @@ export function TaskFormModal({ open, onOpenChange }: TaskFormModalProps) {
                 <SelectTrigger className={inputCls}>
                   <SelectValue placeholder="Atribuir depois" />
                 </SelectTrigger>
-                <SelectContent className="bg-[var(--mtech-surface-elev)] border-[var(--mtech-border)] text-[var(--mtech-text)]">
+                <SelectContent className="bg-[var(--mtech-surface-elev)] border border-[var(--mtech-border-strong)] text-[var(--mtech-text)] shadow-xl z-50">
                   <SelectItem value="__none__">Atribuir depois</SelectItem>
                   {assignableUsers.map((p) => (
                     <SelectItem key={p.user_id} value={p.user_id}>

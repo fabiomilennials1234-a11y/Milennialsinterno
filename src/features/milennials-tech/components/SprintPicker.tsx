@@ -32,7 +32,7 @@ export function SprintPicker({ value, onChange }: SprintPickerProps) {
       >
         <SelectValue placeholder={isLoading ? 'Carregando...' : 'Selecionar sprint'} />
       </SelectTrigger>
-      <SelectContent className="border-[var(--mtech-border)] bg-[var(--mtech-surface)] text-[var(--mtech-text)]">
+      <SelectContent className="border border-[var(--mtech-border-strong)] bg-[var(--mtech-surface-elev)] text-[var(--mtech-text)] shadow-xl z-50">
         <SelectItem value="__none__" className="text-sm text-[var(--mtech-text-muted)]">
           Sem sprint
         </SelectItem>
