@@ -47,7 +47,7 @@ Fase 3: Reports (horas por dev, velocidade, bug rate, estimated vs actual), Sett
 
 - **`useSidebarPermissions.ts`**: `ROLE_BOARD_SLUGS['cto']` = valor igual a `ROLE_BOARD_SLUGS['ceo']`. Idem para `ROLE_INDEPENDENT_CATEGORIES['cto']` e `SPECIAL_ROUTES['cto']`.
 - **Helper `isExecutive(role: UserRole): boolean`** — centraliza `role === 'ceo' || role === 'cto'`. Todo condicional que hoje verifica `'ceo'` passa a chamar `isExecutive(role)`.
-- **`<CEORoute>`**: renomear para `<ExecutiveRoute>` aceitando CEO ou CTO, OU manter `<CEORoute>` e criar `<ExecutiveRoute>` paralelo (decidir no plano de implementação — preferência: renomear para reduzir duplicação, pois CEO e CTO são equivalentes).
+- **`<CEORoute>` → renomear para `<ExecutiveRoute>`**: aceita CEO ou CTO. Todos os usos existentes de `<CEORoute>` substituídos. Decisão: CEO e CTO são equivalentes em permissões, logo evita-se duplicação de guards.
 - **`DefaultRedirect`**: CTO cai no mesmo destino que CEO.
 
 ### 2.3 Mudanças no banco
@@ -271,7 +271,7 @@ Um único item "Milennials Tech" em `src/components/layout/AppSidebar.tsx`, apon
 
 ### 4.5 Drag-and-drop
 
-Usar a lib já presente no repo (verificar no código existente; padronizar com `@dnd-kit` se divergir). Movimento entre colunas chama a RPC apropriada, não UPDATE direto:
+Adotar a lib de drag-and-drop já utilizada pelos kanbans existentes do repo. Se não houver padronização atual, usar `@dnd-kit`. Decisão final confirmada no primeiro passo do plano de implementação (varredura rápida no código). Movimento entre colunas chama a RPC apropriada, não UPDATE direto:
 - TODO → IN_PROGRESS: chama `tech_start_timer` (mantendo convenção que startar timer promove status).
 - IN_PROGRESS → REVIEW: chama `tech_send_to_review`.
 - REVIEW → DONE: chama `tech_approve_task` (só CEO/CTO pode; Dev tem ação bloqueada na UI).
