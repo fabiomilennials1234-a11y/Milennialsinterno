@@ -43,6 +43,7 @@ import { useTechTimer } from '../hooks/useTechTimer';
 import { canEditTask, canApprove } from '../lib/permissions';
 import { TYPE_LABEL_FRIENDLY, STATUS_LABEL_PT, PRIORITY_LABEL_FRIENDLY, ACTIVITY_LABEL } from '../lib/statusLabels';
 import { TimerButton } from './TimerButton';
+import { TagPicker } from './TagPicker';
 import { useProfileMap } from '../hooks/useProfiles';
 import type { TechTask, TechTaskType, TechTaskPriority, ChecklistItem } from '../types';
 
@@ -244,6 +245,9 @@ export function TaskDetailModal({ taskId, open, onOpenChange, onClose }: TaskDet
               )}
             </div>
 
+            {/* Tags */}
+            <TagPicker taskId={task.id} />
+
             {/* Description — render structured sections from form */}
             {task.description && (
               <div className="space-y-3">
@@ -433,7 +437,8 @@ export function TaskDetailModal({ taskId, open, onOpenChange, onClose }: TaskDet
                       })}
                     </time>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             )}
           </div>

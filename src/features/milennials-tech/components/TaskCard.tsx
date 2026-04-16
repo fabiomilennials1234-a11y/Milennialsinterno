@@ -4,6 +4,8 @@ import type { TechTask, TechTaskType, TechTaskPriority } from '../types';
 import { TYPE_LABEL_FRIENDLY } from '../lib/statusLabels';
 import { useProfileMap, getInitials } from '../hooks/useProfiles';
 import { TimerButton } from './TimerButton';
+import { TaskTagBadges } from './TagPicker';
+import { useTechTags, useTechTaskTags } from '../hooks/useTechTags';
 
 interface TaskCardProps {
   task: TechTask;
@@ -36,6 +38,8 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
   const { icon: TypeIcon, color: typeColor, bg: typeBg } = TYPE_CONFIG[task.type];
   const dotColor = PRIORITY_DOT_COLOR[task.priority];
   const profileMap = useProfileMap();
+  const { data: allTags = [] } = useTechTags();
+  const { data: allTaskTags = [] } = useTechTaskTags();
 
   const assigneeName = task.assignee_id ? profileMap[task.assignee_id] : null;
   const initials = assigneeName ? getInitials(assigneeName) : null;
@@ -72,6 +76,7 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
             Bloqueada
           </span>
         )}
+        <TaskTagBadges taskId={task.id} allTags={allTags} taskTags={allTaskTags} />
       </div>
 
       {/* Row 2: title + priority */}
