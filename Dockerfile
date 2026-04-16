@@ -12,7 +12,7 @@ ENV VITE_SUPABASE_PUBLISHABLE_KEY=$VITE_SUPABASE_PUBLISHABLE_KEY
 ENV VITE_SUPABASE_PROJECT_ID=$VITE_SUPABASE_PROJECT_ID
 
 COPY package.json package-lock.json* ./
-RUN npm ci
+RUN npm install -g npm@latest && npm ci
 
 COPY . .
 RUN npm run build
