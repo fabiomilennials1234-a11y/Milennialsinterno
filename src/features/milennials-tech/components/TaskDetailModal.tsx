@@ -39,14 +39,16 @@ import { useTechTasks, useUpdateTechTask, useDeleteTechTask } from '../hooks/use
 import { useTechTaskActivities } from '../hooks/useTechTaskActivities';
 import { useTechTimer } from '../hooks/useTechTimer';
 import { canEditTask, canApprove } from '../lib/permissions';
-import { TYPE_LABEL, STATUS_LABEL_PT, PRIORITY_LABEL, ACTIVITY_LABEL } from '../lib/statusLabels';
+import { TYPE_LABEL_FRIENDLY, STATUS_LABEL_PT, PRIORITY_LABEL_FRIENDLY, ACTIVITY_LABEL } from '../lib/statusLabels';
 import { TimerButton } from './TimerButton';
 import { useProfileMap } from '../hooks/useProfiles';
 import type { TechTask, TechTaskType, TechTaskPriority, ChecklistItem } from '../types';
 
 interface TaskDetailModalProps {
   taskId: string;
-  onClose: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  onClose?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -78,7 +80,11 @@ const PRIORITY_DOT: Record<TechTaskPriority, string> = {
 // Component
 // ---------------------------------------------------------------------------
 
-export function TaskDetailModal({ taskId, onClose }: TaskDetailModalProps) {
+export function TaskDetailModal({ taskId, open, onOpenChange, onClose }: TaskDetailModalProps) {
+  const handleClose = () => {
+    onClose?.();
+    onOpenChange?.(false);
+  };
   const { user } = useAuth();
   const profileMap = useProfileMap();
   const { data: tasks } = useTechTasks();
@@ -112,7 +118,7 @@ export function TaskDetailModal({ taskId, onClose }: TaskDetailModalProps) {
 
   if (!task) {
     return (
-      <Dialog open onOpenChange={() => onClose()}>
+      <Dialog open onOpenChange={handleClose}>
         <DialogContent className="mtech-scope border-[var(--mtech-border)] bg-[var(--mtech-surface)] text-[var(--mtech-text)]">
           <DialogHeader>
             <DialogTitle className="text-[var(--mtech-text)]">Task</DialogTitle>
@@ -130,7 +136,7 @@ export function TaskDetailModal({ taskId, onClose }: TaskDetailModalProps) {
   const checklist = (task.checklist as ChecklistItem[] | null) ?? [];
 
   return (
-    <Dialog open onOpenChange={() => onClose()}>
+    <Dialog open onOpenChange={handleClose}>
       <DialogContent
         className="mtech-scope max-w-4xl max-h-[85vh] overflow-y-auto border-[var(--mtech-border)] bg-[var(--mtech-surface)] text-[var(--mtech-text)]"
         style={{ boxShadow: '0 24px 64px rgba(0,0,0,0.6)' }}
@@ -191,7 +197,7 @@ export function TaskDetailModal({ taskId, onClose }: TaskDetailModalProps) {
                 }}
               >
                 <TypeIcon className="h-3 w-3" />
-                {TYPE_LABEL[task.type]}
+                {TYPE_LABEL_FRIENDLY[task.type].label}
               </span>
 
               <span className="inline-flex items-center gap-1.5 text-xs text-[var(--mtech-text-muted)]">
@@ -199,7 +205,7 @@ export function TaskDetailModal({ taskId, onClose }: TaskDetailModalProps) {
                   className="rounded-full"
                   style={{ width: 6, height: 6, backgroundColor: PRIORITY_DOT[task.priority] }}
                 />
-                {PRIORITY_LABEL[task.priority]}
+                {PRIORITY_LABEL_FRIENDLY[task.priority].label}
               </span>
 
               <span className="text-xs text-[var(--mtech-text-subtle)] px-2 py-0.5 rounded-full border border-[var(--mtech-border)]">
@@ -214,15 +220,30 @@ export function TaskDetailModal({ taskId, onClose }: TaskDetailModalProps) {
               )}
             </div>
 
-            {/* Description */}
+            {/* Description — render structured sections from form */}
             {task.description && (
-              <div>
-                <h3 className="text-xs font-medium text-[var(--mtech-text-muted)] uppercase tracking-wide mb-1">
-                  Descrição
-                </h3>
-                <p className="text-sm leading-relaxed text-[var(--mtech-text)] whitespace-pre-wrap">
-                  {task.description}
-                </p>
+              <div className="space-y-3">
+                {task.description.split(/\n\n+/).map((block, i) => {
+                  // Parse **Header:** sections
+                  const headerMatch = block.match(/^\*\*(.+?):\*\*\n?([\s\S]*)$/);
+                  if (headerMatch) {
+                    return (
+                      <div key={i}>
+                        <h3 className="text-xs font-semibold text-[var(--mtech-text-muted)] uppercase tracking-wide mb-1">
+                          {headerMatch[1]}
+                        </h3>
+                        <p className="text-sm leading-relaxed text-[var(--mtech-text)] whitespace-pre-wrap">
+                          {headerMatch[2].trim()}
+                        </p>
+                      </div>
+                    );
+                  }
+                  return (
+                    <p key={i} className="text-sm leading-relaxed text-[var(--mtech-text)] whitespace-pre-wrap">
+                      {block}
+                    </p>
+                  );
+                })}
               </div>
             )}
 
@@ -469,7 +490,7 @@ export function TaskDetailModal({ taskId, onClose }: TaskDetailModalProps) {
                       deleteTask.mutate(task.id, {
                         onSuccess: () => {
                           toast.success('Task excluída');
-                          onClose();
+                          handleClose();
                         },
                       });
                     }}
