@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -6,6 +7,17 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -20,6 +32,7 @@ import {
   Check,
   X,
   GitBranch,
+  Pencil,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTechTasks, useUpdateTechTask, useDeleteTechTask } from '../hooks/useTechTasks';
@@ -149,7 +162,7 @@ export function TaskDetailModal({ taskId, onClose }: TaskDetailModalProps) {
             </div>
           ) : (
             <DialogTitle
-              className="text-xl font-semibold tracking-tight text-[var(--mtech-text)] cursor-pointer hover:text-[var(--mtech-accent)] transition-colors"
+              className="group/title flex items-center gap-2 text-xl font-semibold tracking-tight text-[var(--mtech-text)] cursor-pointer hover:text-[var(--mtech-accent)] transition-colors"
               onClick={() => {
                 if (canEdit) {
                   setTitleDraft(task.title);
@@ -158,6 +171,9 @@ export function TaskDetailModal({ taskId, onClose }: TaskDetailModalProps) {
               }}
             >
               {task.title}
+              {canEdit && (
+                <Pencil className="h-3.5 w-3.5 text-[var(--mtech-text-subtle)] opacity-0 group-hover/title:opacity-100 transition-opacity" />
+              )}
             </DialogTitle>
           )}
         </DialogHeader>
@@ -342,7 +358,7 @@ export function TaskDetailModal({ taskId, onClose }: TaskDetailModalProps) {
           {canEdit && task.status === 'IN_PROGRESS' && (
             <Button
               size="sm"
-              onClick={() => sendToReview.mutate(task.id)}
+              onClick={() => sendToReview.mutate(task.id, { onSuccess: () => toast.success('Enviada para review') })}
               disabled={sendToReview.isPending}
               className="bg-[var(--mtech-surface-elev)] border border-[var(--mtech-border)] text-[var(--mtech-text)] hover:border-[var(--mtech-border-strong)] h-8 text-xs gap-1.5"
             >
@@ -355,7 +371,7 @@ export function TaskDetailModal({ taskId, onClose }: TaskDetailModalProps) {
           {isExec && task.status === 'REVIEW' && (
             <Button
               size="sm"
-              onClick={() => approve.mutate(task.id)}
+              onClick={() => approve.mutate(task.id, { onSuccess: () => toast.success('Task aprovada') })}
               disabled={approve.isPending}
               className="bg-emerald-600/20 border border-emerald-600/30 text-emerald-400 hover:bg-emerald-600/30 h-8 text-xs gap-1.5"
             >
@@ -368,7 +384,7 @@ export function TaskDetailModal({ taskId, onClose }: TaskDetailModalProps) {
           {isExec && task.status === 'REVIEW' && (
             <Button
               size="sm"
-              onClick={() => reject.mutate(task.id)}
+              onClick={() => reject.mutate(task.id, { onSuccess: () => toast.info('Task devolvida para desenvolvimento') })}
               disabled={reject.isPending}
               className="bg-[var(--mtech-danger)]/10 border border-[var(--mtech-danger)]/30 text-[var(--mtech-danger)] hover:bg-[var(--mtech-danger)]/20 h-8 text-xs gap-1.5"
             >
@@ -417,7 +433,7 @@ export function TaskDetailModal({ taskId, onClose }: TaskDetailModalProps) {
           {canEdit && task.is_blocked && (
             <Button
               size="sm"
-              onClick={() => unblock.mutate(task.id)}
+              onClick={() => unblock.mutate(task.id, { onSuccess: () => toast.success('Task desbloqueada') })}
               disabled={unblock.isPending}
               className="bg-[var(--mtech-surface-elev)] border border-[var(--mtech-border)] text-[var(--mtech-accent)] hover:border-[var(--mtech-accent)] h-8 text-xs gap-1.5"
             >
@@ -426,19 +442,44 @@ export function TaskDetailModal({ taskId, onClose }: TaskDetailModalProps) {
             </Button>
           )}
 
-          {/* Delete (exec only) */}
+          {/* Delete (exec only) — with confirmation */}
           {isExec && (
-            <Button
-              size="sm"
-              onClick={() => {
-                deleteTask.mutate(task.id, { onSuccess: onClose });
-              }}
-              disabled={deleteTask.isPending}
-              className="ml-auto bg-transparent border border-[var(--mtech-border)] text-[var(--mtech-danger)] hover:bg-[var(--mtech-danger)]/10 h-8 text-xs gap-1.5"
-            >
-              <Trash2 className="h-3 w-3" />
-              Excluir
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  size="sm"
+                  disabled={deleteTask.isPending}
+                  className="ml-auto bg-transparent border border-[var(--mtech-border)] text-[var(--mtech-danger)] hover:bg-[var(--mtech-danger)]/10 h-8 text-xs gap-1.5"
+                >
+                  <Trash2 className="h-3 w-3" />
+                  Excluir
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="mtech-scope border-[var(--mtech-border)] bg-[var(--mtech-surface)]">
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="text-[var(--mtech-text)]">Excluir task?</AlertDialogTitle>
+                  <AlertDialogDescription className="text-[var(--mtech-text-muted)]">
+                    Essa ação não pode ser desfeita. A task &quot;{task.title}&quot; será permanentemente removida.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="border-[var(--mtech-border)] text-[var(--mtech-text-muted)]">Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => {
+                      deleteTask.mutate(task.id, {
+                        onSuccess: () => {
+                          toast.success('Task excluída');
+                          onClose();
+                        },
+                      });
+                    }}
+                    className="bg-[var(--mtech-danger)] text-white hover:bg-[var(--mtech-danger)]/80"
+                  >
+                    Excluir
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
         </div>
       </DialogContent>

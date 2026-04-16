@@ -4,10 +4,10 @@ interface BacklogTabsProps {
 }
 
 const TABS = [
-  { key: 'BUG', label: 'Bugs' },
-  { key: 'FEATURE', label: 'Features' },
-  { key: 'HOTFIX', label: 'Hotfixes' },
-  { key: 'CHORE', label: 'Chores' },
+  { key: 'BUG', label: 'Problemas' },
+  { key: 'FEATURE', label: 'Melhorias' },
+  { key: 'HOTFIX', label: 'Urgentes' },
+  { key: 'CHORE', label: 'Tarefas' },
   { key: 'DONE', label: 'Concluídas' },
 ] as const;
 

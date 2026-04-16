@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { toast } from 'sonner';
 import { ChevronDown } from 'lucide-react';
 import {
   Dialog,
@@ -87,6 +88,7 @@ export function TaskFormModal({ open, onOpenChange }: TaskFormModalProps) {
       },
       {
         onSuccess: () => {
+          toast.success('Task criada com sucesso');
           form.reset();
           setShowMore(false);
           onOpenChange(false);

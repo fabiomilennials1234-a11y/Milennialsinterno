@@ -4,7 +4,7 @@ export const STATUS_LABEL_PT: Record<TechTaskStatus, string> = {
   BACKLOG: 'Backlog',
   TODO: 'A fazer',
   IN_PROGRESS: 'Fazendo',
-  REVIEW: 'Em teste',
+  REVIEW: 'Em Review',
   DONE: 'Feito',
 };
 
