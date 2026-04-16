@@ -58,6 +58,7 @@ import { MilennialsTechPage } from "./features/milennials-tech/pages/MilennialsT
 import { BacklogTab } from "./features/milennials-tech/pages/BacklogTab";
 import { KanbanTab } from "./features/milennials-tech/pages/KanbanTab";
 import { SprintsTab } from "./features/milennials-tech/pages/SprintsTab";
+import { SubmitTaskPage } from "./features/milennials-tech/pages/SubmitTaskPage";
 
 const queryClient = new QueryClient();
 
@@ -504,6 +505,11 @@ function AppRoutes() {
         <Route path="kanban" element={<KanbanTab />} />
         <Route path="sprints" element={<SprintsTab />} />
       </Route>
+
+      {/* Submit Task — shared form (any logged-in user) */}
+      <Route path="/milennials-tech/submit" element={
+        <ProtectedRoute><SubmitTaskPage /></ProtectedRoute>
+      } />
 
       {/* 404 */}
       <Route path="*" element={<NotFound />} />
