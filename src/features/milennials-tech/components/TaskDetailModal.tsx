@@ -118,7 +118,7 @@ export function TaskDetailModal({ taskId, open, onOpenChange, onClose }: TaskDet
 
   if (!task) {
     return (
-      <Dialog open onOpenChange={handleClose}>
+      <Dialog open={open !== false} onOpenChange={(v) => { if (!v) handleClose(); }}>
         <DialogContent className="mtech-scope border-[var(--mtech-border)] bg-[var(--mtech-surface)] text-[var(--mtech-text)]">
           <DialogHeader>
             <DialogTitle className="text-[var(--mtech-text)]">Task</DialogTitle>
@@ -136,7 +136,7 @@ export function TaskDetailModal({ taskId, open, onOpenChange, onClose }: TaskDet
   const checklist = (task.checklist as ChecklistItem[] | null) ?? [];
 
   return (
-    <Dialog open onOpenChange={handleClose}>
+    <Dialog open={open !== false} onOpenChange={(v) => { if (!v) handleClose(); }}>
       <DialogContent
         className="mtech-scope max-w-4xl max-h-[85vh] overflow-y-auto border-[var(--mtech-border)] bg-[var(--mtech-surface)] text-[var(--mtech-text)]"
         style={{ boxShadow: '0 24px 64px rgba(0,0,0,0.6)' }}

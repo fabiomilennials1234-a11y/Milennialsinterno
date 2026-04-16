@@ -1,8 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Plus, Search, Inbox } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTechTasks, type TechTaskFilters } from '../hooks/useTechTasks';
+import { useActiveTimer } from '../hooks/useActiveTimer';
 import { BacklogTabs } from '../components/BacklogTabs';
 import { TaskRow } from '../components/TaskRow';
 import { TaskFormModal } from '../components/TaskFormModal';
@@ -16,6 +18,15 @@ export function BacklogTab() {
   const [search, setSearch] = useState('');
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const { activeTaskId } = useActiveTimer();
+
+  const handleOpenTask = useCallback((id: string) => {
+    if (activeTaskId && activeTaskId !== id) {
+      toast.warning('Finalize o timer da task atual antes de abrir outra.');
+      return;
+    }
+    setOpenTaskId(id);
+  }, [activeTaskId]);
 
   // Build filters based on active tab
   const filters = useMemo<TechTaskFilters>(() => {
@@ -116,7 +127,7 @@ export function BacklogTab() {
             <TaskRow
               key={task.id}
               task={task}
-              onClick={() => setOpenTaskId(task.id)}
+              onClick={() => handleOpenTask(task.id)}
             />
           ))}
         </div>
