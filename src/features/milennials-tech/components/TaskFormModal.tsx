@@ -99,8 +99,8 @@ export function TaskFormModal({ open, onOpenChange }: TaskFormModalProps) {
   const errors = form.formState.errors;
 
   const inputCls =
-    'bg-[var(--mtech-surface-elev)] border-[var(--mtech-border)] text-[var(--mtech-text)] placeholder:text-[var(--mtech-text-subtle)] focus-visible:ring-[var(--mtech-accent)] focus-visible:ring-1 focus-visible:ring-offset-0';
-  const labelCls = 'text-xs font-medium text-[var(--mtech-text-muted)]';
+    'bg-[var(--mtech-input-bg)] border-[var(--mtech-input-border)] text-[var(--mtech-text)] placeholder:text-[var(--mtech-text-subtle)] focus-visible:ring-[var(--mtech-input-focus)] focus-visible:ring-1 focus-visible:ring-offset-0';
+  const labelCls = 'text-xs font-semibold text-[var(--mtech-text-muted)] uppercase tracking-wide';
   const errorCls = 'text-[11px] text-[var(--mtech-danger)] mt-0.5';
 
   return (

@@ -58,7 +58,7 @@ export function BacklogTab() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar tasks..."
-            className="pl-9 border-[var(--mtech-border)] bg-[var(--mtech-surface)] text-[var(--mtech-text)] placeholder:text-[var(--mtech-text-subtle)]"
+            className="pl-9 border-[var(--mtech-input-border)] bg-[var(--mtech-input-bg)] text-[var(--mtech-text)] placeholder:text-[var(--mtech-text-subtle)]"
           />
         </div>
         <BacklogTabs activeTab={activeTab} onTabChange={setActiveTab} />

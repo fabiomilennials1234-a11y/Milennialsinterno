@@ -137,7 +137,7 @@ export function TaskDetailModal({ taskId, onClose }: TaskDetailModalProps) {
                   if (e.key === 'Enter') handleTitleSave();
                   if (e.key === 'Escape') setIsEditingTitle(false);
                 }}
-                className="bg-[var(--mtech-surface-elev)] border-[var(--mtech-border)] text-[var(--mtech-text)] text-lg font-semibold"
+                className="bg-[var(--mtech-input-bg)] border-[var(--mtech-input-border)] text-[var(--mtech-text)] text-lg font-semibold"
               />
               <Button
                 size="sm"
@@ -386,7 +386,7 @@ export function TaskDetailModal({ taskId, onClose }: TaskDetailModalProps) {
                     value={blockReason}
                     onChange={(e) => setBlockReason(e.target.value)}
                     placeholder="Motivo..."
-                    className="h-8 w-40 text-xs bg-[var(--mtech-surface-elev)] border-[var(--mtech-border)] text-[var(--mtech-text)]"
+                    className="h-8 w-40 text-xs bg-[var(--mtech-input-bg)] border-[var(--mtech-input-border)] text-[var(--mtech-text)]"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') handleBlock();
                       if (e.key === 'Escape') setShowBlockInput(false);

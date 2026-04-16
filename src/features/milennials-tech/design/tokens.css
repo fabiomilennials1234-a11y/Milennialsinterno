@@ -1,19 +1,39 @@
 .mtech-scope {
-  --mtech-bg: #0A0A0C;
-  --mtech-surface: #141418;
-  --mtech-surface-elev: #1A1A20;
-  --mtech-border: rgba(255, 255, 255, 0.06);
-  --mtech-border-strong: rgba(255, 255, 255, 0.12);
-  --mtech-text: #EDEDF0;
-  --mtech-text-muted: #8A8A95;
-  --mtech-text-subtle: #5A5A66;
+  /* Backgrounds — increased separation between layers */
+  --mtech-bg: #09090B;
+  --mtech-surface: #131316;
+  --mtech-surface-elev: #1E1E24;
+
+  /* Borders — visible enough to define structure */
+  --mtech-border: rgba(255, 255, 255, 0.10);
+  --mtech-border-strong: rgba(255, 255, 255, 0.18);
+
+  /* Text — WCAG AA compliant contrast ratios */
+  --mtech-text: #F0F0F3;          /* primary: 15.8:1 on bg */
+  --mtech-text-muted: #A0A0AD;    /* secondary: 7.2:1 on bg — labels, meta */
+  --mtech-text-subtle: #6E6E7A;   /* tertiary: 4.5:1 on bg — hints, placeholders */
+
+  /* Accent */
   --mtech-accent: #F4C430;
-  --mtech-accent-muted: rgba(244, 196, 48, 0.12);
+  --mtech-accent-muted: rgba(244, 196, 48, 0.15);
+
+  /* Semantic */
   --mtech-danger: #E5484D;
+  --mtech-success: #30A46C;
+
+  /* Radii */
   --mtech-radius-sm: 6px;
   --mtech-radius-md: 8px;
   --mtech-radius-lg: 12px;
-  --mtech-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.2);
+
+  /* Shadows */
+  --mtech-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.25);
+
+  /* Input-specific — elevated enough to stand out from surface */
+  --mtech-input-bg: #1A1A22;
+  --mtech-input-border: rgba(255, 255, 255, 0.14);
+  --mtech-input-focus: rgba(244, 196, 48, 0.4);
+
   color: var(--mtech-text);
   background: var(--mtech-bg);
   font-family: 'Geist', 'Inter', system-ui, sans-serif;

@@ -89,7 +89,7 @@ export function SprintFormModal({ open, onOpenChange, sprint }: SprintFormModalP
             <Input
               {...form.register('name')}
               placeholder="Sprint 01"
-              className="border-[var(--mtech-border)] bg-[var(--mtech-surface-elev)] text-[var(--mtech-text)] placeholder:text-[var(--mtech-text-subtle)]"
+              className="border-[var(--mtech-border)] bg-[var(--mtech-input-bg)] text-[var(--mtech-text)] placeholder:text-[var(--mtech-text-subtle)]"
             />
             {form.formState.errors.name && (
               <span className="text-xs text-[var(--mtech-danger)]">
@@ -106,7 +106,7 @@ export function SprintFormModal({ open, onOpenChange, sprint }: SprintFormModalP
             <Input
               {...form.register('goal')}
               placeholder="Descreva o objetivo da sprint"
-              className="border-[var(--mtech-border)] bg-[var(--mtech-surface-elev)] text-[var(--mtech-text)] placeholder:text-[var(--mtech-text-subtle)]"
+              className="border-[var(--mtech-border)] bg-[var(--mtech-input-bg)] text-[var(--mtech-text)] placeholder:text-[var(--mtech-text-subtle)]"
             />
           </div>
 
@@ -119,7 +119,7 @@ export function SprintFormModal({ open, onOpenChange, sprint }: SprintFormModalP
               <Input
                 type="datetime-local"
                 {...form.register('start_date')}
-                className="border-[var(--mtech-border)] bg-[var(--mtech-surface-elev)] text-[var(--mtech-text)]"
+                className="border-[var(--mtech-border)] bg-[var(--mtech-input-bg)] text-[var(--mtech-text)]"
               />
               {form.formState.errors.start_date && (
                 <span className="text-xs text-[var(--mtech-danger)]">
@@ -134,7 +134,7 @@ export function SprintFormModal({ open, onOpenChange, sprint }: SprintFormModalP
               <Input
                 type="datetime-local"
                 {...form.register('end_date')}
-                className="border-[var(--mtech-border)] bg-[var(--mtech-surface-elev)] text-[var(--mtech-text)]"
+                className="border-[var(--mtech-border)] bg-[var(--mtech-input-bg)] text-[var(--mtech-text)]"
               />
               {form.formState.errors.end_date && (
                 <span className="text-xs text-[var(--mtech-danger)]">
