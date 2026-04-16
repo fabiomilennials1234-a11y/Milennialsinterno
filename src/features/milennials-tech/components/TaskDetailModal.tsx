@@ -26,8 +26,9 @@ import { useTechTasks, useUpdateTechTask, useDeleteTechTask } from '../hooks/use
 import { useTechTaskActivities } from '../hooks/useTechTaskActivities';
 import { useTechTimer } from '../hooks/useTechTimer';
 import { canEditTask, canApprove } from '../lib/permissions';
-import { TYPE_LABEL, STATUS_LABEL_PT, PRIORITY_LABEL } from '../lib/statusLabels';
+import { TYPE_LABEL, STATUS_LABEL_PT, PRIORITY_LABEL, ACTIVITY_LABEL } from '../lib/statusLabels';
 import { TimerButton } from './TimerButton';
+import { useProfileMap } from '../hooks/useProfiles';
 import type { TechTask, TechTaskType, TechTaskPriority, ChecklistItem } from '../types';
 
 interface TaskDetailModalProps {
@@ -66,6 +67,7 @@ const PRIORITY_DOT: Record<TechTaskPriority, string> = {
 
 export function TaskDetailModal({ taskId, onClose }: TaskDetailModalProps) {
   const { user } = useAuth();
+  const profileMap = useProfileMap();
   const { data: tasks } = useTechTasks();
   const { data: activities } = useTechTaskActivities(taskId);
   const { sendToReview, approve, reject, block, unblock } = useTechTimer();
@@ -214,7 +216,9 @@ export function TaskDetailModal({ taskId, onClose }: TaskDetailModalProps) {
                 <h3 className="text-xs font-medium text-[var(--mtech-text-muted)] uppercase tracking-wide mb-1">
                   Responsável
                 </h3>
-                <p className="text-sm text-[var(--mtech-text)]">{task.assignee_id}</p>
+                <p className="text-sm text-[var(--mtech-text)]">
+                  {profileMap[task.assignee_id!] ?? task.assignee_id}
+                </p>
               </div>
             )}
 
@@ -302,7 +306,14 @@ export function TaskDetailModal({ taskId, onClose }: TaskDetailModalProps) {
                 {activities.map((a) => (
                   <li key={a.id} className="relative pl-4 border-l-2 border-[var(--mtech-border)]">
                     <span className="absolute left-[-5px] top-1 h-2 w-2 rounded-full bg-[var(--mtech-border-strong)]" />
-                    <p className="text-xs font-medium text-[var(--mtech-text)]">{a.type}</p>
+                    <p className="text-xs font-medium text-[var(--mtech-text)]">
+                      {ACTIVITY_LABEL[a.type] ?? a.type}
+                      {a.type === 'status_changed' && a.data && typeof a.data === 'object' && 'from' in a.data && 'to' in a.data && (
+                        <span className="font-normal text-[var(--mtech-text-muted)]">
+                          {' '}({STATUS_LABEL_PT[(a.data as {from: string}).from as keyof typeof STATUS_LABEL_PT] ?? (a.data as {from: string}).from} → {STATUS_LABEL_PT[(a.data as {to: string}).to as keyof typeof STATUS_LABEL_PT] ?? (a.data as {to: string}).to})
+                        </span>
+                      )}
+                    </p>
                     <time
                       data-mono
                       className="text-[10px] text-[var(--mtech-text-subtle)]"

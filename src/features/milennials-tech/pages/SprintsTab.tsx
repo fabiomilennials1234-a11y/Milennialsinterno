@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Play, Square, Pencil } from 'lucide-react';
+import { Plus, Play, Square, Pencil, CalendarDays, Inbox } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -65,8 +65,25 @@ export function SprintsTab() {
 
   if (sprintsLoading) {
     return (
-      <div className="flex items-center justify-center h-64 text-[var(--mtech-text-muted)] text-sm">
-        Carregando...
+      <div className="flex gap-6 min-h-[60vh]">
+        <div className="w-72 flex-shrink-0">
+          <div className="flex items-center justify-between mb-4">
+            <div className="h-6 w-16 rounded bg-[var(--mtech-surface-elev)] animate-pulse" />
+            <div className="h-8 w-28 rounded-md bg-[var(--mtech-surface-elev)] animate-pulse" />
+          </div>
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="flex items-center gap-2 px-3 py-2.5 mb-1 rounded-[var(--mtech-radius-sm)] border border-[var(--mtech-border)]">
+              <div className="flex-1 space-y-1.5">
+                <div className="h-4 w-24 rounded bg-[var(--mtech-surface-elev)] animate-pulse" />
+                <div className="h-3 w-32 rounded bg-[var(--mtech-surface-elev)] animate-pulse" />
+              </div>
+              <div className="h-4 w-16 rounded-full bg-[var(--mtech-surface-elev)] animate-pulse" />
+            </div>
+          ))}
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="h-5 w-32 rounded bg-[var(--mtech-surface-elev)] animate-pulse" />
+        </div>
       </div>
     );
   }
@@ -92,9 +109,20 @@ export function SprintsTab() {
 
           <div className="flex flex-col gap-1">
             {sprints.length === 0 && (
-              <p className="text-sm text-[var(--mtech-text-muted)] py-8 text-center">
-                Nenhuma sprint criada.
-              </p>
+              <div className="flex flex-col items-center justify-center py-12 gap-3">
+                <CalendarDays className="h-10 w-10 text-[var(--mtech-text-subtle)] opacity-40" />
+                <p className="text-sm text-[var(--mtech-text-muted)]">Nenhuma sprint criada.</p>
+                {isExec && (
+                  <Button
+                    size="sm"
+                    onClick={handleCreateSprint}
+                    className="bg-[var(--mtech-accent)] text-[var(--mtech-bg)] hover:bg-[var(--mtech-accent)]/90 font-semibold gap-1.5 mt-1"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Criar primeira sprint
+                  </Button>
+                )}
+              </div>
             )}
             {sprints.map((sprint) => {
               const badge = SPRINT_STATUS_BADGE[sprint.status];
@@ -140,8 +168,9 @@ export function SprintsTab() {
         {/* Right panel: selected sprint detail */}
         <div className="flex-1 min-w-0">
           {!activeSprint ? (
-            <div className="flex items-center justify-center h-64 text-[var(--mtech-text-muted)] text-sm">
-              Selecione uma sprint.
+            <div className="flex flex-col items-center justify-center h-64 gap-3">
+              <CalendarDays className="h-10 w-10 text-[var(--mtech-text-subtle)] opacity-40" />
+              <p className="text-sm text-[var(--mtech-text-muted)]">Selecione uma sprint para ver os detalhes.</p>
             </div>
           ) : (
             <>
@@ -230,12 +259,24 @@ export function SprintsTab() {
 
               {/* Tasks table */}
               {tasksLoading ? (
-                <div className="flex items-center justify-center h-40 text-[var(--mtech-text-muted)] text-sm">
-                  Carregando tasks...
+                <div className="rounded-[var(--mtech-radius-md)] border border-[var(--mtech-border)] bg-[var(--mtech-surface)] overflow-hidden">
+                  <div className="flex items-center gap-3 h-9 px-3 border-b border-[var(--mtech-border)] bg-[var(--mtech-surface-elev)]">
+                    {[88, 200, 80, 64, 64, 64, 56].map((w, i) => (
+                      <div key={i} className="animate-pulse rounded bg-[var(--mtech-surface)] h-3" style={{ width: w }} />
+                    ))}
+                  </div>
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className="flex items-center gap-3 h-10 px-3 border-b border-[var(--mtech-border)]">
+                      <div className="w-[88px] flex-shrink-0"><div className="h-4 w-16 rounded-full bg-[var(--mtech-surface-elev)] animate-pulse" /></div>
+                      <div className="flex-1"><div className="h-4 rounded bg-[var(--mtech-surface-elev)] animate-pulse" style={{ width: `${60 + (i * 7) % 30}%` }} /></div>
+                    </div>
+                  ))}
                 </div>
               ) : sprintTasks.length === 0 ? (
-                <div className="flex items-center justify-center h-40 text-[var(--mtech-text-muted)] text-sm">
-                  Nenhuma task nesta sprint.
+                <div className="flex flex-col items-center justify-center py-16 gap-3">
+                  <Inbox className="h-10 w-10 text-[var(--mtech-text-subtle)] opacity-40" />
+                  <p className="text-sm text-[var(--mtech-text-muted)]">Nenhuma task nesta sprint.</p>
+                  <p className="text-xs text-[var(--mtech-text-subtle)]">Atribua tasks do backlog a esta sprint.</p>
                 </div>
               ) : (
                 <div className="rounded-[var(--mtech-radius-md)] border border-[var(--mtech-border)] bg-[var(--mtech-surface)] overflow-hidden">

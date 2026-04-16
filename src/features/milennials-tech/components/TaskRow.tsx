@@ -1,6 +1,7 @@
 import { Bug, Sparkles, Flame, Wrench } from 'lucide-react';
 import type { TechTask, TechTaskType } from '../types';
 import { TYPE_LABEL, STATUS_LABEL_PT, PRIORITY_LABEL } from '../lib/statusLabels';
+import { useProfileMap } from '../hooks/useProfiles';
 import { TimerButton } from './TimerButton';
 
 interface TaskRowProps {
@@ -38,6 +39,7 @@ const TYPE_BG: Record<TechTaskType, string> = {
 // ---------------------------------------------------------------------------
 
 export function TaskRow({ task, onClick }: TaskRowProps) {
+  const profileMap = useProfileMap();
   const TypeIcon = TYPE_ICON[task.type];
 
   const deadlineStr = task.deadline
@@ -73,7 +75,7 @@ export function TaskRow({ task, onClick }: TaskRowProps) {
 
       {/* Assignee placeholder */}
       <span className="w-20 truncate text-xs text-[var(--mtech-text-muted)] text-right flex-shrink-0">
-        {task.assignee_id ? task.assignee_id.slice(0, 8) : '--'}
+        {task.assignee_id ? (profileMap[task.assignee_id] ?? '...') : '--'}
       </span>
 
       {/* Sprint badge */}

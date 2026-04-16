@@ -86,9 +86,30 @@ export function KanbanTab() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64 text-[var(--mtech-text-muted)] text-sm">
-        Carregando...
-      </div>
+      <>
+        <div className="flex items-center justify-between mb-6">
+          <div className="h-6 w-20 rounded bg-[var(--mtech-surface-elev)] animate-pulse" />
+          <div className="h-8 w-28 rounded-md bg-[var(--mtech-surface-elev)] animate-pulse" />
+        </div>
+        <div className="flex gap-5">
+          {[0, 1, 2, 3].map((col) => (
+            <div key={col} className="flex-1 min-w-[260px] max-w-[340px]">
+              <div className="h-4 w-16 rounded bg-[var(--mtech-surface-elev)] animate-pulse mb-4" />
+              <div className="flex flex-col gap-2">
+                {Array.from({ length: 3 - col % 2 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="rounded-[var(--mtech-radius-md)] border border-[var(--mtech-border)] bg-[var(--mtech-surface)] p-3 space-y-2"
+                  >
+                    <div className="h-3 w-14 rounded-full bg-[var(--mtech-surface-elev)] animate-pulse" />
+                    <div className="h-4 w-3/4 rounded bg-[var(--mtech-surface-elev)] animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </>
     );
   }
 

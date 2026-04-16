@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Bug, Sparkles, Flame, Wrench, Lock } from 'lucide-react';
 import type { TechTask, TechTaskType, TechTaskPriority } from '../types';
 import { TYPE_LABEL } from '../lib/statusLabels';
+import { useProfileMap, getInitials } from '../hooks/useProfiles';
 
 interface TaskCardProps {
   task: TechTask;
@@ -33,9 +34,10 @@ const PRIORITY_DOT_COLOR: Record<TechTaskPriority, string> = {
 export function TaskCard({ task, onClick }: TaskCardProps) {
   const { icon: TypeIcon, color: typeColor, bg: typeBg } = TYPE_CONFIG[task.type];
   const dotColor = PRIORITY_DOT_COLOR[task.priority];
+  const profileMap = useProfileMap();
 
-  // Derive initials from assignee_id (will be resolved to name when profile data is available)
-  const initials = task.assignee_id ? task.assignee_id.slice(0, 2).toUpperCase() : null;
+  const assigneeName = task.assignee_id ? profileMap[task.assignee_id] : null;
+  const initials = assigneeName ? getInitials(assigneeName) : null;
 
   return (
     <motion.div
