@@ -248,9 +248,9 @@ export function TaskDetailModal({ taskId, open, onOpenChange, onClose }: TaskDet
                 </span>
               )}
 
-              {(timeTotals[task.id] ?? 0) > 0 && (
-                <span data-mono className="text-xs text-[var(--mtech-text-muted)] px-2 py-0.5 rounded-full border border-[var(--mtech-border)]">
-                  ⏱ {formatTimeTotal(timeTotals[task.id])}
+              {(timeTotals[task.id] ?? 0) > 0 && task.status === 'DONE' && (
+                <span data-mono className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full" style={{ color: 'var(--mtech-success)', background: 'rgba(48, 164, 108, 0.15)', border: '1px solid rgba(48, 164, 108, 0.25)' }}>
+                  ⏱ Tempo total: {formatTimeTotal(timeTotals[task.id])}
                 </span>
               )}
             </div>
@@ -492,8 +492,8 @@ export function TaskDetailModal({ taskId, open, onOpenChange, onClose }: TaskDet
 
         {/* -------- ACTIONS -------- */}
         <div className="flex flex-wrap items-center gap-2 pt-4 mt-4 border-t border-[var(--mtech-border)]">
-          {/* Timer */}
-          <TimerButton taskId={task.id} />
+          {/* Timer — hidden on completed tasks */}
+          {task.status !== 'DONE' && <TimerButton taskId={task.id} />}
 
           {/* Send to Review */}
           {canEdit && task.status === 'IN_PROGRESS' && (

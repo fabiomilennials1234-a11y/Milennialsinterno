@@ -94,7 +94,7 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
         </span>
       </div>
 
-      {/* Row 3: assignee + timer */}
+      {/* Row 3: assignee + timer/time result */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
           {initials && (
@@ -108,12 +108,20 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
             </span>
           )}
         </div>
-        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-          {totalTime && (
-            <span data-mono className="text-[10px] text-[var(--mtech-text-subtle)]">{totalTime}</span>
-          )}
-          <TimerButton taskId={task.id} />
-        </div>
+
+        {task.status === 'DONE' ? (
+          /* Completed: show final time badge */
+          totalTime ? (
+            <span data-mono className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--mtech-success)]/15 text-[var(--mtech-success)] border border-[var(--mtech-success)]/20">
+              ⏱ {totalTime}
+            </span>
+          ) : null
+        ) : (
+          /* In progress: show interactive timer */
+          <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+            <TimerButton taskId={task.id} />
+          </div>
+        )}
       </div>
     </motion.div>
   );
