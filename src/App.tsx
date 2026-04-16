@@ -507,7 +507,7 @@ function AppRoutes() {
       </Route>
 
       {/* Submit Task — shared form (any logged-in user) */}
-      <Route path="/milennials-tech/submit" element={
+      <Route path="/submit-task" element={
         <ProtectedRoute><SubmitTaskPage /></ProtectedRoute>
       } />
 

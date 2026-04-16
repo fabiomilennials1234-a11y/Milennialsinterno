@@ -25,7 +25,7 @@ export function BacklogTab() {
   const isExec = isExecutive(user?.role);
 
   const handleCopyFormLink = useCallback(() => {
-    const url = `${window.location.origin}/milennials-tech/submit`;
+    const url = `${window.location.origin}/submit-task`;
     navigator.clipboard.writeText(url);
     toast.success('Link do formulário copiado!');
   }, []);
