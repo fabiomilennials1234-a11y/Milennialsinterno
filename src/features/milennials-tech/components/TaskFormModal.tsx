@@ -74,11 +74,15 @@ export function TaskFormModal({ open, onOpenChange }: TaskFormModalProps) {
       descParts.push(`**Notas:**\n${values.extra_notes}`);
     }
 
+    // If assignee is set, auto-promote to TODO (appears in Kanban)
+    const hasAssignee = !!values.assignee_id;
+
     createTask.mutate(
       {
         title: values.title,
         description: descParts.join('\n\n'),
         type: values.type,
+        status: hasAssignee ? 'TODO' : 'BACKLOG',
         priority: values.priority,
         assignee_id: values.assignee_id || null,
         deadline: values.deadline || null,

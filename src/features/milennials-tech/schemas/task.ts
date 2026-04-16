@@ -36,12 +36,12 @@ export const taskUpdateSchema = z.object({
 });
 
 export const sprintFormSchema = z.object({
-  name: z.string().min(1).max(200),
+  name: z.string().min(1, 'Nome é obrigatório').max(200),
   goal: z.string().nullable().optional(),
-  start_date: z.string().datetime(),
-  end_date: z.string().datetime(),
+  start_date: z.string().min(1, 'Data de início é obrigatória'),
+  end_date: z.string().min(1, 'Data de fim é obrigatória'),
 }).refine(v => new Date(v.end_date) > new Date(v.start_date), {
-  message: 'end_date must be after start_date',
+  message: 'Data de fim deve ser após o início',
   path: ['end_date'],
 });
 

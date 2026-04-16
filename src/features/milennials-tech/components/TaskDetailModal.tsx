@@ -34,7 +34,9 @@ import {
   GitBranch,
   Pencil,
 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { useTechTasks, useUpdateTechTask, useDeleteTechTask } from '../hooks/useTechTasks';
 import { useTechTaskActivities } from '../hooks/useTechTaskActivities';
 import { useTechTimer } from '../hooks/useTechTimer';
@@ -95,6 +97,28 @@ export function TaskDetailModal({ taskId, open, onOpenChange, onClose }: TaskDet
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
+  const [commentText, setCommentText] = useState('');
+  const [isPostingComment, setIsPostingComment] = useState(false);
+  const qc = useQueryClient();
+
+  const handlePostComment = useCallback(async () => {
+    if (!commentText.trim()) return;
+    setIsPostingComment(true);
+    try {
+      const { error } = await supabase.rpc('tech_add_comment', {
+        _task_id: taskId,
+        _text: commentText.trim(),
+      });
+      if (error) throw error;
+      setCommentText('');
+      qc.invalidateQueries({ queryKey: ['tech', 'activities', taskId] });
+      toast.success('Comentário adicionado');
+    } catch {
+      toast.error('Erro ao postar comentário');
+    } finally {
+      setIsPostingComment(false);
+    }
+  }, [commentText, taskId, qc]);
   const [blockReason, setBlockReason] = useState('');
   const [showBlockInput, setShowBlockInput] = useState(false);
 
@@ -330,19 +354,63 @@ export function TaskDetailModal({ taskId, open, onOpenChange, onClose }: TaskDet
             )}
           </div>
 
-          {/* -------- RIGHT SECTION: Activity timeline -------- */}
+          {/* -------- RIGHT SECTION: Activity timeline + Comments -------- */}
           <div className="border-l border-[var(--mtech-border)] pl-5 space-y-4">
             <h3 className="text-xs font-medium text-[var(--mtech-text-muted)] uppercase tracking-wide">
               Atividade
             </h3>
 
+            {/* Comment input */}
+            <div className="flex gap-2">
+              <Input
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                placeholder="Escreva um comentário..."
+                className="flex-1 h-8 text-xs bg-[var(--mtech-input-bg)] border-[var(--mtech-input-border)] text-[var(--mtech-text)] placeholder:text-[var(--mtech-text-subtle)]"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handlePostComment();
+                  }
+                }}
+              />
+              <Button
+                size="sm"
+                onClick={handlePostComment}
+                disabled={isPostingComment || !commentText.trim()}
+                className="bg-[var(--mtech-accent)] text-black h-8 px-3 text-xs font-semibold"
+              >
+                Enviar
+              </Button>
+            </div>
+
             {!activities || activities.length === 0 ? (
               <p className="text-xs text-[var(--mtech-text-subtle)]">Nenhuma atividade registrada.</p>
             ) : (
               <ul className="space-y-3">
-                {activities.map((a) => (
+                {activities.map((a) => {
+                  const isComment = a.type === 'comment';
+                  const commentData = isComment && a.data && typeof a.data === 'object' && 'text' in a.data
+                    ? (a.data as { text: string }).text
+                    : null;
+                  const authorName = profileMap[a.user_id] ?? null;
+
+                  return (
                   <li key={a.id} className="relative pl-4 border-l-2 border-[var(--mtech-border)]">
-                    <span className="absolute left-[-5px] top-1 h-2 w-2 rounded-full bg-[var(--mtech-border-strong)]" />
+                    <span
+                      className="absolute left-[-5px] top-1 h-2 w-2 rounded-full"
+                      style={{ background: isComment ? 'var(--mtech-accent)' : 'var(--mtech-border-strong)' }}
+                    />
+                    {isComment ? (
+                      <>
+                        <p className="text-xs font-semibold text-[var(--mtech-accent)]">
+                          {authorName ?? 'Usuário'}
+                        </p>
+                        <p className="text-sm text-[var(--mtech-text)] mt-0.5 whitespace-pre-wrap">
+                          {commentData}
+                        </p>
+                      </>
+                    ) : (
                     <p className="text-xs font-medium text-[var(--mtech-text)]">
                       {ACTIVITY_LABEL[a.type] ?? a.type}
                       {a.type === 'status_changed' && a.data && typeof a.data === 'object' && 'from' in a.data && 'to' in a.data && (
@@ -351,6 +419,7 @@ export function TaskDetailModal({ taskId, open, onOpenChange, onClose }: TaskDet
                         </span>
                       )}
                     </p>
+                    )}
                     <time
                       data-mono
                       className="text-[10px] text-[var(--mtech-text-subtle)]"

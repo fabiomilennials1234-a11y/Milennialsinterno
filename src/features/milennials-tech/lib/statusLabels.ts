@@ -51,4 +51,5 @@ export const ACTIVITY_LABEL: Record<string, string> = {
   rejected: 'Rejeitada',
   task_blocked: 'Bloqueada',
   task_unblocked: 'Desbloqueada',
+  comment: 'Comentário',
 };
