@@ -1,0 +1,25 @@
+.mtech-scope {
+  --mtech-bg: #0A0A0C;
+  --mtech-surface: #141418;
+  --mtech-surface-elev: #1A1A20;
+  --mtech-border: rgba(255, 255, 255, 0.06);
+  --mtech-border-strong: rgba(255, 255, 255, 0.12);
+  --mtech-text: #EDEDF0;
+  --mtech-text-muted: #8A8A95;
+  --mtech-text-subtle: #5A5A66;
+  --mtech-accent: #F4C430;
+  --mtech-accent-muted: rgba(244, 196, 48, 0.12);
+  --mtech-danger: #E5484D;
+  --mtech-radius-sm: 6px;
+  --mtech-radius-md: 8px;
+  --mtech-radius-lg: 12px;
+  --mtech-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.2);
+  color: var(--mtech-text);
+  background: var(--mtech-bg);
+  font-family: 'Geist', 'Inter', system-ui, sans-serif;
+  font-feature-settings: 'cv11', 'ss01';
+}
+.mtech-scope [data-mono] {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}

@@ -88,6 +88,20 @@ export default {
           DEFAULT: "hsl(var(--purple))",
           foreground: "hsl(var(--purple-foreground))",
         },
+        // Milennials Tech dark tokens
+        mtech: {
+          bg: 'var(--mtech-bg)',
+          surface: 'var(--mtech-surface)',
+          'surface-elev': 'var(--mtech-surface-elev)',
+          border: 'var(--mtech-border)',
+          'border-strong': 'var(--mtech-border-strong)',
+          text: 'var(--mtech-text)',
+          'text-muted': 'var(--mtech-text-muted)',
+          'text-subtle': 'var(--mtech-text-subtle)',
+          accent: 'var(--mtech-accent)',
+          'accent-muted': 'var(--mtech-accent-muted)',
+          danger: 'var(--mtech-danger)',
+        },
         // Kanban colors
         kanban: {
           column: "hsl(var(--kanban-column))",
