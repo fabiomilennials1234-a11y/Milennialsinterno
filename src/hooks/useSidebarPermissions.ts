@@ -6,7 +6,7 @@ import { useUsers } from '@/hooks/useUsers';
 import { useAdsManagerBoards } from '@/hooks/useAdsManagerBoards';
 import { useOutboundManagerBoards } from '@/hooks/useOutboundManagerBoards';
 import { useCrmManagerBoards } from '@/hooks/useCrmManagerBoards';
-import { ROLE_LABELS, canViewBoard, canViewRole, UserRole } from '@/types/auth';
+import { ROLE_LABELS, canViewBoard, canViewRole, isExecutive, UserRole } from '@/types/auth';
 import { Target } from 'lucide-react';
 
 // ============================================
@@ -37,6 +37,7 @@ export const SPECIAL_ROUTES: Record<string, { path: string; label: string; icon:
  */
 export const ROLE_BOARD_SLUGS: Record<UserRole, string[][]> = {
   ceo: [['ceo']],
+  cto: [['ceo']],
   gestor_projetos: [], // Vê tudo via admin view
 
   // Gestor de Ads: próprio + permitidos
@@ -102,8 +103,9 @@ export const ROLE_BOARD_SLUGS: Record<UserRole, string[][]> = {
  * Cadastro de Clientes é visível apenas para CEO e Gestor de Projetos
  */
 export const ROLE_INDEPENDENT_CATEGORIES: Record<UserRole, string[]> = {
-  ceo: ['*'], // Vê todas
-  gestor_projetos: ['*'], // Vê todas
+  ceo: ['*'],
+  cto: ['*'],
+  gestor_projetos: ['*'],
   gestor_ads: ['produtora', 'atrizes'],
   outbound: ['produtora', 'atrizes'],
   sucesso_cliente: ['produtora', 'atrizes'],
@@ -232,7 +234,7 @@ export function useSidebarPermissions() {
   // Boards visíveis para o cargo do usuário
   const visibleBoards = useMemo(() => {
     if (!user?.role) return [];
-    if (user.role === 'ceo' || user.role === 'gestor_projetos') return [];
+    if (isExecutive(user.role) || user.role === 'gestor_projetos') return [];
 
     const slugGroups = ROLE_BOARD_SLUGS[user.role] || [];
     const picked = slugGroups
