@@ -20,6 +20,7 @@ interface EditUserModalProps {
     category_id: string | null;
     is_coringa: boolean;
     additional_pages: string[];
+    can_access_mtech: boolean;
   }>, newPassword?: string) => void;
   isLoading?: boolean;
 }
@@ -94,6 +95,7 @@ export default function EditUserModal({ isOpen, user, onClose, onSubmit, isLoadi
     squad_id: '',
     category_id: '',
     is_coringa: false,
+    can_access_mtech: false,
   });
   const [additionalPages, setAdditionalPages] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -118,6 +120,7 @@ export default function EditUserModal({ isOpen, user, onClose, onSubmit, isLoadi
         squad_id: user.squad_id || '',
         category_id: user.category_id || '',
         is_coringa: user.is_coringa || false,
+        can_access_mtech: user.can_access_mtech === true,
       });
       setAdditionalPages(user.additional_pages || []);
     }
@@ -173,6 +176,9 @@ export default function EditUserModal({ isOpen, user, onClose, onSubmit, isLoadi
 
   const selectedGroup = groups.find(g => g.id === formData.group_id);
 
+  const mtechByRole = formData.role === 'ceo' || formData.role === 'cto' || formData.role === 'devs';
+  const effectiveMtechAccess = mtechByRole || formData.can_access_mtech;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -187,10 +193,12 @@ export default function EditUserModal({ isOpen, user, onClose, onSubmit, isLoadi
       category_id: string | null;
       is_coringa: boolean;
       additional_pages: string[];
+      can_access_mtech: boolean;
     }> = {
       name: formData.name,
       email: formData.email,
       additional_pages: additionalPages,
+      can_access_mtech: effectiveMtechAccess,
     };
 
     // Só inclui role se não for CEO
@@ -233,6 +241,7 @@ export default function EditUserModal({ isOpen, user, onClose, onSubmit, isLoadi
       squad_id: '',
       category_id: '',
       is_coringa: false,
+      can_access_mtech: false,
     });
     setAdditionalPages([]);
     setErrors({});
@@ -603,6 +612,36 @@ export default function EditUserModal({ isOpen, user, onClose, onSubmit, isLoadi
               )}
             </div>
           )}
+
+          <div className="space-y-2 pt-4 border-t border-border">
+            <label className="block text-sm font-medium text-foreground">Acesso a módulos</label>
+            <label
+              className={cn(
+                "flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors",
+                effectiveMtechAccess ? "bg-primary/10 border-primary/30" : "bg-muted/30 border-border hover:bg-muted/50",
+                mtechByRole && "cursor-not-allowed opacity-90"
+              )}
+              title={mtechByRole ? 'Acesso garantido pelo cargo' : undefined}
+            >
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4 rounded border-border text-primary focus:ring-primary/30"
+                checked={effectiveMtechAccess}
+                disabled={mtechByRole || isLoading}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, can_access_mtech: e.target.checked }))
+                }
+              />
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-medium text-foreground">Milennials Tech</span>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {mtechByRole
+                    ? 'Acesso garantido pelo cargo.'
+                    : 'Permite ver o kanban e backlog técnico independente do cargo.'}
+                </p>
+              </div>
+            </label>
+          </div>
 
           {/* Actions */}
           <div className="flex items-center justify-end gap-3 pt-4">

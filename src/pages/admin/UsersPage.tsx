@@ -102,6 +102,7 @@ export default function UsersPage() {
     category_id: string | null;
     is_coringa: boolean;
     additional_pages: string[];
+    can_access_mtech: boolean;
   }>, newPassword?: string) => {
     try {
       await updateUser.mutateAsync({
