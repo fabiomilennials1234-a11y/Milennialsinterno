@@ -18,7 +18,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { taskFormSchema, type TaskFormValues } from '../schemas/task';
 import { useUploadAttachments } from '../hooks/useTechAttachments';
-import { useTechProfiles } from '../hooks/useProfiles';
 import { TYPE_LABEL_FRIENDLY, PRIORITY_LABEL_FRIENDLY } from '../lib/statusLabels';
 import type { TechTaskType, TechTaskPriority } from '../types';
 
@@ -29,15 +28,12 @@ export function SubmitTaskPage() {
   const { user } = useAuth();
   const uploadAttachments = useUploadAttachments();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { data: profiles = [] } = useTechProfiles();
 
   const [showMore, setShowMore] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [fileError, setFileError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const assignableUsers = profiles;
 
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskFormSchema),
@@ -74,7 +70,9 @@ export function SubmitTaskPage() {
     try {
       setIsSubmitting(true);
 
-      // Create task via RPC (works for any authenticated user)
+      // Create task via RPC (works for any authenticated user).
+      // Assignee is intentionally omitted: submissions always land unassigned
+      // in BACKLOG for the technical team to triage.
       const { data: taskId, error } = await supabase.rpc('tech_submit_task', {
         _title: values.title,
         _description: descParts.join('\n\n'),
@@ -82,7 +80,6 @@ export function SubmitTaskPage() {
         _priority: values.priority,
         _acceptance_criteria: values.acceptance_criteria,
         _technical_context: values.technical_context || null,
-        _assignee_id: values.assignee_id || null,
         _deadline: values.deadline || null,
       });
       if (error) throw error;
@@ -325,29 +322,10 @@ export function SubmitTaskPage() {
             {fileError && <p className={errorCls}>{fileError}</p>}
           </div>
 
-          {/* Assignee + Deadline */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label className={labelCls}>Responsável</Label>
-              <Select
-                value={form.watch('assignee_id') ?? '__none__'}
-                onValueChange={(v) => form.setValue('assignee_id', v === '__none__' ? null : v)}
-              >
-                <SelectTrigger className={inputCls}>
-                  <SelectValue placeholder="Atribuir depois" />
-                </SelectTrigger>
-                <SelectContent className="bg-[var(--mtech-surface-elev)] border border-[var(--mtech-border-strong)] text-[var(--mtech-text)] shadow-xl z-50">
-                  <SelectItem value="__none__">Atribuir depois</SelectItem>
-                  {assignableUsers.map((p) => (
-                    <SelectItem key={p.user_id} value={p.user_id}>{p.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="deadline" className={labelCls}>Prazo</Label>
-              <Input id="deadline" type="date" className={inputCls} {...form.register('deadline')} />
-            </div>
+          {/* Deadline */}
+          <div className="space-y-1">
+            <Label htmlFor="deadline" className={labelCls}>Prazo</Label>
+            <Input id="deadline" type="date" className={inputCls} {...form.register('deadline')} />
           </div>
 
           {/* Expandable */}
