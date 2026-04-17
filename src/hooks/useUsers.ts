@@ -61,7 +61,7 @@ export function useUsers() {
           category_id: profile.category_id,
           is_coringa: profile.is_coringa || false,
           additional_pages: profile.additional_pages || [],
-          can_access_mtech: (profile as any).can_access_mtech === true,
+          can_access_mtech: profile.can_access_mtech === true,
           group_name: (profile.organization_groups as any)?.name || null,
           squad_name: (profile.squads as any)?.name || null,
           category_name: (profile.independent_categories as any)?.name || null,

@@ -65,6 +65,7 @@ const ALL_PAGES = [
 // Páginas padrão por cargo
 const DEFAULT_PAGES_BY_ROLE: Record<UserRole, string[]> = {
   ceo: ALL_PAGES.map(p => p.id),
+  cto: ALL_PAGES.map(p => p.id),
   gestor_projetos: ALL_PAGES.map(p => p.id),
   gestor_ads: ['gestor-ads', 'design', 'editor-video', 'devs', 'produtora', 'atrizes-gravacao', 'gestor-crm', 'consultor-comercial'],
   outbound: ['gestor-ads', 'design', 'editor-video', 'devs', 'produtora', 'atrizes-gravacao', 'gestor-crm', 'consultor-comercial'],

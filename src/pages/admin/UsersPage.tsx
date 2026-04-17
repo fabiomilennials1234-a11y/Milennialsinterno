@@ -35,7 +35,7 @@ export default function UsersPage() {
     queryClient.setQueryData<DbUser[]>(['users'], (old) =>
       old?.map((u) => (u.user_id === row.user_id ? { ...u, can_access_mtech: !prev } : u)) ?? old
     );
-    const { error } = await (supabase.rpc as any)('set_mtech_access', {
+    const { error } = await supabase.rpc('set_mtech_access', {
       _user_id: row.user_id,
       _value: !prev,
     });

@@ -5434,6 +5434,7 @@ export type Database = {
         Row: {
           additional_pages: string[] | null
           avatar: string | null
+          can_access_mtech: boolean
           category_id: string | null
           created_at: string
           email: string
@@ -5449,6 +5450,7 @@ export type Database = {
         Insert: {
           additional_pages?: string[] | null
           avatar?: string | null
+          can_access_mtech?: boolean
           category_id?: string | null
           created_at?: string
           email: string
@@ -5464,6 +5466,7 @@ export type Database = {
         Update: {
           additional_pages?: string[] | null
           avatar?: string | null
+          can_access_mtech?: boolean
           category_id?: string | null
           created_at?: string
           email?: string
@@ -6371,6 +6374,30 @@ export type Database = {
         }
         Relationships: []
       }
+      tech_tags: {
+        Row: {
+          color: string
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          created_by: string
+          id?: string
+          name: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       tech_task_activities: {
         Row: {
           created_at: string
@@ -6406,6 +6433,47 @@ export type Database = {
           },
         ]
       }
+      tech_task_attachments: {
+        Row: {
+          content_type: string | null
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          task_id: string
+          uploaded_by: string
+        }
+        Insert: {
+          content_type?: string | null
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          task_id: string
+          uploaded_by: string
+        }
+        Update: {
+          content_type?: string | null
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          task_id?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tech_task_attachments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tech_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tech_task_collaborators: {
         Row: {
           added_at: string
@@ -6425,6 +6493,36 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "tech_task_collaborators_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tech_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tech_task_tags: {
+        Row: {
+          tag_id: string
+          task_id: string
+        }
+        Insert: {
+          tag_id: string
+          task_id: string
+        }
+        Update: {
+          tag_id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tech_task_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tech_tags"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tech_task_tags_task_id_fkey"
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "tech_tasks"
@@ -7082,6 +7180,14 @@ export type Database = {
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_ceo: { Args: { _user_id: string }; Returns: boolean }
       is_executive: { Args: { _user_id: string }; Returns: boolean }
+      set_mtech_access: {
+        Args: { _user_id: string; _value: boolean }
+        Returns: undefined
+      }
+      tech_add_comment: {
+        Args: { _task_id: string; _text: string }
+        Returns: undefined
+      }
       tech_approve_task: { Args: { _task_id: string }; Returns: undefined }
       tech_block_task: {
         Args: { _reason: string; _task_id: string }
@@ -7089,6 +7195,13 @@ export type Database = {
       }
       tech_can_edit_task: { Args: { _task_id: string }; Returns: boolean }
       tech_end_sprint: { Args: { _sprint_id: string }; Returns: undefined }
+      tech_get_time_totals: {
+        Args: never
+        Returns: {
+          task_id: string
+          total_seconds: number
+        }[]
+      }
       tech_pause_timer: { Args: { _task_id: string }; Returns: undefined }
       tech_reject_task: { Args: { _task_id: string }; Returns: undefined }
       tech_resume_timer: { Args: { _task_id: string }; Returns: undefined }
@@ -7096,6 +7209,29 @@ export type Database = {
       tech_start_sprint: { Args: { _sprint_id: string }; Returns: undefined }
       tech_start_timer: { Args: { _task_id: string }; Returns: undefined }
       tech_stop_timer: { Args: { _task_id: string }; Returns: undefined }
+      tech_submit_attachment: {
+        Args: {
+          _content_type: string
+          _file_name: string
+          _file_path: string
+          _file_size: number
+          _task_id: string
+        }
+        Returns: string
+      }
+      tech_submit_task: {
+        Args: {
+          _acceptance_criteria: string
+          _assignee_id?: string
+          _deadline?: string
+          _description: string
+          _priority: Database["public"]["Enums"]["tech_task_priority"]
+          _technical_context?: string
+          _title: string
+          _type: Database["public"]["Enums"]["tech_task_type"]
+        }
+        Returns: string
+      }
       tech_timer_is_active: {
         Args: { _task_id: string; _user_id: string }
         Returns: boolean
