@@ -32,11 +32,12 @@ Nova migration cria um trigger `BEFORE UPDATE` em `public.tech_tasks` que bloque
 CREATE OR REPLACE FUNCTION public.tech_tasks_lock_created_by()
 RETURNS trigger
 LANGUAGE plpgsql
+SET search_path = public
 AS $$
 BEGIN
   IF NEW.created_by IS DISTINCT FROM OLD.created_by THEN
     RAISE EXCEPTION 'created_by is immutable'
-      USING ERRCODE = '42501';
+      USING ERRCODE = '23514';
   END IF;
   RETURN NEW;
 END;
@@ -52,7 +53,7 @@ CREATE TRIGGER trg_tech_tasks_lock_created_by
 
 **Teste pgTAP** (`supabase/tests/tech_tasks_created_by_immutable_test.sql`) cobre três cenários:
 1. UPDATE normal (outros campos) passa.
-2. UPDATE tentando trocar `created_by` falha com SQLSTATE `42501`.
+2. UPDATE tentando trocar `created_by` falha com SQLSTATE `23514`.
 3. UPDATE como executivo (CEO/CTO) tentando trocar `created_by` também falha — o trigger roda independente da RLS.
 
 ### 3.2 Exibição no card (kanban/backlog)
@@ -138,7 +139,7 @@ Hook existente `useProfileMap()` (`hooks/useProfiles.ts:26`):
 ## 7. Critérios de aceitação
 
 1. Migration + teste pgTAP aplicados no remoto. `supabase db test` passa.
-2. UPDATE direto em `tech_tasks` alterando `created_by` (testado via `execute_sql` no dashboard) retorna erro `42501`.
+2. UPDATE direto em `tech_tasks` alterando `created_by` (testado via `execute_sql` no dashboard) retorna erro `23514` (check_violation).
 3. No kanban, toda task mostra avatar(es) do criador e (quando diferente) do assignee. Hover revela quem é quem.
 4. Quando criador = assignee, card mostra um avatar só com badge "own" discreto.
 5. No modal de detalhes, bloco "Criada por" aparece acima de "Responsável" com nome + data formatada.

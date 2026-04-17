@@ -1,13 +1,11 @@
 -- supabase/tests/tech_tasks_created_by_immutable_test.sql
 -- pgTAP regression test for the tech_tasks created_by immutability trigger.
 --
--- Guards against: migration 20260417120000_tech_tasks_lock_created_by.sql being
--- reverted or a future migration dropping the trigger. If the trigger disappears,
--- any UPDATE path (RLS own, RLS exec, direct SQL) could silently rewrite the
--- task's author — breaking the audit trail the feature exists to preserve.
---
--- Intended to run via `supabase test db` (requires Docker). Kept committed so
--- future maintainers can run it without re-deriving the fixture.
+-- Guards against: migration 20260417120000_tech_tasks_lock_created_by.sql (and
+-- the 20260417120100 hardening follow-up) being reverted, or a future migration
+-- dropping the trigger. If the trigger disappears, any UPDATE path (RLS own,
+-- RLS exec, direct SQL) could silently rewrite the task's author — breaking
+-- the audit trail the feature exists to preserve.
 
 BEGIN;
 
@@ -46,14 +44,14 @@ SELECT lives_ok(
   'UPDATE of non-created_by column succeeds'
 );
 
--- Test 2: UPDATE attempting to change created_by raises 42501
+-- Test 2: UPDATE attempting to change created_by raises 23514
 SELECT throws_ok(
   $$ UPDATE public.tech_tasks
      SET created_by = 'cccccccc-0000-0000-0000-000000000002'::uuid
      WHERE id = 'dddddddd-0000-0000-0000-000000000001'::uuid $$,
-  '42501',
+  '23514',
   'created_by is immutable',
-  'Direct UPDATE of created_by is rejected with SQLSTATE 42501'
+  'Direct UPDATE of created_by is rejected with SQLSTATE 23514 (check_violation)'
 );
 
 -- Test 3: created_by value is unchanged after attempted tamper

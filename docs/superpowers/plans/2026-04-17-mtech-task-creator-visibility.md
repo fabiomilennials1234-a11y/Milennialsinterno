@@ -77,9 +77,9 @@ SELECT throws_ok(
   $$ UPDATE public.tech_tasks
      SET created_by = 'cccccccc-0000-0000-0000-000000000002'::uuid
      WHERE id = 'dddddddd-0000-0000-0000-000000000001'::uuid $$,
-  '42501',
+  '23514',
   'created_by is immutable',
-  'Direct UPDATE of created_by is rejected with SQLSTATE 42501'
+  'Direct UPDATE of created_by is rejected with SQLSTATE 23514 (check_violation)'
 );
 
 -- ============================================================
@@ -122,11 +122,12 @@ Create `supabase/migrations/20260417120000_tech_tasks_lock_created_by.sql`:
 CREATE OR REPLACE FUNCTION public.tech_tasks_lock_created_by()
 RETURNS trigger
 LANGUAGE plpgsql
+SET search_path = public
 AS $$
 BEGIN
   IF NEW.created_by IS DISTINCT FROM OLD.created_by THEN
     RAISE EXCEPTION 'created_by is immutable'
-      USING ERRCODE = '42501';
+      USING ERRCODE = '23514';
   END IF;
   RETURN NEW;
 END;
@@ -148,7 +149,7 @@ supabase db push --linked
 supabase test db --linked --file supabase/tests/tech_tasks_created_by_immutable_test.sql
 ```
 
-Expected: `ok 1 - UPDATE of non-created_by column succeeds`, `ok 2 - Direct UPDATE of created_by is rejected with SQLSTATE 42501`, `ok 3 - created_by retains original author after rejected UPDATE`.
+Expected: `ok 1 - UPDATE of non-created_by column succeeds`, `ok 2 - Direct UPDATE of created_by is rejected with SQLSTATE 23514 (check_violation)`, `ok 3 - created_by retains original author after rejected UPDATE`.
 
 - [ ] **Step 5: Commit**
 
@@ -553,7 +554,7 @@ Expected: both `ok` for all planned tests.
 
 With dev server on, go through the spec's acceptance criteria (section 7) and tick each:
 1. Migration applied, pgTAP green. ✓
-2. Direct UPDATE of `created_by` via Supabase dashboard SQL editor returns `42501 - created_by is immutable`. ✓
+2. Direct UPDATE of `created_by` via Supabase dashboard SQL editor returns `23514 - created_by is immutable`. ✓
 3. Kanban card shows creator (and assignee when different), with correct hover tooltips. ✓
 4. Card with creator = assignee shows single avatar + accent dot. ✓
 5. Detail modal sidebar shows "Criada por {name} / {date}" above "Responsável". ✓
