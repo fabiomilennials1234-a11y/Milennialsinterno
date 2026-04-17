@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.2'
-import { corsHeaders } from '../_shared/cors.ts'
+import { buildCorsHeaders } from '../_shared/cors.ts'
 
 interface CreateUserRequest {
   email: string
@@ -12,9 +12,12 @@ interface CreateUserRequest {
   category_id?: string
   is_coringa?: boolean
   additional_pages?: string[]
+  can_access_mtech?: boolean
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req)
+
   // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -63,7 +66,7 @@ Deno.serve(async (req) => {
     
     // Parse request body
     const body: CreateUserRequest = await req.json()
-    const { email, password, name, role, avatar, group_id, squad_id, category_id, is_coringa, additional_pages } = body
+    const { email, password, name, role, avatar, group_id, squad_id, category_id, is_coringa, additional_pages, can_access_mtech } = body
     
     if (!email || !password || !name || !role) {
       return new Response(
@@ -103,7 +106,8 @@ Deno.serve(async (req) => {
           squad_id: squad_id || null,
           category_id: category_id || null,
           is_coringa: is_coringa || false,
-          additional_pages: additional_pages || []
+          additional_pages: additional_pages || [],
+          can_access_mtech: can_access_mtech === true,
         },
         { onConflict: 'user_id' }
       )

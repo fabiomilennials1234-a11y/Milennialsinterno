@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.2'
-import { corsHeaders } from '../_shared/cors.ts'
+import { buildCorsHeaders } from '../_shared/cors.ts'
 
 interface UpdateUserRequest {
   userId: string
@@ -14,9 +14,12 @@ interface UpdateUserRequest {
   category_id?: string | null
   is_coringa?: boolean
   additional_pages?: string[]
+  can_access_mtech?: boolean
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req)
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -56,7 +59,7 @@ Deno.serve(async (req) => {
     }
     
     const body: UpdateUserRequest = await req.json()
-    const { userId, email, password, name, role, department, avatar, group_id, squad_id, category_id, is_coringa, additional_pages } = body
+    const { userId, email, password, name, role, department, avatar, group_id, squad_id, category_id, is_coringa, additional_pages, can_access_mtech } = body
     
     if (!userId) {
       return new Response(
@@ -110,7 +113,8 @@ Deno.serve(async (req) => {
     if (category_id !== undefined) profileUpdates.category_id = category_id
     if (is_coringa !== undefined) profileUpdates.is_coringa = is_coringa
     if (additional_pages !== undefined) profileUpdates.additional_pages = additional_pages
-    
+    if (can_access_mtech !== undefined) profileUpdates.can_access_mtech = can_access_mtech
+
     if (Object.keys(profileUpdates).length > 0) {
       const { error: profileError } = await supabaseAdmin
         .from('profiles')
