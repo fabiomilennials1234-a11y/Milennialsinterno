@@ -79,6 +79,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         avatar: profile.avatar || undefined,
         group_id: profile.group_id,
         squad_id: profile.squad_id,
+        can_access_mtech: (profile as any).can_access_mtech === true,
       };
     } catch (error) {
       console.error('Error fetching user data:', error);

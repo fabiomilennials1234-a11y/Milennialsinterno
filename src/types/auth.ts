@@ -23,6 +23,7 @@ export interface User {
   email: string;
   role: UserRole;
   avatar?: string;
+  can_access_mtech: boolean;
 }
 
 // Hierarquia de cargos
