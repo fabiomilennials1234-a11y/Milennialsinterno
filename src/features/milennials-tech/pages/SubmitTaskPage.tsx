@@ -84,22 +84,24 @@ export function SubmitTaskPage() {
       });
       if (error) throw error;
 
-      // Upload attachments
+      // Upload attachments. Metadata goes through tech_submit_attachment
+      // (SECURITY DEFINER) so submitters without can_see_tech succeed.
       await uploadAttachments.mutateAsync({
         taskId: taskId as string,
         files,
         userId: user.id,
       });
 
-      // Notify CTO via comment
-      await supabase.rpc('tech_add_comment', {
-        _task_id: taskId as string,
-        _text: `📋 Task enviada via formulário por ${user.name || user.email}`,
-      }).catch(() => {}); // non-critical
+      // The AFTER INSERT trigger on tech_tasks already logs 'task_created'
+      // in the activity feed; no extra comment needed, and tech_add_comment
+      // would fail for submitters without can_see_tech anyway.
 
       setSubmitted(true);
-    } catch {
-      toast.error('Erro ao enviar task');
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Falha desconhecida ao enviar task';
+      console.error('[SubmitTaskPage] submission failed:', err);
+      toast.error(`Erro ao enviar task: ${message}`);
     } finally {
       setIsSubmitting(false);
     }

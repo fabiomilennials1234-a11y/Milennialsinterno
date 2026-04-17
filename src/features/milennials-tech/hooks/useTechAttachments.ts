@@ -46,42 +46,44 @@ export function useUploadAttachments() {
     mutationFn: async ({
       taskId,
       files,
-      userId,
     }: {
       taskId: string;
       files: File[];
-      userId: string;
+      /** Kept for call-site compatibility; uploaded_by is resolved server-side from auth.uid(). */
+      userId?: string;
     }) => {
-      const results: TechAttachment[] = [];
+      const ids: string[] = [];
 
       for (const file of files) {
         const ext = file.name.split('.').pop() ?? 'bin';
         const path = `${taskId}/${crypto.randomUUID()}.${ext}`;
 
-        // Upload to storage
         const { error: uploadError } = await supabase.storage
           .from(BUCKET)
           .upload(path, file, { contentType: file.type });
         if (uploadError) throw uploadError;
 
-        // Save metadata
-        const { data, error: dbError } = await supabase
-          .from('tech_task_attachments')
-          .insert({
-            task_id: taskId,
-            file_name: file.name,
-            file_path: path,
-            file_size: file.size,
-            content_type: file.type,
-            uploaded_by: userId,
-          })
-          .select()
-          .single();
-        if (dbError) throw dbError;
-        results.push(data as TechAttachment);
+        // RPC bypasses table RLS so submitters without can_see_tech can still
+        // persist metadata for tasks they created. Authorization is enforced
+        // inside the function (can_see_tech OR created_by = auth.uid()).
+        // Supabase types.ts is stale — this RPC isn't in the generated
+        // Database type yet. Cast name to sidestep the overload check;
+        // runtime behavior is defined by the migration.
+        const { data: attachmentId, error: rpcError } = await supabase.rpc(
+          'tech_submit_attachment' as never,
+          {
+            _task_id: taskId,
+            _file_name: file.name,
+            _file_path: path,
+            _file_size: file.size,
+            _content_type: file.type,
+          } as never,
+        );
+        if (rpcError) throw rpcError;
+        ids.push(attachmentId as unknown as string);
       }
 
-      return results;
+      return ids;
     },
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: attachmentKeys.task(vars.taskId) });
