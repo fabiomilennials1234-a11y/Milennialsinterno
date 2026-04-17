@@ -1,7 +1,7 @@
 import { Bug, Sparkles, Flame, Wrench } from 'lucide-react';
 import type { TechTask, TechTaskType } from '../types';
 import { TYPE_LABEL, STATUS_LABEL_PT, PRIORITY_LABEL } from '../lib/statusLabels';
-import { useProfileMap } from '../hooks/useProfiles';
+import { useProfileMap, getInitials } from '../hooks/useProfiles';
 import { TimerButton } from './TimerButton';
 
 interface TaskRowProps {
@@ -73,9 +73,72 @@ export function TaskRow({ task, onClick }: TaskRowProps) {
         {task.title}
       </span>
 
-      {/* Assignee placeholder */}
-      <span className="w-20 truncate text-xs text-[var(--mtech-text-muted)] text-right flex-shrink-0">
-        {task.assignee_id ? (profileMap[task.assignee_id] ?? '...') : '--'}
+      {/* Creator + assignee */}
+      <span className="w-28 flex items-center justify-end gap-1.5 text-xs text-[var(--mtech-text-muted)] flex-shrink-0">
+        {(() => {
+          const creatorName = profileMap[task.created_by] ?? null;
+          const creatorInitials = creatorName ? getInitials(creatorName) : '??';
+          const creatorTooltip = creatorName ? `Criada por ${creatorName}` : 'Criador indisponível';
+          const assigneeName = task.assignee_id ? profileMap[task.assignee_id] ?? null : null;
+          const assigneeInitials = task.assignee_id ? (assigneeName ? getInitials(assigneeName) : '??') : null;
+          const assigneeTooltip = assigneeName ? `Responsável: ${assigneeName}` : 'Responsável: usuário removido';
+          const selfAssignedTooltip = assigneeName
+            ? `Criada por ${assigneeName} (responsável)`
+            : 'Criada pelo responsável (usuário removido)';
+          const isSelfAssigned = !!task.assignee_id && task.assignee_id === task.created_by;
+          const assigneeDisplayName = assigneeName ?? (task.assignee_id ? '—' : null);
+
+          if (isSelfAssigned) {
+            return (
+              <>
+                <span
+                  title={selfAssignedTooltip}
+                  className="relative flex items-center justify-center h-5 w-5 rounded-full bg-[var(--mtech-surface-elev)] border border-[var(--mtech-border)] text-[9px] font-semibold select-none"
+                >
+                  {assigneeInitials}
+                  <span
+                    aria-hidden
+                    className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full"
+                    style={{ background: 'var(--mtech-accent)', boxShadow: '0 0 0 1.5px var(--mtech-bg)' }}
+                  />
+                </span>
+                <span className="truncate">{assigneeDisplayName}</span>
+              </>
+            );
+          }
+          if (task.assignee_id) {
+            return (
+              <>
+                <span className="flex items-center -space-x-2">
+                  <span
+                    title={creatorTooltip}
+                    className="flex items-center justify-center h-5 w-5 rounded-full bg-[var(--mtech-surface-elev)] border border-[var(--mtech-border)] text-[9px] font-semibold select-none"
+                  >
+                    {creatorInitials}
+                  </span>
+                  <span
+                    title={assigneeTooltip}
+                    className="flex items-center justify-center h-5 w-5 rounded-full bg-[var(--mtech-surface-elev)] border border-[var(--mtech-border)] text-[9px] font-semibold select-none"
+                  >
+                    {assigneeInitials}
+                  </span>
+                </span>
+                <span className="truncate">{assigneeDisplayName}</span>
+              </>
+            );
+          }
+          return (
+            <>
+              <span
+                title={creatorTooltip}
+                className="flex items-center justify-center h-5 w-5 rounded-full bg-[var(--mtech-surface-elev)] border border-[var(--mtech-border)] text-[9px] font-semibold select-none"
+              >
+                {creatorInitials}
+              </span>
+              <span className="truncate text-[var(--mtech-text-subtle)]">por {creatorName ?? 'removido'}</span>
+            </>
+          );
+        })()}
       </span>
 
       {/* Sprint badge */}
