@@ -44,13 +44,17 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
   const { data: timeTotals = {} } = useTechTimeTotals();
   const totalTime = formatTimeTotal(timeTotals[task.id] ?? 0);
 
-  const assigneeName = task.assignee_id ? profileMap[task.assignee_id] : null;
-  const assigneeInitials = assigneeName ? getInitials(assigneeName) : null;
+  const assigneeName = task.assignee_id ? profileMap[task.assignee_id] ?? null : null;
+  const assigneeInitials = task.assignee_id ? (assigneeName ? getInitials(assigneeName) : '??') : null;
 
   const creatorName = profileMap[task.created_by] ?? null;
   const creatorInitials = creatorName ? getInitials(creatorName) : '??';
   const creatorTooltip = creatorName ? `Criada por ${creatorName}` : 'Criador indisponível';
   const isSelfAssigned = !!task.assignee_id && task.assignee_id === task.created_by;
+  const selfAssignedTooltip = assigneeName
+    ? `Criada por ${assigneeName} (responsável)`
+    : 'Criada pelo responsável (usuário removido)';
+  const assigneeTooltip = assigneeName ? `Responsável: ${assigneeName}` : 'Responsável: usuário removido';
 
   return (
     <motion.div
@@ -104,7 +108,7 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
         <div className="flex items-center gap-1.5 min-w-0">
           {isSelfAssigned ? (
             <span
-              title={`Criada por ${assigneeName} (responsável)`}
+              title={selfAssignedTooltip}
               className="relative flex-shrink-0 flex items-center justify-center h-5 w-5 rounded-full bg-[var(--mtech-surface-elev)] border border-[var(--mtech-border)] text-[9px] font-semibold text-[var(--mtech-text-muted)] select-none"
             >
               {assigneeInitials}
@@ -123,7 +127,7 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
                 {creatorInitials}
               </span>
               <span
-                title={`Responsável: ${assigneeName}`}
+                title={assigneeTooltip}
                 className="flex items-center justify-center h-5 w-5 rounded-full bg-[var(--mtech-surface-elev)] border border-[var(--mtech-border)] text-[9px] font-semibold text-[var(--mtech-text-muted)] select-none"
               >
                 {assigneeInitials}
