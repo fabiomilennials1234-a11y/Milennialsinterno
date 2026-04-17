@@ -20,6 +20,7 @@ interface CreateUserModalProps {
     category_id?: string;
     is_coringa?: boolean;
     additional_pages?: string[];
+    can_access_mtech?: boolean;
   }, password: string) => void;
   isLoading?: boolean;
 }
@@ -293,6 +294,7 @@ export default function CreateUserModal({ isOpen, onClose, onSubmit, isLoading }
     name: '', email: '', password: '',
     role: '' as UserRole | '',
     group_id: '', squad_id: '', category_id: '',
+    can_access_mtech: false,
   });
   const [additionalPages, setAdditionalPages] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -304,6 +306,8 @@ export default function CreateUserModal({ isOpen, onClose, onSubmit, isLoading }
   const assignmentType = formData.role ? getRoleAssignmentType(formData.role as UserRole) : null;
   const isCoringa = formData.role ? isCoringaRole(formData.role as UserRole) : false;
   const selectedGroup = groups.find(g => g.id === formData.group_id);
+  const mtechByRole = formData.role === 'ceo' || formData.role === 'cto' || formData.role === 'devs';
+  const effectiveMtechAccess = mtechByRole || formData.can_access_mtech;
 
   const selectedCustomRole = useMemo(() => {
     if (!selectedCustomRoleId) return null;
@@ -386,6 +390,7 @@ export default function CreateUserModal({ isOpen, onClose, onSubmit, isLoading }
         email: formData.email,
         role: 'gestor_projetos' as UserRole,
         additional_pages: selectedCustomRole.allowed_pages,
+        can_access_mtech: formData.can_access_mtech,
       }, formData.password);
     } else {
       // Cargo padrão do sistema
@@ -400,13 +405,14 @@ export default function CreateUserModal({ isOpen, onClose, onSubmit, isLoading }
         category_id: assignmentType === 'independent' ? formData.category_id : undefined,
         is_coringa: isCoringa,
         additional_pages: finalAdditionalPages.length > 0 ? finalAdditionalPages : undefined,
+        can_access_mtech: effectiveMtechAccess,
       }, formData.password);
     }
   };
 
   const handleClose = () => {
     if (isLoading) return;
-    setFormData({ name: '', email: '', password: '', role: '', group_id: '', squad_id: '', category_id: '' });
+    setFormData({ name: '', email: '', password: '', role: '', group_id: '', squad_id: '', category_id: '', can_access_mtech: false });
     setAdditionalPages([]);
     setErrors({});
     setShowCreateProfile(false);
@@ -691,6 +697,42 @@ export default function CreateUserModal({ isOpen, onClose, onSubmit, isLoading }
                   )}
                 </div>
               )}
+
+              {/* ═══ ACESSO A MÓDULOS ═══ */}
+              <div className="space-y-2 pt-4 border-t border-border">
+                <label className="block text-sm font-medium text-foreground flex items-center gap-2">
+                  <Shield size={14} />
+                  Acesso a módulos
+                </label>
+                <label
+                  className={cn(
+                    "flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors",
+                    effectiveMtechAccess
+                      ? "bg-primary/10 border-primary/30"
+                      : "bg-muted/30 border-border hover:bg-muted/50",
+                    mtechByRole && "cursor-not-allowed opacity-90"
+                  )}
+                  title={mtechByRole ? 'Acesso garantido pelo cargo' : undefined}
+                >
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4 rounded border-border text-primary focus:ring-primary/30"
+                    checked={effectiveMtechAccess}
+                    disabled={mtechByRole || isLoading}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, can_access_mtech: e.target.checked }))
+                    }
+                  />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-medium text-foreground">Milennials Tech</span>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {mtechByRole
+                        ? 'Acesso garantido pelo cargo.'
+                        : 'Permite ver o kanban e backlog técnico independente do cargo.'}
+                    </p>
+                  </div>
+                </label>
+              </div>
 
               {/* Actions */}
               <div className="flex items-center justify-end gap-3 pt-4">

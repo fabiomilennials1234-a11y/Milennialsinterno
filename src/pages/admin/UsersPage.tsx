@@ -66,6 +66,7 @@ export default function UsersPage() {
     category_id?: string;
     is_coringa?: boolean;
     additional_pages?: string[];
+    can_access_mtech?: boolean;
   }, password: string) => {
     try {
       await createUser.mutateAsync({
@@ -78,6 +79,7 @@ export default function UsersPage() {
         category_id: newUser.category_id,
         is_coringa: newUser.is_coringa,
         additional_pages: newUser.additional_pages,
+        can_access_mtech: newUser.can_access_mtech,
       });
       
       setIsCreateModalOpen(false);
