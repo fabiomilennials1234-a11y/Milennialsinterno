@@ -321,6 +321,43 @@ export function TaskDetailModal({ taskId, open, onOpenChange, onClose }: TaskDet
               </div>
             )}
 
+            {/* Creator */}
+            <div>
+              <h3 className="text-xs font-medium text-[var(--mtech-text-muted)] uppercase tracking-wide mb-1">
+                Criada por
+              </h3>
+              {(() => {
+                const creatorName = profileMap[task.created_by] ?? null;
+                const creatorLabel = creatorName ?? 'Usuário removido';
+                const createdAt = new Date(task.created_at).toLocaleString('pt-BR', {
+                  day: '2-digit',
+                  month: 'short',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                });
+                return (
+                  <div className="flex flex-col gap-0.5">
+                    <p
+                      className={
+                        creatorName
+                          ? 'text-sm font-medium text-[var(--mtech-text)]'
+                          : 'text-sm italic text-[var(--mtech-text-muted)]'
+                      }
+                    >
+                      {creatorLabel}
+                    </p>
+                    <time
+                      data-mono
+                      dateTime={task.created_at}
+                      className="text-[11px] text-[var(--mtech-text-subtle)]"
+                    >
+                      {createdAt}
+                    </time>
+                  </div>
+                );
+              })()}
+            </div>
+
             {/* Assignee */}
             {task.assignee_id && (
               <div>
