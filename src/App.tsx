@@ -60,7 +60,19 @@ import { KanbanTab } from "./features/milennials-tech/pages/KanbanTab";
 import { SprintsTab } from "./features/milennials-tech/pages/SprintsTab";
 import { SubmitTaskPage } from "./features/milennials-tech/pages/SubmitTaskPage";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      gcTime: 5 * 60_000,
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+    mutations: {
+      retry: 0,
+    },
+  },
+});
 
 // Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -92,7 +104,7 @@ function ExecutiveRoute({ children }: { children: React.ReactNode }) {
 function MilennialsTechRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, user } = useAuth();
   if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (!(isExecutive(user?.role) || user?.role === 'devs')) {
+  if (!(isExecutive(user?.role) || user?.role === 'devs' || user?.can_access_mtech)) {
     return <Navigate to="/dashboard" replace />;
   }
   return <>{children}</>;
