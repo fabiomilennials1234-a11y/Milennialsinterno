@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { sprintFormSchema, type SprintFormValues } from '../schemas/task';
 import { useCreateTechSprint, useUpdateTechSprint } from '../hooks/useTechSprints';
 import { useTechTasks, useUpdateTechTask } from '../hooks/useTechTasks';
-import { useProfileMap } from '../hooks/useProfiles';
+import { useProfileMap, getInitials } from '../hooks/useProfiles';
 import { TYPE_LABEL_FRIENDLY } from '../lib/statusLabels';
 import type { TechSprint } from '../types';
 
@@ -246,7 +246,19 @@ export function SprintFormModal({ open, onOpenChange, sprint }: SprintFormModalP
                 {availableTasks.map((task) => {
                   const isSelected = selectedTaskIds.has(task.id);
                   const typeFriendly = TYPE_LABEL_FRIENDLY[task.type];
-                  const assigneeName = task.assignee_id ? profileMap[task.assignee_id] : null;
+                  const resolvedAssigneeName = task.assignee_id ? profileMap[task.assignee_id] ?? null : null;
+                  const assigneeInitials = task.assignee_id
+                    ? (resolvedAssigneeName ? getInitials(resolvedAssigneeName) : '??')
+                    : null;
+                  const creatorName = profileMap[task.created_by] ?? null;
+                  const creatorInitials = creatorName ? getInitials(creatorName) : '??';
+                  const creatorTooltip = creatorName ? `Criada por ${creatorName}` : 'Criador indisponível';
+                  const assigneeTooltip = resolvedAssigneeName ? `Responsável: ${resolvedAssigneeName}` : 'Responsável: usuário removido';
+                  const selfAssignedTooltip = resolvedAssigneeName
+                    ? `Criada por ${resolvedAssigneeName} (responsável)`
+                    : 'Criada pelo responsável (usuário removido)';
+                  const isSelfAssigned = !!task.assignee_id && task.assignee_id === task.created_by;
+                  const assigneeLabel = resolvedAssigneeName ?? (task.assignee_id ? '—' : null);
 
                   return (
                     <button
@@ -285,12 +297,45 @@ export function SprintFormModal({ open, onOpenChange, sprint }: SprintFormModalP
                         {task.title}
                       </span>
 
-                      {/* Assignee */}
-                      {assigneeName && (
-                        <span className="flex-shrink-0 text-[10px] text-[var(--mtech-text-subtle)]">
-                          {assigneeName}
-                        </span>
-                      )}
+                      {/* Creator + assignee avatars */}
+                      <span className="flex-shrink-0 flex items-center gap-1.5 text-[10px] text-[var(--mtech-text-subtle)]">
+                        {isSelfAssigned ? (
+                          <span
+                            title={selfAssignedTooltip}
+                            className="relative flex items-center justify-center h-4 w-4 rounded-full bg-[var(--mtech-surface-elev)] border border-[var(--mtech-border)] text-[8px] font-semibold select-none"
+                          >
+                            {assigneeInitials}
+                            <span
+                              aria-hidden
+                              className="absolute -bottom-0.5 -right-0.5 h-1.5 w-1.5 rounded-full"
+                              style={{ background: 'var(--mtech-accent)', boxShadow: '0 0 0 1px var(--mtech-bg)' }}
+                            />
+                          </span>
+                        ) : task.assignee_id ? (
+                          <span className="flex items-center -space-x-1.5">
+                            <span
+                              title={creatorTooltip}
+                              className="flex items-center justify-center h-4 w-4 rounded-full bg-[var(--mtech-surface-elev)] border border-[var(--mtech-border)] text-[8px] font-semibold select-none"
+                            >
+                              {creatorInitials}
+                            </span>
+                            <span
+                              title={assigneeTooltip}
+                              className="flex items-center justify-center h-4 w-4 rounded-full bg-[var(--mtech-surface-elev)] border border-[var(--mtech-border)] text-[8px] font-semibold select-none"
+                            >
+                              {assigneeInitials}
+                            </span>
+                          </span>
+                        ) : (
+                          <span
+                            title={creatorTooltip}
+                            className="flex items-center justify-center h-4 w-4 rounded-full bg-[var(--mtech-surface-elev)] border border-[var(--mtech-border)] text-[8px] font-semibold select-none"
+                          >
+                            {creatorInitials}
+                          </span>
+                        )}
+                        {assigneeLabel ?? (creatorName ? `por ${creatorName}` : '')}
+                      </span>
                     </button>
                   );
                 })}
