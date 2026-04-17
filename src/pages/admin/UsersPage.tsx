@@ -14,6 +14,8 @@ import CreateUserModal from '@/components/admin/CreateUserModal';
 import EditUserModal from '@/components/admin/EditUserModal';
 import { toast } from 'sonner';
 import { useUsers, useCreateUser, useUpdateUser, useDeleteUser, DbUser } from '@/hooks/useUsers';
+import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function UsersPage() {
   const { user: currentUser, isAdminUser, isCEO, canManageUsersFlag, userGroupId, userSquadId } = useAuth();
@@ -25,6 +27,25 @@ export default function UsersPage() {
   const createUser = useCreateUser();
   const updateUser = useUpdateUser();
   const deleteUser = useDeleteUser();
+
+  const queryClient = useQueryClient();
+
+  const toggleMtechAccess = async (row: DbUser) => {
+    const prev = row.can_access_mtech;
+    queryClient.setQueryData<DbUser[]>(['users'], (old) =>
+      old?.map((u) => (u.user_id === row.user_id ? { ...u, can_access_mtech: !prev } : u)) ?? old
+    );
+    const { error } = await (supabase.rpc as any)('set_mtech_access', {
+      _user_id: row.user_id,
+      _value: !prev,
+    });
+    if (error) {
+      queryClient.setQueryData<DbUser[]>(['users'], (old) =>
+        old?.map((u) => (u.user_id === row.user_id ? { ...u, can_access_mtech: prev } : u)) ?? old
+      );
+      toast.error('Falha ao atualizar acesso Milennials Tech');
+    }
+  };
 
   // CEO, Gestor de Projetos e Sucesso do Cliente podem acessar esta página
   if (!canManageUsersFlag) {
@@ -218,6 +239,9 @@ export default function UsersPage() {
                   <th className="px-6 py-4 text-left text-xs font-display font-semibold uppercase tracking-wider text-muted-foreground">
                     E-mail
                   </th>
+                  <th className="px-6 py-4 text-left text-xs font-display font-semibold uppercase tracking-wider text-muted-foreground">
+                    Milennials Tech
+                  </th>
                   <th className="px-6 py-4 text-right text-xs font-display font-semibold uppercase tracking-wider text-muted-foreground">
                     Ações
                   </th>
@@ -226,7 +250,7 @@ export default function UsersPage() {
               <tbody className="divide-y divide-border">
                 {filteredUsers.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
+                    <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
                       {searchQuery ? 'Nenhum usuário encontrado' : 'Nenhum usuário cadastrado'}
                     </td>
                   </tr>
@@ -286,6 +310,26 @@ export default function UsersPage() {
                       </td>
                       <td className="px-6 py-4">
                         <span className="text-sm text-foreground font-mono">{user.email}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        {user.role === 'ceo' || user.role === 'cto' || user.role === 'devs' ? (
+                          <span
+                            className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-muted text-muted-foreground"
+                            title="Acesso garantido pelo cargo"
+                          >
+                            Incluso
+                          </span>
+                        ) : (
+                          <label className="inline-flex items-center cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              className="sr-only peer"
+                              checked={user.can_access_mtech}
+                              onChange={() => toggleMtechAccess(user)}
+                            />
+                            <span className="relative h-5 w-9 rounded-full bg-muted peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:h-4 after:w-4 after:rounded-full after:bg-background after:transition-transform peer-checked:after:translate-x-4" />
+                          </label>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <DropdownMenu>
