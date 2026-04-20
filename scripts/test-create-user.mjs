@@ -8,12 +8,14 @@ import { createClient } from '@supabase/supabase-js'
 import { readFileSync, existsSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
+import { randomBytes } from 'crypto'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const rootDir = join(__dirname, '..')
 
 function loadEnv() {
-  for (const name of ['.env', '.env.local']) {
+  // .env.scripts loaded last so CEO_INITIAL_PASSWORD (secrets) wins.
+  for (const name of ['.env', '.env.local', '.env.scripts']) {
     const path = join(rootDir, name)
     if (!existsSync(path)) continue
     const content = readFileSync(path, 'utf8').replace(/^\uFEFF/, '')
@@ -29,7 +31,6 @@ function loadEnv() {
       }
       process.env[key] = val
     }
-    break
   }
 }
 
@@ -38,11 +39,18 @@ loadEnv()
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL
 const ANON_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY
 const CEO_EMAIL = 'gabrielgipp04@gmail.com'
-const CEO_PASSWORD = 'Aurelio01@'
+const CEO_PASSWORD = process.env.CEO_INITIAL_PASSWORD
 
+if (!CEO_PASSWORD) {
+  console.error('Erro: CEO_INITIAL_PASSWORD não setada em .env.scripts.')
+  console.error('Sem ela esse script não consegue logar como CEO pra testar a edge function.')
+  process.exit(1)
+}
+
+// Senha random forte pro usuário descartável de teste — nunca reutilizada.
 const TEST_USER = {
   email: `teste-${Date.now()}@teste.com`,
-  password: 'SenhaTeste123!',
+  password: `T!${randomBytes(16).toString('hex')}`,
   name: 'Usuário Teste',
   role: 'design',
 }

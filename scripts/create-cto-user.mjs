@@ -39,7 +39,7 @@ const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 const EMAIL = 'marcelo.montemezzo19@gmail.com'
-const PASSWORD = '***REDACTED***'
+const PASSWORD = process.env.CTO_INITIAL_PASSWORD
 const NAME = 'Marcelo Montemezzo'
 const ROLE = 'cto'
 
@@ -48,6 +48,13 @@ if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
   if (!SUPABASE_URL) console.error('  - VITE_SUPABASE_URL (ou SUPABASE_URL) está faltando.')
   if (!SERVICE_ROLE_KEY) console.error('  - SUPABASE_SERVICE_ROLE_KEY está faltando.')
   console.error('Service Role Key: Dashboard > Project Settings > API > service_role (secret).')
+  process.exit(1)
+}
+
+if (!PASSWORD) {
+  console.error('Erro: CTO_INITIAL_PASSWORD não setada em .env.scripts.')
+  console.error('Defina uma senha forte (ex: openssl rand -base64 20) e rode de novo.')
+  console.error('Nunca commite essa variável — .env.scripts está no .gitignore.')
   process.exit(1)
 }
 
