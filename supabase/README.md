@@ -54,7 +54,6 @@ As funções em `functions/` devem ser deployadas no mesmo projeto Supabase:
 | `create-user` | CEO cria usuário (auth + profile + role). Chamada pelo front com token do CEO. |
 | `update-user` | CEO atualiza usuário (email, senha, nome, role, group_id, squad_id, etc.). |
 | `delete-user` | CEO remove usuário (auth + profile + roles). |
-| `setup-ceo` | Configuração inicial do primeiro usuário CEO. |
 | `check-scheduled-notifications` | Agendamento de notificações. |
 | `summarize-weekly-problems` | Resumo semanal de problemas. |
 | `delete-group` | Exclusão de grupo. |
