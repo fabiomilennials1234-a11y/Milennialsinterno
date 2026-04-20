@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { useUsers, useCreateUser, useUpdateUser, useDeleteUser, DbUser } from '@/hooks/useUsers';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { FEATURE_FLAGS } from '@/lib/featureFlags';
 
 export default function UsersPage() {
   const { user: currentUser, isAdminUser, isCEO, canManageUsersFlag, userGroupId, userSquadId } = useAuth();
@@ -90,7 +91,7 @@ export default function UsersPage() {
     can_access_mtech?: boolean;
   }, password: string) => {
     try {
-      await createUser.mutateAsync({
+      const response = await createUser.mutateAsync({
         email: newUser.email,
         password,
         name: newUser.name,
@@ -102,7 +103,27 @@ export default function UsersPage() {
         additional_pages: newUser.additional_pages,
         can_access_mtech: newUser.can_access_mtech,
       });
-      
+
+      // Dual-write: popula user_page_grants em paralelo. O grant é idempotente
+      // (ON CONFLICT) e source='direct' reflete escolha manual do admin no modal.
+      if (FEATURE_FLAGS.USE_PAGE_GRANTS && newUser.additional_pages?.length) {
+        const newUserId = response?.user?.id as string | undefined;
+        if (newUserId) {
+          const { error } = await supabase.rpc('grant_pages', {
+            _user_id: newUserId,
+            _page_slugs: newUser.additional_pages,
+            _source: 'direct',
+            _reason: 'created via UI',
+          });
+          if (error) {
+            console.error('[grant_pages] create failed', error);
+            toast.warning('Usuário criado, mas gravação em user_page_grants falhou.', {
+              description: error.message,
+            });
+          }
+        }
+      }
+
       setIsCreateModalOpen(false);
       toast.success('Usuário criado com sucesso!', {
         description: `${newUser.name} foi adicionado como ${ROLE_LABELS[newUser.role]}`,
@@ -131,7 +152,32 @@ export default function UsersPage() {
         ...updates,
         password: newPassword,
       });
-      
+
+      // Dual-write: mesma ideia do handleCreateUser. Só aplica quando o admin
+      // explicitamente passou additional_pages na edição (o modal sempre passa,
+      // mesmo que vazio — então additional_pages === [] reflete "nenhum extra").
+      //
+      // Gap conhecido: não revoga grants que o admin removeu do array. Um cenário
+      // de parity total exige um reconcile dedicado (planejado pro cutover).
+      if (
+        FEATURE_FLAGS.USE_PAGE_GRANTS &&
+        updates.additional_pages &&
+        updates.additional_pages.length > 0
+      ) {
+        const { error } = await supabase.rpc('grant_pages', {
+          _user_id: userId,
+          _page_slugs: updates.additional_pages,
+          _source: 'direct',
+          _reason: 'updated via UI',
+        });
+        if (error) {
+          console.error('[grant_pages] update failed', error);
+          toast.warning('Usuário atualizado, mas gravação em user_page_grants falhou.', {
+            description: error.message,
+          });
+        }
+      }
+
       setEditingUser(null);
       toast.success('Usuário atualizado!', {
         description: 'As alterações foram salvas com sucesso.',

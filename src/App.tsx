@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { isExecutive } from "@/types/auth";
 import { JustificationProvider } from "@/contexts/JustificationContext";
+import { usePermissionDivergenceLogger } from "@/hooks/usePermissionDivergenceLogger";
 
 // Pages
 import LoginPage from "./pages/LoginPage";
@@ -192,6 +193,11 @@ function DefaultRedirect() {
 }
 
 function AppRoutes() {
+  // Shadow comparator: loga divergências entre o modelo legado de permissões
+  // e o novo user_page_grants. Observacional — não altera UI. Ver
+  // usePermissionDivergenceLogger para detalhes.
+  usePermissionDivergenceLogger();
+
   return (
     <Routes>
       {/* Public Routes */}
