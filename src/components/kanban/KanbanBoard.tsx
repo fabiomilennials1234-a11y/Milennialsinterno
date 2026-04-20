@@ -1,7 +1,11 @@
 import { useState, useCallback, useMemo } from 'react';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
 import { useAuth } from '@/contexts/AuthContext';
-import { Plus, Filter, Loader2 } from 'lucide-react';
+import { Plus, Loader2, Command } from 'lucide-react';
+import { useColumnCollapse } from '@/hooks/useColumnCollapse';
+import { useKanbanKeyboard } from '@/hooks/useKanbanKeyboard';
+import KanbanFilters, { applyKanbanFilter, type KanbanFilter } from './KanbanFilters';
+import KanbanQuickSearch from './KanbanQuickSearch';
 import { 
   useBoard, 
   useBoardColumns, 
@@ -109,12 +113,49 @@ function StandardKanbanBoard({ boardSlug }: KanbanBoardProps) {
       ? canArchiveVideoCard(userRole) 
       : canMoveFreely;
 
+  const [filter, setFilter] = useState<KanbanFilter>('all');
+  const [focusModeOn, setFocusModeOn] = useState(false);
+
+  const filteredCards = useMemo(() => applyKanbanFilter(cards, filter), [cards, filter]);
+
   const cardsByColumn = columns.reduce((acc, column) => {
-    acc[column.id] = cards
+    acc[column.id] = filteredCards
       .filter(card => card.column_id === column.id)
       .sort((a, b) => a.position - b.position);
     return acc;
   }, {} as Record<string, KanbanCard[]>);
+
+  const { isCollapsed, toggle: toggleCollapse } = useColumnCollapse(boardSlug);
+
+  const visibleColumns = useMemo(() => {
+    return isDesignBoard ? designerColumns : isVideoBoard ? editorColumns : columns;
+  }, [isDesignBoard, isVideoBoard, designerColumns, editorColumns, columns]);
+
+  const { focusedCardId } = useKanbanKeyboard({
+    columns: visibleColumns,
+    cardsByColumn,
+    onOpenCard: (card) => {
+      setSelectedCard(card);
+      setIsCardDetailOpen(true);
+    },
+    onCreateCard: canCreateCard
+      ? (columnId) => {
+          setSelectedColumnId(columnId);
+          setIsCreateModalOpen(true);
+        }
+      : undefined,
+    onArchiveCard: canDelete ? (card) => handleArchiveCard(card) : undefined,
+    onDeleteCard: canDelete ? (card) => handleDeleteCard(card) : undefined,
+    onToggleFocusMode: () => setFocusModeOn(v => !v),
+    enabled: !isSpecialBoard,
+  });
+
+  const columnsToRender = useMemo(() => {
+    if (!focusModeOn || !focusedCardId) return visibleColumns;
+    const focusedColumnId = cards.find(c => c.id === focusedCardId)?.column_id;
+    if (!focusedColumnId) return visibleColumns;
+    return visibleColumns.filter(c => c.id === focusedColumnId);
+  }, [focusModeOn, focusedCardId, visibleColumns, cards]);
 
   const handleDragEnd = useCallback(async (result: DropResult) => {
     const { destination, source, draggableId } = result;
@@ -245,35 +286,50 @@ function StandardKanbanBoard({ boardSlug }: KanbanBoardProps) {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="px-6 py-4 flex items-center justify-between border-b border-border bg-card/30">
-        <div>
-          <h2 className="font-display text-lg font-bold uppercase tracking-wider text-foreground">
+      <div className="px-6 py-4 flex items-center justify-between gap-4 border-b border-border bg-card/30 flex-wrap">
+        <div className="min-w-0">
+          <h2 className="text-[18px] font-semibold tracking-[-0.02em] text-foreground truncate">
             {board.name}
           </h2>
-          {board.description && <p className="text-sm text-muted-foreground mt-0.5">{board.description}</p>}
+          {board.description && <p className="text-[13px] text-muted-foreground mt-0.5 truncate">{board.description}</p>}
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-success/10 text-success text-xs font-medium">
+        <div className="flex items-center gap-3 flex-wrap">
+          <KanbanFilters cards={cards} value={filter} onChange={setFilter} />
+          {focusModeOn && (
+            <button
+              onClick={() => setFocusModeOn(false)}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-primary/10 text-primary text-[12px] font-medium hover:bg-primary/15 transition-colors"
+              title="Sair do modo foco (F)"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+              Modo foco
+            </button>
+          )}
+          <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/50 text-muted-foreground text-[11px] font-medium">
+            <Command size={11} strokeWidth={2.5} />
+            <span>
+              <kbd className="px-1 rounded bg-background text-foreground/80 font-mono">C</kbd> criar ·{' '}
+              <kbd className="px-1 rounded bg-background text-foreground/80 font-mono">F</kbd> foco ·{' '}
+              <kbd className="px-1 rounded bg-background text-foreground/80 font-mono">⌘K</kbd> buscar
+            </span>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-success/10 text-success text-[11px] font-medium">
             <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
             Tempo real
           </div>
           {canCreateCard && isSpecialBoard && (
             <button onClick={() => setIsCreateModalOpen(true)} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:brightness-105 transition-all">
               <Plus size={16} />
-              <span>Nova Demanda</span>
+              <span>Nova demanda</span>
             </button>
           )}
-          <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
-            <Filter size={16} />
-            <span>Filtros</span>
-          </button>
         </div>
       </div>
 
       <div className="flex-1 overflow-x-auto overflow-y-hidden scrollbar-elegant">
         <DragDropContext onDragEnd={handleDragEnd}>
           <div className="flex gap-4 p-6 h-full">
-            {(isDesignBoard ? designerColumns : isVideoBoard ? editorColumns : columns).map((column, index) => (
+            {columnsToRender.map((column, index) => (
               isDesignBoard ? (
                 <DesignKanbanColumn
                   key={column.id}
@@ -286,6 +342,8 @@ function StandardKanbanBoard({ boardSlug }: KanbanBoardProps) {
                   onArchiveCard={canDelete ? handleArchiveCard : undefined}
                   onDeleteCard={canDelete ? handleDeleteCard : undefined}
                   onJustifyCard={(card) => setJustificationModal({ open: true, card })}
+                  isCollapsed={isCollapsed(column.id)}
+                  onToggleCollapse={() => toggleCollapse(column.id)}
                 />
               ) : isVideoBoard ? (
                 <VideoKanbanColumn
@@ -299,11 +357,13 @@ function StandardKanbanBoard({ boardSlug }: KanbanBoardProps) {
                   onArchiveCard={canDelete ? handleArchiveCard : undefined}
                   onDeleteCard={canDelete ? handleDeleteCard : undefined}
                   onJustifyCard={(card) => setJustificationModal({ open: true, card })}
+                  isCollapsed={isCollapsed(column.id)}
+                  onToggleCollapse={() => toggleCollapse(column.id)}
                 />
               ) : (
-                <KanbanColumn 
-                  key={column.id} 
-                  column={column} 
+                <KanbanColumn
+                  key={column.id}
+                  column={column}
                   cards={cardsByColumn[column.id] || []}
                   index={index}
                   onAddCard={() => { setSelectedColumnId(column.id); setIsCreateModalOpen(true); }}
@@ -312,6 +372,9 @@ function StandardKanbanBoard({ boardSlug }: KanbanBoardProps) {
                   onArchiveCard={canDelete ? handleArchiveCard : undefined}
                   onDeleteCard={canDelete ? handleDeleteCard : undefined}
                   onJustifyCard={(card) => setJustificationModal({ open: true, card })}
+                  isCollapsed={isCollapsed(column.id)}
+                  onToggleCollapse={() => toggleCollapse(column.id)}
+                  focusedCardId={focusedCardId}
                 />
               )
             ))}
@@ -349,6 +412,13 @@ function StandardKanbanBoard({ boardSlug }: KanbanBoardProps) {
           boardId={board.id}
         />
       )}
+
+      {/* Global quick-search (⌘K / /) */}
+      <KanbanQuickSearch
+        cards={cards}
+        columns={visibleColumns}
+        onSelect={handleCardClick}
+      />
 
       {/* Justification Modal */}
       <JustificationModal

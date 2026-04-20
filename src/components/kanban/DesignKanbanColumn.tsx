@@ -1,5 +1,6 @@
 import { Droppable, Draggable } from '@hello-pangea/dnd';
-import { Plus, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, ChevronDown, ChevronRight, ChevronsLeft, ChevronsRight, SlidersHorizontal, MoreHorizontal } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { KanbanColumn as KanbanColumnType, KanbanCard } from '@/hooks/useKanban';
 import KanbanCardItem from './KanbanCardItem';
 import { cn } from '@/lib/utils';
@@ -15,42 +16,45 @@ interface DesignKanbanColumnProps {
   onArchiveCard?: (card: KanbanCard) => void;
   onDeleteCard?: (card: KanbanCard) => void;
   onJustifyCard?: (card: KanbanCard) => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
-// Design card statuses (subcategories within each designer column)
 const DESIGN_STATUSES = [
-  { id: 'a_fazer', label: 'A FAZER', color: 'bg-blue-500' },
-  { id: 'fazendo', label: 'FAZENDO', color: 'bg-orange-500' },
-  { id: 'arrumar', label: 'ARRUMAR', color: 'bg-red-500' },
-  { id: 'para_aprovacao', label: 'PARA APROVAÇÃO', color: 'bg-purple-500' },
-  { id: 'aprovado', label: 'APROVADO', color: 'bg-green-500' },
+  { id: 'a_fazer', label: 'A fazer', color: 'bg-info' },
+  { id: 'fazendo', label: 'Fazendo', color: 'bg-warning' },
+  { id: 'arrumar', label: 'Arrumar', color: 'bg-danger' },
+  { id: 'para_aprovacao', label: 'Para aprovação', color: 'bg-purple-500' },
+  { id: 'aprovado', label: 'Aprovado', color: 'bg-success' },
 ] as const;
 
-const colorMap: Record<string, string> = {
-  slate: 'border-t-slate-400',
-  info: 'border-t-info',
-  blue: 'border-t-blue-500',
-  warning: 'border-t-warning',
-  purple: 'border-t-purple-500',
-  success: 'border-t-success',
-  danger: 'border-t-danger',
-  primary: 'border-t-primary',
-  orange: 'border-t-orange-500',
-  green: 'border-t-green-500',
+const dotColorMap: Record<string, string> = {
+  slate: 'bg-muted-foreground/50',
+  info: 'bg-info',
+  blue: 'bg-info',
+  warning: 'bg-warning',
+  purple: 'bg-purple-500',
+  success: 'bg-success',
+  danger: 'bg-danger',
+  primary: 'bg-primary',
+  orange: 'bg-warning',
+  green: 'bg-success',
 };
 
-export default function DesignKanbanColumn({ 
-  column, 
-  cards, 
-  index, 
-  onAddCard, 
-  canAddCard, 
+export default function DesignKanbanColumn({
+  column,
+  cards,
+  index,
+  onAddCard,
+  canAddCard,
   onCardClick,
   onArchiveCard,
   onDeleteCard,
-  onJustifyCard
+  onJustifyCard,
+  isCollapsed: isColumnCollapsed = false,
+  onToggleCollapse,
 }: DesignKanbanColumnProps) {
-  const borderColor = colorMap[column.color || 'slate'] || 'border-t-border';
+  const dotColor = dotColorMap[column.color || 'slate'] || 'bg-muted-foreground/50';
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
 
   const toggleSection = (statusId: string) => {
@@ -60,13 +64,11 @@ export default function DesignKanbanColumn({
     }));
   };
 
-  // Group cards by their status
   const cardsByStatus = DESIGN_STATUSES.reduce((acc, status) => {
     acc[status.id] = cards.filter(card => card.status === status.id);
     return acc;
   }, {} as Record<string, KanbanCard[]>);
 
-  // Cards without status go to "a_fazer" by default
   const unassignedCards = cards.filter(
     card => !card.status || !DESIGN_STATUSES.some(s => s.id === card.status)
   );
@@ -74,89 +76,158 @@ export default function DesignKanbanColumn({
     cardsByStatus['a_fazer'] = [...(cardsByStatus['a_fazer'] || []), ...unassignedCards];
   }
 
+  if (isColumnCollapsed) {
+    return (
+      <button
+        onClick={onToggleCollapse}
+        className={cn(
+          "kanban-column kanban-column-collapsed flex flex-col items-center justify-start py-3 gap-2",
+          "bg-muted/30 rounded-2xl border border-border",
+          "hover:bg-muted/50 transition-colors"
+        )}
+        title={`Expandir ${column.title}`}
+      >
+        <ChevronsRight size={14} className="text-muted-foreground shrink-0" strokeWidth={2.25} />
+        <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", dotColor)} />
+        <span className="kanban-column-title-vertical text-[12px] font-semibold tracking-[-0.01em] text-foreground/90 flex-1 py-2">
+          {column.title}
+        </span>
+        <span className="text-[11px] font-medium text-muted-foreground/80 tabular-nums">
+          {cards.length}
+        </span>
+      </button>
+    );
+  }
+
   return (
-    <div 
+    <div
       className={cn(
         "kanban-column min-w-[340px] max-w-[340px] flex flex-col",
-        "bg-muted/30 rounded-2xl border border-border",
-        "border-t-4",
-        borderColor
+        "bg-muted/30 rounded-2xl border border-border"
       )}
     >
-      {/* Column Header */}
-      <div className="p-4 border-b border-border">
-        <div className="flex items-center justify-between">
-          <h3 className="font-display text-sm font-semibold uppercase tracking-wider text-foreground">
+      {/* Column Header — enriquecido */}
+      <div className="px-4 pt-4 pb-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", dotColor)} />
+          <h3 className="text-[13.5px] font-semibold tracking-[-0.01em] text-foreground truncate">
             {column.title}
           </h3>
-          <span className="px-2 py-0.5 rounded-full bg-muted text-xs font-medium text-muted-foreground">
+          <span className="text-[12px] font-medium text-muted-foreground/70 tabular-nums ml-0.5">
             {cards.length}
           </span>
+          <div className="ml-auto flex items-center gap-0.5 shrink-0">
+            <button
+              className="p-1 rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/60 transition-colors"
+              title="Filtrar"
+              aria-label="Filtrar"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <SlidersHorizontal size={13} strokeWidth={2.25} />
+            </button>
+            {canAddCard && (
+              <button
+                onClick={onAddCard}
+                className="p-1 rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/60 transition-colors"
+                title="Adicionar"
+                aria-label="Adicionar"
+              >
+                <Plus size={14} strokeWidth={2.5} />
+              </button>
+            )}
+            <button
+              className="p-1 rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/60 transition-colors"
+              title="Mais ações"
+              aria-label="Mais"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MoreHorizontal size={14} strokeWidth={2.25} />
+            </button>
+            {onToggleCollapse && (
+              <button
+                onClick={onToggleCollapse}
+                className="p-1 rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/60 transition-colors"
+                title="Recolher"
+                aria-label="Recolher"
+              >
+                <ChevronsLeft size={13} strokeWidth={2.25} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Subcategories Container */}
-      <div className="flex-1 overflow-y-auto scrollbar-elegant">
+      <div className="flex-1 overflow-y-auto scrollbar-elegant kanban-scroll-fade">
         {DESIGN_STATUSES.map((status) => {
           const statusCards = cardsByStatus[status.id] || [];
-          const isCollapsed = collapsedSections[status.id];
-          
+          const isSectionCollapsed = collapsedSections[status.id];
+
           return (
-            <div key={status.id} className="border-b border-border/50 last:border-b-0">
-              {/* Status Header */}
+            <div key={status.id} className="border-b border-border/40 last:border-b-0">
               <button
                 onClick={() => toggleSection(status.id)}
-                className="w-full flex items-center gap-2 p-3 hover:bg-muted/50 transition-colors"
+                className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-muted/40 transition-colors"
               >
-                <div className={cn("w-2 h-2 rounded-full", status.color)} />
-                {isCollapsed ? (
-                  <ChevronRight size={14} className="text-muted-foreground" />
+                {isSectionCollapsed ? (
+                  <ChevronRight size={13} className="text-muted-foreground/70 shrink-0" />
                 ) : (
-                  <ChevronDown size={14} className="text-muted-foreground" />
+                  <ChevronDown size={13} className="text-muted-foreground/70 shrink-0" />
                 )}
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", status.color)} />
+                <span className="text-[12px] font-medium text-foreground/80">
                   {status.label}
                 </span>
-                <span className="ml-auto px-1.5 py-0.5 rounded bg-muted text-[10px] font-medium text-muted-foreground">
+                <span className="ml-auto text-[11px] font-medium text-muted-foreground/70 tabular-nums">
                   {statusCards.length}
                 </span>
               </button>
 
-              {/* Status Cards */}
-              {!isCollapsed && (
+              {!isSectionCollapsed && (
                 <Droppable droppableId={`${column.id}:${status.id}`}>
                   {(provided, snapshot) => (
                     <div
                       ref={provided.innerRef}
                       {...provided.droppableProps}
                       className={cn(
-                        "px-3 pb-3 space-y-2 min-h-[60px]",
-                        snapshot.isDraggingOver && "bg-primary/5"
+                        "px-3 pb-3 space-y-2 min-h-[60px] transition-colors",
+                        snapshot.isDraggingOver && "kanban-droppable-active"
                       )}
                     >
-                      {statusCards.map((card, cardIndex) => (
-                        <Draggable key={card.id} draggableId={card.id} index={cardIndex}>
-                          {(provided, snapshot) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                              className={cn(
-                                snapshot.isDragging && "rotate-2 scale-105"
-                              )}
-                            >
-                              <KanbanCardItem 
-                                card={card} 
-                                onClick={() => onCardClick?.(card)}
-                                onArchive={onArchiveCard ? () => onArchiveCard(card) : undefined}
-                                onDelete={onDeleteCard ? () => onDeleteCard(card) : undefined}
-                                onJustify={onJustifyCard ? () => onJustifyCard(card) : undefined}
-                              />
-                            </div>
-                          )}
-                        </Draggable>
-                      ))}
+                      <AnimatePresence initial={false}>
+                        {statusCards.map((card, cardIndex) => (
+                          <Draggable key={card.id} draggableId={card.id} index={cardIndex}>
+                            {(provided, snapshot) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                {...provided.dragHandleProps}
+                                className={cn(snapshot.isDragging && "kanban-card-dragging")}
+                              >
+                                <motion.div
+                                  layout="position"
+                                  initial={{ opacity: 0, y: 6 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, y: -4 }}
+                                  transition={{ type: 'spring', stiffness: 520, damping: 38, mass: 0.6 }}
+                                >
+                                  <KanbanCardItem
+                                    card={card}
+                                    onClick={() => onCardClick?.(card)}
+                                    onArchive={onArchiveCard ? () => onArchiveCard(card) : undefined}
+                                    onDelete={onDeleteCard ? () => onDeleteCard(card) : undefined}
+                                    onJustify={onJustifyCard ? () => onJustifyCard(card) : undefined}
+                                  />
+                                </motion.div>
+                              </div>
+                            )}
+                          </Draggable>
+                        ))}
+                      </AnimatePresence>
                       {provided.placeholder}
+                      {statusCards.length === 0 && snapshot.isDraggingOver && (
+                        <div className="kanban-drop-placeholder" />
+                      )}
                     </div>
                   )}
                 </Droppable>
@@ -166,17 +237,17 @@ export default function DesignKanbanColumn({
         })}
       </div>
 
-      {/* Add Card Button */}
       {canAddCard && (
-        <div className="p-3 border-t border-border">
-          <button 
+        <div className="p-3 border-t border-border/60">
+          <button
             onClick={onAddCard}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl
-                     text-muted-foreground hover:text-foreground hover:bg-muted
-                     transition-colors text-sm font-medium"
+            className="w-full flex items-center justify-center gap-2 py-2 rounded-lg
+                     text-[12px] font-medium text-muted-foreground
+                     hover:text-foreground hover:bg-muted/60
+                     transition-colors"
           >
-            <Plus size={16} />
-            Nova Demanda
+            <Plus size={14} strokeWidth={2.5} />
+            Nova demanda
           </button>
         </div>
       )}

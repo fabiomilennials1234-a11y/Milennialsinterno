@@ -74,6 +74,9 @@
     --destructive-foreground: 0 0% 100%;
     
     --border: 130 7% 45% / 0.15;     /* Aço Usinado em baixa opacidade */
+    --border-subtle: 130 7% 45% / 0.08;
+    --surface-1: 50 30% 97%;
+    --surface-3: 50 30% 95%;
     --input: 50 20% 96%;
     --ring: 48 100% 50%;
     
@@ -98,46 +101,50 @@
   }
 
   .dark {
-    --background: 14 13% 8%;
-    --foreground: 50 30% 92%;
-    
-    --card: 14 13% 12%;
-    --card-foreground: 50 30% 92%;
-    
-    --popover: 14 13% 12%;
-    --popover-foreground: 50 30% 92%;
-    
+    /* Dark mode premium — 4 níveis de elevação (canvas → surface-1 → card → surface-3) */
+    --background: 240 10% 4%;          /* canvas */
+    --surface-1: 240 8% 7%;            /* column bg */
+    --surface-3: 240 7% 15%;           /* hover/elevated */
+    --foreground: 240 6% 94%;
+
+    --card: 240 8% 11%;                /* card — delta de ~4% vs column garante separação visível */
+    --card-foreground: 240 6% 94%;
+
+    --popover: 240 7% 13%;
+    --popover-foreground: 240 6% 94%;
+
     --primary: 48 100% 50%;
-    --primary-foreground: 14 13% 10%;
-    
-    --secondary: 14 13% 18%;
-    --secondary-foreground: 50 30% 92%;
-    
-    --muted: 14 13% 18%;
-    --muted-foreground: 130 7% 60%;
-    
+    --primary-foreground: 240 10% 6%;
+
+    --secondary: 240 7% 14%;
+    --secondary-foreground: 240 6% 94%;
+
+    --muted: 240 7% 12%;
+    --muted-foreground: 240 5% 62%;
+
     --accent: 48 90% 50%;
-    --accent-foreground: 14 13% 10%;
-    
+    --accent-foreground: 240 10% 6%;
+
     --destructive: 0 50% 45%;
     --destructive-foreground: 0 0% 100%;
-    
-    --border: 130 7% 45% / 0.2;
-    --input: 14 13% 18%;
+
+    --border: 240 5% 18% / 0.6;
+    --border-subtle: 240 5% 18% / 0.32;
+    --input: 240 7% 14%;
     --ring: 48 100% 50%;
-    
-    --sidebar-background: 20 10% 7%;
-    --sidebar-foreground: 40 20% 90%;
+
+    --sidebar-background: 240 10% 5%;
+    --sidebar-foreground: 240 6% 92%;
     --sidebar-primary: 45 100% 52%;
-    --sidebar-primary-foreground: 20 15% 8%;
-    --sidebar-accent: 20 8% 13%;
-    --sidebar-accent-foreground: 40 20% 90%;
-    --sidebar-border: 20 8% 14%;
-    
-    --kanban-column: 14 13% 12%;
-    --kanban-column-header: 50 30% 92%;
-    --kanban-card: 14 13% 16%;
-    --kanban-card-hover: 14 13% 20%;
+    --sidebar-primary-foreground: 240 10% 5%;
+    --sidebar-accent: 240 7% 11%;
+    --sidebar-accent-foreground: 240 6% 92%;
+    --sidebar-border: 240 5% 14%;
+
+    --kanban-column: 240 8% 7%;
+    --kanban-column-header: 240 6% 94%;
+    --kanban-card: 240 8% 11%;
+    --kanban-card-hover: 240 7% 15%;
     --kanban-drag: 48 100% 50%;
   }
 
@@ -203,33 +210,101 @@
   /* Kanban Card Premium - Ultra Limpo */
   .kanban-card {
     @apply bg-kanban-card rounded-xl;
-    border: 1px solid hsl(130 7% 45% / 0.1);
-    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.03);
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid hsl(130 7% 45% / 0.12);
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+    transition: box-shadow 0.18s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.18s cubic-bezier(0.4, 0, 0.2, 1),
+                background-color 0.18s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: grab;
     animation: kanbanCardIn 0.28s cubic-bezier(0.22, 1, 0.36, 1) backwards;
     max-width: 100%;
     box-sizing: border-box;
   }
-  
+
   .kanban-card:hover {
     @apply bg-kanban-card-hover;
-    box-shadow: 0 4px 12px -2px rgb(0 0 0 / 0.06);
-    border-color: hsl(48 100% 50% / 0.3);
+    box-shadow: 0 8px 24px -6px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.04);
+    border-color: hsl(48 100% 50% / 0.35);
   }
-  
-  .kanban-card.dragging {
-    box-shadow: 0 20px 40px -8px rgb(0 0 0 / 0.12);
-    transform: rotate(2deg) scale(1.02);
+
+  .dark .kanban-card:hover {
+    box-shadow: 0 16px 32px -8px rgb(0 0 0 / 0.45);
+    border-color: hsl(48 100% 50% / 0.35);
+  }
+
+  .kanban-card.dragging,
+  .kanban-card-dragging {
+    box-shadow: 0 24px 48px -12px rgb(0 0 0 / 0.25);
+    transform: scale(1.015);
     cursor: grabbing;
-    border-color: hsl(48 100% 50% / 0.5);
+    border-color: hsl(48 100% 50% / 0.6);
     animation: none;
   }
-  
+
+  .dark .kanban-card.dragging,
+  .dark .kanban-card-dragging {
+    box-shadow: 0 24px 48px -12px rgb(0 0 0 / 0.6);
+  }
+
   /* Kanban Column - Minimalista */
   .kanban-column {
     @apply bg-kanban-column rounded-2xl;
     border: 1px solid hsl(130 7% 45% / 0.08);
+  }
+
+  /* Drop target placeholder: sutil ring interno em vez de fundo chapado */
+  .kanban-droppable-active {
+    background-color: hsl(48 100% 50% / 0.04);
+    box-shadow: inset 0 0 0 1px hsl(48 100% 50% / 0.25);
+    border-radius: 12px;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  /* Drop zone vazio arrastando: placeholder pulsante */
+  .kanban-drop-placeholder {
+    height: 96px;
+    margin: 4px 0;
+    border: 1.5px dashed hsl(48 100% 50% / 0.45);
+    border-radius: 12px;
+    background: hsl(48 100% 50% / 0.03);
+    animation: kanbanDropPulse 1.6s ease-in-out infinite;
+  }
+
+  /* Scroll fade: máscara nas bordas superior/inferior da lista */
+  .kanban-scroll-fade {
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      black 12px,
+      black calc(100% - 12px),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      black 12px,
+      black calc(100% - 12px),
+      transparent 100%
+    );
+  }
+
+  /* Column collapsed: 56px com título rotacionado 90° */
+  .kanban-column-collapsed {
+    width: 56px !important;
+    min-width: 56px !important;
+    max-width: 56px !important;
+  }
+
+  .kanban-column-collapsed .kanban-column-title-vertical {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    letter-spacing: 0.02em;
+  }
+
+  /* Card em foco por teclado */
+  .kanban-card-focused {
+    outline: 2px solid hsl(48 100% 50% / 0.6);
+    outline-offset: 2px;
   }
   
   /* Status Indicator Dots - Vibrantes */
@@ -249,72 +324,107 @@
     @apply bg-success;
   }
   
-  /* Section Headers - Coloridos */
+  /*
+   * Section Headers — redesenhadas no padrão pipeline premium.
+   * Em vez do chapadão colorido Trello/Asana 2018, usamos um dot semântico
+   * colorido à esquerda + título tipográfico neutro.
+   * Ganho: todas as páginas que usam `section-header-*` herdam o redesign sem
+   * precisar tocar em cada arquivo.
+   */
   .section-header {
-    @apply px-4 py-3 rounded-t-xl font-semibold text-sm text-white;
-  }
-  
-  .section-header-blue {
-    background: hsl(217 91% 60%);
-  }
-  
-  .section-header-purple {
-    background: hsl(258 90% 66%);
-  }
-  
-  .section-header-green {
-    background: hsl(160 84% 39%);
-  }
-  
-  .section-header-yellow {
-    background: hsl(48 100% 50%);
-    color: hsl(14 13% 20%);
-  }
-  
-  .section-header-orange {
-    background: hsl(38 92% 50%);
-  }
-  
-  .section-header-danger {
-    background: hsl(0 84% 60%);
-  }
-  
-  .section-header-gray {
-    background: hsl(215 14% 45%);
+    @apply flex items-center gap-2 px-4 py-3 text-[13.5px] font-semibold text-foreground;
+    letter-spacing: -0.01em;
+    background: transparent;
+    border-bottom: 1px solid hsl(var(--border-subtle, 130 7% 45% / 0.08));
+    border-radius: 0;
   }
 
-  .section-header-emerald {
-    background: hsl(152 76% 40%);
+  .section-header::before {
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: currentColor;
+    margin-right: 2px;
+    flex-shrink: 0;
   }
 
-  .section-header-sky {
-    background: hsl(199 89% 48%);
+  .section-header svg {
+    color: hsl(var(--muted-foreground));
   }
 
-  .section-header-violet {
-    background: hsl(263 70% 60%);
+  /* Variantes: só o dot muda de cor; tipografia segue foreground. */
+  .section-header-blue,
+  .section-header-sky    { color: hsl(217 91% 60%); }
+  .section-header-blue *,
+  .section-header-sky *  { color: hsl(var(--foreground)); }
+
+  .section-header-purple,
+  .section-header-violet { color: hsl(258 90% 66%); }
+  .section-header-purple *,
+  .section-header-violet * { color: hsl(var(--foreground)); }
+
+  .section-header-green,
+  .section-header-emerald { color: hsl(160 84% 39%); }
+  .section-header-green *,
+  .section-header-emerald * { color: hsl(var(--foreground)); }
+
+  .section-header-yellow,
+  .section-header-amber  { color: hsl(48 100% 50%); }
+  .section-header-yellow *,
+  .section-header-amber * { color: hsl(var(--foreground)); }
+
+  .section-header-orange { color: hsl(38 92% 50%); }
+  .section-header-orange * { color: hsl(var(--foreground)); }
+
+  .section-header-danger { color: hsl(0 84% 60%); }
+  .section-header-danger * { color: hsl(var(--foreground)); }
+
+  .section-header-gray { color: hsl(215 14% 45%); }
+  .section-header-gray * { color: hsl(var(--foreground)); }
+
+  /* Garante que o ícone e o título ficam em cor neutra, só o ::before herda o color acima.
+   * Usamos !important para sobrescrever classes inline `text-white`/`text-foreground`
+   * que foram aplicadas direto em dezenas de páginas — assim o redesign é centralizado. */
+  .section-header svg,
+  .section-header .section-icon,
+  .section-header h2,
+  .section-header h3 {
+    color: hsl(var(--foreground)) !important;
+  }
+  .section-header svg {
+    opacity: 0.7;
   }
 
-  .section-header-amber {
-    background: hsl(45 100% 55%);
-    color: hsl(14 13% 20%);
+  /*
+   * Kanban status badges (A fazer / Fazendo / Aprovado) — antes eram pill
+   * chapado enorme colorido. Agora: dot + texto, estilo Linear.
+   */
+  .kanban-header-todo,
+  .kanban-header-doing,
+  .kanban-header-done,
+  .kanban-header-review {
+    @apply inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[12px] font-medium;
+    background: hsl(var(--muted) / 0.6);
+    color: hsl(var(--foreground));
   }
-  
-  /* Kanban Column Headers - Coloridos */
-  .kanban-header-todo {
-    background: hsl(217 91% 60%);
-    @apply text-white rounded-lg px-3 py-1.5;
+
+  .kanban-header-todo::before,
+  .kanban-header-doing::before,
+  .kanban-header-done::before,
+  .kanban-header-review::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    flex-shrink: 0;
   }
-  
-  .kanban-header-doing {
-    background: hsl(38 92% 50%);
-    @apply text-white rounded-lg px-3 py-1.5;
-  }
-  
-  .kanban-header-done {
-    background: hsl(160 84% 39%);
-    @apply text-white rounded-lg px-3 py-1.5;
-  }
+
+  .kanban-header-todo::before   { background: hsl(217 91% 60%); }
+  .kanban-header-doing::before  { background: hsl(38 92% 50%); }
+  .kanban-header-done::before   { background: hsl(160 84% 39%); }
+  .kanban-header-review::before { background: hsl(258 90% 66%); }
   
   /* Colored Border Cards */
   .card-border-blue {
@@ -375,22 +485,37 @@
   
   /* Empty State Illustration Container */
   .empty-state {
-    @apply flex flex-col items-center justify-center py-12 px-6 text-center;
+    @apply flex flex-col items-center justify-center py-10 px-4 text-center;
   }
-  
+
   .empty-state-icon {
-    @apply w-16 h-16 mb-4 opacity-40;
-    color: hsl(130 7% 45%);
+    @apply w-10 h-10 mb-3 opacity-60;
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* Restaura visual: ícone do empty-state vem com fundo circular muito suave */
+  .empty-state > div:first-child:not(.empty-state-icon) {
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 9999px;
+    background: hsl(var(--muted) / 0.5) !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  .empty-state > div:first-child:not(.empty-state-icon) > svg {
+    width: 18px !important;
+    height: 18px !important;
   }
   
   .empty-state-title {
-    @apply text-base font-medium mb-1;
-    color: hsl(14 13% 20%);
+    @apply text-[13px] font-semibold mb-0.5;
+    color: hsl(var(--foreground));
+    letter-spacing: -0.01em;
   }
   
   .empty-state-text {
-    @apply text-sm;
-    color: hsl(130 7% 45%);
+    @apply text-[12px];
+    color: hsl(var(--muted-foreground));
   }
   
   /* Scrollbar Elegante Apple */
@@ -705,6 +830,17 @@
     to {
       opacity: 1;
       transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes kanbanDropPulse {
+    0%, 100% {
+      border-color: hsl(48 100% 50% / 0.35);
+      background: hsl(48 100% 50% / 0.03);
+    }
+    50% {
+      border-color: hsl(48 100% 50% / 0.65);
+      background: hsl(48 100% 50% / 0.08);
     }
   }
 

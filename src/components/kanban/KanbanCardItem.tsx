@@ -1,7 +1,7 @@
-import { User, Clock, Timer, MoreVertical, Archive, Trash2, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Clock, MoreVertical, Archive, Trash2, AlertTriangle, CheckCircle2, Flag, User } from 'lucide-react';
 import { KanbanCard } from '@/hooks/useKanban';
 import { cn } from '@/lib/utils';
-import { format, isPast, isToday, differenceInDays } from 'date-fns';
+import { format, formatDistanceToNow, isPast, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAuth } from '@/contexts/AuthContext';
 import ClientLabelBadge, { type ClientLabel } from '@/components/shared/ClientLabelBadge';
@@ -28,35 +28,61 @@ interface KanbanCardItemProps {
   onJustify?: () => void;
   showClientTimer?: boolean;
   showActions?: boolean;
+  isFocused?: boolean;
 }
 
-const priorityConfig = {
-  low: { label: 'Baixa', color: 'bg-success/10 text-success border-success/20' },
-  medium: { label: 'Média', color: 'bg-info/10 text-info border-info/20' },
-  high: { label: 'Alta', color: 'bg-warning/10 text-warning border-warning/20' },
-  urgent: { label: 'Urgente', color: 'bg-danger/10 text-danger border-danger/20' },
-};
+// Gradient determinístico por hash do nome (estilo Linear/Height).
+function avatarGradient(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+  }
+  const hue = hash % 360;
+  return `linear-gradient(135deg, hsl(${hue} 62% 52%), hsl(${(hue + 40) % 360} 62% 42%))`;
+}
 
-export default function KanbanCardItem({ 
-  card, 
-  onClick, 
+const priorityMeta = {
+  low: { label: 'Baixa', tone: 'text-muted-foreground/60' },
+  medium: { label: 'Média', tone: 'text-muted-foreground/60' },
+  high: { label: 'Alta', tone: 'text-warning' },
+  urgent: { label: 'Urgente', tone: 'text-danger' },
+} as const;
+
+// Timestamp relativo curto ("há 3d", "há 5h"), estilo lista de leads da referência.
+function relativeShort(date: Date): string {
+  const full = formatDistanceToNow(date, { locale: ptBR, addSuffix: true });
+  return full.replace('há cerca de ', 'há ').replace('há menos de ', 'há ');
+}
+
+export default function KanbanCardItem({
+  card,
+  onClick,
   onArchive,
   onDelete,
   onJustify,
   showClientTimer = true,
-  showActions = true 
+  showActions = true,
+  isFocused = false,
 }: KanbanCardItemProps) {
   const { user, isCEO, isAdminUser } = useAuth();
-  const canSetClientLabel = !!(isCEO || isAdminUser || user?.role === 'sucesso_cliente' || user?.role === 'gestor_projetos');
+  const canSetClientLabel = !!(
+    isCEO ||
+    isAdminUser ||
+    user?.role === 'sucesso_cliente' ||
+    user?.role === 'gestor_projetos'
+  );
 
-  const priority = priorityConfig[card.priority];
-  const isOverdue = card.due_date && isPast(new Date(card.due_date)) && !isToday(new Date(card.due_date));
-  const isDueToday = card.due_date && isToday(new Date(card.due_date));
+  const prio = priorityMeta[card.priority];
+  const showPriorityFlag = card.priority === 'high' || card.priority === 'urgent';
+
+  const dueDate = card.due_date ? new Date(card.due_date) : null;
+  const isOverdue = dueDate && isPast(dueDate) && !isToday(dueDate);
+  const isDueToday = dueDate && isToday(dueDate);
   const hasJustification = Boolean(card.justification);
-  
-  // Calculate days since client creation (if client data is available)
-  const clientCreatedAt = card.client?.created_at || card.created_at;
-  const daysSinceCreation = differenceInDays(new Date(), new Date(clientCreatedAt));
+
+  const assigneeName = card.assignee?.name || '';
+  const tags = (card.tags && card.tags.length > 0) ? card.tags : [];
+  const createdAt = card.created_at ? new Date(card.created_at) : null;
 
   const handleArchive = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -68,26 +94,54 @@ export default function KanbanCardItem({
     onDelete?.();
   };
 
+  const hasStructuredFields = Boolean(
+    (card.progress && card.progress > 0) || showPriorityFlag || dueDate
+  );
+
   return (
     <div
       onClick={onClick}
       className={cn(
         "kanban-card group cursor-pointer relative",
-        "bg-card border border-border rounded-xl p-4",
-        "hover:border-primary/30 hover:shadow-lg",
-        "transition-all duration-200"
+        "bg-card border border-border rounded-xl p-3.5",
+        isFocused && "kanban-card-focused"
       )}
     >
-      {/* Actions Menu (3 dots) */}
-      {showActions && (onArchive || onDelete) && (
-        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+      {/* Tags + 3-dots menu */}
+      <div className="flex items-start justify-between gap-2 mb-2 min-h-[20px]">
+        <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+          {tags.slice(0, 2).map((tag, i) => (
+            <span
+              key={i}
+              className="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/70 text-[11px] font-medium text-foreground/75"
+            >
+              {tag}
+            </span>
+          ))}
+          {tags.length > 2 && (
+            <span className="text-[11px] font-medium text-muted-foreground/70">
+              +{tags.length - 2}
+            </span>
+          )}
+          {card.client && (
+            <ClientLabelBadge
+              label={(card.client.client_label as ClientLabel) ?? null}
+              size="sm"
+              className="shrink-0"
+            />
+          )}
+        </div>
+
+        {/* Menu 3-dots sempre visível, não só em hover */}
+        {showActions && (onArchive || onDelete) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button 
+              <button
                 onClick={(e) => e.stopPropagation()}
-                className="p-1.5 rounded-lg bg-background/80 backdrop-blur-sm hover:bg-muted border border-border/50 transition-colors"
+                className="p-1 rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/60 transition-colors shrink-0 -mt-0.5 -mr-0.5"
+                aria-label="Ações do card"
               >
-                <MoreVertical size={14} className="text-muted-foreground" />
+                <MoreVertical size={15} strokeWidth={2} />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-[160px]">
@@ -99,8 +153,8 @@ export default function KanbanCardItem({
               )}
               {onArchive && onDelete && <DropdownMenuSeparator />}
               {onDelete && (
-                <DropdownMenuItem 
-                  onClick={handleDelete} 
+                <DropdownMenuItem
+                  onClick={handleDelete}
                   className="gap-2 cursor-pointer text-destructive focus:text-destructive"
                 >
                   <Trash2 size={14} />
@@ -109,162 +163,149 @@ export default function KanbanCardItem({
               )}
             </DropdownMenuContent>
           </DropdownMenu>
-        </div>
-      )}
-
-      {/* Priority Badge & Client Timer */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className={cn(
-            "px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider border",
-            priority.color
-          )}>
-            {priority.label}
-          </span>
-          {showClientTimer && (
-            <span className={cn(
-              "inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium",
-              daysSinceCreation > 7 ? "bg-warning/10 text-warning" : "bg-info/10 text-info"
-            )}>
-              <Timer size={10} />
-              {daysSinceCreation} {daysSinceCreation === 1 ? 'dia' : 'dias'}
-            </span>
-          )}
-
-          {/* Client label badge (visible to everyone) */}
-          {card.client && (
-            <ClientLabelBadge
-              label={(card.client.client_label as ClientLabel) ?? null}
-              size="sm"
-              className="shrink-0"
-            />
-          )}
-        </div>
-
-        <div className="flex items-center gap-1">
-          {/* Client label selector (only allowed roles) */}
-          {canSetClientLabel && card.client?.id && (
-            <ClientLabelSelector
-              clientId={card.client.id}
-              currentLabel={(card.client.client_label as ClientLabel) ?? null}
-            />
-          )}
-
-          {card.progress > 0 && card.progress < 100 && (
-            <span className="text-[10px] font-medium text-muted-foreground">
-              {card.progress}%
-            </span>
-          )}
-        </div>
+        )}
       </div>
 
-      {/* Title */}
-      <h4 className="font-medium text-sm text-foreground leading-snug mb-2 line-clamp-2 pr-6">
+      {/* Título grande, peso forte */}
+      <h4 className="text-[15px] font-semibold tracking-[-0.015em] text-foreground leading-[1.3] line-clamp-2 mb-1">
         {card.title}
       </h4>
 
-      {/* Description */}
+      {/* Descrição / subtítulo */}
       {card.description && (
-        <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
+        <p className="text-[12.5px] text-muted-foreground leading-[1.45] line-clamp-2 mb-3">
           {card.description}
         </p>
       )}
 
-      {/* Progress Bar */}
-      {card.progress > 0 && (
-        <div className="mb-3">
-          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-            <div 
-              className={cn(
-                "h-full rounded-full transition-all duration-500",
-                card.progress === 100 ? "bg-success" : "bg-primary"
-              )}
-              style={{ width: `${card.progress}%` }}
-            />
-          </div>
-        </div>
-      )}
+      {/* Campos estruturados em grid 2-col — estilo Attio */}
+      {hasStructuredFields && (
+        <div className="grid grid-cols-2 gap-x-3 gap-y-2 mb-3 pt-2 border-t border-border/40">
+          {showPriorityFlag && (
+            <div>
+              <div className="text-[10.5px] font-medium text-muted-foreground/70 mb-0.5 tracking-[0.01em] uppercase">
+                Prioridade
+              </div>
+              <div className={cn("inline-flex items-center gap-1 text-[12.5px] font-semibold", prio.tone)}>
+                <Flag size={11} strokeWidth={2.5} fill="currentColor" />
+                {prio.label}
+              </div>
+            </div>
+          )}
 
-      {/* Tags */}
-      {card.tags && card.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1 mb-3">
-          {card.tags.slice(0, 3).map((tag, index) => (
-            <span 
-              key={index}
-              className="px-2 py-0.5 bg-muted rounded text-[10px] text-muted-foreground"
-            >
-              {tag}
-            </span>
-          ))}
-          {card.tags.length > 3 && (
-            <span className="px-2 py-0.5 text-[10px] text-muted-foreground">
-              +{card.tags.length - 3}
-            </span>
+          {dueDate && (
+            <div>
+              <div className="text-[10.5px] font-medium text-muted-foreground/70 mb-0.5 tracking-[0.01em] uppercase">
+                Entrega
+              </div>
+              <div className={cn(
+                "inline-flex items-center gap-1 text-[12.5px] font-semibold",
+                isOverdue && !hasJustification
+                  ? "text-danger"
+                  : isDueToday
+                    ? "text-warning"
+                    : "text-foreground/85"
+              )}>
+                {isOverdue && !hasJustification ? (
+                  <AlertTriangle size={11} strokeWidth={2.5} />
+                ) : (
+                  <Clock size={11} strokeWidth={2.5} />
+                )}
+                {isOverdue
+                  ? 'Atrasado'
+                  : isDueToday
+                    ? 'Hoje'
+                    : format(dueDate, 'dd MMM', { locale: ptBR })}
+              </div>
+            </div>
+          )}
+
+          {card.progress > 0 && (
+            <div className="col-span-2">
+              <div className="flex items-center justify-between mb-1">
+                <div className="text-[10.5px] font-medium text-muted-foreground/70 tracking-[0.01em] uppercase">
+                  Progresso
+                </div>
+                <div className="text-[11px] font-semibold text-foreground tabular-nums">
+                  {card.progress}%
+                </div>
+              </div>
+              <div className="h-1 bg-border/50 rounded-full overflow-hidden">
+                <div
+                  className={cn(
+                    "h-full rounded-full transition-all duration-500",
+                    card.progress === 100
+                      ? "bg-success"
+                      : card.progress < 25
+                        ? "bg-danger/70"
+                        : card.progress > 75
+                          ? "bg-success"
+                          : "bg-primary"
+                  )}
+                  style={{ width: `${card.progress}%` }}
+                />
+              </div>
+            </div>
           )}
         </div>
       )}
 
-      {/* Overdue Justification Badge */}
-      {isOverdue && (
+      {/* Justificativa de atraso */}
+      {isOverdue && hasJustification && (
         <div className="mb-3">
-          {hasJustification ? (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-success/10 text-success text-[10px] font-medium cursor-help">
-                    <CheckCircle2 size={12} />
-                    Justificado
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-[300px]">
-                  <p className="text-xs">{card.justification}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          ) : null}
-
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-success/12 text-success text-[11px] font-medium cursor-help">
+                  <CheckCircle2 size={12} />
+                  Justificado
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-[300px]">
+                <p className="text-xs">{card.justification}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       )}
 
-      {/* Footer */}
-      <div className="flex items-center justify-between pt-3 border-t border-border">
-        {/* Due Date */}
-        {card.due_date ? (
-          <div className={cn(
-            "flex items-center gap-1 text-[10px] font-medium",
-            isOverdue ? "text-danger" : isDueToday ? "text-warning" : "text-muted-foreground"
-          )}>
-            <Clock size={12} />
-            <span>
-              {isOverdue ? 'Atrasado' : isDueToday ? 'Hoje' : format(new Date(card.due_date), 'dd MMM', { locale: ptBR })}
+      {/* Footer: assignee + timestamp relativo */}
+      <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-border/50">
+        <div className="flex items-center gap-2 min-w-0">
+          {card.assignee ? (
+            <>
+              <div
+                className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-semibold ring-1 ring-background shadow-sm overflow-hidden shrink-0"
+                style={!card.assignee.avatar ? { background: avatarGradient(assigneeName) } : undefined}
+                title={assigneeName}
+              >
+                {card.assignee.avatar ? (
+                  <img src={card.assignee.avatar} alt={assigneeName} className="w-5 h-5 object-cover" />
+                ) : (
+                  assigneeName.charAt(0).toUpperCase()
+                )}
+              </div>
+              <span className="text-[12px] text-muted-foreground truncate">{assigneeName}</span>
+            </>
+          ) : card.client ? (
+            <span className="text-[12px] text-muted-foreground truncate">{card.client.name}</span>
+          ) : (
+            <span className="inline-flex items-center gap-1 text-[12px] text-muted-foreground/60">
+              <User size={11} strokeWidth={2} />
+              Sem responsável
             </span>
-          </div>
-        ) : (
-          <div />
-        )}
+          )}
+        </div>
 
-        {/* Assignee */}
-        {card.assignee ? (
-          <div 
-            className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-secondary-foreground text-[10px] font-semibold"
-            title={card.assignee.name}
-          >
-            {card.assignee.avatar ? (
-              <img 
-                src={card.assignee.avatar} 
-                alt={card.assignee.name}
-                className="w-6 h-6 rounded-full object-cover"
-              />
-            ) : (
-              card.assignee.name.charAt(0)
-            )}
-          </div>
-        ) : (
-          <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
-            <User size={12} className="text-muted-foreground" />
-          </div>
+        {createdAt && showClientTimer && (
+          <span className="text-[11px] text-muted-foreground/70 shrink-0">
+            {relativeShort(createdAt)}
+          </span>
         )}
       </div>
+
+      {/* onJustify é disponível como prop mas acionado via modal externo */}
+      {false && onJustify && <span />}
     </div>
   );
 }

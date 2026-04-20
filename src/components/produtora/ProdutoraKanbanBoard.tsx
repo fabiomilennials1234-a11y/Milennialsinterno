@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { Plus, User, ChevronDown, ChevronRight, MoreHorizontal, Archive, Trash2, Calendar, AlertTriangle, FileText, UserCircle } from 'lucide-react';
+import { Plus, User, ChevronDown, ChevronRight, MoreHorizontal, Archive, Trash2, Calendar, AlertTriangle, FileText, UserCircle, Flag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -187,7 +187,7 @@ export default function ProdutoraKanbanBoard() {
                 board_id: board.id,
                 title: columnTitle,
                 position: position++,
-                color: '#ec4899', // Pink for produtora
+                color: 'primary',
               });
           }
         }
@@ -208,7 +208,7 @@ export default function ProdutoraKanbanBoard() {
                 board_id: board.id,
                 title: justificationTitle,
                 position: position++,
-                color: '#ef4444',
+                color: 'danger',
               });
           }
         }
@@ -539,34 +539,35 @@ export default function ProdutoraKanbanBoard() {
           {produtoraColumns.map((column) => {
             const cardsByStatus = getCardsForColumn(column.id);
             const totalCards = Object.values(cardsByStatus).flat().length;
+            const displayTitle = column.title.replace(/^BY\s+/i, '');
 
             return (
               <div
                 key={column.id}
-                className="w-[340px] flex-shrink-0 flex flex-col bg-card rounded-xl border border-subtle overflow-hidden"
+                className="kanban-column w-[340px] flex-shrink-0 flex flex-col bg-card rounded-2xl border border-border overflow-hidden"
               >
-                {/* Column Header */}
-                <div
-                  className="p-4 flex items-center justify-between border-b border-border"
-                  style={{ borderTopWidth: 4, borderTopColor: '#ec4899' }}
-                >
-                  <div className="flex items-center gap-2">
-                    <User size={16} className="text-pink-500" />
-                    <h3 className="font-semibold text-sm text-foreground">{column.title}</h3>
-                    <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                {/* Column Header — estilo pipeline */}
+                <div className="px-4 pt-4 pb-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                    <User size={13} className="text-muted-foreground/70 shrink-0" strokeWidth={2.25} />
+                    <h3 className="text-[13.5px] font-semibold tracking-[-0.01em] text-foreground truncate">
+                      {displayTitle}
+                    </h3>
+                    <span className="text-[12px] font-medium text-muted-foreground/70 tabular-nums ml-0.5">
                       {totalCards}
                     </span>
+                    {canCreateProdutoraCard(user?.role || null) && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 ml-auto text-muted-foreground/60 hover:text-foreground"
+                        onClick={() => handleCreateCard(column.id)}
+                      >
+                        <Plus size={14} />
+                      </Button>
+                    )}
                   </div>
-                  {canCreateProdutoraCard(user?.role || null) && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={() => handleCreateCard(column.id)}
-                    >
-                      <Plus size={14} />
-                    </Button>
-                  )}
                 </div>
 
                 {/* Subcategories Container */}
@@ -574,24 +575,24 @@ export default function ProdutoraKanbanBoard() {
                   {PRODUTORA_STATUSES.map((status) => {
                     const statusCards = cardsByStatus[status.id] || [];
                     const isCollapsed = collapsedSections[`${column.id}:${status.id}`];
-                    
+
                     return (
-                      <div key={status.id} className="border-b border-border/50 last:border-b-0">
+                      <div key={status.id} className="border-b border-border/40 last:border-b-0">
                         {/* Status Header */}
                         <button
                           onClick={() => toggleSection(`${column.id}:${status.id}`)}
-                          className="w-full flex items-center gap-2 p-3 hover:bg-muted/50 transition-colors"
+                          className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-muted/40 transition-colors"
                         >
-                          <div className={cn("w-2 h-2 rounded-full", status.color)} />
                           {isCollapsed ? (
-                            <ChevronRight size={14} className="text-muted-foreground" />
+                            <ChevronRight size={13} className="text-muted-foreground/70 shrink-0" />
                           ) : (
-                            <ChevronDown size={14} className="text-muted-foreground" />
+                            <ChevronDown size={13} className="text-muted-foreground/70 shrink-0" />
                           )}
-                          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", status.color)} />
+                          <span className="text-[12px] font-medium text-foreground/80">
                             {status.label}
                           </span>
-                          <span className="ml-auto px-1.5 py-0.5 rounded bg-muted text-[10px] font-medium text-muted-foreground">
+                          <span className="ml-auto text-[11px] font-medium text-muted-foreground/70 tabular-nums">
                             {statusCards.length}
                           </span>
                         </button>
@@ -604,21 +605,21 @@ export default function ProdutoraKanbanBoard() {
                                 ref={provided.innerRef}
                                 {...provided.droppableProps}
                                 className={cn(
-                                  "px-3 pb-3 space-y-2 min-h-[60px]",
-                                  snapshot.isDraggingOver && "bg-primary/5"
+                                  "px-3 pb-3 space-y-2 min-h-[60px] transition-colors",
+                                  snapshot.isDraggingOver && "kanban-droppable-active"
                                 )}
                               >
                                 {statusCards.map((card, cardIndex) => (
-                                  <Draggable 
-                                    key={card.id} 
-                                    draggableId={card.id} 
+                                  <Draggable
+                                    key={card.id}
+                                    draggableId={card.id}
                                     index={cardIndex}
                                     isDragDisabled={!canMoveProdutoraCard(user?.role || null)}
                                   >
                                     {(provided, snapshot) => {
                                       const overdue = isCardOverdue(card);
                                       const hasJustification = card.justification;
-                                      
+
                                       return (
                                         <div
                                           ref={provided.innerRef}
@@ -626,62 +627,49 @@ export default function ProdutoraKanbanBoard() {
                                           {...provided.dragHandleProps}
                                           onClick={() => handleCardClick(card)}
                                           className={cn(
-                                            "p-3 bg-background rounded-lg border cursor-pointer",
-                                            "hover:border-primary/50 hover:shadow-sm transition-all",
-                                            snapshot.isDragging && "rotate-2 scale-105 shadow-lg",
-                                            overdue && !hasJustification ? "border-danger" : "border-border"
+                                            "kanban-card group p-3.5 bg-card rounded-xl border cursor-pointer",
+                                            snapshot.isDragging && "kanban-card-dragging",
+                                            overdue && !hasJustification ? "border-danger/60" : "border-border"
                                           )}
                                         >
-                                          {/* Priority Badge */}
-                                          <div className="flex items-center gap-2 mb-2">
-                                            <span className={cn(
-                                              "px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider",
-                                              card.priority === 'urgent' 
-                                                ? "bg-danger/20 text-danger border border-danger/30" 
-                                                : "bg-info/20 text-info border border-info/30"
-                                            )}>
-                                              {card.priority === 'urgent' ? '🔥 Urgente' : 'Normal'}
-                                            </span>
+                                          {/* Metadata row */}
+                                          <div className="flex items-center gap-1.5 mb-2 min-h-[16px]">
+                                            {card.priority === 'urgent' && (
+                                              <Flag size={12} strokeWidth={2.5} fill="currentColor" className="text-danger" />
+                                            )}
+                                            {card.due_date && (
+                                              <div className={cn(
+                                                "flex items-center gap-1 text-[11px] font-medium tabular-nums",
+                                                overdue && !hasJustification
+                                                  ? "text-danger"
+                                                  : overdue && hasJustification
+                                                    ? "text-warning"
+                                                    : "text-muted-foreground/80"
+                                              )}>
+                                                {overdue && !hasJustification ? (
+                                                  <AlertTriangle size={11} strokeWidth={2.25} />
+                                                ) : (
+                                                  <Calendar size={11} strokeWidth={2.25} />
+                                                )}
+                                                {format(new Date(card.due_date), "dd MMM", { locale: ptBR })}
+                                              </div>
+                                            )}
+                                            {cardCreators[card.id] && (
+                                              <div className="flex items-center gap-1 text-[11px] text-muted-foreground/80 truncate">
+                                                <UserCircle size={11} strokeWidth={2.25} />
+                                                <span className="truncate">{cardCreators[card.id].name}</span>
+                                              </div>
+                                            )}
                                           </div>
-                                          
-                                          {/* Due Date Badge */}
-                                          {card.due_date && (
-                                            <div className={cn(
-                                              "flex items-center gap-1 text-[10px] font-medium mb-1.5",
-                                              overdue && !hasJustification 
-                                                ? "text-danger" 
-                                                : overdue && hasJustification
-                                                  ? "text-warning"
-                                                  : "text-muted-foreground"
-                                            )}>
-                                              {overdue && !hasJustification ? (
-                                                <AlertTriangle size={10} />
-                                              ) : (
-                                                <Calendar size={10} />
-                                              )}
-                                              {format(new Date(card.due_date), "dd/MM/yyyy")}
-                                              {overdue && !hasJustification && (
-                                                <span className="ml-1 text-[9px] uppercase">(Atrasado)</span>
-                                              )}
-                                            </div>
-                                          )}
-                                          
-                                          {/* Creator info */}
-                                          {cardCreators[card.id] && (
-                                            <div className="flex items-center gap-1 text-[10px] text-muted-foreground mb-1.5">
-                                              <UserCircle size={10} />
-                                              <span>Por: {cardCreators[card.id].name}</span>
-                                            </div>
-                                          )}
-                          
+
                                           <div className="flex items-start justify-between gap-2">
-                                            <h4 className="font-medium text-sm text-foreground line-clamp-2">
+                                            <h4 className="text-[14px] font-semibold tracking-[-0.01em] text-foreground leading-[1.35] line-clamp-2">
                                               {card.title}
                                             </h4>
                                             {canArchiveProdutoraCard(user?.role || null) && (
                                               <DropdownMenu>
                                                 <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                                  <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0">
+                                                  <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <MoreHorizontal size={14} />
                                                   </Button>
                                                 </DropdownMenuTrigger>
@@ -780,18 +768,18 @@ export default function ProdutoraKanbanBoard() {
 // Justification Column Component
 function JustificationColumn({ column, produtoraName }: { column: ProdutoraColumn; produtoraName: string }) {
   const { data: justifications = [] } = useProdutoraJustifications(produtoraName);
+  const displayTitle = column.title.replace(/JUSTIFICATIVA\s*\(([^)]+)\)/i, '$1');
 
   return (
-    <div
-      className="w-[300px] flex-shrink-0 flex flex-col bg-card rounded-xl border border-subtle overflow-hidden"
-      style={{ borderTopWidth: 4, borderTopColor: '#ef4444' }}
-    >
+    <div className="kanban-column w-[300px] flex-shrink-0 flex flex-col bg-card rounded-2xl border border-border overflow-hidden">
       {/* Column Header */}
-      <div className="p-4 flex items-center justify-between border-b border-border">
-        <div className="flex items-center gap-2">
-          <FileText size={16} className="text-danger" />
-          <h3 className="font-semibold text-sm text-foreground">{column.title}</h3>
-          <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+      <div className="px-4 pt-4 pb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2 min-w-0">
+          <FileText size={14} className="text-danger shrink-0" strokeWidth={2.25} />
+          <h3 className="text-[13px] font-semibold tracking-[-0.01em] text-foreground truncate">
+            Justificativa · {displayTitle}
+          </h3>
+          <span className="text-[11px] font-medium text-muted-foreground/80 tabular-nums">
             {justifications.length}
           </span>
         </div>
@@ -800,19 +788,20 @@ function JustificationColumn({ column, produtoraName }: { column: ProdutoraColum
       {/* Justifications List */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-apple">
         {justifications.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground text-xs">
-            Nenhuma justificativa
+          <div className="flex flex-col items-center justify-center py-10 text-muted-foreground/50 select-none">
+            <div className="w-8 h-8 rounded-lg border border-dashed border-border mb-2" />
+            <p className="text-[11px]">Nenhuma justificativa</p>
           </div>
         ) : (
           justifications.map((justification) => (
             <div
               key={justification.id}
-              className="p-3 bg-danger/5 rounded-lg border border-danger/20"
+              className="p-3 bg-danger/5 rounded-xl border border-danger/20"
             >
-              <p className="text-xs text-muted-foreground mb-1">
-                {format(new Date(justification.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+              <p className="text-[11px] text-muted-foreground mb-1 tabular-nums">
+                {format(new Date(justification.created_at), "dd MMM, HH:mm", { locale: ptBR })}
               </p>
-              <p className="text-sm text-foreground">{justification.justification}</p>
+              <p className="text-[13px] text-foreground leading-[1.45]">{justification.justification}</p>
             </div>
           ))
         )}
