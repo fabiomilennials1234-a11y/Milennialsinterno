@@ -118,12 +118,19 @@ function StandardKanbanBoard({ boardSlug }: KanbanBoardProps) {
 
   const filteredCards = useMemo(() => applyKanbanFilter(cards, filter), [cards, filter]);
 
-  const cardsByColumn = columns.reduce((acc, column) => {
-    acc[column.id] = filteredCards
-      .filter(card => card.column_id === column.id)
-      .sort((a, b) => a.position - b.position);
-    return acc;
-  }, {} as Record<string, KanbanCard[]>);
+  // Agrupa e ordena cards por coluna em O(n + k log k). Antes era recalculado
+  // a cada render — problema real em boards com 500+ cards e keyboard nav.
+  const cardsByColumn = useMemo(() => {
+    const bucket: Record<string, KanbanCard[]> = {};
+    for (const col of columns) bucket[col.id] = [];
+    for (const card of filteredCards) {
+      if (bucket[card.column_id]) bucket[card.column_id].push(card);
+    }
+    for (const key in bucket) {
+      bucket[key].sort((a, b) => a.position - b.position);
+    }
+    return bucket;
+  }, [columns, filteredCards]);
 
   const { isCollapsed, toggle: toggleCollapse } = useColumnCollapse(boardSlug);
 

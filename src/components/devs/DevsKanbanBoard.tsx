@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -530,23 +530,25 @@ export default function DevsKanbanBoard() {
   // Get dev columns for the modal
   const devColumnsForModal = devColumns.map(c => ({ id: c.id, title: c.title }));
 
-  const getCardsForColumn = (columnId: string) => {
-    const columnCards = cards.filter(c => c.column_id === columnId);
-    const result: Record<string, KanbanCard[]> = {};
-    
-    CARD_STATUSES.forEach(status => {
-      result[status.id] = columnCards.filter(card => card.status === status.id);
-    });
-    
-    // Cards without status go to "a_fazer"
-    const unassignedCards = columnCards.filter(
-      card => !card.status || !CARD_STATUSES.some(s => s.id === card.status)
-    );
-    if (unassignedCards.length > 0) {
-      result['a_fazer'] = [...(result['a_fazer'] || []), ...unassignedCards];
+  const cardsByColumnAndStatus = useMemo(() => {
+    const statusIds = new Set(CARD_STATUSES.map(s => s.id));
+    const buckets: Record<string, Record<string, KanbanCard[]>> = {};
+    for (const card of cards) {
+      if (!buckets[card.column_id]) {
+        buckets[card.column_id] = {};
+        for (const s of CARD_STATUSES) buckets[card.column_id][s.id] = [];
+      }
+      const status = card.status && statusIds.has(card.status) ? card.status : 'a_fazer';
+      buckets[card.column_id][status].push(card);
     }
-    
-    return result;
+    return buckets;
+  }, [cards]);
+
+  const getCardsForColumn = (columnId: string) => {
+    return cardsByColumnAndStatus[columnId] || CARD_STATUSES.reduce((acc, s) => {
+      acc[s.id] = [];
+      return acc;
+    }, {} as Record<string, KanbanCard[]>);
   };
 
   // Check if a card is overdue
