@@ -354,26 +354,28 @@ export default function CreateUserModal({ isOpen, onClose, onSubmit, isLoading }
 
     if (!accessMode) {
       newErrors.role = 'Selecione um perfil de acesso';
-    } else if (accessMode === 'standard') {
-      // Cargo padrão: exige cargo selecionado + campos de alocação
+    } else {
+      // Cargo é obrigatório em AMBOS os modos. O perfil customizado define apenas
+      // páginas adicionais — nunca o papel (role) do usuário.
       if (!formData.role) newErrors.role = 'Cargo é obrigatório';
 
-      if (assignmentType === 'group') {
-        if (!formData.group_id) newErrors.group_id = 'Grupo é obrigatório para este cargo';
-        if (!isCoringa && !formData.squad_id) newErrors.squad_id = 'Squad é obrigatório para este cargo';
-        if (formData.group_id && formData.role) {
-          const group = groups.find(g => g.id === formData.group_id);
-          if (group) {
-            const roleOccupancy = group.roleOccupancy.find(o => o.role === formData.role);
-            if (roleOccupancy && roleOccupancy.current >= roleOccupancy.max) {
-              newErrors.role = `Não há vagas para ${ROLE_LABELS[formData.role as UserRole]} neste grupo`;
+      if (accessMode === 'standard') {
+        if (assignmentType === 'group') {
+          if (!formData.group_id) newErrors.group_id = 'Grupo é obrigatório para este cargo';
+          if (!isCoringa && !formData.squad_id) newErrors.squad_id = 'Squad é obrigatório para este cargo';
+          if (formData.group_id && formData.role) {
+            const group = groups.find(g => g.id === formData.group_id);
+            if (group) {
+              const roleOccupancy = group.roleOccupancy.find(o => o.role === formData.role);
+              if (roleOccupancy && roleOccupancy.current >= roleOccupancy.max) {
+                newErrors.role = `Não há vagas para ${ROLE_LABELS[formData.role as UserRole]} neste grupo`;
+              }
             }
           }
         }
+        if (assignmentType === 'independent' && !formData.category_id) newErrors.category_id = 'Área é obrigatória para este cargo';
       }
-      if (assignmentType === 'independent' && !formData.category_id) newErrors.category_id = 'Área é obrigatória para este cargo';
     }
-    // accessMode === 'custom': não exige cargo - usa gestor_projetos como base
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -384,18 +386,22 @@ export default function CreateUserModal({ isOpen, onClose, onSubmit, isLoading }
     if (!validateForm()) return;
 
     if (accessMode === 'custom' && selectedCustomRole) {
-      // Perfil personalizado: usa gestor_projetos como cargo base técnico
-      // e envia as páginas do perfil customizado como additional_pages
+      // Perfil personalizado: o role vem do dropdown escolhido pelo admin (nunca hardcoded).
+      // As páginas do perfil customizado entram como additional_pages, excluindo
+      // as que já fazem parte das defaults do cargo para evitar redundância.
+      const roleDefaults = DEFAULT_PAGES_BY_ROLE[formData.role as UserRole] || [];
+      const extraPages = selectedCustomRole.allowed_pages.filter(p => !roleDefaults.includes(p));
+
       onSubmit({
         name: formData.name,
         email: formData.email,
-        role: 'gestor_projetos' as UserRole,
-        additional_pages: selectedCustomRole.allowed_pages,
-        can_access_mtech: formData.can_access_mtech,
+        role: formData.role as UserRole,
+        additional_pages: extraPages.length > 0 ? extraPages : undefined,
+        can_access_mtech: effectiveMtechAccess,
       }, formData.password);
     } else {
       // Cargo padrão do sistema
-      let finalAdditionalPages = [...additionalPages];
+      const finalAdditionalPages = [...additionalPages];
 
       onSubmit({
         name: formData.name,
@@ -546,37 +552,44 @@ export default function CreateUserModal({ isOpen, onClose, onSubmit, isLoading }
                 )}
               </div>
 
-              {/* ═══ CARGO (só aparece para Cargo Padrão do sistema) ═══ */}
-              {accessMode === 'standard' && (<>
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-foreground">
-                  Cargo <span className="text-danger">*</span>
-                </label>
-                <select value={formData.role} onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value as UserRole }))} disabled={isLoading}
-                  className={cn("input-apple", errors.role && "border-danger focus:ring-danger/30", !formData.role && "text-muted-foreground")}>
-                  <option value="">Selecione um cargo</option>
-                  <optgroup label={ROLE_TYPE_LABELS.coringa}>
-                    {CORINGA_ROLES.map(role => <option key={role} value={role}>{ROLE_LABELS[role]}</option>)}
-                  </optgroup>
-                  <optgroup label={ROLE_TYPE_LABELS.group_squad}>
-                    {GROUP_SQUAD_ROLES.map(role => <option key={role} value={role}>{ROLE_LABELS[role]}</option>)}
-                  </optgroup>
-                  <optgroup label={ROLE_TYPE_LABELS.independent}>
-                    {INDEPENDENT_ROLES.map(role => <option key={role} value={role}>{ROLE_LABELS[role]}</option>)}
-                  </optgroup>
-                  <optgroup label="Educacional (Paddock)">
-                    {FIXED_PADDOCK_ROLES.map(role => <option key={role} value={role}>{ROLE_LABELS[role]}</option>)}
-                  </optgroup>
-                  <optgroup label="SaaS (Torque)">
-                    {FIXED_TORQUE_ROLES.map(role => <option key={role} value={role}>{ROLE_LABELS[role]}</option>)}
-                  </optgroup>
-                  <optgroup label="Outbound">
-                    {FIXED_OUTBOUND_ROLES.map(role => <option key={role} value={role}>{ROLE_LABELS[role]}</option>)}
-                  </optgroup>
-                </select>
-                {errors.role && <p className="text-xs text-danger">{errors.role}</p>}
-              </div>
+              {/* ═══ CARGO — obrigatório em AMBOS os modos (standard e custom) ═══ */}
+              {accessMode && (
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-foreground">
+                    Cargo <span className="text-danger">*</span>
+                  </label>
+                  <select value={formData.role} onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value as UserRole }))} disabled={isLoading}
+                    className={cn("input-apple", errors.role && "border-danger focus:ring-danger/30", !formData.role && "text-muted-foreground")}>
+                    <option value="">Selecione um cargo</option>
+                    <optgroup label={ROLE_TYPE_LABELS.coringa}>
+                      {CORINGA_ROLES.map(role => <option key={role} value={role}>{ROLE_LABELS[role]}</option>)}
+                    </optgroup>
+                    <optgroup label={ROLE_TYPE_LABELS.group_squad}>
+                      {GROUP_SQUAD_ROLES.map(role => <option key={role} value={role}>{ROLE_LABELS[role]}</option>)}
+                    </optgroup>
+                    <optgroup label={ROLE_TYPE_LABELS.independent}>
+                      {INDEPENDENT_ROLES.map(role => <option key={role} value={role}>{ROLE_LABELS[role]}</option>)}
+                    </optgroup>
+                    <optgroup label="Educacional (Paddock)">
+                      {FIXED_PADDOCK_ROLES.map(role => <option key={role} value={role}>{ROLE_LABELS[role]}</option>)}
+                    </optgroup>
+                    <optgroup label="SaaS (Torque)">
+                      {FIXED_TORQUE_ROLES.map(role => <option key={role} value={role}>{ROLE_LABELS[role]}</option>)}
+                    </optgroup>
+                    <optgroup label="Outbound">
+                      {FIXED_OUTBOUND_ROLES.map(role => <option key={role} value={role}>{ROLE_LABELS[role]}</option>)}
+                    </optgroup>
+                  </select>
+                  {errors.role && <p className="text-xs text-danger">{errors.role}</p>}
+                  {accessMode === 'custom' && (
+                    <p className="text-xs text-muted-foreground">
+                      O cargo define o papel base do usuário. O perfil personalizado acima apenas concede páginas extras sobre esse cargo.
+                    </p>
+                  )}
+                </div>
+              )}
 
+              {accessMode === 'standard' && (<>
               {/* Indicador de Tipo de Alocação */}
               {formData.role && (
                 <div className={cn("flex items-start gap-3 p-3 rounded-xl border",
