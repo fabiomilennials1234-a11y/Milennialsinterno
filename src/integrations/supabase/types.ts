@@ -472,6 +472,33 @@ export type Database = {
           },
         ]
       }
+      app_pages: {
+        Row: {
+          category: string
+          created_at: string
+          is_active: boolean
+          label: string
+          route: string
+          slug: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          is_active?: boolean
+          label: string
+          route: string
+          slug: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          is_active?: boolean
+          label?: string
+          route?: string
+          slug?: string
+        }
+        Relationships: []
+      }
       atrizes_briefings: {
         Row: {
           card_id: string
@@ -3425,6 +3452,7 @@ export type Database = {
       }
       kanban_boards: {
         Row: {
+          allowed_roles: string[]
           category_id: string | null
           created_at: string
           created_by: string | null
@@ -3433,12 +3461,14 @@ export type Database = {
           id: string
           name: string
           owner_user_id: string | null
+          page_slug: string | null
           product_category_id: string | null
           slug: string
           squad_id: string | null
           updated_at: string
         }
         Insert: {
+          allowed_roles?: string[]
           category_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -3447,12 +3477,14 @@ export type Database = {
           id?: string
           name: string
           owner_user_id?: string | null
+          page_slug?: string | null
           product_category_id?: string | null
           slug: string
           squad_id?: string | null
           updated_at?: string
         }
         Update: {
+          allowed_roles?: string[]
           category_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -3461,6 +3493,7 @@ export type Database = {
           id?: string
           name?: string
           owner_user_id?: string | null
+          page_slug?: string | null
           product_category_id?: string | null
           slug?: string
           squad_id?: string | null
@@ -3480,6 +3513,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "organization_groups"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kanban_boards_page_slug_fkey"
+            columns: ["page_slug"]
+            isOneToOne: false
+            referencedRelation: "app_pages"
+            referencedColumns: ["slug"]
           },
           {
             foreignKeyName: "kanban_boards_product_category_id_fkey"
@@ -6822,6 +6862,56 @@ export type Database = {
           },
         ]
       }
+      user_page_grants: {
+        Row: {
+          expires_at: string | null
+          granted_at: string
+          granted_by: string
+          id: string
+          page_slug: string
+          reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          source: string
+          source_ref: string | null
+          user_id: string
+        }
+        Insert: {
+          expires_at?: string | null
+          granted_at?: string
+          granted_by: string
+          id?: string
+          page_slug: string
+          reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          source: string
+          source_ref?: string | null
+          user_id: string
+        }
+        Update: {
+          expires_at?: string | null
+          granted_at?: string
+          granted_by?: string
+          id?: string
+          page_slug?: string
+          reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          source?: string
+          source_ref?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_page_grants_page_slug_fkey"
+            columns: ["page_slug"]
+            isOneToOne: false
+            referencedRelation: "app_pages"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -7164,12 +7254,28 @@ export type Database = {
       }
       generate_monthly_receivables: { Args: never; Returns: undefined }
       get_day_of_week_portuguese: { Args: never; Returns: string }
+      get_my_page_access: { Args: never; Returns: string[] }
       get_user_group_id: { Args: { _user_id: string }; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
       }
       get_user_squad_id: { Args: { _user_id: string }; Returns: string }
+      grant_pages: {
+        Args: {
+          _expires_at?: string
+          _page_slugs: string[]
+          _reason?: string
+          _source?: string
+          _source_ref?: string
+          _user_id: string
+        }
+        Returns: number
+      }
+      has_page_access: {
+        Args: { _page: string; _user: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["user_role"]
@@ -7180,6 +7286,10 @@ export type Database = {
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_ceo: { Args: { _user_id: string }; Returns: boolean }
       is_executive: { Args: { _user_id: string }; Returns: boolean }
+      revoke_page: {
+        Args: { _page_slug: string; _reason?: string; _user_id: string }
+        Returns: boolean
+      }
       set_mtech_access: {
         Args: { _user_id: string; _value: boolean }
         Returns: undefined
