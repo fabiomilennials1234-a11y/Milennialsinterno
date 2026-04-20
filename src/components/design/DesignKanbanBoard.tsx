@@ -32,6 +32,7 @@ import {
   useCreateCompletionNotification,
 } from '@/hooks/useDesignCompletionNotifications';
 import { KanbanCard } from '@/hooks/useKanban';
+import type { DesignCardInput } from '@/types/kanbanInput';
 
 interface Designer {
   user_id: string;
@@ -336,21 +337,7 @@ export default function DesignKanbanBoard() {
 
   // Create card mutation
   const createCardMutation = useMutation({
-    mutationFn: async (data: {
-      title: string;
-      description?: string;
-      priority?: 'normal' | 'urgent';
-      due_date?: string;
-      column_id?: string;
-      status?: string;
-      briefing?: {
-        description?: string;
-        references_url?: string;
-        identity_url?: string;
-        client_instagram?: string;
-        script_url?: string;
-      };
-    }) => {
+    mutationFn: async (data: DesignCardInput) => {
       if (!board?.id || !data.column_id) throw new Error('Board ou coluna não encontrados');
 
       // Get max position in column
@@ -480,21 +467,7 @@ export default function DesignKanbanBoard() {
     setIsDetailModalOpen(true);
   };
 
-  const handleCreateSubmit = (data: {
-    title: string;
-    description?: string;
-    priority?: 'normal' | 'urgent';
-    due_date?: string;
-    column_id?: string;
-    status?: string;
-    briefing?: {
-      description?: string;
-      references_url?: string;
-      identity_url?: string;
-      client_instagram?: string;
-      script_url?: string;
-    };
-  }) => {
+  const handleCreateSubmit = (data: DesignCardInput) => {
     setIsCreating(true);
     createCardMutation.mutate({
       ...data,

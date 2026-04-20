@@ -6,6 +6,7 @@ import { useColumnCollapse } from '@/hooks/useColumnCollapse';
 import { useKanbanKeyboard } from '@/hooks/useKanbanKeyboard';
 import KanbanFilters, { applyKanbanFilter, type KanbanFilter } from './KanbanFilters';
 import KanbanQuickSearch from './KanbanQuickSearch';
+import type { GenericCardInput } from '@/types/kanbanInput';
 import { 
   useBoard, 
   useBoardColumns, 
@@ -204,7 +205,7 @@ function StandardKanbanBoard({ boardSlug }: KanbanBoardProps) {
     }
   }, [canMove, board, moveCard, isSpecialBoard]);
 
-  const handleCreateCard = async (data: any) => {
+  const handleCreateCard = async (data: GenericCardInput) => {
     const columnId = data.column_id || selectedColumnId;
     if (!board || !columnId) return;
 

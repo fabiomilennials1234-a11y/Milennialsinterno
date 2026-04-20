@@ -32,6 +32,7 @@ import {
   useCreateDevCompletionNotification,
 } from '@/hooks/useDevsCompletionNotifications';
 import { KanbanCard } from '@/hooks/useKanban';
+import type { DevsCardInput, CardAttachmentInput } from '@/types/kanbanInput';
 
 interface Dev {
   user_id: string;
@@ -323,16 +324,7 @@ export default function DevsKanbanBoard() {
 
   // Create card mutation
   const createCardMutation = useMutation({
-    mutationFn: async (data: {
-      title: string;
-      description?: string;
-      priority?: 'normal' | 'urgent';
-      due_date?: string;
-      column_id?: string;
-      status?: string;
-      materials_url?: string;
-      attachments?: { file: File; name: string; size: number; type: string }[];
-    }) => {
+    mutationFn: async (data: DevsCardInput) => {
       if (!board?.id || !data.column_id) throw new Error('Board ou coluna não encontrados');
 
        const sanitizeFileName = (name: string) => {
@@ -505,7 +497,7 @@ export default function DevsKanbanBoard() {
     setIsDetailModalOpen(true);
   };
 
-  const handleCreateSubmit = (data: any, attachments?: { file: File; name: string; size: number; type: string }[]) => {
+  const handleCreateSubmit = (data: DevsCardInput, attachments?: CardAttachmentInput[]) => {
     setIsCreating(true);
     createCardMutation.mutate({
       ...data,

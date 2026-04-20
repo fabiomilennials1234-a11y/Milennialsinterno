@@ -33,6 +33,7 @@ import {
   useCreateProdutoraCompletionNotification,
 } from '@/hooks/useProdutoraCompletionNotifications';
 import { KanbanCard } from '@/hooks/useKanban';
+import type { ProdutoraCardInput } from '@/types/kanbanInput';
 
 interface ProdutoraUser {
   user_id: string;
@@ -314,19 +315,7 @@ export default function ProdutoraKanbanBoard() {
 
   // Create card mutation
   const createCardMutation = useMutation({
-    mutationFn: async (data: {
-      title: string;
-      description?: string;
-      priority?: 'normal' | 'urgent';
-      due_date?: string;
-      column_id?: string;
-      status?: string;
-      briefing?: {
-        script_url?: string;
-        observations?: string;
-        reference_video_url?: string;
-      };
-    }) => {
+    mutationFn: async (data: ProdutoraCardInput) => {
       if (!board?.id || !data.column_id) throw new Error('Board ou coluna não encontrados');
 
       // Get max position in column
@@ -446,7 +435,7 @@ export default function ProdutoraKanbanBoard() {
     setIsDetailModalOpen(true);
   };
 
-  const handleCreateSubmit = (data: any) => {
+  const handleCreateSubmit = (data: ProdutoraCardInput) => {
     setIsCreating(true);
     createCardMutation.mutate({
       ...data,

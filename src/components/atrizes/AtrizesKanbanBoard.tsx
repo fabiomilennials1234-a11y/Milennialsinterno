@@ -25,6 +25,7 @@ import {
 } from '@/hooks/useAtrizesKanban';
 import { KanbanCard } from '@/hooks/useKanban';
 import { useAtrizesCompletionNotifications } from '@/hooks/useAtrizesCompletionNotifications';
+import type { AtrizesCardInput } from '@/types/kanbanInput';
 
 interface AtrizUser {
   user_id: string;
@@ -329,19 +330,7 @@ export default function AtrizesKanbanBoard() {
 
   // Create card mutation
   const createCardMutation = useMutation({
-    mutationFn: async (data: {
-      title: string;
-      description?: string;
-      priority?: 'normal' | 'urgent';
-      due_date?: string;
-      column_id?: string;
-      status?: string;
-      briefing?: {
-        client_instagram?: string;
-        script_url?: string;
-        drive_upload_url?: string;
-      };
-    }) => {
+    mutationFn: async (data: AtrizesCardInput) => {
       if (!board?.id || !data.column_id) throw new Error('Board ou coluna não encontrados');
 
       // Get max position in column
@@ -372,17 +361,19 @@ export default function AtrizesKanbanBoard() {
 
       if (error) throw error;
 
-      // Create briefing if provided
+      // Create briefing if provided.
+      // A tabela atrizes_briefings ainda não está nos tipos gerados do Supabase;
+      // por isso o cast isolado aqui — fica contido a 1 linha e não vaza para
+      // a assinatura pública deste componente.
       if (data.briefing && newCard) {
-        await supabase
-          .from('atrizes_briefings' as any)
-          .insert({
-            card_id: newCard.id,
-            client_instagram: data.briefing.client_instagram || null,
-            script_url: data.briefing.script_url || null,
-            drive_upload_url: data.briefing.drive_upload_url || null,
-            created_by: user?.id,
-          } as any);
+        const briefingTable = supabase.from('atrizes_briefings' as never);
+        await briefingTable.insert({
+          card_id: newCard.id,
+          client_instagram: data.briefing.client_instagram || null,
+          script_url: data.briefing.script_url || null,
+          drive_upload_url: data.briefing.drive_upload_url || null,
+          created_by: user?.id,
+        } as never);
       }
 
       return newCard;
@@ -463,7 +454,7 @@ export default function AtrizesKanbanBoard() {
     setIsDetailModalOpen(true);
   };
 
-  const handleCreateSubmit = (data: any) => {
+  const handleCreateSubmit = (data: AtrizesCardInput) => {
     setIsCreating(true);
     createCardMutation.mutate({
       ...data,
