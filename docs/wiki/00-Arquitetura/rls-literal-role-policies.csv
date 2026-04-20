@@ -1,0 +1,315 @@
+schema,table,policy,cmd,qual,with_check,literal_roles,proposed_helper,risk,flow_impact
+public,ads_task_comments,Users can view comments on tasks they can access,SELECT,"(EXISTS ( SELECT 1
+   FROM ads_tasks t
+  WHERE ((t.id = ads_task_comments.task_id) AND ((t.ads_manager_id = auth.uid()) OR (EXISTS ( SELECT 1
+           FROM user_roles ur
+          WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'sucesso_cliente'::user_role])))))))))",,ceo|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",ALTO,Comentários task ADS
+public,ads_task_delay_justifications,Authorized roles can view justifications by role,SELECT,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['gestor_ads'::user_role, 'sucesso_cliente'::user_role, 'gestor_projetos'::user_role, 'ceo'::user_role])))))",,ceo|gestor_ads|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",ALTO,Justificativas atraso
+public,ads_task_delay_justifications,CEO can view all justifications,SELECT,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = 'ceo'::user_role))))",,ceo,is_executive(auth.uid()) OR is_admin(auth.uid()),ALTO,Justificativas atraso
+public,ads_task_delay_justifications,Only CEO can archive justifications,UPDATE,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = 'ceo'::user_role))))","(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = 'ceo'::user_role))))",ceo,is_executive(auth.uid()) OR is_admin(auth.uid()),ALTO,Justificativas atraso
+public,ads_task_delay_notifications,Admins podem deletar notificações,DELETE,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role])))))",,ceo|gestor_projetos,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_projetos'::user_role)",ALTO,Notificações atraso
+public,ads_task_delay_notifications,Notificações de atraso visíveis para cargos específicos,SELECT,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['gestor_ads'::user_role, 'sucesso_cliente'::user_role, 'gestor_projetos'::user_role, 'ceo'::user_role])))))",,ceo|gestor_ads|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",ALTO,Notificações atraso
+public,ads_task_delay_notifications,Usuários autenticados podem inserir notificações,INSERT,,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['gestor_ads'::user_role, 'sucesso_cliente'::user_role, 'gestor_projetos'::user_role, 'ceo'::user_role])))))",ceo|gestor_ads|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",ALTO,Notificações atraso
+public,ads_tasks,Authorized roles can view all ads tasks for monitoring,SELECT,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'sucesso_cliente'::user_role])))))",,ceo|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",CRITICO,Kanban ADS
+public,atrizes_briefings,atrizes_briefings_delete,DELETE,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'atrizes_gravacao'::user_role])))))",,atrizes_gravacao|ceo|gestor_ads|gestor_projetos,"is_admin(auth.uid()) OR has_role(auth.uid(), 'atrizes_gravacao'::user_role) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role)",CRITICO,Briefings departamento
+public,atrizes_briefings,atrizes_briefings_insert,INSERT,,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'atrizes_gravacao'::user_role, 'sucesso_cliente'::user_role])))))",atrizes_gravacao|ceo|gestor_ads|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'atrizes_gravacao'::user_role) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",CRITICO,Briefings departamento
+public,atrizes_briefings,atrizes_briefings_update,UPDATE,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'atrizes_gravacao'::user_role, 'sucesso_cliente'::user_role])))))",,atrizes_gravacao|ceo|gestor_ads|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'atrizes_gravacao'::user_role) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",CRITICO,Briefings departamento
+public,card_attachments,card_attachments_delete,DELETE,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'devs'::user_role, 'sucesso_cliente'::user_role])))))",,ceo|devs|gestor_ads|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'devs'::user_role) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",ALTO,Fluxo auxiliar
+public,card_attachments,card_attachments_insert,INSERT,,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'devs'::user_role, 'sucesso_cliente'::user_role])))))",ceo|devs|gestor_ads|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'devs'::user_role) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",ALTO,Fluxo auxiliar
+public,churn_notifications,Authorized roles can insert churn notifications,INSERT,,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['financeiro'::user_role, 'gestor_projetos'::user_role, 'ceo'::user_role])))))",ceo|financeiro|gestor_projetos,"is_admin(auth.uid()) OR has_role(auth.uid(), 'financeiro'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role)",ALTO,Notificações
+public,churn_notifications,Users with specific roles can view churn notifications,SELECT,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_ads'::user_role, 'gestor_projetos'::user_role, 'sucesso_cliente'::user_role, 'financeiro'::user_role, 'consultor_comercial'::user_role])))))",,ceo|consultor_comercial|financeiro|gestor_ads|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'consultor_comercial'::user_role) OR has_role(auth.uid(), 'financeiro'::user_role) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",ALTO,Notificações
+public,client_daily_tracking,Sucesso do Cliente can view all tracking,SELECT,"has_role(auth.uid(), 'sucesso_cliente'::user_role)",,sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",MEDIO,Fluxo auxiliar
+public,client_invoices,Financeiro pode atualizar faturamentos,UPDATE,"(EXISTS ( SELECT 1
+   FROM user_roles
+  WHERE ((user_roles.user_id = auth.uid()) AND (user_roles.role = ANY (ARRAY['financeiro'::user_role, 'gestor_projetos'::user_role, 'ceo'::user_role])))))",,ceo|financeiro|gestor_projetos,"is_admin(auth.uid()) OR has_role(auth.uid(), 'financeiro'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role)",CRITICO,Faturamento / NF
+public,client_invoices,Financeiro pode criar faturamentos,INSERT,,"(EXISTS ( SELECT 1
+   FROM user_roles
+  WHERE ((user_roles.user_id = auth.uid()) AND (user_roles.role = ANY (ARRAY['financeiro'::user_role, 'gestor_projetos'::user_role, 'ceo'::user_role])))))",ceo|financeiro|gestor_projetos,"is_admin(auth.uid()) OR has_role(auth.uid(), 'financeiro'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role)",CRITICO,Faturamento / NF
+public,client_invoices,Financeiro pode deletar faturamentos,DELETE,"(EXISTS ( SELECT 1
+   FROM user_roles
+  WHERE ((user_roles.user_id = auth.uid()) AND (user_roles.role = ANY (ARRAY['financeiro'::user_role, 'gestor_projetos'::user_role, 'ceo'::user_role])))))",,ceo|financeiro|gestor_projetos,"is_admin(auth.uid()) OR has_role(auth.uid(), 'financeiro'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role)",CRITICO,Faturamento / NF
+public,client_invoices,Financeiro pode ver faturamentos,SELECT,"(EXISTS ( SELECT 1
+   FROM user_roles
+  WHERE ((user_roles.user_id = auth.uid()) AND (user_roles.role = ANY (ARRAY['financeiro'::user_role, 'gestor_projetos'::user_role, 'ceo'::user_role])))))",,ceo|financeiro|gestor_projetos,"is_admin(auth.uid()) OR has_role(auth.uid(), 'financeiro'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role)",CRITICO,Faturamento / NF
+public,client_sales,Authorized roles can insert sales,INSERT,,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'financeiro'::user_role, 'consultor_comercial'::user_role, 'sucesso_cliente'::user_role])))))",ceo|consultor_comercial|financeiro|gestor_ads|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'consultor_comercial'::user_role) OR has_role(auth.uid(), 'financeiro'::user_role) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",CRITICO,Vendas registradas
+public,client_sales,Authorized roles can view all sales,SELECT,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'financeiro'::user_role, 'consultor_comercial'::user_role, 'sucesso_cliente'::user_role])))))",,ceo|consultor_comercial|financeiro|gestor_ads|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'consultor_comercial'::user_role) OR has_role(auth.uid(), 'financeiro'::user_role) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",CRITICO,Vendas registradas
+public,clients,Ads Manager can update assigned clients,UPDATE,"((EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = 'gestor_ads'::user_role)))) AND (assigned_ads_manager = auth.uid()))","((EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = 'gestor_ads'::user_role)))) AND (assigned_ads_manager = auth.uid()))",gestor_ads,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_ads'::user_role)",CRITICO,"CRUD clientes (onboarding, dashboards)"
+public,clients,Consultor Comercial can view all clients,SELECT,"has_role(auth.uid(), 'consultor_comercial'::user_role)",,consultor_comercial,"is_admin(auth.uid()) OR has_role(auth.uid(), 'consultor_comercial'::user_role)",CRITICO,"CRUD clientes (onboarding, dashboards)"
+public,clients,Financeiro can update clients for churn workflow,UPDATE,"has_role(auth.uid(), 'financeiro'::user_role)",,financeiro,"is_admin(auth.uid()) OR has_role(auth.uid(), 'financeiro'::user_role)",CRITICO,"CRUD clientes (onboarding, dashboards)"
+public,clients,Financeiro can view all clients,SELECT,"has_role(auth.uid(), 'financeiro'::user_role)",,financeiro,"is_admin(auth.uid()) OR has_role(auth.uid(), 'financeiro'::user_role)",CRITICO,"CRUD clientes (onboarding, dashboards)"
+public,clients,Gestor de Projetos can view clients in their group,SELECT,"(has_role(auth.uid(), 'gestor_projetos'::user_role) AND (group_id = get_user_group_id(auth.uid())))",,gestor_projetos,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_projetos'::user_role)",CRITICO,"CRUD clientes (onboarding, dashboards)"
+public,clients,Outbound can view all clients,SELECT,"has_role(auth.uid(), 'outbound'::user_role)",,outbound,"is_admin(auth.uid()) OR has_role(auth.uid(), 'outbound'::user_role)",CRITICO,"CRUD clientes (onboarding, dashboards)"
+public,clients,Sucesso do Cliente can update clients for CX validation,UPDATE,"has_role(auth.uid(), 'sucesso_cliente'::user_role)","has_role(auth.uid(), 'sucesso_cliente'::user_role)",sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",CRITICO,"CRUD clientes (onboarding, dashboards)"
+public,clients,Sucesso do Cliente can view all clients,SELECT,"has_role(auth.uid(), 'sucesso_cliente'::user_role)",,sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",CRITICO,"CRUD clientes (onboarding, dashboards)"
+public,comercial_client_documentation,CEO pode ver todas documentações comercial,SELECT,"(EXISTS ( SELECT 1
+   FROM user_roles
+  WHERE ((user_roles.user_id = auth.uid()) AND (user_roles.role = 'ceo'::user_role))))",,ceo,is_executive(auth.uid()) OR is_admin(auth.uid()),ALTO,Documentação
+public,comercial_client_documentation,Gestor Projetos pode ver todas doc comercial,SELECT,"(EXISTS ( SELECT 1
+   FROM user_roles
+  WHERE ((user_roles.user_id = auth.uid()) AND (user_roles.role = 'gestor_projetos'::user_role))))",,gestor_projetos,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_projetos'::user_role)",ALTO,Documentação
+public,comercial_daily_documentation,comercial_doc_select,SELECT,"((user_id = auth.uid()) OR (EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role]))))))",,ceo|gestor_projetos,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_projetos'::user_role)",MEDIO,Documentação
+public,comercial_delay_justifications,comercial_just_select,SELECT,"((user_id = auth.uid()) OR (EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'sucesso_cliente'::user_role]))))))",,ceo|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",ALTO,Justificativas atraso
+public,comercial_delay_justifications,comercial_just_update,UPDATE,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = 'ceo'::user_role))))",,ceo,is_executive(auth.uid()) OR is_admin(auth.uid()),ALTO,Justificativas atraso
+public,comercial_delay_notifications,comercial_delay_notif_delete,DELETE,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role])))))",,ceo|gestor_projetos,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_projetos'::user_role)",ALTO,Notificações atraso
+public,comercial_delay_notifications,comercial_delay_notif_insert,INSERT,,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'consultor_comercial'::user_role, 'sucesso_cliente'::user_role])))))",ceo|consultor_comercial|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'consultor_comercial'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",ALTO,Notificações atraso
+public,comercial_delay_notifications,comercial_delay_notif_select,SELECT,"((user_id = auth.uid()) OR (EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'sucesso_cliente'::user_role]))))))",,ceo|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",ALTO,Notificações atraso
+public,comercial_tasks,comercial_tasks_delete,DELETE,"((user_id = auth.uid()) OR (EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = 'ceo'::user_role)))))",,ceo,is_executive(auth.uid()) OR is_admin(auth.uid()),CRITICO,Kanban comercial
+public,comercial_tasks,comercial_tasks_select,SELECT,"((user_id = auth.uid()) OR (EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role]))))))",,ceo|gestor_projetos,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_projetos'::user_role)",CRITICO,Kanban comercial
+public,comercial_tracking,comercial_tracking_select,SELECT,"((comercial_user_id = auth.uid()) OR (EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role]))))))",,ceo|gestor_projetos,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_projetos'::user_role)",MEDIO,Fluxo auxiliar
+public,commission_records,System can insert commissions,INSERT,,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'financeiro'::user_role, 'consultor_comercial'::user_role, 'sucesso_cliente'::user_role])))))",ceo|consultor_comercial|financeiro|gestor_ads|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'consultor_comercial'::user_role) OR has_role(auth.uid(), 'financeiro'::user_role) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",MEDIO,Fluxo auxiliar
+public,cs_action_manuals,Authorized roles can manage CS action manuals,ALL,"(EXISTS ( SELECT 1
+   FROM user_roles
+  WHERE ((user_roles.user_id = auth.uid()) AND (user_roles.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'sucesso_cliente'::user_role])))))",,ceo|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",MEDIO,Fluxo auxiliar
+public,cs_action_plan_tasks,CS and CEO can manage action plan tasks,ALL,"(EXISTS ( SELECT 1
+   FROM user_roles
+  WHERE ((user_roles.user_id = auth.uid()) AND (user_roles.role = ANY (ARRAY['ceo'::user_role, 'sucesso_cliente'::user_role, 'gestor_projetos'::user_role])))))",,ceo|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",MEDIO,Tasks departamento
+public,cs_action_plans,CS and CEO can create action plans,INSERT,,"(EXISTS ( SELECT 1
+   FROM user_roles
+  WHERE ((user_roles.user_id = auth.uid()) AND (user_roles.role = ANY (ARRAY['ceo'::user_role, 'sucesso_cliente'::user_role, 'gestor_projetos'::user_role])))))",ceo|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",CRITICO,Planos ação sucesso cliente
+public,cs_action_plans,CS and CEO can delete action plans,DELETE,"(EXISTS ( SELECT 1
+   FROM user_roles
+  WHERE ((user_roles.user_id = auth.uid()) AND (user_roles.role = ANY (ARRAY['ceo'::user_role, 'sucesso_cliente'::user_role, 'gestor_projetos'::user_role])))))",,ceo|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",CRITICO,Planos ação sucesso cliente
+public,cs_action_plans,CS and CEO can update action plans,UPDATE,"(EXISTS ( SELECT 1
+   FROM user_roles
+  WHERE ((user_roles.user_id = auth.uid()) AND (user_roles.role = ANY (ARRAY['ceo'::user_role, 'sucesso_cliente'::user_role, 'gestor_projetos'::user_role])))))",,ceo|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",CRITICO,Planos ação sucesso cliente
+public,cs_contact_history,Authorized roles can manage CS contact history,ALL,"(EXISTS ( SELECT 1
+   FROM user_roles
+  WHERE ((user_roles.user_id = auth.uid()) AND (user_roles.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'sucesso_cliente'::user_role])))))",,ceo|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",MEDIO,Fluxo auxiliar
+public,cs_insights,Authorized roles can manage CS insights,ALL,"(EXISTS ( SELECT 1
+   FROM user_roles
+  WHERE ((user_roles.user_id = auth.uid()) AND (user_roles.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'sucesso_cliente'::user_role])))))",,ceo|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",MEDIO,Fluxo auxiliar
+public,design_briefings,design_briefings_delete,DELETE,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'design'::user_role])))))",,ceo|design|gestor_ads|gestor_projetos,"is_admin(auth.uid()) OR has_role(auth.uid(), 'design'::user_role) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role)",CRITICO,Briefings departamento
+public,design_briefings,design_briefings_insert,INSERT,,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'design'::user_role])))))",ceo|design|gestor_ads|gestor_projetos,"is_admin(auth.uid()) OR has_role(auth.uid(), 'design'::user_role) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role)",CRITICO,Briefings departamento
+public,design_briefings,design_briefings_update,UPDATE,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'design'::user_role])))))",,ceo|design|gestor_ads|gestor_projetos,"is_admin(auth.uid()) OR has_role(auth.uid(), 'design'::user_role) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role)",CRITICO,Briefings departamento
+public,design_completion_notifications,System can insert notifications,INSERT,,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'design'::user_role, 'sucesso_cliente'::user_role])))))",ceo|design|gestor_ads|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'design'::user_role) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",ALTO,Notificações
+public,design_delay_justifications,Authorized roles can view justifications,SELECT,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'design'::user_role, 'sucesso_cliente'::user_role])))))",,ceo|design|gestor_ads|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'design'::user_role) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",ALTO,Justificativas atraso
+public,design_delay_justifications,CEO can archive justifications,UPDATE,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = 'ceo'::user_role))))",,ceo,is_executive(auth.uid()) OR is_admin(auth.uid()),ALTO,Justificativas atraso
+public,design_delay_notifications,Admins can delete notifications,DELETE,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role])))))",,ceo|gestor_projetos,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_projetos'::user_role)",ALTO,Notificações atraso
+public,design_delay_notifications,Authorized roles can view notifications,SELECT,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'design'::user_role, 'sucesso_cliente'::user_role])))))",,ceo|design|gestor_ads|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'design'::user_role) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",ALTO,Notificações atraso
+public,design_delay_notifications,System can insert notifications,INSERT,,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'design'::user_role, 'sucesso_cliente'::user_role])))))",ceo|design|gestor_ads|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'design'::user_role) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",ALTO,Notificações atraso
+public,dev_briefings,dev_briefings_delete,DELETE,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'devs'::user_role])))))",,ceo|devs|gestor_ads|gestor_projetos,"is_admin(auth.uid()) OR has_role(auth.uid(), 'devs'::user_role) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role)",CRITICO,Briefings departamento
+public,dev_briefings,dev_briefings_insert,INSERT,,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'devs'::user_role, 'sucesso_cliente'::user_role])))))",ceo|devs|gestor_ads|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'devs'::user_role) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",CRITICO,Briefings departamento
+public,dev_briefings,dev_briefings_update,UPDATE,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'devs'::user_role, 'sucesso_cliente'::user_role])))))",,ceo|devs|gestor_ads|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'devs'::user_role) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",CRITICO,Briefings departamento
+public,dev_completion_notifications,dev_completion_notifications_insert,INSERT,,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'devs'::user_role, 'sucesso_cliente'::user_role])))))",ceo|devs|gestor_ads|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'devs'::user_role) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",ALTO,Notificações
+public,dev_delay_justifications,dev_delay_justifications_select,SELECT,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'devs'::user_role, 'sucesso_cliente'::user_role])))))",,ceo|devs|gestor_ads|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'devs'::user_role) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",ALTO,Justificativas atraso
+public,dev_delay_justifications,dev_delay_justifications_update,UPDATE,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = 'ceo'::user_role))))",,ceo,is_executive(auth.uid()) OR is_admin(auth.uid()),ALTO,Justificativas atraso
+public,dev_delay_notifications,dev_delay_notifications_delete,DELETE,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role])))))",,ceo|gestor_projetos,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_projetos'::user_role)",ALTO,Notificações atraso
+public,dev_delay_notifications,dev_delay_notifications_insert,INSERT,,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'devs'::user_role, 'sucesso_cliente'::user_role])))))",ceo|devs|gestor_ads|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'devs'::user_role) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",ALTO,Notificações atraso
+public,dev_delay_notifications,dev_delay_notifications_select,SELECT,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'devs'::user_role, 'sucesso_cliente'::user_role])))))",,ceo|devs|gestor_ads|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'devs'::user_role) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",ALTO,Notificações atraso
+public,financeiro_custos_produto,Custos manageable by CEO and financeiro,ALL,"(EXISTS ( SELECT 1
+   FROM user_roles
+  WHERE ((user_roles.user_id = auth.uid()) AND (user_roles.role = ANY (ARRAY['ceo'::user_role, 'financeiro'::user_role, 'gestor_projetos'::user_role])))))",,ceo|financeiro|gestor_projetos,"is_admin(auth.uid()) OR has_role(auth.uid(), 'financeiro'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role)",MEDIO,Fluxo auxiliar
+public,financeiro_dre,DRE manageable by CEO and financeiro,ALL,"(EXISTS ( SELECT 1
+   FROM user_roles
+  WHERE ((user_roles.user_id = auth.uid()) AND (user_roles.role = ANY (ARRAY['ceo'::user_role, 'financeiro'::user_role, 'gestor_projetos'::user_role])))))",,ceo|financeiro|gestor_projetos,"is_admin(auth.uid()) OR has_role(auth.uid(), 'financeiro'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role)",MEDIO,Fluxo auxiliar
+public,financeiro_produto_departamentos,Departamentos manageable by CEO and financeiro,ALL,"(EXISTS ( SELECT 1
+   FROM user_roles
+  WHERE ((user_roles.user_id = auth.uid()) AND (user_roles.role = ANY (ARRAY['ceo'::user_role, 'financeiro'::user_role, 'gestor_projetos'::user_role])))))",,ceo|financeiro|gestor_projetos,"is_admin(auth.uid()) OR has_role(auth.uid(), 'financeiro'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role)",MEDIO,Fluxo auxiliar
+public,financeiro_produtos,Produtos manageable by CEO and financeiro,ALL,"(EXISTS ( SELECT 1
+   FROM user_roles
+  WHERE ((user_roles.user_id = auth.uid()) AND (user_roles.role = ANY (ARRAY['ceo'::user_role, 'financeiro'::user_role, 'gestor_projetos'::user_role])))))",,ceo|financeiro|gestor_projetos,"is_admin(auth.uid()) OR has_role(auth.uid(), 'financeiro'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role)",MEDIO,Fluxo auxiliar
+public,financeiro_receita_produto,Receita manageable by CEO and financeiro,ALL,"(EXISTS ( SELECT 1
+   FROM user_roles
+  WHERE ((user_roles.user_id = auth.uid()) AND (user_roles.role = ANY (ARRAY['ceo'::user_role, 'financeiro'::user_role, 'gestor_projetos'::user_role])))))",,ceo|financeiro|gestor_projetos,"is_admin(auth.uid()) OR has_role(auth.uid(), 'financeiro'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role)",MEDIO,Fluxo auxiliar
+public,nps_responses,CEO and CS can view responses,SELECT,"(EXISTS ( SELECT 1
+   FROM user_roles
+  WHERE ((user_roles.user_id = auth.uid()) AND (user_roles.role = ANY (ARRAY['ceo'::user_role, 'sucesso_cliente'::user_role])))))",,ceo|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",MEDIO,Fluxo auxiliar
+public,nps_surveys,CEO and CS can manage surveys,ALL,"(EXISTS ( SELECT 1
+   FROM user_roles
+  WHERE ((user_roles.user_id = auth.uid()) AND (user_roles.role = ANY (ARRAY['ceo'::user_role, 'sucesso_cliente'::user_role])))))",,ceo|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",MEDIO,Fluxo auxiliar
+public,outbound_daily_documentation,Admin can view all outbound documentation,SELECT,"(EXISTS ( SELECT 1
+   FROM user_roles
+  WHERE ((user_roles.user_id = auth.uid()) AND ((user_roles.role)::text = ANY (ARRAY['ceo'::text, 'gestor_projetos'::text, 'sucesso_cliente'::text])))))",,ceo|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",MEDIO,Documentação
+public,outbound_justifications,Admin can view all outbound justifications,SELECT,"(EXISTS ( SELECT 1
+   FROM user_roles
+  WHERE ((user_roles.user_id = auth.uid()) AND ((user_roles.role)::text = ANY (ARRAY['ceo'::text, 'gestor_projetos'::text, 'sucesso_cliente'::text])))))",,ceo|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",ALTO,Justificativas
+public,outbound_meetings,Admin can manage outbound meetings,ALL,"(EXISTS ( SELECT 1
+   FROM user_roles
+  WHERE ((user_roles.user_id = auth.uid()) AND ((user_roles.role)::text = ANY (ARRAY['ceo'::text, 'gestor_projetos'::text])))))",,ceo|gestor_projetos,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_projetos'::user_role)",MEDIO,Fluxo auxiliar
+public,outbound_new_client_notifications,Outbound managers can view notifications,SELECT,"((outbound_manager_id = auth.uid()) OR (EXISTS ( SELECT 1
+   FROM user_roles
+  WHERE ((user_roles.user_id = auth.uid()) AND ((user_roles.role)::text = ANY (ARRAY['ceo'::text, 'gestor_projetos'::text]))))))",,ceo|gestor_projetos,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_projetos'::user_role)",ALTO,Notificações
+public,outbound_task_comments,Users can view outbound task comments,SELECT,"(EXISTS ( SELECT 1
+   FROM outbound_tasks t
+  WHERE ((t.id = outbound_task_comments.task_id) AND ((t.outbound_manager_id = auth.uid()) OR (EXISTS ( SELECT 1
+           FROM user_roles
+          WHERE ((user_roles.user_id = auth.uid()) AND ((user_roles.role)::text = ANY (ARRAY['ceo'::text, 'gestor_projetos'::text, 'sucesso_cliente'::text])))))))))",,ceo|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",ALTO,Comentários
+public,outbound_task_delay_justifications,Users can update own outbound justifications,UPDATE,"((user_id = auth.uid()) OR (EXISTS ( SELECT 1
+   FROM user_roles
+  WHERE ((user_roles.user_id = auth.uid()) AND ((user_roles.role)::text = ANY (ARRAY['ceo'::text, 'gestor_projetos'::text]))))))",,ceo|gestor_projetos,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_projetos'::user_role)",ALTO,Justificativas atraso
+public,outbound_task_delay_justifications,Users can view own outbound justifications,SELECT,"((user_id = auth.uid()) OR (EXISTS ( SELECT 1
+   FROM user_roles
+  WHERE ((user_roles.user_id = auth.uid()) AND ((user_roles.role)::text = ANY (ARRAY['ceo'::text, 'gestor_projetos'::text, 'sucesso_cliente'::text]))))))",,ceo|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",ALTO,Justificativas atraso
+public,outbound_task_delay_notifications,Admin can delete outbound delay notifications,DELETE,"(EXISTS ( SELECT 1
+   FROM user_roles
+  WHERE ((user_roles.user_id = auth.uid()) AND ((user_roles.role)::text = ANY (ARRAY['ceo'::text, 'gestor_projetos'::text])))))",,ceo|gestor_projetos,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_projetos'::user_role)",ALTO,Notificações atraso
+public,outbound_task_delay_notifications,Authenticated can insert outbound delay notifications,INSERT,,"(EXISTS ( SELECT 1
+   FROM user_roles
+  WHERE ((user_roles.user_id = auth.uid()) AND ((user_roles.role)::text = ANY (ARRAY['outbound'::text, 'sucesso_cliente'::text, 'gestor_projetos'::text, 'ceo'::text])))))",ceo|gestor_projetos|outbound|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'outbound'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",ALTO,Notificações atraso
+public,outbound_task_delay_notifications,Outbound delay notifications visible to allowed roles,SELECT,"(EXISTS ( SELECT 1
+   FROM user_roles
+  WHERE ((user_roles.user_id = auth.uid()) AND ((user_roles.role)::text = ANY (ARRAY['outbound'::text, 'sucesso_cliente'::text, 'gestor_projetos'::text, 'ceo'::text])))))",,ceo|gestor_projetos|outbound|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'outbound'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",ALTO,Notificações atraso
+public,outbound_tasks,Admin can view all outbound tasks,SELECT,"(EXISTS ( SELECT 1
+   FROM user_roles
+  WHERE ((user_roles.user_id = auth.uid()) AND ((user_roles.role)::text = ANY (ARRAY['ceo'::text, 'gestor_projetos'::text, 'sucesso_cliente'::text])))))",,ceo|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",MEDIO,Tasks departamento
+public,produtora_briefings,produtora_briefings_delete,DELETE,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'produtora'::user_role])))))",,ceo|gestor_ads|gestor_projetos|produtora,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'produtora'::user_role)",CRITICO,Briefings departamento
+public,produtora_briefings,produtora_briefings_insert,INSERT,,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'produtora'::user_role, 'sucesso_cliente'::user_role])))))",ceo|gestor_ads|gestor_projetos|produtora|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'produtora'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",CRITICO,Briefings departamento
+public,produtora_briefings,produtora_briefings_update,UPDATE,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'produtora'::user_role, 'sucesso_cliente'::user_role])))))",,ceo|gestor_ads|gestor_projetos|produtora|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'produtora'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",CRITICO,Briefings departamento
+public,produtora_delay_justifications,produtora_delay_justifications_select,SELECT,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'produtora'::user_role, 'sucesso_cliente'::user_role, 'editor_video'::user_role])))))",,ceo|editor_video|gestor_ads|gestor_projetos|produtora|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'editor_video'::user_role) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'produtora'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",ALTO,Justificativas atraso
+public,produtora_delay_justifications,produtora_delay_justifications_update,UPDATE,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = 'ceo'::user_role))))",,ceo,is_executive(auth.uid()) OR is_admin(auth.uid()),ALTO,Justificativas atraso
+public,produtora_delay_notifications,produtora_delay_notifications_delete,DELETE,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role])))))",,ceo|gestor_projetos,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_projetos'::user_role)",ALTO,Notificações atraso
+public,produtora_delay_notifications,produtora_delay_notifications_insert,INSERT,,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'produtora'::user_role, 'sucesso_cliente'::user_role, 'editor_video'::user_role])))))",ceo|editor_video|gestor_ads|gestor_projetos|produtora|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'editor_video'::user_role) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'produtora'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",ALTO,Notificações atraso
+public,produtora_delay_notifications,produtora_delay_notifications_select,SELECT,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'produtora'::user_role, 'sucesso_cliente'::user_role, 'editor_video'::user_role])))))",,ceo|editor_video|gestor_ads|gestor_projetos|produtora|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'editor_video'::user_role) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'produtora'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",ALTO,Notificações atraso
+public,profiles,Consultor Comercial can view all profiles,SELECT,"has_role(auth.uid(), 'consultor_comercial'::user_role)",,consultor_comercial,"is_admin(auth.uid()) OR has_role(auth.uid(), 'consultor_comercial'::user_role)",MEDIO,Fluxo auxiliar
+public,profiles,Design can view all profiles,SELECT,"has_role(auth.uid(), 'design'::user_role)",,design,"is_admin(auth.uid()) OR has_role(auth.uid(), 'design'::user_role)",MEDIO,Fluxo auxiliar
+public,profiles,Devs can view all profiles,SELECT,"has_role(auth.uid(), 'devs'::user_role)",,devs,"is_admin(auth.uid()) OR has_role(auth.uid(), 'devs'::user_role)",MEDIO,Fluxo auxiliar
+public,profiles,Editor Video can view all profiles,SELECT,"has_role(auth.uid(), 'editor_video'::user_role)",,editor_video,"is_admin(auth.uid()) OR has_role(auth.uid(), 'editor_video'::user_role)",MEDIO,Fluxo auxiliar
+public,profiles,Financeiro can view all profiles,SELECT,"has_role(auth.uid(), 'financeiro'::user_role)",,financeiro,"is_admin(auth.uid()) OR has_role(auth.uid(), 'financeiro'::user_role)",MEDIO,Fluxo auxiliar
+public,profiles,Gestor CRM can view all profiles,SELECT,"has_role(auth.uid(), 'gestor_crm'::user_role)",,gestor_crm,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_crm'::user_role)",MEDIO,Fluxo auxiliar
+public,profiles,Gestor de Ads can view all profiles,SELECT,"has_role(auth.uid(), 'gestor_ads'::user_role)",,gestor_ads,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_ads'::user_role)",MEDIO,Fluxo auxiliar
+public,profiles,Outbound can view all profiles,SELECT,"has_role(auth.uid(), 'outbound'::user_role)",,outbound,"is_admin(auth.uid()) OR has_role(auth.uid(), 'outbound'::user_role)",MEDIO,Fluxo auxiliar
+public,profiles,RH can view all profiles,SELECT,"has_role(auth.uid(), 'rh'::user_role)",,rh,"is_admin(auth.uid()) OR has_role(auth.uid(), 'rh'::user_role)",MEDIO,Fluxo auxiliar
+public,profiles,Sucesso do Cliente can view all profiles,SELECT,"has_role(auth.uid(), 'sucesso_cliente'::user_role)",,sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",MEDIO,Fluxo auxiliar
+public,task_delay_justifications,Authorized roles can view justifications by role,SELECT,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['gestor_ads'::user_role, 'sucesso_cliente'::user_role, 'gestor_projetos'::user_role, 'ceo'::user_role])))))",,ceo|gestor_ads|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",ALTO,Justificativas atraso
+public,task_delay_justifications,CEO can update any justification,UPDATE,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = 'ceo'::user_role))))",,ceo,is_executive(auth.uid()) OR is_admin(auth.uid()),ALTO,Justificativas atraso
+public,video_briefings,video_briefings_delete,DELETE,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'editor_video'::user_role])))))",,ceo|editor_video|gestor_ads|gestor_projetos,"is_admin(auth.uid()) OR has_role(auth.uid(), 'editor_video'::user_role) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role)",CRITICO,Briefings departamento
+public,video_briefings,video_briefings_insert,INSERT,,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'editor_video'::user_role])))))",ceo|editor_video|gestor_ads|gestor_projetos,"is_admin(auth.uid()) OR has_role(auth.uid(), 'editor_video'::user_role) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role)",CRITICO,Briefings departamento
+public,video_briefings,video_briefings_update,UPDATE,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'editor_video'::user_role])))))",,ceo|editor_video|gestor_ads|gestor_projetos,"is_admin(auth.uid()) OR has_role(auth.uid(), 'editor_video'::user_role) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role)",CRITICO,Briefings departamento
+public,video_completion_notifications,System can insert video completion notifications,INSERT,,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'editor_video'::user_role, 'sucesso_cliente'::user_role])))))",ceo|editor_video|gestor_ads|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'editor_video'::user_role) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",ALTO,Notificações
+public,video_delay_justifications,Authorized roles can view video justifications,SELECT,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'editor_video'::user_role, 'sucesso_cliente'::user_role])))))",,ceo|editor_video|gestor_ads|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'editor_video'::user_role) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",ALTO,Justificativas atraso
+public,video_delay_justifications,CEO can archive video justifications,UPDATE,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = 'ceo'::user_role))))",,ceo,is_executive(auth.uid()) OR is_admin(auth.uid()),ALTO,Justificativas atraso
+public,video_delay_notifications,Admins can delete video delay notifications,DELETE,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role])))))",,ceo|gestor_projetos,"is_admin(auth.uid()) OR has_role(auth.uid(), 'gestor_projetos'::user_role)",ALTO,Notificações atraso
+public,video_delay_notifications,Authorized roles can view video delay notifications,SELECT,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'editor_video'::user_role, 'sucesso_cliente'::user_role])))))",,ceo|editor_video|gestor_ads|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'editor_video'::user_role) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",ALTO,Notificações atraso
+public,video_delay_notifications,System can insert video delay notifications,INSERT,,"(EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = ANY (ARRAY['ceo'::user_role, 'gestor_projetos'::user_role, 'gestor_ads'::user_role, 'editor_video'::user_role, 'sucesso_cliente'::user_role])))))",ceo|editor_video|gestor_ads|gestor_projetos|sucesso_cliente,"is_admin(auth.uid()) OR has_role(auth.uid(), 'editor_video'::user_role) OR has_role(auth.uid(), 'gestor_ads'::user_role) OR has_role(auth.uid(), 'gestor_projetos'::user_role) OR has_role(auth.uid(), 'sucesso_cliente'::user_role)",ALTO,Notificações atraso

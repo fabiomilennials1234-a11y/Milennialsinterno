@@ -11,6 +11,70 @@ tags:
 > [!abstract] Catálogo
 > Toda função `SECURITY DEFINER` usada em policies e RPCs. Assinatura, propósito, migration de origem, e exemplo de uso. Quando escrever policy nova, **chame daqui** — não duplique lógica.
 
+## REGRA CRÍTICA: nunca literal de role em policy
+
+> [!danger] Inegociável
+> **Sempre** usar helper canônico. **Nunca** `role = 'ceo'` ou `role = ANY(ARRAY['ceo', ...])` direto em `pg_policy.qual`/`with_check`.
+
+Helpers disponíveis:
+
+| helper | cobre |
+|---|---|
+| `public.is_admin(uuid)` | ceo + cto + gestor_projetos |
+| `public.is_executive(uuid)` | ceo + cto |
+| `public.is_ceo(uuid)` | ceo + cto (alias histórico) |
+| `public.has_role(uuid, 'role'::user_role)` | role específica |
+
+Padrões canônicos de tradução (aplicados na migration massiva `20260420220000_rls_role_helpers_migration.sql`):
+
+```sql
+-- EXISTS(... role = ANY(ARRAY['ceo', 'R1', 'R2']))
+-- => is_admin bypassa ceo. Demais roles viram has_role.
+is_admin(auth.uid())
+  OR has_role(auth.uid(), 'R1'::user_role)
+  OR has_role(auth.uid(), 'R2'::user_role)
+
+-- EXISTS(... role = 'ceo') solo
+is_executive(auth.uid()) OR is_admin(auth.uid())
+
+-- has_role(uid, 'X') isolado
+is_admin(auth.uid()) OR has_role(auth.uid(), 'X'::user_role)
+
+-- Clause composta (has_role AND ownership/group)
+is_admin(auth.uid())
+  OR (has_role(auth.uid(), 'X'::user_role) AND owner_col = auth.uid())
+```
+
+Policy nova padrão:
+
+```sql
+CREATE POLICY financeiro_tasks_insert ON public.financeiro_tasks
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    public.is_admin(auth.uid())
+    OR public.has_role(auth.uid(), 'financeiro'::user_role)
+  );
+```
+
+### Por quê
+
+CTO foi introduzido em 2026-04-16. Antes, `role = 'ceo'` literal funcionava porque só existia 1 executivo. Depois, qualquer policy com literal `'ceo'` bloqueia silenciosamente o CTO (incidente 2026-04-20 — cliente TESTE 01 ficou órfão de `financeiro_tasks`). Helper `is_executive`/`is_admin` é imune a essa mudança.
+
+### Guard automático
+
+`supabase/tests/rls/no_literal_role_in_policy.sql` (pgTAP) falha o build se alguma policy de schema `public` tiver literal sem helper adjacente. Rodar antes de merge:
+
+```bash
+set -a && source .env.scripts && set +a
+supabase db query --linked --file supabase/tests/rls/no_literal_role_in_policy.sql
+```
+
+Saída esperada: `ok 1 - zero policies em public tem literal de user_role sem helper is_admin/is_executive/is_ceo adjacente`. Quando falha, lista por `RAISE NOTICE` qual tabela/policy precisa ajuste.
+
+### Exceções
+
+Nenhuma. Se parece caso limítrofe, crie helper novo (ex.: `is_financeiro(uuid)`) em migration dedicada e use o helper — não rebaixe para literal.
+
 ## Funções de papel
 
 ### `is_ceo(_user_id uuid) → boolean`
