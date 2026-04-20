@@ -41,9 +41,9 @@ _scratch/
 /Screenshot*.png
 
 # Large binaries don't belong in git — use external storage
-/*.pdf
-/*.zip
-/*.mp4
+*.pdf
+*.zip
+*.mp4
 
 # Playwright MCP
 .playwright-mcp/
