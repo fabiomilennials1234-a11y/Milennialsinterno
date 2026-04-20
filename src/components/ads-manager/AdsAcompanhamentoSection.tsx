@@ -70,7 +70,6 @@ export default function AdsAcompanhamentoSection({ compact }: Props) {
   const createCombinadoTask = useCreateCombinadoTask();
   
   // Log context for debugging
-  console.log('[AdsAcompanhamentoSection] targetUserId from context:', targetUserId);
   
   const [docModal, setDocModal] = useState<{ open: boolean; clientId?: string; clientName?: string; newDay?: string }>({ open: false });
   const [docForm, setDocForm] = useState<DocForm>({
@@ -137,8 +136,6 @@ export default function AdsAcompanhamentoSection({ compact }: Props) {
     setIsSaving(true);
     
     try {
-      console.log('[AdsAcompanhamentoSection] Starting doc submission. targetUserId:', targetUserId);
-      console.log('[AdsAcompanhamentoSection] has_combinado:', docForm.has_combinado);
       
       // Build the actions_done content with combinado info if applicable
       let actionsContent = docForm.actions_done;
@@ -147,18 +144,15 @@ export default function AdsAcompanhamentoSection({ compact }: Props) {
       }
       
       // Save documentation (upsert - one card per client per day)
-      console.log('[AdsAcompanhamentoSection] Saving documentation...');
       await upsertDoc.mutateAsync({
         clientId: docModal.clientId,
         client_budget: docForm.client_budget,
         metrics: docForm.metrics,
         actions_done: actionsContent,
       });
-      console.log('[AdsAcompanhamentoSection] Documentation saved!');
       
       // Create task if there was a combinado
       if (docForm.has_combinado === 'sim' && docForm.combinado_description && docForm.combinado_deadline) {
-        console.log('[AdsAcompanhamentoSection] Creating combinado task...');
         try {
           await createCombinadoTask.mutateAsync({
             title: docForm.combinado_description,
@@ -166,7 +160,6 @@ export default function AdsAcompanhamentoSection({ compact }: Props) {
             clientId: docModal.clientId,
             clientName: docModal.clientName || 'Cliente',
           });
-          console.log('[AdsAcompanhamentoSection] Combinado task created!');
         } catch (taskError) {
           console.error('[AdsAcompanhamentoSection] Error creating combinado task:', taskError);
           toast.error('Erro ao criar tarefa de combinado');
@@ -174,12 +167,10 @@ export default function AdsAcompanhamentoSection({ compact }: Props) {
       }
       
       // Move client to new day
-      console.log('[AdsAcompanhamentoSection] Moving client to:', docModal.newDay);
       await moveClient.mutateAsync({
         clientId: docModal.clientId,
         newDay: docModal.newDay,
       });
-      console.log('[AdsAcompanhamentoSection] Client moved successfully!');
       
       toast.success('Documentação salva e cliente movido!');
       

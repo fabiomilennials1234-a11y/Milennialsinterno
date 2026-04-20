@@ -368,7 +368,6 @@ export function useCreateResultsReport() {
 
       if (allDuplicates && allDuplicates.length > 0) {
         const idsToDelete = allDuplicates.map(r => r.id);
-        console.log(`[ResultsReport] Trigger duplicou ${idsToDelete.length} relatórios. Deletando clones...`);
         // Deletar em lotes de 50
         for (let i = 0; i < idsToDelete.length; i += 50) {
           const batch = idsToDelete.slice(i, i + 50);
@@ -377,7 +376,6 @@ export function useCreateResultsReport() {
             .delete()
             .in('id', batch);
         }
-        console.log(`[ResultsReport] Clones removidos com sucesso.`);
       }
 
       // Create auto-task: "Apresentar PDF Resultados [Client]"

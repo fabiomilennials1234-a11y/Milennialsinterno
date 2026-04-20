@@ -78,7 +78,6 @@ export function useAtrizesCompletionNotifications() {
         .maybeSingle();
 
       if (existing) {
-        console.log('Notification already exists for this card');
         return null;
       }
 

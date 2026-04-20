@@ -117,7 +117,6 @@ export default function CreateDevCardModal({
     e.preventDefault();
     if (!formData.title.trim() || !formData.description.trim() || !formData.column_id || !formData.due_date) return;
     
-    console.log('Submitting with attachments:', pendingAttachments.length);
     onSubmit(formData, pendingAttachments);
   };
 

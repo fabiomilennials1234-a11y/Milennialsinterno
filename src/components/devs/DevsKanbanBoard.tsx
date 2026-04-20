@@ -163,7 +163,6 @@ export default function DevsKanbanBoard() {
       
       // CRITICAL: Never run if devs list is empty - prevents race conditions
       if (devs.length === 0) {
-        console.log('Skipping column sync - no devs loaded yet');
         return;
       }
 
@@ -390,13 +389,11 @@ export default function DevsKanbanBoard() {
 
       // Upload attachments if provided
       if (data.attachments && data.attachments.length > 0 && newCard) {
-        console.log('Starting upload of', data.attachments.length, 'attachments for card', newCard.id);
         
         for (const attachment of data.attachments) {
           try {
             const safeName = sanitizeFileName(attachment.name);
             const filePath = `${newCard.id}/${Date.now()}_${safeName}`;
-            console.log('Uploading file:', attachment.name, 'to path:', filePath);
             
             const { error: uploadError, data: uploadData } = await supabase.storage
               .from('card-attachments')
@@ -410,12 +407,10 @@ export default function DevsKanbanBoard() {
               continue;
             }
             
-            console.log('Upload successful, getting public URL');
             const { data: publicUrlData } = supabase.storage
               .from('card-attachments')
               .getPublicUrl(filePath);
             
-            console.log('Public URL:', publicUrlData.publicUrl);
             
             const { error: insertError } = await supabase
               .from('card_attachments')
@@ -430,15 +425,11 @@ export default function DevsKanbanBoard() {
               
             if (insertError) {
               console.error('Error inserting attachment record:', insertError);
-            } else {
-              console.log('Attachment record inserted successfully');
             }
           } catch (err) {
             console.error('Exception during attachment upload:', err);
           }
         }
-      } else {
-        console.log('No attachments to upload. data.attachments:', data.attachments?.length || 0);
       }
 
       return newCard;

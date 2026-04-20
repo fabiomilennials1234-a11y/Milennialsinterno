@@ -165,7 +165,6 @@ export default function DesignKanbanBoard() {
       // CRITICAL: Never run if designers list is empty - this prevents race conditions
       // where columns get deleted during loading
       if (designers.length === 0) {
-        console.log('Skipping column sync - no designers loaded yet');
         return;
       }
 
@@ -448,7 +447,6 @@ export default function DesignKanbanBoard() {
       const card = cards.find(c => c.id === draggableId);
       const creator = cardCreators[draggableId];
       
-      console.log('Moving to para_aprovacao:', { card: card?.title, creator, userId: user?.id });
       
       // Send notification to the person who created the briefing
       // (they should be notified even if they are moving it themselves in some cases,
@@ -460,15 +458,10 @@ export default function DesignKanbanBoard() {
           requesterId: creator.user_id,
           requesterName: creator.name,
         }, {
-          onSuccess: () => {
-            console.log('Notification created successfully');
-          },
           onError: (error) => {
             console.error('Error creating notification:', error);
           }
         });
-      } else {
-        console.log('Missing card or creator:', { hasCard: !!card, hasCreator: !!creator });
       }
     }
   };

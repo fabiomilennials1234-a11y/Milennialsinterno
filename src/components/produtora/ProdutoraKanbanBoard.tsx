@@ -154,7 +154,6 @@ export default function ProdutoraKanbanBoard() {
       
       // CRITICAL: Never run if produtora list is empty - prevents race conditions
       if (produtoraUsers.length === 0) {
-        console.log('Skipping column sync - no produtora users loaded yet');
         return;
       }
 
@@ -415,7 +414,6 @@ export default function ProdutoraKanbanBoard() {
       const card = cards.find(c => c.id === draggableId);
       const creator = cardCreators[draggableId];
       
-      console.log('Moving to gravado:', { card: card?.title, creator, userId: user?.id });
       
       if (card && creator) {
         createCompletionNotification.mutate({
@@ -425,7 +423,6 @@ export default function ProdutoraKanbanBoard() {
           requesterName: creator.name,
         }, {
           onSuccess: () => {
-            console.log('Produtora notification created successfully');
           },
           onError: (error) => {
             console.error('Error creating produtora notification:', error);

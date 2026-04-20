@@ -165,7 +165,6 @@ export default function VideoKanbanBoard() {
       
       // CRITICAL: Never run if editors list is empty - prevents race conditions
       if (editors.length === 0) {
-        console.log('Skipping column sync - no editors loaded yet');
         return;
       }
 
@@ -427,7 +426,6 @@ export default function VideoKanbanBoard() {
       const card = cards.find(c => c.id === draggableId);
       const creator = cardCreators[draggableId];
       
-      console.log('Moving to aguardando_aprovacao:', { card: card?.title, creator, userId: user?.id });
       
       if (card && creator) {
         createCompletionNotification.mutate({
@@ -437,7 +435,6 @@ export default function VideoKanbanBoard() {
           requesterName: creator.name,
         }, {
           onSuccess: () => {
-            console.log('Video notification created successfully');
           },
           onError: (error) => {
             console.error('Error creating video notification:', error);

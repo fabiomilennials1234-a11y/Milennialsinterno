@@ -275,7 +275,6 @@ export default function RHJornadaEquipeKanban() {
 
   const handleDragEnd = async (result: DropResult) => {
     // Handle drag and drop - future implementation
-    console.log('Drag result:', result);
   };
 
   if (isLoading) {

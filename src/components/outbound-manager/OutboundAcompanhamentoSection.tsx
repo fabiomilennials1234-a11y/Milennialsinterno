@@ -66,7 +66,6 @@ export default function OutboundAcompanhamentoSection({ compact }: Props) {
   const createCombinadoTask = useOutboundCreateCombinadoTask();
 
   // Log context for debugging
-  console.log('[OutboundAcompanhamentoSection] targetUserId from context:', targetUserId);
 
   const [docModal, setDocModal] = useState<{ open: boolean; clientId?: string; clientName?: string; newDay?: string }>({ open: false });
   const [docForm, setDocForm] = useState<DocForm>({
@@ -157,8 +156,6 @@ export default function OutboundAcompanhamentoSection({ compact }: Props) {
     setIsSaving(true);
 
     try {
-      console.log('[OutboundAcompanhamentoSection] Starting doc submission. targetUserId:', targetUserId);
-      console.log('[OutboundAcompanhamentoSection] has_combinado:', docForm.has_combinado);
 
       // Build the actions_done content with combinado info if applicable
       let actionsContent = docForm.actions_done;
@@ -167,18 +164,15 @@ export default function OutboundAcompanhamentoSection({ compact }: Props) {
       }
 
       // Save documentation (upsert - one card per client per day)
-      console.log('[OutboundAcompanhamentoSection] Saving documentation...');
       await upsertDoc.mutateAsync({
         clientId: docModal.clientId,
         client_budget: docForm.client_budget,
         metrics: docForm.metrics,
         actions_done: actionsContent,
       });
-      console.log('[OutboundAcompanhamentoSection] Documentation saved!');
 
       // Create task if there was a combinado
       if (docForm.has_combinado === 'sim' && docForm.combinado_description && docForm.combinado_deadline) {
-        console.log('[OutboundAcompanhamentoSection] Creating combinado task...');
         try {
           await createCombinadoTask.mutateAsync({
             title: docForm.combinado_description,
@@ -186,7 +180,6 @@ export default function OutboundAcompanhamentoSection({ compact }: Props) {
             clientId: docModal.clientId,
             clientName: docModal.clientName || 'Cliente',
           });
-          console.log('[OutboundAcompanhamentoSection] Combinado task created!');
         } catch (taskError) {
           console.error('[OutboundAcompanhamentoSection] Error creating combinado task:', taskError);
           toast.error('Erro ao criar tarefa de combinado');
@@ -194,12 +187,10 @@ export default function OutboundAcompanhamentoSection({ compact }: Props) {
       }
 
       // Move client to new day
-      console.log('[OutboundAcompanhamentoSection] Moving client to:', docModal.newDay);
       await moveClient.mutateAsync({
         clientId: docModal.clientId,
         newDay: docModal.newDay,
       });
-      console.log('[OutboundAcompanhamentoSection] Client moved successfully!');
 
       toast.success('Documentação salva e cliente movido!');
 

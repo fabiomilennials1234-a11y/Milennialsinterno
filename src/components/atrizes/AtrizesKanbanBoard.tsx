@@ -168,7 +168,6 @@ export default function AtrizesKanbanBoard() {
       
       // CRITICAL: Never run if atrizes list is empty - prevents race conditions
       if (atrizes.length === 0) {
-        console.log('Skipping column sync - no atrizes loaded yet');
         return;
       }
 

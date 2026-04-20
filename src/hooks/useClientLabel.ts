@@ -84,7 +84,6 @@ export function useUpdateClientLabel() {
             .in('id', plansToComplete.map(p => p.id));
           if (!completeError) {
             autoCompletedPlans = plansToComplete.length;
-            console.log(`[useUpdateClientLabel] Auto-completados ${autoCompletedPlans} plano(s) — Classificação melhorada para ${label === 'otimo' ? 'Ótimo' : 'Bom'}`);
           } else {
             console.error('[useUpdateClientLabel] Erro ao auto-completar planos:', completeError);
           }

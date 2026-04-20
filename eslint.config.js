@@ -5,7 +5,20 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist"] },
+  {
+    ignores: [
+      "dist",
+      "coverage",
+      "_scratch",
+      ".claude",
+      ".cursor",
+      ".playwright-mcp",
+      // Edge Functions run in Deno, not the browser; their own tooling typechecks them.
+      "supabase/functions",
+      // Auto-generated from Supabase schema.
+      "src/integrations/supabase/types.ts",
+    ],
+  },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
@@ -21,6 +34,7 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
+      "no-console": ["warn", { allow: ["error", "warn"] }],
     },
   },
 );

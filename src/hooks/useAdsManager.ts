@@ -631,7 +631,6 @@ export function useMoveClientDay() {
         throw new Error('Usuário não autenticado');
       }
       
-      console.log('[useMoveClientDay] Moving client:', clientId, 'to day:', newDay, 'for manager:', effectiveUserId);
       
       // First check if tracking exists for this client
       const { data: existing } = await supabase
@@ -641,7 +640,6 @@ export function useMoveClientDay() {
         .maybeSingle();
 
       if (existing) {
-        console.log('[useMoveClientDay] Updating existing tracking record:', existing.id, 'previous manager:', existing.ads_manager_id);
         // Update existing record - IMPORTANT: Also update ads_manager_id to ensure proper ownership
         const { error } = await supabase
           .from('client_daily_tracking')
@@ -658,7 +656,6 @@ export function useMoveClientDay() {
           throw error;
         }
       } else {
-        console.log('[useMoveClientDay] Creating new tracking record for manager:', effectiveUserId);
         // Insert new record
         const { error } = await supabase
           .from('client_daily_tracking')
@@ -676,7 +673,6 @@ export function useMoveClientDay() {
         }
       }
       
-      console.log('[useMoveClientDay] Client moved successfully');
     },
     onSuccess: () => {
       // Invalidate with specific effectiveUserId
@@ -819,7 +815,6 @@ export function useUpsertClientDocumentation() {
         throw new Error('Usuário não autenticado');
       }
       
-      console.log('[useUpsertClientDocumentation] Saving documentation for manager:', effectiveUserId, 'client:', doc.clientId);
       
       const today = getDateKeyInBrazilTZ();
       
@@ -833,7 +828,6 @@ export function useUpsertClientDocumentation() {
         .maybeSingle();
 
       if (existing) {
-        console.log('[useUpsertClientDocumentation] Updating existing documentation:', existing.id);
         // Append to existing documentation
         const updatedMetrics = existing.metrics 
           ? `${existing.metrics}\n---\n${doc.metrics}` 
@@ -858,7 +852,6 @@ export function useUpsertClientDocumentation() {
           throw error;
         }
       } else {
-        console.log('[useUpsertClientDocumentation] Creating new documentation for manager:', effectiveUserId);
         // Create new documentation
         const { error } = await supabase
           .from('ads_daily_documentation')
@@ -876,7 +869,6 @@ export function useUpsertClientDocumentation() {
         }
       }
       
-      console.log('[useUpsertClientDocumentation] Documentation saved successfully');
     },
     onSuccess: () => {
       // Invalidate with specific effectiveUserId for proper cache update
@@ -931,7 +923,6 @@ export function useCreateCombinadoTask() {
         throw new Error('Usuário não autenticado');
       }
       
-      console.log('[useCreateCombinadoTask] Creating task for manager:', effectiveUserId, 'task:', task.title);
       
       const { data, error } = await supabase
         .from('ads_tasks')
@@ -953,11 +944,9 @@ export function useCreateCombinadoTask() {
         throw error;
       }
       
-      console.log('[useCreateCombinadoTask] Task created successfully:', data);
       return data;
     },
     onSuccess: (data) => {
-      console.log('[useCreateCombinadoTask] onSuccess - invalidating queries for effectiveUserId:', effectiveUserId);
       // Invalidate all ads-tasks queries to ensure UI updates
       queryClient.invalidateQueries({ queryKey: ['ads-tasks', 'daily', effectiveUserId] });
       queryClient.invalidateQueries({ queryKey: ['ads-tasks', 'daily'] });

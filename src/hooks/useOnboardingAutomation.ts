@@ -227,7 +227,6 @@ export function useCreateInitialOnboardingTask() {
         .maybeSingle();
 
       if (existingTask) {
-        console.log('[useCreateInitialOnboardingTask] Task already exists for client', clientId);
         return null;
       }
 
@@ -241,7 +240,6 @@ export function useCreateInitialOnboardingTask() {
       // Use client's assigned_ads_manager first, then effectiveUserId, then logged-in user
       const assignedTo = client?.assigned_ads_manager || effectiveUserId || user?.id;
       
-      console.log('[useCreateInitialOnboardingTask] Creating task for client:', clientId, 'assigned_to:', assignedTo);
 
       const taskDef = ADVANCING_TASK_DEFINITIONS.marcar_call_1;
       const dueDate = addDays(new Date(), taskDef.dueDays);
@@ -266,7 +264,6 @@ export function useCreateInitialOnboardingTask() {
         throw error;
       }
       
-      console.log('[useCreateInitialOnboardingTask] Task created:', data);
       return data;
     },
     onSuccess: (data) => {
@@ -327,7 +324,6 @@ export function useCompleteOnboardingTaskWithAutomation() {
 
       // If not an advancing task, just complete it without moving the client
       if (!taskDef) {
-        console.log('Task completed without automation (auxiliary task):', taskType);
         return { taskCompleted: true, clientMoved: false, tasksCreated: 0, isAuxiliaryTask: true };
       }
 
@@ -683,8 +679,6 @@ export function useAutoCreateTaskForNewClients(clients: any[]) {
 
           if (error) {
             console.error('[useAutoCreateTaskForNewClients] Erro ao criar tarefa:', error);
-          } else {
-            console.log('[useAutoCreateTaskForNewClients] Tarefa criada (fallback) para:', client.name);
           }
         }
 
