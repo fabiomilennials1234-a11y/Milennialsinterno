@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,59 +8,63 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { isExecutive } from "@/types/auth";
 import { JustificationProvider } from "@/contexts/JustificationContext";
 import { usePermissionDivergenceLogger } from "@/hooks/usePermissionDivergenceLogger";
+import AppBootSkeleton from "@/components/AppBootSkeleton";
 
-// Pages
+// Pages — lazy para code-splitting por rota.
+// LoginPage e NotFound ficam eager: uma é sempre o destino de redirect,
+// a outra é fallback garantido.
 import LoginPage from "./pages/LoginPage";
-import DashboardPage from "./pages/DashboardPage";
-import CEODashboardPage from "./pages/CEODashboardPage";
-import MillennialsGrowthDashPage from "./pages/MillennialsGrowthDashPage";
-import ProductDashboardPage from "./pages/ProductDashboardPage";
-import KanbanPage from "./pages/KanbanPage";
-import AdsManagerPage from "./pages/AdsManagerPage";
-import AdsManagerIndividualPage from "./pages/AdsManagerIndividualPage";
-import OutboundManagerPage from "./pages/OutboundManagerPage";
-import OutboundManagerIndividualPage from "./pages/OutboundManagerIndividualPage";
-import OutboundDashboardPage from "./pages/OutboundDashboardPage";
-import SucessoClientePage from "./pages/SucessoClientePage";
-import ConsultorComercialPage from "./pages/ConsultorComercialPage";
-import ConsultorMKTPlacePage from "./pages/ConsultorMKTPlacePage";
-import MktplaceDashboardPage from "./pages/MktplaceDashboardPage";
-import FinanceiroPage from "./pages/FinanceiroPage";
-import FinanceiroDashboardPage from "./pages/FinanceiroDashboardPage";
-import GestorProjetosPage from "./pages/GestorProjetosPage";
-import GestorCRMPage from "./pages/GestorCRMPage";
-import DesignPage from "./pages/DesignPage";
-import EditorVideoPage from "./pages/EditorVideoPage";
-import AtrizesGravacaoPage from "./pages/AtrizesGravacaoPage";
-import DevsPage from "./pages/DevsPage";
-import RHPage from "./pages/RHPage";
-import RHJornadaEquipePage from "./pages/RHJornadaEquipePage";
-import UsersPage from "./pages/admin/UsersPage";
-import GroupsPage from "./pages/admin/GroupsPage";
-import ClientRegistrationPage from "./pages/ClientRegistrationPage";
-import ClientListPage from "./pages/ClientListPage";
-import PublicStrategyPage from "./pages/PublicStrategyPage";
-import PublicOutboundStrategyPage from "./pages/PublicOutboundStrategyPage";
-import PublicNPSPage from "./pages/PublicNPSPage";
-import PublicExitFormPage from "./pages/PublicExitFormPage";
-import PublicResultsReportPage from "./pages/PublicResultsReportPage";
-import PublicDiagnosticoPage from "./pages/PublicDiagnosticoPage";
-import PublicPaddockDiagnosticoPage from "./pages/PublicPaddockDiagnosticoPage";
-import WarRoom2Page from "./pages/WarRoom2Page";
-import WarRoom3Page from "./pages/WarRoom3Page";
-import UpsellsPage from "./pages/UpsellsPage";
-import ComissoesPage from "./pages/ComissoesPage";
-import ProvasSociaisPage from "./pages/ProvasSociaisPage";
-import DashGestoresPage from "./pages/DashGestoresPage";
-import TVDashboardPage from "./pages/TVDashboardPage";
-import TreinamentosPage from "./pages/TreinamentosPage";
-import RecordedMeetingsPage from "./pages/RecordedMeetingsPage";
 import NotFound from "./pages/NotFound";
-import { MilennialsTechPage } from "./features/milennials-tech/pages/MilennialsTechPage";
-import { BacklogTab } from "./features/milennials-tech/pages/BacklogTab";
-import { KanbanTab } from "./features/milennials-tech/pages/KanbanTab";
-import { SprintsTab } from "./features/milennials-tech/pages/SprintsTab";
-import { SubmitTaskPage } from "./features/milennials-tech/pages/SubmitTaskPage";
+
+const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+const CEODashboardPage = lazy(() => import("./pages/CEODashboardPage"));
+const MillennialsGrowthDashPage = lazy(() => import("./pages/MillennialsGrowthDashPage"));
+const ProductDashboardPage = lazy(() => import("./pages/ProductDashboardPage"));
+const KanbanPage = lazy(() => import("./pages/KanbanPage"));
+const AdsManagerPage = lazy(() => import("./pages/AdsManagerPage"));
+const AdsManagerIndividualPage = lazy(() => import("./pages/AdsManagerIndividualPage"));
+const OutboundManagerPage = lazy(() => import("./pages/OutboundManagerPage"));
+const OutboundManagerIndividualPage = lazy(() => import("./pages/OutboundManagerIndividualPage"));
+const OutboundDashboardPage = lazy(() => import("./pages/OutboundDashboardPage"));
+const SucessoClientePage = lazy(() => import("./pages/SucessoClientePage"));
+const ConsultorComercialPage = lazy(() => import("./pages/ConsultorComercialPage"));
+const ConsultorMKTPlacePage = lazy(() => import("./pages/ConsultorMKTPlacePage"));
+const MktplaceDashboardPage = lazy(() => import("./pages/MktplaceDashboardPage"));
+const FinanceiroPage = lazy(() => import("./pages/FinanceiroPage"));
+const FinanceiroDashboardPage = lazy(() => import("./pages/FinanceiroDashboardPage"));
+const GestorProjetosPage = lazy(() => import("./pages/GestorProjetosPage"));
+const GestorCRMPage = lazy(() => import("./pages/GestorCRMPage"));
+const DesignPage = lazy(() => import("./pages/DesignPage"));
+const EditorVideoPage = lazy(() => import("./pages/EditorVideoPage"));
+const AtrizesGravacaoPage = lazy(() => import("./pages/AtrizesGravacaoPage"));
+const DevsPage = lazy(() => import("./pages/DevsPage"));
+const RHPage = lazy(() => import("./pages/RHPage"));
+const RHJornadaEquipePage = lazy(() => import("./pages/RHJornadaEquipePage"));
+const UsersPage = lazy(() => import("./pages/admin/UsersPage"));
+const GroupsPage = lazy(() => import("./pages/admin/GroupsPage"));
+const ClientRegistrationPage = lazy(() => import("./pages/ClientRegistrationPage"));
+const ClientListPage = lazy(() => import("./pages/ClientListPage"));
+const PublicStrategyPage = lazy(() => import("./pages/PublicStrategyPage"));
+const PublicOutboundStrategyPage = lazy(() => import("./pages/PublicOutboundStrategyPage"));
+const PublicNPSPage = lazy(() => import("./pages/PublicNPSPage"));
+const PublicExitFormPage = lazy(() => import("./pages/PublicExitFormPage"));
+const PublicResultsReportPage = lazy(() => import("./pages/PublicResultsReportPage"));
+const PublicDiagnosticoPage = lazy(() => import("./pages/PublicDiagnosticoPage"));
+const PublicPaddockDiagnosticoPage = lazy(() => import("./pages/PublicPaddockDiagnosticoPage"));
+const WarRoom2Page = lazy(() => import("./pages/WarRoom2Page"));
+const WarRoom3Page = lazy(() => import("./pages/WarRoom3Page"));
+const UpsellsPage = lazy(() => import("./pages/UpsellsPage"));
+const ComissoesPage = lazy(() => import("./pages/ComissoesPage"));
+const ProvasSociaisPage = lazy(() => import("./pages/ProvasSociaisPage"));
+const DashGestoresPage = lazy(() => import("./pages/DashGestoresPage"));
+const TVDashboardPage = lazy(() => import("./pages/TVDashboardPage"));
+const TreinamentosPage = lazy(() => import("./pages/TreinamentosPage"));
+const RecordedMeetingsPage = lazy(() => import("./pages/RecordedMeetingsPage"));
+const MilennialsTechPage = lazy(() => import("./features/milennials-tech/pages/MilennialsTechPage").then(m => ({ default: m.MilennialsTechPage })));
+const BacklogTab = lazy(() => import("./features/milennials-tech/pages/BacklogTab").then(m => ({ default: m.BacklogTab })));
+const KanbanTab = lazy(() => import("./features/milennials-tech/pages/KanbanTab").then(m => ({ default: m.KanbanTab })));
+const SprintsTab = lazy(() => import("./features/milennials-tech/pages/SprintsTab").then(m => ({ default: m.SprintsTab })));
+const SubmitTaskPage = lazy(() => import("./features/milennials-tech/pages/SubmitTaskPage").then(m => ({ default: m.SubmitTaskPage })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -74,19 +79,6 @@ const queryClient = new QueryClient({
     },
   },
 });
-
-// Skeleton de bootstrap — substitui `return null` para evitar flash branco e
-// tela de login piscando antes da sessão hidratar do localStorage.
-function AppBootSkeleton() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="flex flex-col items-center gap-3" aria-label="Carregando">
-        <div className="w-6 h-6 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
-        <span className="text-[12px] text-muted-foreground">Carregando…</span>
-      </div>
-    </div>
-  );
-}
 
 // Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -203,7 +195,8 @@ function AppRoutes() {
   usePermissionDivergenceLogger();
 
   return (
-    <Routes>
+    <Suspense fallback={<AppBootSkeleton />}>
+      <Routes>
       {/* Public Routes */}
       <Route path="/login" element={
         <PublicRoute>
@@ -537,7 +530,8 @@ function AppRoutes() {
 
       {/* 404 */}
       <Route path="*" element={<NotFound />} />
-    </Routes>
+      </Routes>
+    </Suspense>
   );
 }
 
