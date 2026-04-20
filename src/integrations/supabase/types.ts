@@ -881,6 +881,35 @@ export type Database = {
           },
         ]
       }
+      client_idempotency_keys: {
+        Row: {
+          client_id: string
+          created_at: string
+          created_by: string
+          key: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          created_by: string
+          key: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          created_by?: string
+          key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_idempotency_keys_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_invoices: {
         Row: {
           client_id: string | null
@@ -2842,6 +2871,36 @@ export type Database = {
           id?: string
           notification_id?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      feature_flags: {
+        Row: {
+          allowed_users: string[]
+          description: string | null
+          enabled: boolean
+          key: string
+          rollout_percentage: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          allowed_users?: string[]
+          description?: string | null
+          enabled?: boolean
+          key: string
+          rollout_percentage?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          allowed_users?: string[]
+          description?: string | null
+          enabled?: boolean
+          key?: string
+          rollout_percentage?: number
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -6679,6 +6738,48 @@ export type Database = {
           },
         ]
       }
+      tool_credentials: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          credential_type: string
+          credential_value: string
+          id: string
+          is_active: boolean
+          label: string | null
+          rotated_at: string | null
+          tool_name: string
+          updated_at: string
+          visible_to_roles: string[]
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          credential_type: string
+          credential_value: string
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          rotated_at?: string | null
+          tool_name: string
+          updated_at?: string
+          visible_to_roles?: string[]
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          credential_type?: string
+          credential_value?: string
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          rotated_at?: string | null
+          tool_name?: string
+          updated_at?: string
+          visible_to_roles?: string[]
+        }
+        Relationships: []
+      }
       training_lessons: {
         Row: {
           created_at: string
@@ -7247,6 +7348,10 @@ export type Database = {
         Args: { target_user_id: string }
         Returns: undefined
       }
+      create_client_with_automations: {
+        Args: { p_idempotency_key?: string; p_payload: Json }
+        Returns: Json
+      }
       create_weekly_gestor_tasks: { Args: never; Returns: undefined }
       ensure_onboarding_columns: {
         Args: { p_board_slug: string }
@@ -7286,6 +7391,10 @@ export type Database = {
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_ceo: { Args: { _user_id: string }; Returns: boolean }
       is_executive: { Args: { _user_id: string }; Returns: boolean }
+      is_feature_enabled: {
+        Args: { _key: string; _user_id: string }
+        Returns: boolean
+      }
       revoke_page: {
         Args: { _page_slug: string; _reason?: string; _user_id: string }
         Returns: boolean
