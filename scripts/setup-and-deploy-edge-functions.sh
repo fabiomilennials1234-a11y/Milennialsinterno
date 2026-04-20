@@ -9,14 +9,17 @@ PROJECT_REF="semhnpwxptfgqxhkoqsk"
 
 echo "=== Setup e Deploy das Edge Functions ==="
 
-# 1. Carregar .env PRIMEIRO (token pode estar aqui)
-if [ -f .env ]; then
-  echo "Carregando variáveis do .env..."
-  set -a
-  # shellcheck disable=SC1091
-  . .env
-  set +a
-fi
+# 1. Carregar envs. .env.scripts tem os segredos server-only (token, service role)
+#    e é carregado por último pra sobrescrever valores stale de .env.
+for env_file in .env .env.local .env.scripts; do
+  if [ -f "$env_file" ]; then
+    echo "Carregando $env_file..."
+    set -a
+    # shellcheck disable=SC1091
+    . "$env_file"
+    set +a
+  fi
+done
 
 # 2. Verificar token
 if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then

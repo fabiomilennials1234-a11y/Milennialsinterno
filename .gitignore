@@ -9,6 +9,7 @@ lerna-debug.log*
 
 .env
 .env.local
+.env.scripts
 node_modules
 dist
 dist-ssr
@@ -16,6 +17,9 @@ dist-ssr
 
 # Cursor / IDE
 .cursor
+
+# Claude Code local config (per-user, never commit)
+.claude/
 
 # Editor directories and files
 .vscode/*
@@ -27,3 +31,22 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local scratch area (screenshots, debugging artifacts) — never commit
+_scratch/
+
+# Root-level screenshots from macOS (accidentally saved here)
+/Captura de Tela*.png
+/Screen Shot*.png
+/Screenshot*.png
+
+# Large binaries don't belong in git — use external storage
+/*.pdf
+/*.zip
+/*.mp4
+
+# Playwright MCP
+.playwright-mcp/
+
+# Coverage reports
+coverage/

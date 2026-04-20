@@ -14,7 +14,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const rootDir = join(__dirname, '..')
 
 function loadEnv() {
-  for (const name of ['.env', '.env.local']) {
+  // .env.scripts holds server-only secrets (service role, access token);
+  // loaded LAST so it wins over stale values in .env / .env.local.
+  for (const name of ['.env', '.env.local', '.env.scripts']) {
     const path = join(rootDir, name)
     if (!existsSync(path)) continue
     let content = readFileSync(path, 'utf8')
