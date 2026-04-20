@@ -46,5 +46,13 @@ export const supabase = createClient<Database>(effectiveUrl, effectiveKey, {
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
+    // Isola a sessão do app — evita colisão com outros projetos Supabase
+    // no mesmo domínio e sobrevive a mudanças de subdomínio.
+    storageKey: 'mgrowth-auth',
+    // PKCE é o fluxo recomendado para SPAs em 2025 (mais seguro que o
+    // implicit flow default e suporta refresh tokens confiáveis).
+    flowType: 'pkce',
+    // Permite capturar callbacks OAuth/magic link sem lógica custom.
+    detectSessionInUrl: true,
   }
 });

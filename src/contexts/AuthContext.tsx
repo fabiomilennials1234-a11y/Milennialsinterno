@@ -37,39 +37,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch user profile and role from database
+  // Busca perfil + role em 1 query (join relacional do PostgREST).
+  // Antes: 2 RTTs sequenciais (profiles, user_roles). Depois: 1.
   const fetchUserData = useCallback(async (userId: string): Promise<(User & { group_id?: string | null; squad_id?: string | null }) | null> => {
     try {
-      // Fetch profile
-      const { data: profile, error: profileError } = await supabase
+      const { data: profile, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('*, user_roles(role)')
         .eq('user_id', userId)
         .maybeSingle();
 
-      if (profileError) {
-        console.error('Error fetching profile:', profileError);
+      if (error) {
+        console.error('Error fetching user data:', error);
         return null;
       }
-
       if (!profile) {
         console.error('No profile found for user');
         return null;
       }
 
-      // Fetch role
-      const { data: roleData, error: roleError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      if (roleError) {
-        console.error('Error fetching role:', roleError);
-        return null;
-      }
-
-      const role = (roleData?.role as UserRole) || 'design';
+      // user_roles pode vir como array (one-to-many do PostgREST) ou objeto
+      const roleRaw = Array.isArray((profile as Record<string, unknown>).user_roles)
+        ? ((profile as { user_roles: Array<{ role: string }> }).user_roles[0]?.role)
+        : (profile as { user_roles?: { role?: string } }).user_roles?.role;
+      const role = (roleRaw as UserRole) || 'design';
 
       return {
         id: profile.user_id,
@@ -87,41 +78,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, []);
 
-  // Set up auth state listener
+  // Bootstrap de sessão — fonte única de verdade.
+  // O SDK v2+ dispara INITIAL_SESSION automaticamente no mount, então não
+  // precisamos chamar getSession() separadamente. Isso elimina o race
+  // condition do código anterior (duas queries paralelas competindo para
+  // setar `user`).
   useEffect(() => {
-    // Set up listener first
+    let cancelled = false;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        
-        if (session?.user) {
-          // Use setTimeout to avoid potential deadlocks with Supabase
-          setTimeout(async () => {
-            const userData = await fetchUserData(session.user.id);
-            setUser(userData);
-            setIsLoading(false);
-          }, 0);
+      async (_event, nextSession) => {
+        if (cancelled) return;
+        setSession(nextSession);
+
+        if (nextSession?.user) {
+          const userData = await fetchUserData(nextSession.user.id);
+          if (cancelled) return;
+          setUser(userData);
         } else {
           setUser(null);
-          setIsLoading(false);
         }
+        if (!cancelled) setIsLoading(false);
       }
     );
 
-    // Then check current session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session?.user) {
-        fetchUserData(session.user.id)
-          .then((userData) => setUser(userData))
-          .catch(() => setUser(null))
-          .finally(() => setIsLoading(false));
-      } else {
-        setIsLoading(false);
-      }
-    }).catch(() => setIsLoading(false));
-
     return () => {
+      cancelled = true;
       subscription.unsubscribe();
     };
   }, [fetchUserData]);
@@ -138,20 +120,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return false;
       }
 
-      if (data.user) {
-        const userData = await fetchUserData(data.user.id);
-        if (userData) {
-          setUser(userData);
-          return true;
-        }
-      }
-      
-      return false;
+      // O onAuthStateChange já vai hidratar user/session automaticamente.
+      return !!data.user;
     } catch (error) {
       console.error('Login error:', error);
       return false;
     }
-  }, [fetchUserData]);
+  }, []);
 
   const logout = useCallback(async () => {
     await supabase.auth.signOut();

@@ -75,11 +75,24 @@ const queryClient = new QueryClient({
   },
 });
 
+// Skeleton de bootstrap — substitui `return null` para evitar flash branco e
+// tela de login piscando antes da sessão hidratar do localStorage.
+function AppBootSkeleton() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex flex-col items-center gap-3" aria-label="Carregando">
+        <div className="w-6 h-6 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+        <span className="text-[12px] text-muted-foreground">Carregando…</span>
+      </div>
+    </div>
+  );
+}
+
 // Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
 
-  if (isLoading) return null;
+  if (isLoading) return <AppBootSkeleton />;
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
@@ -89,21 +102,19 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function ExecutiveRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (!isExecutive(user?.role)) {
-    return <Navigate to="/dashboard" replace />;
-  }
+  if (isLoading) return <AppBootSkeleton />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isExecutive(user?.role)) return <Navigate to="/dashboard" replace />;
 
   return <>{children}</>;
 }
 
 function MilennialsTechRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
+
+  if (isLoading) return <AppBootSkeleton />;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (!(isExecutive(user?.role) || user?.role === 'devs' || user?.can_access_mtech)) {
     return <Navigate to="/dashboard" replace />;
@@ -113,42 +124,35 @@ function MilennialsTechRoute({ children }: { children: React.ReactNode }) {
 
 // Admin Route (CEO and Gestor de Projetos)
 function AdminRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isAdminUser } = useAuth();
-  
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-  
-  if (!isAdminUser) {
-    return <Navigate to="/" replace />;
-  }
-  
+  const { isAuthenticated, isLoading, isAdminUser } = useAuth();
+
+  if (isLoading) return <AppBootSkeleton />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAdminUser) return <Navigate to="/" replace />;
+
   return <>{children}</>;
 }
 
 // Manager Route (CEO, Gestor de Projetos e Sucesso do Cliente)
 function ManagerRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, canManageUsersFlag } = useAuth();
-  
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-  
-  if (!canManageUsersFlag) {
-    return <Navigate to="/" replace />;
-  }
-  
+  const { isAuthenticated, isLoading, canManageUsersFlag } = useAuth();
+
+  if (isLoading) return <AppBootSkeleton />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!canManageUsersFlag) return <Navigate to="/" replace />;
+
   return <>{children}</>;
 }
 
 // Public Route Component (redirect if authenticated)
 function PublicRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuth();
-  
-  if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
-  }
-  
+  const { isAuthenticated, isLoading } = useAuth();
+
+  // Espera hidratação antes de decidir — evita piscar o login quando há
+  // sessão persistida no localStorage.
+  if (isLoading) return <AppBootSkeleton />;
+  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+
   return <>{children}</>;
 }
 
