@@ -1,12 +1,10 @@
 import { useState, useCallback, useMemo } from 'react';
 import { DragDropContext, type DropResult } from '@hello-pangea/dnd';
 import { Plus } from 'lucide-react';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTechTasks } from '../hooks/useTechTasks';
 import { useTechTimer } from '../hooks/useTechTimer';
-import { useActiveTimer } from '../hooks/useActiveTimer';
 import { KANBAN_COLUMNS, STATUS_LABEL_PT } from '../lib/statusLabels';
 import { canDragToColumn } from '../lib/permissions';
 import { KanbanColumn } from '../components/KanbanColumn';
@@ -21,7 +19,6 @@ export function KanbanTab() {
 
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const { activeTaskId } = useActiveTimer();
 
   // Group tasks by status into kanban columns
   const tasksByColumn = useMemo(() => {
@@ -84,12 +81,8 @@ export function KanbanTab() {
   );
 
   const handleOpenTask = useCallback((id: string) => {
-    if (activeTaskId && activeTaskId !== id) {
-      toast.warning('Finalize o timer da task atual antes de abrir outra.');
-      return;
-    }
     setOpenTaskId(id);
-  }, [activeTaskId]);
+  }, []);
 
   if (isLoading) {
     return (

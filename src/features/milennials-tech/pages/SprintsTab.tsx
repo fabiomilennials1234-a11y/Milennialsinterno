@@ -1,6 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Plus, Play, Square, Pencil, CalendarDays, Inbox } from 'lucide-react';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -9,7 +8,6 @@ import {
   useEndSprint,
 } from '../hooks/useTechSprints';
 import { useTechTasks } from '../hooks/useTechTasks';
-import { useActiveTimer } from '../hooks/useActiveTimer';
 import { canApprove } from '../lib/permissions';
 import { TaskRow } from '../components/TaskRow';
 import { TaskDetailModal } from '../components/TaskDetailModal';
@@ -42,15 +40,10 @@ export function SprintsTab() {
   const [showSprintForm, setShowSprintForm] = useState(false);
   const [editingSprint, setEditingSprint] = useState<TechSprint | undefined>(undefined);
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
-  const { activeTaskId } = useActiveTimer();
 
   const handleOpenTask = useCallback((id: string) => {
-    if (activeTaskId && activeTaskId !== id) {
-      toast.warning('Finalize o timer da task atual antes de abrir outra.');
-      return;
-    }
     setOpenTaskId(id);
-  }, [activeTaskId]);
+  }, []);
 
   // Auto-select first sprint when data loads
   const activeSprint = useMemo(() => {
