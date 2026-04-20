@@ -1,13 +1,15 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Search, LogOut, ChevronDown, Camera } from 'lucide-react';
+import { Search, LogOut, ChevronDown, Camera, Moon, Sun } from 'lucide-react';
 import NotificationCenter from '@/components/NotificationCenter';
 import { ROLE_LABELS } from '@/types/auth';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import ProfileAvatarUpload from '@/components/profile/ProfileAvatarUpload';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { Switch } from '@/components/ui/switch';
+import { useThemeMode } from '@/hooks/useThemeMode';
 
 import {
   DropdownMenu,
@@ -96,6 +98,7 @@ export default function AppHeader() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const pageTitle = pageTitles[location.pathname] || 'Sistema';
+  const { isDark, toggle: toggleTheme } = useThemeMode();
 
   // Filter search results
   const searchResults = useMemo(() => {
@@ -231,22 +234,45 @@ export default function AppHeader() {
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-64 bg-popover border-border">
-              <DropdownMenuLabel className="font-display text-xs uppercase tracking-wider text-muted-foreground">
-                Minha Conta
+              <DropdownMenuLabel className="text-[11px] font-medium tracking-[-0.005em] text-muted-foreground">
+                Minha conta
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               
-              <DropdownMenuItem 
-                onClick={() => setAvatarUploadOpen(true)} 
+              <DropdownMenuItem
+                onClick={() => setAvatarUploadOpen(true)}
                 className="cursor-pointer"
               >
                 <Camera size={16} className="mr-2" />
-                Alterar Foto de Perfil
+                Alterar foto de perfil
               </DropdownMenuItem>
-              
+
+              {/* Theme toggle — não fecha o menu ao alternar */}
+              <DropdownMenuItem
+                onSelect={(e) => e.preventDefault()}
+                onClick={toggleTheme}
+                className="cursor-pointer flex items-center justify-between gap-2"
+                aria-label={isDark ? 'Desativar modo escuro' : 'Ativar modo escuro'}
+              >
+                <span className="flex items-center">
+                  {isDark ? (
+                    <Moon size={16} className="mr-2" />
+                  ) : (
+                    <Sun size={16} className="mr-2" />
+                  )}
+                  Modo escuro
+                </span>
+                <Switch
+                  checked={isDark}
+                  onCheckedChange={toggleTheme}
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label="Alternar modo escuro"
+                />
+              </DropdownMenuItem>
+
               <DropdownMenuSeparator />
-              
-              <DropdownMenuItem onClick={logout} className="text-danger cursor-pointer">
+
+              <DropdownMenuItem onClick={logout} className="text-danger cursor-pointer focus:text-danger">
                 <LogOut size={16} className="mr-2" />
                 Sair
               </DropdownMenuItem>
