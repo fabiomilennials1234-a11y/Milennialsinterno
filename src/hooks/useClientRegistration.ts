@@ -291,6 +291,14 @@ export function useOutboundManagers() {
   });
 }
 
+// Um ponto de falha silenciosa durante o fluxo de criação.
+// Agregado pelo mutationFn e reportado no onSuccess (toast + log estruturado).
+export interface AutomationError {
+  step: string;
+  error: string;
+  table?: string;
+}
+
 // Create new client
 export function useCreateClient() {
   const queryClient = useQueryClient();
@@ -298,6 +306,8 @@ export function useCreateClient() {
 
   return useMutation({
     mutationFn: async (clientData: NewClientData) => {
+      const automationErrors: AutomationError[] = [];
+
       // Primeiro, cria o cliente
       const { data: client, error: clientError } = await supabase
         .from('clients')
@@ -341,7 +351,8 @@ export function useCreateClient() {
         } as any)
         .select()
         .single();
-      
+
+      // Falha do insert do cliente é terminal — aborta (cliente nem existe, nada a agregar)
       if (clientError) throw clientError;
 
       // --- Automações disparadas pela criação do cliente ---
@@ -364,13 +375,17 @@ export function useCreateClient() {
               createdByName,
             });
           } catch (err) {
-            console.error('[useCreateClient] Falha na notificação/tarefa para gestor de ads:', err);
+            automationErrors.push({
+              step: 'notify_ads_manager',
+              error: err instanceof Error ? err.message : String(err),
+              table: 'system_notifications+ads_tasks',
+            });
           }
         }
 
         // 2. Tarefa inicial de onboarding ("Marcar Call 1: [nome do cliente]")
         const dueDate = addDays(new Date(), 1);
-        const { error: onboardingTaskError } = await supabase
+        const { data: onboardingTaskData, error: onboardingTaskError } = await supabase
           .from('onboarding_tasks')
           .insert({
             client_id: client.id,
@@ -381,60 +396,100 @@ export function useCreateClient() {
             status: 'pending',
             due_date: dueDate.toISOString(),
             milestone: 1,
-          });
+          })
+          .select();
 
-        if (onboardingTaskError) {
-          console.error('[useCreateClient] Erro ao criar tarefa de onboarding:', onboardingTaskError);
+        if (onboardingTaskError || !onboardingTaskData || onboardingTaskData.length === 0) {
+          automationErrors.push({
+            step: 'create_onboarding_task_marcar_call_1',
+            error: onboardingTaskError?.message ?? 'RLS blocked (0 rows returned)',
+            table: 'onboarding_tasks',
+          });
         }
 
         // 3. Registro de onboarding do cliente (marco inicial)
-        const { error: onboardingError } = await supabase
+        const { data: onboardingData, error: onboardingError } = await supabase
           .from('client_onboarding')
           .insert({
             client_id: client.id,
             current_milestone: 1,
             current_step: 'marcar_call_1',
             milestone_1_started_at: new Date().toISOString(),
-          });
+          })
+          .select();
 
-        if (onboardingError) {
-          console.error('[useCreateClient] Erro ao criar registro de onboarding:', onboardingError);
+        if (onboardingError || !onboardingData || onboardingData.length === 0) {
+          automationErrors.push({
+            step: 'create_client_onboarding_record',
+            error: onboardingError?.message ?? 'RLS blocked (0 rows returned)',
+            table: 'client_onboarding',
+          });
         }
       }
 
       // N5: Notificar Consultor Comercial que um novo cliente foi atribuído
       if (client.assigned_comercial) {
         try {
-          await supabase.from('system_notifications').insert({
-            recipient_id: client.assigned_comercial,
-            recipient_role: 'consultor_comercial',
-            notification_type: 'new_client_assigned_comercial',
-            title: '🆕 Novo Cliente Atribuído',
-            message: `O cliente "${client.name}" foi cadastrado e atribuído a você. Faça o primeiro contato dentro de 24h.`,
-            client_id: client.id,
-            priority: 'high',
-            metadata: { created_by: user?.id },
-          } as any);
+          const { data: notifData, error: notifError } = await supabase
+            .from('system_notifications')
+            .insert({
+              recipient_id: client.assigned_comercial,
+              recipient_role: 'consultor_comercial',
+              notification_type: 'new_client_assigned_comercial',
+              title: '🆕 Novo Cliente Atribuído',
+              message: `O cliente "${client.name}" foi cadastrado e atribuído a você. Faça o primeiro contato dentro de 24h.`,
+              client_id: client.id,
+              priority: 'high',
+              metadata: { created_by: user?.id },
+            } as any)
+            .select();
+
+          if (notifError || !notifData || notifData.length === 0) {
+            automationErrors.push({
+              step: 'notify_comercial',
+              error: notifError?.message ?? 'RLS blocked (0 rows returned)',
+              table: 'system_notifications',
+            });
+          }
         } catch (err) {
-          console.error('[useCreateClient] Falha na notificação N5 para comercial:', err);
+          automationErrors.push({
+            step: 'notify_comercial',
+            error: err instanceof Error ? err.message : String(err),
+            table: 'system_notifications',
+          });
         }
       }
 
       // N6: Notificar Consultor de MKT Place que um novo cliente foi atribuído
       if (client.assigned_mktplace) {
         try {
-          await supabase.from('system_notifications').insert({
-            recipient_id: client.assigned_mktplace,
-            recipient_role: 'consultor_mktplace',
-            notification_type: 'new_client_assigned_mktplace',
-            title: '🆕 Novo Cliente Atribuído',
-            message: `O cliente "${client.name}" foi cadastrado e atribuído a você como Consultor(a) de MKT Place.`,
-            client_id: client.id,
-            priority: 'high',
-            metadata: { created_by: user?.id },
-          } as any);
+          const { data: notifData, error: notifError } = await supabase
+            .from('system_notifications')
+            .insert({
+              recipient_id: client.assigned_mktplace,
+              recipient_role: 'consultor_mktplace',
+              notification_type: 'new_client_assigned_mktplace',
+              title: '🆕 Novo Cliente Atribuído',
+              message: `O cliente "${client.name}" foi cadastrado e atribuído a você como Consultor(a) de MKT Place.`,
+              client_id: client.id,
+              priority: 'high',
+              metadata: { created_by: user?.id },
+            } as any)
+            .select();
+
+          if (notifError || !notifData || notifData.length === 0) {
+            automationErrors.push({
+              step: 'notify_mktplace',
+              error: notifError?.message ?? 'RLS blocked (0 rows returned)',
+              table: 'system_notifications',
+            });
+          }
         } catch (err) {
-          console.error('[useCreateClient] Falha na notificação N6 para mktplace:', err);
+          automationErrors.push({
+            step: 'notify_mktplace',
+            error: err instanceof Error ? err.message : String(err),
+            table: 'system_notifications',
+          });
         }
       }
 
@@ -452,7 +507,11 @@ export function useCreateClient() {
           .insert(productValuesData);
 
         if (pvError) {
-          console.error('Error saving product values:', pvError);
+          automationErrors.push({
+            step: 'create_client_product_values',
+            error: pvError.message,
+            table: 'client_product_values',
+          });
         }
 
         // --- FINANCEIRO: Criar financeiro_tasks (info em "Novo Cliente") ---
@@ -465,12 +524,17 @@ export function useCreateClient() {
           due_date: addDays(new Date(), 3).toISOString(),
         }));
 
-        const { error: ftError } = await supabase
+        const { data: ftData, error: ftError } = await supabase
           .from('financeiro_tasks')
-          .insert(finTasksData);
+          .insert(finTasksData)
+          .select();
 
-        if (ftError) {
-          console.error('[useCreateClient] Erro financeiro_tasks:', ftError);
+        if (ftError || !ftData || ftData.length === 0) {
+          automationErrors.push({
+            step: 'create_financeiro_tasks',
+            error: ftError?.message ?? 'RLS blocked (0 rows returned)',
+            table: 'financeiro_tasks',
+          });
         }
 
         // --- FINANCEIRO: Criar department_tasks (ação em "Tarefas Diárias") ---
@@ -491,7 +555,11 @@ export function useCreateClient() {
           .insert(deptTasksData as any);
 
         if (dtError) {
-          console.error('[useCreateClient] Erro department_tasks:', dtError);
+          automationErrors.push({
+            step: 'create_department_tasks_financeiro',
+            error: dtError.message,
+            table: 'department_tasks',
+          });
         }
       }
 
@@ -514,12 +582,17 @@ export function useCreateClient() {
           contract_expiration_date: contractExpirationDate,
         }));
 
-        const { error: onboardingInsertError } = await supabase
+        const { data: onbInsertData, error: onboardingInsertError } = await supabase
           .from('financeiro_client_onboarding')
-          .insert(onboardingData);
+          .insert(onboardingData)
+          .select();
 
-        if (onboardingInsertError) {
-          console.error('[useCreateClient] Erro ao inserir financeiro_client_onboarding per-product:', onboardingInsertError);
+        if (onboardingInsertError || !onbInsertData || onbInsertData.length === 0) {
+          automationErrors.push({
+            step: 'create_financeiro_client_onboarding',
+            error: onboardingInsertError?.message ?? 'RLS blocked (0 rows returned)',
+            table: 'financeiro_client_onboarding',
+          });
         }
 
         // Inserir em financeiro_active_clients PER-PRODUCT (valor=0 até conclusão das tarefas diárias)
@@ -532,12 +605,17 @@ export function useCreateClient() {
           contract_expires_at: contractExpirationDate,
         }));
 
-        const { error: activeClientError } = await supabase
+        const { data: acData, error: activeClientError } = await supabase
           .from('financeiro_active_clients')
-          .insert(activeClientsData);
+          .insert(activeClientsData)
+          .select();
 
-        if (activeClientError) {
-          console.error('[useCreateClient] Erro ao inserir financeiro_active_clients per-product:', activeClientError);
+        if (activeClientError || !acData || acData.length === 0) {
+          automationErrors.push({
+            step: 'create_financeiro_active_clients',
+            error: activeClientError?.message ?? 'RLS blocked (0 rows returned)',
+            table: 'financeiro_active_clients',
+          });
         }
       }
 
@@ -547,13 +625,17 @@ export function useCreateClient() {
         try {
           await createWelcomeTaskForProjectManager(client.id, client.name, client.group_id);
         } catch (err) {
-          console.error('[useCreateClient] Erro ao criar tarefa de boas-vindas:', err);
+          automationErrors.push({
+            step: 'create_pm_welcome_task',
+            error: err instanceof Error ? err.message : String(err),
+            table: 'department_tasks',
+          });
         }
       }
 
-      return client;
+      return { client, automationErrors };
     },
-    onSuccess: () => {
+    onSuccess: ({ client, automationErrors }) => {
       queryClient.invalidateQueries({ queryKey: ['assigned-clients'] });
       queryClient.invalidateQueries({ queryKey: ['onboarding-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
@@ -585,12 +667,40 @@ export function useCreateClient() {
       queryClient.invalidateQueries({ queryKey: ['all-outbound-client-counts'] });
       // Invalidar queries do Consultor de MKT Place (kanban)
       queryClient.invalidateQueries({ queryKey: ['mktplace-new-clients'] });
-      toast.success('Cliente cadastrado com sucesso!', {
-        description: 'Contrato assinado automaticamente. Tarefas do Financeiro criadas por produto.',
+
+      if (automationErrors.length === 0) {
+        toast.success('Cliente cadastrado com sucesso!', {
+          description: 'Contrato assinado automaticamente. Tarefas do Financeiro criadas por produto.',
+        });
+        return;
+      }
+
+      // Parcial: cliente criado mas N automações falharam — NÃO mentir pro usuário.
+      // Log estruturado capturável por Sentry/DataDog. Toast amarelo lista falhas.
+      console.warn('[useCreateClient] partial_success', {
+        client_id: client.id,
+        client_name: client.name,
+        errors: automationErrors,
       });
+
+      const description = automationErrors
+        .slice(0, 5)
+        .map(e => `• ${e.step}${e.table ? ` (${e.table})` : ''}: ${e.error}`)
+        .join('\n');
+      const extra = automationErrors.length > 5
+        ? `\n… +${automationErrors.length - 5} outras falhas`
+        : '';
+
+      toast.warning(
+        `Cliente criado, mas ${automationErrors.length} automação${automationErrors.length > 1 ? 'ões' : ''} falhou${automationErrors.length > 1 ? 'aram' : ''}`,
+        {
+          description: description + extra,
+          duration: 15000,
+        },
+      );
     },
     onError: (error: Error) => {
-      console.error('Error creating client:', error);
+      console.error('[useCreateClient] fatal', error);
       const isDuplicateCnpj = error.message?.includes('idx_clients_cnpj_unique');
       toast.error(
         isDuplicateCnpj ? 'CNPJ já cadastrado' : 'Erro ao cadastrar cliente',
