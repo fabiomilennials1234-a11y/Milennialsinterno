@@ -1,7 +1,16 @@
+// UX — Ferramentas PRO+ (Ads)
+// Decisão de design (hm-design validou):
+// - Card "Treinamentos Milennials" e "Contas da Millennials" dependem das credenciais
+//   Make. Sem credencial → card fica oculto para usuário comum; admins veem card em
+//   estado neutro com hint "Configurar acesso".
+// - Durante loading, skeleton imita o kanban-card real (mesma altura/border) em vez
+//   de texto "Carregando…" — preserva layout e dá hint de identidade purple.
+// - Proibido texto "Credencial indisponível" exposto ao usuário final.
 import { useMemo, useState } from 'react';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Lock } from 'lucide-react';
 import AdsCardDetailModal from './AdsCardDetailModal';
 import { useToolCredential } from '@/hooks/useToolCredentials';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ProTool {
   id: string;
@@ -9,21 +18,29 @@ interface ProTool {
   icon: string;
   content: string;
   link?: string;
+  locked?: boolean;
 }
 
-const UNAVAILABLE_PLACEHOLDER = 'Credencial indisponível — contate admin';
+const ADMIN_CONFIG_HINT =
+  'Credenciais ainda não configuradas no workspace. Peça ao admin para cadastrar em Ajustes > Integrações.';
 
-function renderCredentialLine(
-  label: string,
-  value: string | null | undefined,
-  loading: boolean,
-) {
-  if (loading) return `${label}: Carregando…`;
-  if (!value) return `${label}: ${UNAVAILABLE_PLACEHOLDER}`;
-  return `${label}: ${value}`;
+function CredentialCardSkeleton() {
+  return (
+    <div
+      className="kanban-card p-4 motion-safe:animate-pulse"
+      style={{ borderLeft: '3px solid hsl(258 90% 66% / 0.3)' }}
+      aria-hidden="true"
+    >
+      <div className="flex items-center gap-2.5">
+        <div className="h-5 w-5 rounded bg-muted/60" />
+        <div className="h-4 w-48 rounded bg-muted/60" />
+      </div>
+    </div>
+  );
 }
 
 export default function AdsFerramentasSection() {
+  const { isAdminUser } = useAuth();
   const [selectedCard, setSelectedCard] = useState<{
     id: string;
     title: string;
@@ -33,24 +50,19 @@ export default function AdsFerramentasSection() {
   } | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Track C.4: credenciais migradas pra tabela tool_credentials (Track C.2).
-  // Até lá, hook retorna null e componente mostra "Credencial indisponível".
   const makeLogin = useToolCredential('make', 'login');
   const makePassword = useToolCredential('make', 'password');
 
-  const proTools = useMemo<ProTool[]>(() => {
-    const makeLoginLine = renderCredentialLine(
-      'Login',
-      makeLogin.data?.credential_value,
-      makeLogin.isLoading,
-    );
-    const makePasswordLine = renderCredentialLine(
-      'Senha',
-      makePassword.data?.credential_value,
-      makePassword.isLoading,
-    );
+  const makeReady =
+    !!makeLogin.data?.credential_value && !!makePassword.data?.credential_value;
+  const makeLoading = makeLogin.isLoading || makePassword.isLoading;
 
-    return [
+  const proTools = useMemo<ProTool[]>(() => {
+    const makeCredentialsBlock = makeReady
+      ? `Login: ${makeLogin.data?.credential_value}\nSenha: ${makePassword.data?.credential_value}`
+      : null;
+
+    const tools: ProTool[] = [
       {
         id: 'gpt_roteiros',
         title: 'GPT Criador de Roteiros + Criador de LPS',
@@ -69,12 +81,27 @@ export default function AdsFerramentasSection() {
         icon: '🎬',
         content: 'Tipos de vídeos Millennials: https://www.figma.com/proto/nHb8ohFWe2chaaeYmNZWRa/Central-Swipe-File-Milennials?page-id=0%3A1&node-id=2-3&viewport=1345%2C-195%2C0.16&t=apqxeXuy7XuizXrt-1&scaling=min-zoom&content-scaling=fixed&starting-point-node-id=2%3A266',
       },
-      {
+    ];
+
+    // Card "Treinamentos Milennials" — conteúdo inclui credenciais Make.
+    if (makeReady) {
+      tools.push({
         id: 'clientes_millennials',
         title: 'Treinamentos Milennials',
         icon: '👥',
-        content: `Como se livrar de Leads a distância:\nhttps://drive.google.com/drive/folders/18FwEAFLqwUIBp6CASjYKWcfettLJt-9R?usp=sharing\n\nComo gravar um bom anúncio:\nhttps://drive.google.com/drive/folders/1S5AY5cDEq3kdUud4wT0zJ4v-_wuo8xUC?usp=sharing\n\nComo rodar anúncios sem pagar impostos:\nhttps://drive.google.com/drive/folders/1F1vdNAJvRw3Y3Y7tzTtxA29absoHZ1YN?usp=sharing\n\nTreinamento Gestor de sucesso:\nhttps://pay.hotmart.com/R101977821G?bid=1773845381131\n\nComo fazer Automação CRM dos Clientes:\nAcesso Make\n${makeLoginLine}\n${makePasswordLine}\nDrive Tutorial: https://drive.google.com/drive/folders/1tBQJg75kKvWMEI9TVgi_BBKBzeli58Db?usp=sharing`,
-      },
+        content: `Como se livrar de Leads a distância:\nhttps://drive.google.com/drive/folders/18FwEAFLqwUIBp6CASjYKWcfettLJt-9R?usp=sharing\n\nComo gravar um bom anúncio:\nhttps://drive.google.com/drive/folders/1S5AY5cDEq3kdUud4wT0zJ4v-_wuo8xUC?usp=sharing\n\nComo rodar anúncios sem pagar impostos:\nhttps://drive.google.com/drive/folders/1F1vdNAJvRw3Y3Y7tzTtxA29absoHZ1YN?usp=sharing\n\nTreinamento Gestor de sucesso:\nhttps://pay.hotmart.com/R101977821G?bid=1773845381131\n\nComo fazer Automação CRM dos Clientes:\nAcesso Make\n${makeCredentialsBlock}\nDrive Tutorial: https://drive.google.com/drive/folders/1tBQJg75kKvWMEI9TVgi_BBKBzeli58Db?usp=sharing`,
+      });
+    } else if (!makeLoading) {
+      // Sem credencial: versão sem bloco de credenciais (conteúdo útil preservado)
+      tools.push({
+        id: 'clientes_millennials',
+        title: 'Treinamentos Milennials',
+        icon: '👥',
+        content: `Como se livrar de Leads a distância:\nhttps://drive.google.com/drive/folders/18FwEAFLqwUIBp6CASjYKWcfettLJt-9R?usp=sharing\n\nComo gravar um bom anúncio:\nhttps://drive.google.com/drive/folders/1S5AY5cDEq3kdUud4wT0zJ4v-_wuo8xUC?usp=sharing\n\nComo rodar anúncios sem pagar impostos:\nhttps://drive.google.com/drive/folders/1F1vdNAJvRw3Y3Y7tzTtxA29absoHZ1YN?usp=sharing\n\nTreinamento Gestor de sucesso:\nhttps://pay.hotmart.com/R101977821G?bid=1773845381131\n\nDrive Tutorial: https://drive.google.com/drive/folders/1tBQJg75kKvWMEI9TVgi_BBKBzeli58Db?usp=sharing`,
+      });
+    }
+
+    tools.push(
       {
         id: 'lista_marcos',
         title: 'Lista dos marcos',
@@ -111,24 +138,40 @@ export default function AdsFerramentasSection() {
         icon: '📈',
         content: 'Olá, pessoal! 👋\nTodos os relatórios da Millennials são disponibilizados em tempo real para os clientes (e também fazemos o envio semanal em PDF).\n\nVocê, como Gestor, já deve ter recebido seu acesso por e-mail. Caso ainda não tenha recebido, entre em contato com o seu Gestor de Projetos.\n\n📌 Tutorial de como criar relatórios em tempo real para seus clientes:\n\nhttps://drive.google.com/file/d/1Ge8WAptlLGBUhFOTdx8i0_8vZBUqz_gu/view?usp=sharing',
       },
-      {
+    );
+
+    // Card "Contas da Millennials" — depende de credenciais Make.
+    if (makeReady) {
+      tools.push({
         id: 'contas_millennials',
         title: 'Contas da Millennials',
         icon: '🏦',
-        content: `Conta de ADS: anapauladospassos53@gmail.com\n\nGmail Millennials: milennialswebservices@gmail.com\n\nAcesso Make\n${makeLoginLine}\n${makePasswordLine}`,
-      },
-      {
-        id: 'tabela_bonus',
-        title: 'Tabela de Bônus Millennials',
-        icon: '💰',
-        content: 'TABELA GANHO DE BÔNUS MILENNIALS',
-      },
-    ];
+        content: `Conta de ADS: anapauladospassos53@gmail.com\n\nGmail Millennials: milennialswebservices@gmail.com\n\nAcesso Make\n${makeCredentialsBlock}`,
+      });
+    } else if (!makeLoading && isAdminUser) {
+      tools.push({
+        id: 'contas_millennials',
+        title: 'Contas da Millennials',
+        icon: '🏦',
+        content: ADMIN_CONFIG_HINT,
+        locked: true,
+      });
+    }
+
+    tools.push({
+      id: 'tabela_bonus',
+      title: 'Tabela de Bônus Millennials',
+      icon: '💰',
+      content: 'TABELA GANHO DE BÔNUS MILENNIALS',
+    });
+
+    return tools;
   }, [
+    makeReady,
+    makeLoading,
+    isAdminUser,
     makeLogin.data?.credential_value,
-    makeLogin.isLoading,
     makePassword.data?.credential_value,
-    makePassword.isLoading,
   ]);
 
   const handleCardClick = (tool: ProTool) => {
@@ -157,12 +200,23 @@ export default function AdsFerramentasSection() {
               <span className="font-medium text-sm text-foreground group-hover:text-purple transition-colors">
                 {tool.title}
               </span>
-              {tool.link && (
+              {tool.locked && (
+                <span
+                  className="ml-auto flex items-center gap-1 text-[11px] font-medium text-muted-foreground/70"
+                  aria-label="Credencial ainda não configurada"
+                >
+                  <Lock size={11} />
+                  Configurar
+                </span>
+              )}
+              {tool.link && !tool.locked && (
                 <ExternalLink size={12} className="text-purple opacity-0 group-hover:opacity-100 transition-opacity ml-auto" />
               )}
             </div>
           </div>
         ))}
+
+        {makeLoading && <CredentialCardSkeleton />}
       </div>
 
       <AdsCardDetailModal
