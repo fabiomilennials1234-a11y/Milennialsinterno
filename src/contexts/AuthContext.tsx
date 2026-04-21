@@ -79,27 +79,34 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, []);
 
-  // Bootstrap de sessão — fonte única de verdade.
-  // O SDK v2+ dispara INITIAL_SESSION automaticamente no mount, então não
-  // precisamos chamar getSession() separadamente. Isso elimina o race
-  // condition do código anterior (duas queries paralelas competindo para
-  // setar `user`).
+  // Bootstrap de sessão — getSession() + onAuthStateChange.
+  // Padrão recomendado oficialmente pela Supabase. Só listener não basta:
+  // INITIAL_SESSION pode ser emitido antes do useEffect rodar (race em cold
+  // start com sessão persistida), deixando isLoading=true eternamente.
+  // getSession() garante estado inicial; listener cobre mudanças depois.
   useEffect(() => {
     let cancelled = false;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, nextSession) => {
+    const hydrate = async (nextSession: Session | null) => {
+      if (cancelled) return;
+      setSession(nextSession);
+      if (nextSession?.user) {
+        const userData = await fetchUserData(nextSession.user.id);
         if (cancelled) return;
-        setSession(nextSession);
+        setUser(userData);
+      } else {
+        setUser(null);
+      }
+      if (!cancelled) setIsLoading(false);
+    };
 
-        if (nextSession?.user) {
-          const userData = await fetchUserData(nextSession.user.id);
-          if (cancelled) return;
-          setUser(userData);
-        } else {
-          setUser(null);
-        }
-        if (!cancelled) setIsLoading(false);
+    supabase.auth.getSession().then(({ data }) => {
+      void hydrate(data.session);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, nextSession) => {
+        void hydrate(nextSession);
       }
     );
 
