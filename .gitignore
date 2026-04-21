@@ -50,3 +50,4 @@ _scratch/
 
 # Coverage reports
 coverage/
+supabase/.temp/
