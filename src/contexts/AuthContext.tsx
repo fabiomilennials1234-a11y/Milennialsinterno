@@ -37,30 +37,31 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Busca perfil + role em 1 query (join relacional do PostgREST).
-  // Antes: 2 RTTs sequenciais (profiles, user_roles). Depois: 1.
+  // Busca perfil + role em 2 queries paralelas.
+  // Tentativa anterior (c391cac) usou embed relacional profiles.user_roles(role)
+  // mas PostgREST falha com PGRST200 porque não há FK entre profiles e user_roles.
+  // 2 queries em Promise.all é mais robusto e quase tão rápido (mesmo RTT).
   const fetchUserData = useCallback(async (userId: string): Promise<(User & { group_id?: string | null; squad_id?: string | null }) | null> => {
     try {
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*, user_roles(role)')
-        .eq('user_id', userId)
-        .maybeSingle();
+      const [profileRes, roleRes] = await Promise.all([
+        supabase.from('profiles').select('*').eq('user_id', userId).maybeSingle(),
+        supabase.from('user_roles').select('role').eq('user_id', userId).maybeSingle(),
+      ]);
 
-      if (error) {
-        console.error('Error fetching user data:', error);
+      if (profileRes.error) {
+        console.error('Error fetching profile:', profileRes.error);
         return null;
       }
-      if (!profile) {
+      if (!profileRes.data) {
         console.error('No profile found for user');
         return null;
       }
+      if (roleRes.error) {
+        console.error('Error fetching user role:', roleRes.error);
+      }
 
-      // user_roles pode vir como array (one-to-many do PostgREST) ou objeto
-      const roleRaw = Array.isArray((profile as Record<string, unknown>).user_roles)
-        ? ((profile as { user_roles: Array<{ role: string }> }).user_roles[0]?.role)
-        : (profile as { user_roles?: { role?: string } }).user_roles?.role;
-      const role = (roleRaw as UserRole) || 'design';
+      const profile = profileRes.data;
+      const role = (roleRes.data?.role as UserRole) || 'design';
 
       return {
         id: profile.user_id,
