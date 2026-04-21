@@ -1,0 +1,61 @@
+title = "Millennials gitleaks config"
+
+# Baseado em leak real 2026-04-20 (ver docs/superpowers/security/2026-04-20-credential-exposure-audit.md).
+# Gitleaks ja tem rules default para Supabase/JWT/AWS/etc. Estas sao adicionais, focadas em padroes do projeto.
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "millennials-inline-password"
+description = "Inline Senha: / Login: / Password: seguido de literal string em source"
+regex = '''(?i)(senha|login|password|pwd)\s*[:=]\s*['"\x60][A-Za-z0-9._+\-@!#$%]{6,}['"\x60]'''
+tags = ["password", "credencial"]
+
+[[rules]]
+id = "senha-milennials-prefix"
+description = "Literal que comeca com Milennials + digitos (padrao historico de senhas expostas)"
+regex = '''Milennials(?:1[25]{1}[0-9]{4}|123|teste|admin)[A-Za-z0-9._+\-]*'''
+tags = ["senha", "credencial"]
+
+[[rules]]
+id = "api-key-mk-test"
+description = "API key de teste hardcoded (mk-test-*)"
+regex = '''mk[-_]test[-_]api[-_]key[-_][a-zA-Z0-9\-_]{2,}'''
+tags = ["api-key"]
+
+[[rules]]
+id = "supabase-service-role-literal"
+description = "Supabase service_role JWT em source"
+regex = '''eyJ[A-Za-z0-9_\-]+\.eyJ[A-Za-z0-9_\-]+(?:.*?service_role)'''
+tags = ["supabase", "service-role"]
+
+[[rules]]
+id = "supabase-access-token"
+description = "Supabase personal access token (sbp_...)"
+regex = '''sbp_[a-f0-9]{40,}'''
+tags = ["supabase", "access-token"]
+
+[allowlist]
+description = "Paths que podem conter referencias redacted a credenciais"
+paths = [
+  '''docs/superpowers/security/.*\.md''',
+  '''docs/superpowers/plans/.*\.md''',
+  '''\.gitleaks\.toml''',
+]
+
+# Commits passados purgados via filter-repo em 2026-04-20 — allowlist pra evitar falso positivo
+# se gitleaks revarrer history.
+[allowlist.commits]
+# Commits de limpeza/rewrite. Nao ha valor em bloquear estes.
+# (Preenchido conforme necessidade futura)
+
+[allowlist.stopwords]
+description = "Strings que devem ser ignoradas mesmo se baterem regex"
+stopwords = [
+  "REDACTED",
+  "***REDACTED***",
+  "placeholder",
+  "example",
+  "YOUR_API_KEY_HERE",
+]
