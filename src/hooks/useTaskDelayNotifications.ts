@@ -145,7 +145,41 @@ export function useCheckOverdueTasks() {
         createdNotifications.push(task.id);
       }
 
-      // 4. Verificar kanban_cards com due_date
+      // 4. Verificar comercial_tasks
+      const { data: comercialTasks } = await supabase
+        .from('comercial_tasks')
+        .select('id, title, due_date, user_id, status, archived')
+        .or('archived.is.null,archived.eq.false')
+        .neq('status', 'done')
+        .not('due_date', 'is', null);
+
+      const overdueComercialTasks = (comercialTasks || []).filter(task => {
+        if (!task.due_date) return false;
+        const dueDate = new Date(task.due_date);
+        return isPast(dueDate) && !isToday(dueDate);
+      });
+
+      for (const task of overdueComercialTasks) {
+        if (!task.due_date) continue;
+
+        const { data: ownerRole } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', task.user_id)
+          .maybeSingle();
+
+        await createNotificationIfNotExists({
+          task_id: task.id,
+          task_table: 'comercial_tasks',
+          task_owner_id: task.user_id,
+          task_title: task.title,
+          task_due_date: task.due_date,
+          owner_role: ownerRole?.role || 'consultor_comercial',
+        });
+        createdNotifications.push(task.id);
+      }
+
+      // 5. Verificar kanban_cards com due_date
       const { data: kanbanCards } = await supabase
         .from('kanban_cards')
         .select('*')
@@ -212,6 +246,18 @@ async function createNotificationIfNotExists(params: {
 
   if (existing) return;
 
+  // Fecha race: re-valida que task ainda está overdue (não arquivada nem concluída).
+  // Sem isso, uma task arquivada/concluída entre o fetch inicial e aqui gera notification órfã.
+  const { data: stillValid } = await supabase
+    .from(params.task_table as any)
+    .select('id, archived, status')
+    .eq('id', params.task_id)
+    .maybeSingle();
+
+  if (!stillValid || (stillValid as any).archived === true || (stillValid as any).status === 'done') {
+    return;
+  }
+
   // Buscar nome do dono
   const { data: profile } = await supabase
     .from('profiles')
@@ -255,6 +301,36 @@ export function useTaskDelayNotifications() {
         return [];
       }
 
+      // Defensivo: filtra notifications órfãs (task arquivada/concluída após notification criada).
+      // Agrupa por task_table, consulta estado atual, mantém só tasks ainda overdue.
+      const notifsByTable = new Map<string, any[]>();
+      (notifications || []).forEach((n: any) => {
+        const list = notifsByTable.get(n.task_table) || [];
+        list.push(n);
+        notifsByTable.set(n.task_table, list);
+      });
+
+      const validTaskKeys = new Set<string>();
+      for (const [table, notifs] of notifsByTable.entries()) {
+        const taskIds = [...new Set(notifs.map(n => n.task_id))];
+        if (taskIds.length === 0) continue;
+
+        const { data: tasks } = await supabase
+          .from(table as any)
+          .select('id, archived, status')
+          .in('id', taskIds);
+
+        (tasks || []).forEach((t: any) => {
+          if (t.archived !== true && t.status !== 'done') {
+            validTaskKeys.add(`${table}:${t.id}`);
+          }
+        });
+      }
+
+      const liveNotifications = (notifications || []).filter((n: any) =>
+        validTaskKeys.has(`${n.task_table}:${n.task_id}`)
+      );
+
       // Buscar justificativas do usuário atual
       const { data: justifications } = await supabase
         .from('task_delay_justifications')
@@ -265,14 +341,14 @@ export function useTaskDelayNotifications() {
 
       // Mapear notification_id justificado → task_id, para cobrir duplicatas
       const justifiedTaskIds = new Set<string>();
-      (notifications || []).forEach((n: any) => {
+      liveNotifications.forEach((n: any) => {
         if (justifiedNotificationIds.has(n.id)) {
           justifiedTaskIds.add(`${n.task_id}:${n.task_table}`);
         }
       });
 
       // Filtrar notificações: excluir se o usuário já justificou essa task (por qualquer notification_id)
-      let pendingNotifications = (notifications || []).filter((n: any) => {
+      let pendingNotifications = liveNotifications.filter((n: any) => {
         return !justifiedNotificationIds.has(n.id) && !justifiedTaskIds.has(`${n.task_id}:${n.task_table}`);
       });
 
