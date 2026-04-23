@@ -2,16 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { isPast, isToday, differenceInDays } from 'date-fns';
-
-// Dias máximos por milestone do onboarding
-const MILESTONE_MAX_DAYS: Record<number, number> = {
-  1: 3,  // Call #1
-  2: 4,  // Estratégia PRO+
-  3: 5,  // Criativos PRO+
-  4: 6,  // Otimizações PRO+
-  5: 10, // Início (MAX TOTAL)
-};
+import { isPast, isToday } from 'date-fns';
 
 export interface TaskDelayNotification {
   id: string;
@@ -188,58 +179,6 @@ export function useCheckOverdueTasks() {
           owner_role: ownerRole?.role || 'unknown',
         });
         createdNotifications.push(card.id);
-      }
-
-      // 5. Verificar client_onboarding atrasado (baseado em milestone e dias)
-      if (ADS_DELAY_NOTIFICATION_ROLES.includes(user.role)) {
-        const { data: onboardings } = await supabase
-          .from('client_onboarding')
-          .select(`
-            *,
-            client:clients(id, name, assigned_ads_manager, status, onboarding_started_at, created_at)
-          `)
-          .is('completed_at', null);
-
-        for (const onboarding of onboardings || []) {
-          const client = onboarding.client as any;
-          if (!client || client.status !== 'onboarding') continue;
-
-          const currentMilestone = onboarding.current_milestone || 1;
-          const maxDays = MILESTONE_MAX_DAYS[currentMilestone] || 7;
-          
-          // Calcular dias no onboarding baseado no milestone atual
-          const milestoneStartKey = `milestone_${currentMilestone}_started_at` as keyof typeof onboarding;
-          const milestoneStarted = onboarding[milestoneStartKey] || onboarding.created_at;
-          const startDate = new Date(milestoneStarted as string);
-          const daysInMilestone = differenceInDays(new Date(), startDate);
-
-          if (daysInMilestone > maxDays) {
-            // Onboarding atrasado! Criar notificação
-            const adsManagerId = client.assigned_ads_manager;
-            if (!adsManagerId) continue;
-
-            // Buscar nome do gestor de ads
-            const { data: adsManagerProfile } = await supabase
-              .from('profiles')
-              .select('name')
-              .eq('user_id', adsManagerId)
-              .maybeSingle();
-
-            // Criar uma "due_date" calculada (quando deveria ter sido concluído)
-            const expectedEndDate = new Date(startDate);
-            expectedEndDate.setDate(expectedEndDate.getDate() + maxDays);
-
-            await createNotificationIfNotExists({
-              task_id: `onboarding_${client.id}_${currentMilestone}`,
-              task_table: 'client_onboarding',
-              task_owner_id: adsManagerId,
-              task_title: `Onboarding: ${client.name} (Marco ${currentMilestone})`,
-              task_due_date: expectedEndDate.toISOString(),
-              owner_role: 'gestor_ads',
-            });
-            createdNotifications.push(`onboarding_${client.id}`);
-          }
-        }
       }
 
       if (createdNotifications.length > 0) {
