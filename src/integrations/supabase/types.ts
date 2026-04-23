@@ -4449,6 +4449,8 @@ export type Database = {
       }
       onboarding_tasks: {
         Row: {
+          archived: boolean
+          archived_at: string | null
           assigned_to: string
           client_id: string
           completed_at: string | null
@@ -4465,6 +4467,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          archived?: boolean
+          archived_at?: string | null
           assigned_to: string
           client_id: string
           completed_at?: string | null
@@ -4481,6 +4485,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          archived?: boolean
+          archived_at?: string | null
           assigned_to?: string
           client_id?: string
           completed_at?: string | null
