@@ -206,7 +206,7 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
   // Sempre precisamos chamar Hooks na mesma ordem. Usamos passthrough controlado:
   // para delay, se config.delay não existe, usamos um stub que retorna vazio.
   const delayedCards = config.delay
-    ? config.delay.useDelayedCards().data
+    ? (config.delay.useDelayedCards().data ?? [])
     : [];
   const createNotificationMutation = config.afterMoveNotification
     ? config.afterMoveNotification.useCreateNotification()

@@ -94,6 +94,7 @@ export function useProdutoraDelayedCards() {
     },
     enabled: !!user?.id,
     refetchInterval: 30000, // Check every 30 seconds
+    initialData: [],
   });
 }
 
