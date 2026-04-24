@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { Switch } from '@/components/ui/switch';
 import { useThemeMode } from '@/hooks/useThemeMode';
-import { isComercialKanbanPath } from '@/hooks/useSidebarPermissions';
+import { SEARCHABLE_PAGES } from '@/components/layout/searchablePages';
 
 import {
   DropdownMenu,
@@ -38,52 +38,9 @@ const pageTitles: Record<string, string> = {
   '/admin/configuracoes': 'Configurações',
 };
 
-// All searchable pages in the system
-const SEARCHABLE_PAGES = [
-  { path: '/ceo', label: 'Indicadores', category: 'CEO' },
-  { path: '/kanban/ceo', label: 'Kanban CEO', category: 'CEO' },
-  { path: '/okrs-millennials', label: 'OKRs Millennials', category: 'CEO' },
-  { path: '/tv-dashboard', label: 'TV Dashboard', category: 'CEO' },
-  { path: '/millennials-growth', label: 'Dashboard Millennials Growth', category: 'Produtos' },
-  { path: '/outbound-dashboard', label: 'Dashboard Outbound', category: 'Produtos' },
-  { path: '/kanban/design', label: 'Kanban Design', category: 'Kanbans' },
-  { path: '/kanban/editor-video', label: 'Kanban Editor de Vídeo', category: 'Kanbans' },
-  { path: '/kanban/devs', label: 'Kanban Desenvolvedores', category: 'Kanbans' },
-  { path: '/kanban/atrizes', label: 'Kanban Atrizes para Gravação', category: 'Kanbans' },
-  { path: '/kanban/produtora', label: 'Kanban Produtora', category: 'Kanbans' },
-  { path: '/kanban/crm', label: 'Kanban CRM', category: 'Kanbans' },
-  { path: '/kanban/comercial', label: 'Kanban Comercial', category: 'Kanbans' },
-  { path: '/kanban/ads', label: 'Kanban Gestor de Ads', category: 'Kanbans' },
-  { path: '/kanban/sucesso', label: 'Kanban Sucesso do Cliente', category: 'Kanbans' },
-  { path: '/gestor-ads', label: 'Gestão de Tráfego PRO+', category: 'PRO+' },
-  { path: '/millennials-outbound', label: 'Outbound PRO+', category: 'PRO+' },
-  { path: '/sucesso-cliente', label: 'Sucesso do Cliente PRO+', category: 'PRO+' },
-  { path: '/consultor-comercial', label: 'Comercial PRO+', category: 'PRO+' },
-  { path: '/financeiro', label: 'Financeiro PRO+', category: 'PRO+' },
-  { path: '/gestor-projetos', label: 'Gestão de Projetos PRO+', category: 'PRO+' },
-  { path: '/gestor-crm', label: 'CRM PRO+', category: 'PRO+' },
-  { path: '/design', label: 'Design PRO+', category: 'PRO+' },
-  { path: '/editor-video', label: 'Editor de Vídeo PRO+', category: 'PRO+' },
-  { path: '/devs', label: 'Desenvolvedor PRO+', category: 'PRO+' },
-  { path: '/atrizes-gravacao', label: 'Gravação PRO+', category: 'PRO+' },
-  { path: '/rh', label: 'RH', category: 'PRO+' },
-  { path: '/lista-clientes', label: 'Lista de Clientes (Todos)', category: 'Clientes' },
-  { path: '/clientes/millennials-growth', label: 'Clientes Millennials Growth', category: 'Clientes' },
-  { path: '/clientes/millennials-outbound', label: 'Clientes Outbound', category: 'Clientes' },
-  { path: '/clientes/zydon', label: 'Clientes Zydon', category: 'Clientes' },
-  { path: '/clientes/torque-crm', label: 'Clientes Torque CRM', category: 'Clientes' },
-  { path: '/clientes/kasd', label: 'Clientes KASD', category: 'Clientes' },
-  { path: '/clientes/fenix', label: 'Clientes Fenix', category: 'Clientes' },
-  { path: '/cadastro-clientes', label: 'Cadastro de Clientes', category: 'Clientes' },
-  { path: '/upsells', label: 'UP Sells', category: 'Financeiro' },
-  { path: '/comissoes', label: 'Comissões', category: 'Financeiro' },
-  { path: '/provas-sociais', label: 'Provas Sociais', category: 'Vendas' },
-  { path: '/financeiro-dashboard', label: 'Financeiro Dashboard', category: 'Financeiro' },
-  { path: '/treinamentos', label: 'Treinamentos', category: 'Outros' },
-  { path: '/admin/usuarios', label: 'Gestão de Usuários', category: 'Admin' },
-  { path: '/admin/grupos', label: 'Grupos', category: 'Admin' },
-  { path: '/admin/configuracoes', label: 'Configurações', category: 'Admin' },
-];
+// SEARCHABLE_PAGES vive em `./searchablePages.ts` — manter constantes em arquivo
+// próprio preserva o contrato de `react-refresh/only-export-components` e facilita
+// testar o filtro de roles isoladamente.
 
 export default function AppHeader() {
   const { user, logout } = useAuth();
@@ -98,25 +55,40 @@ export default function AppHeader() {
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Kanbans do Treinador Comercial têm slug por grupo (`grupo-1-comercial`,
-  // `grupo-2-comercial`, ...) além do global `comercial`. Todos compartilham
-  // o mesmo label no header — resolve com matcher dedicado em vez de listar
-  // cada variação estaticamente em `pageTitles`.
-  const pageTitle = isComercialKanbanPath(location.pathname)
-    ? 'Treinador Comercial'
-    : (pageTitles[location.pathname] || 'Sistema');
+  // Board `comercial` é único global; scope de cards via RLS por client.group_id
+  // (decisão Opus B, migration 20260423120000). Match estático em `pageTitles` basta.
+  const pageTitle = pageTitles[location.pathname] || 'Sistema';
   const { isDark, toggle: toggleTheme } = useThemeMode();
+
+  // Admins (CEO/CTO/gestor_projetos) passam por cima de qualquer `allowedRoles`.
+  // Alinha com ExecutiveRoute/AdminRoute em App.tsx.
+  const isAdminOrExecutive = useMemo(() => {
+    const role = user?.role;
+    if (!role) return false;
+    return role === 'ceo' || role === 'cto' || role === 'gestor_projetos';
+  }, [user?.role]);
+
+  // P\u00e1ginas vis\u00edveis pro usu\u00e1rio atual, j\u00e1 filtradas por role. `allowedRoles`
+  // ausente = p\u00fablica; `allowedRoles: []` = s\u00f3 admins veem.
+  const visiblePages = useMemo(() => {
+    return SEARCHABLE_PAGES.filter(page => {
+      if (!page.allowedRoles) return true;
+      if (isAdminOrExecutive) return true;
+      if (!user?.role) return false;
+      return page.allowedRoles.includes(user.role);
+    });
+  }, [isAdminOrExecutive, user?.role]);
 
   // Filter search results
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return [];
     const q = searchQuery.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    return SEARCHABLE_PAGES.filter(page => {
+    return visiblePages.filter(page => {
       const label = page.label.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
       const category = page.category.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
       return label.includes(q) || category.includes(q);
     }).slice(0, 8);
-  }, [searchQuery]);
+  }, [searchQuery, visiblePages]);
 
   // Reset selected index when results change
   useEffect(() => { setSelectedIndex(0); }, [searchResults]);

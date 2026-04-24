@@ -184,31 +184,6 @@ export function getBoardLabel(board: { slug: string; name: string }): string {
   return board.name;
 }
 
-/**
- * Slugs candidatos para o kanban do Treinador Comercial, priorizando o board
- * do grupo do usuário quando existir (ex: `grupo-1-comercial`) e caindo para o
- * board global `comercial` como fallback.
- *
- * Invariante: primeira match existente em `boards` vence — mesmo shape do
- * array-de-variants usado em ROLE_BOARD_SLUGS, então o resolver de
- * `visibleBoards` consome sem mudança.
- */
-export function getConsultorComercialBoardVariants(
-  userGroupSlug: string | null | undefined,
-): string[] {
-  if (!userGroupSlug) return ['comercial'];
-  return [`${userGroupSlug}-comercial`, 'comercial'];
-}
-
-/**
- * Matcher para identificar qualquer rota de kanban do Treinador Comercial
- * (global ou específico-por-grupo). Usado pelo header para resolver o
- * pageTitle sem precisar listar todos os grupos estaticamente.
- */
-export function isComercialKanbanPath(pathname: string): boolean {
-  return /^\/kanban\/(?:[a-z0-9-]+-)?comercial$/i.test(pathname);
-}
-
 // ============================================
 // HOOK PRINCIPAL
 // ============================================
@@ -261,14 +236,7 @@ export function useSidebarPermissions() {
     if (!user?.role) return [];
     if (isExecutive(user.role) || user.role === 'gestor_projetos') return [];
 
-    const baseSlugGroups = ROLE_BOARD_SLUGS[user.role] || [];
-    // Treinador Comercial: resolve dinamicamente pelo grupo do usuário.
-    // Ex: grupo-1 → ['grupo-1-comercial', 'comercial']. O board global
-    // continua como fallback se o específico do grupo não existir.
-    const slugGroups =
-      user.role === 'consultor_comercial'
-        ? [getConsultorComercialBoardVariants(userGroup?.slug)]
-        : baseSlugGroups;
+    const slugGroups = ROLE_BOARD_SLUGS[user.role] || [];
 
     const picked = slugGroups
       .map((variants) => {
@@ -291,7 +259,7 @@ export function useSidebarPermissions() {
       seen.add(b.id);
       return true;
     }) as typeof boards;
-  }, [boards, user?.role, userGroup?.slug]);
+  }, [boards, user?.role]);
 
   // Roles dos usuários em um grupo (filtrado por permissão do visualizador)
   const getGroupRoles = (groupId: string): UserRole[] => {

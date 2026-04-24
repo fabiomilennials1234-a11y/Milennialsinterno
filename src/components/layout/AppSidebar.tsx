@@ -1202,6 +1202,24 @@ export default function AppSidebar() {
           </div>
         )}
 
+        {/* ========== MINHA ÁREA PRO+ (topo — independe de grupo) ========== */}
+        {/* Roles com hub PRO+ próprio (ex: consultor_comercial, gestor_ads) veem o atalho
+            no topo do sidebar mesmo quando pertencem a um grupo. Bug Maycon (2026-04-24):
+            consultor_comercial com grupo-2 não via `/consultor-comercial` porque o bloco
+            de fallback abaixo estava gated por `!userGroup`. */}
+        {!isAdminUser && !isCollapsed && userSpecialRoute && (
+          <div className="space-y-1">
+            <div className="sidebar-section-label"><span>Minha Área</span></div>
+            <NavLink
+              to={userSpecialRoute.path}
+              className={({ isActive }) => cn("sidebar-item", isActive && "active")}
+            >
+              <userSpecialRoute.icon size={20} />
+              <span>{userSpecialRoute.label}</span>
+            </NavLink>
+          </div>
+        )}
+
         {/* ========== MINHA ORGANIZAÇÃO (USUÁRIO OPERACIONAL) ========== */}
         {/* Renderiza igual ao CEO: grupo completo com coringas, squads e gestores individuais,
             filtrado por canViewRole para mostrar apenas os kanbans permitidos. */}
@@ -1356,19 +1374,14 @@ export default function AppSidebar() {
           </div>
         )}
 
-        {/* ========== MINHA ÁREA (FALLBACK SEM GRUPO) ========== */}
-        {!isAdminUser && !userGroup && !isCollapsed && (userSpecialRoute || user?.role) && (
+        {/* ========== KANBANS DA MINHA ÁREA (FALLBACK SEM GRUPO) ========== */}
+        {/* Usuário sem grupo não tem "Minha Organização". Mostramos aqui os boards
+            visíveis pro role (visibleBoards). O link do hub PRO+ já foi renderizado
+            no bloco "Minha Área PRO+" acima — não duplicar. */}
+        {!isAdminUser && !userGroup && !isCollapsed && user?.role && (
           <div className="space-y-1">
-            <div className="sidebar-section-label"><span>Minha Área</span></div>
-
-            {userSpecialRoute && (
-              <NavLink
-                to={userSpecialRoute.path}
-                className={({ isActive }) => cn("sidebar-item", isActive && "active")}
-              >
-                <userSpecialRoute.icon size={20} />
-                <span>{userSpecialRoute.label}</span>
-              </NavLink>
+            {!userSpecialRoute && (
+              <div className="sidebar-section-label"><span>Minha Área</span></div>
             )}
 
             {visibleBoards

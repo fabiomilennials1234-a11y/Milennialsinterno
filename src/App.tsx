@@ -3,9 +3,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { isExecutive, type UserRole } from "@/types/auth";
+import { resolveKanbanRedirect } from "@/routing/kanbanRedirect";
 import { JustificationProvider } from "@/contexts/JustificationContext";
 import { usePermissionDivergenceLogger } from "@/hooks/usePermissionDivergenceLogger";
 import AppBootSkeleton from "@/components/AppBootSkeleton";
@@ -169,6 +170,20 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// Kanban route wrapper. Board `comercial` é único global; scope de cards via RLS
+// por client.group_id (decisão Opus B, migration 20260423120000). Role
+// `consultor_comercial` tem hub próprio em `/consultor-comercial` — redirecionamos
+// pra evitar que caia no board legacy. Mesmo padrão de `/kanban/rh → /rh`.
+function KanbanRoute() {
+  const { boardId } = useParams<{ boardId: string }>();
+  const { user } = useAuth();
+
+  const redirectTo = resolveKanbanRedirect(boardId, user?.role);
+  if (redirectTo) return <Navigate to={redirectTo} replace />;
+
+  return <KanbanPage />;
+}
+
 // Redirect based on user's own role (não iterar permissões herdadas — isso
 // fazia gestor_ads/outbound/sucesso_cliente aterrissarem em /kanban/design
 // porque BOARD_VISIBILITY deles inclui 'design' antes do próprio papel).
@@ -303,7 +318,7 @@ function AppRoutes() {
       {/* Kanban Routes */}
       <Route path="/kanban/:boardId" element={
         <ProtectedRoute>
-          <KanbanPage />
+          <KanbanRoute />
         </ProtectedRoute>
       } />
       
