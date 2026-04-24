@@ -7323,6 +7323,10 @@ export type Database = {
         Args: { _board_id: string; _user_id: string }
         Returns: boolean
       }
+      can_view_card: {
+        Args: { _card_id: string; _user_id: string }
+        Returns: boolean
+      }
       can_view_user: {
         Args: { _target_user_id: string; _viewer_id: string }
         Returns: boolean

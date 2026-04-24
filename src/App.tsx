@@ -8,6 +8,9 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { isExecutive } from "@/types/auth";
 import { JustificationProvider } from "@/contexts/JustificationContext";
 import { usePermissionDivergenceLogger } from "@/hooks/usePermissionDivergenceLogger";
+import { useOrganizationGroups } from "@/hooks/useOrganization";
+import { useAllBoards } from "@/hooks/useKanban";
+import { getConsultorComercialBoardVariants } from "@/hooks/useSidebarPermissions";
 import AppBootSkeleton from "@/components/AppBootSkeleton";
 
 // Pages — lazy para code-splitting por rota.
@@ -150,18 +153,33 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 
 // Redirect to first available tab based on role
 function DefaultRedirect() {
-  const { user, isAdminUser, isCEO, canViewTabById } = useAuth();
-  
+  const { isAdminUser, isCEO, canViewTabById, userGroupId } = useAuth();
+  const { data: groups = [] } = useOrganizationGroups();
+  const { data: boards = [] } = useAllBoards();
+
   // CEO vai para visão estratégica
   if (isCEO) {
     return <Navigate to="/ceo" replace />;
   }
-  
+
   // Gestor de Projetos vai para o Dashboard
   if (isAdminUser) {
     return <Navigate to="/dashboard" replace />;
   }
-  
+
+  // Treinador Comercial: resolve board por grupo (ex: grupo-1-comercial),
+  // caindo para o global `comercial` se o específico não existir.
+  const resolveComercialPath = (): string => {
+    const userGroup = groups.find((g) => g.id === userGroupId);
+    const variants = getConsultorComercialBoardVariants(userGroup?.slug);
+    for (const slug of variants) {
+      if (boards.some((b) => b.slug === slug)) {
+        return `/kanban/${slug}`;
+      }
+    }
+    return '/kanban/comercial';
+  };
+
   // Outros cargos vão para sua primeira aba autorizada
   const tabPriority = [
     { id: 'design', path: '/kanban/design' },
@@ -170,7 +188,7 @@ function DefaultRedirect() {
     { id: 'atrizes_gravacao', path: '/kanban/atrizes' },
     { id: 'produtora', path: '/kanban/produtora' },
     { id: 'gestor_crm', path: '/kanban/crm' },
-    { id: 'consultor_comercial', path: '/kanban/comercial' },
+    { id: 'consultor_comercial', path: resolveComercialPath() },
     { id: 'consultor_mktplace', path: '/consultor-mktplace' },
     { id: 'gestor_ads', path: '/kanban/ads' },
     { id: 'outbound', path: '/millennials-outbound' },
@@ -178,13 +196,13 @@ function DefaultRedirect() {
     { id: 'financeiro', path: '/financeiro' },
     { id: 'rh', path: '/kanban/rh' },
   ];
-  
+
   for (const tab of tabPriority) {
     if (canViewTabById(tab.id)) {
       return <Navigate to={tab.path} replace />;
     }
   }
-  
+
   return <Navigate to="/login" replace />;
 }
 

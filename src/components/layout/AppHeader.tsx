@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { Switch } from '@/components/ui/switch';
 import { useThemeMode } from '@/hooks/useThemeMode';
+import { isComercialKanbanPath } from '@/hooks/useSidebarPermissions';
 
 import {
   DropdownMenu,
@@ -97,7 +98,13 @@ export default function AppHeader() {
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const pageTitle = pageTitles[location.pathname] || 'Sistema';
+  // Kanbans do Treinador Comercial têm slug por grupo (`grupo-1-comercial`,
+  // `grupo-2-comercial`, ...) além do global `comercial`. Todos compartilham
+  // o mesmo label no header — resolve com matcher dedicado em vez de listar
+  // cada variação estaticamente em `pageTitles`.
+  const pageTitle = isComercialKanbanPath(location.pathname)
+    ? 'Treinador Comercial'
+    : (pageTitles[location.pathname] || 'Sistema');
   const { isDark, toggle: toggleTheme } = useThemeMode();
 
   // Filter search results
