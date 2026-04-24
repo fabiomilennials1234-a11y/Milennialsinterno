@@ -98,21 +98,68 @@ export function useComercialDelayNotifications() {
   return query;
 }
 
-// Create a delay notification
+// Check if user already justified a delay notification for a given (user, type, client).
+// Shared by useCreateComercialDelayNotification + useCheckComercialDelays to prevent
+// re-creating notifications for cases already justified (which previously caused the
+// "justificativas infinitas" loop).
+export async function hasActiveJustificationForDelay(params: {
+  user_id: string;
+  notification_type: string;
+  client_id?: string | null;
+}): Promise<boolean> {
+  let query = supabase
+    .from('comercial_delay_notifications')
+    .select('id')
+    .eq('user_id', params.user_id)
+    .eq('notification_type', params.notification_type);
+
+  if (params.client_id) {
+    query = query.eq('client_id', params.client_id);
+  }
+
+  const { data: notifications, error } = await query;
+  if (error) throw error;
+  if (!notifications || notifications.length === 0) return false;
+
+  const ids = notifications.map(n => n.id);
+  const { data: justifications, error: justError } = await supabase
+    .from('comercial_delay_justifications')
+    .select('id')
+    .eq('user_id', params.user_id)
+    .in('notification_id', ids)
+    .limit(1);
+
+  if (justError) throw justError;
+  return (justifications?.length ?? 0) > 0;
+}
+
+// Create a delay notification (idempotent; skips if user already justified one).
 export function useCreateComercialDelayNotification() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (notification: Omit<ComercialDelayNotification, 'id' | 'created_at'>) => {
-      // Check if notification already exists
-      const { data: existing } = await supabase
+      // Skip if a justification already exists for (user, type, client) — prevents loop
+      // where deleting/recreating notifications would reopen the modal endlessly.
+      const alreadyJustified = await hasActiveJustificationForDelay({
+        user_id: notification.user_id,
+        notification_type: notification.notification_type,
+        client_id: notification.client_id ?? null,
+      });
+      if (alreadyJustified) return null;
+
+      // Dedup: don't insert if an unresolved notification already exists.
+      let existingQuery = supabase
         .from('comercial_delay_notifications')
         .select('id')
         .eq('user_id', notification.user_id)
-        .eq('notification_type', notification.notification_type)
-        .eq('client_id', notification.client_id || '')
-        .maybeSingle();
+        .eq('notification_type', notification.notification_type);
 
+      existingQuery = notification.client_id
+        ? existingQuery.eq('client_id', notification.client_id)
+        : existingQuery.is('client_id', null);
+
+      const { data: existing } = await existingQuery.maybeSingle();
       if (existing) return existing;
 
       const { data, error } = await supabase
@@ -174,12 +221,13 @@ export function useSaveComercialJustification() {
 
       if (error) throw error;
 
-      // Delete the notification after justification is saved
-      await supabase
-        .from('comercial_delay_notifications')
-        .delete()
-        .eq('id', notificationId);
-
+      // NOTE: We intentionally do NOT delete the notification row here.
+      // The justification row (via `notification_id` FK) is the source of
+      // truth for "already handled"; `useComercialDelayNotifications` filters
+      // notifications client-side by joining on justifications.
+      // Deleting the notification caused `useCheckComercialDelays` to recreate
+      // it on the next 5-min tick, reopening the modal forever.
+      // Fix: 2026-04-24 — bug "justificativas infinitas".
       return data;
     },
     onSuccess: () => {

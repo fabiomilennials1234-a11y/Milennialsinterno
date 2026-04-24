@@ -4,7 +4,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useEffect, useRef } from 'react';
 import { useComercialNewClients, useComercialOnboardingClients, getHoursSinceEntry, getDaysSinceOnboardingStart } from './useComercialClients';
-import { useCreateComercialDelayNotification } from './useComercialDelayNotifications';
+import {
+  useCreateComercialDelayNotification,
+  hasActiveJustificationForDelay,
+} from './useComercialDelayNotifications';
 import { useActionJustification } from '@/contexts/JustificationContext';
 
 // Legacy auto task types (kept for backward compatibility with existing tasks)
@@ -499,28 +502,42 @@ export function useCheckComercialDelays() {
 
       for (const client of newClients) {
         const hours = getHoursSinceEntry(client.comercial_entered_at);
-        if (hours >= 24) {
-          createNotification.mutate({
-            user_id: user.id,
-            user_name: userName,
-            notification_type: 'novo_cliente_24h',
-            client_id: client.id,
-            client_name: client.name,
-          });
-        }
+        if (hours < 24) continue;
+
+        const alreadyJustified = await hasActiveJustificationForDelay({
+          user_id: user.id,
+          notification_type: 'novo_cliente_24h',
+          client_id: client.id,
+        });
+        if (alreadyJustified) continue;
+
+        createNotification.mutate({
+          user_id: user.id,
+          user_name: userName,
+          notification_type: 'novo_cliente_24h',
+          client_id: client.id,
+          client_name: client.name,
+        });
       }
 
       for (const client of onboardingClients) {
         const days = getDaysSinceOnboardingStart(client.comercial_onboarding_started_at);
-        if (days >= 5) {
-          createNotification.mutate({
-            user_id: user.id,
-            user_name: userName,
-            notification_type: 'onboarding_5d',
-            client_id: client.id,
-            client_name: client.name,
-          });
-        }
+        if (days < 5) continue;
+
+        const alreadyJustified = await hasActiveJustificationForDelay({
+          user_id: user.id,
+          notification_type: 'onboarding_5d',
+          client_id: client.id,
+        });
+        if (alreadyJustified) continue;
+
+        createNotification.mutate({
+          user_id: user.id,
+          user_name: userName,
+          notification_type: 'onboarding_5d',
+          client_id: client.id,
+          client_name: client.name,
+        });
       }
     };
 
