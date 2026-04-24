@@ -5,12 +5,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { isExecutive } from "@/types/auth";
+import { isExecutive, type UserRole } from "@/types/auth";
 import { JustificationProvider } from "@/contexts/JustificationContext";
 import { usePermissionDivergenceLogger } from "@/hooks/usePermissionDivergenceLogger";
-import { useOrganizationGroups } from "@/hooks/useOrganization";
-import { useAllBoards } from "@/hooks/useKanban";
-import { getConsultorComercialBoardVariants } from "@/hooks/useSidebarPermissions";
 import AppBootSkeleton from "@/components/AppBootSkeleton";
 
 // Pages — lazy para code-splitting por rota.
@@ -128,6 +125,27 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// Role-gated route. CEO/CTO e Gestor de Projetos sempre passam (admins).
+// Qualquer outro papel precisa estar em `roles` para acessar. Sem role
+// permitido → volta pro redirect default (`/`).
+function RoleRoute({
+  children,
+  roles,
+}: {
+  children: React.ReactNode;
+  roles: readonly UserRole[];
+}) {
+  const { isAuthenticated, isLoading, user, isCEO, isAdminUser } = useAuth();
+
+  if (isLoading) return <AppBootSkeleton />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (isCEO || isAdminUser) return <>{children}</>;
+  if (!user?.role || !roles.includes(user.role)) {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+}
+
 // Manager Route (CEO, Gestor de Projetos e Sucesso do Cliente)
 function ManagerRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, canManageUsersFlag } = useAuth();
@@ -151,11 +169,11 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-// Redirect to first available tab based on role
+// Redirect based on user's own role (não iterar permissões herdadas — isso
+// fazia gestor_ads/outbound/sucesso_cliente aterrissarem em /kanban/design
+// porque BOARD_VISIBILITY deles inclui 'design' antes do próprio papel).
 function DefaultRedirect() {
-  const { isAdminUser, isCEO, canViewTabById, userGroupId } = useAuth();
-  const { data: groups = [] } = useOrganizationGroups();
-  const { data: boards = [] } = useAllBoards();
+  const { user, isAdminUser, isCEO } = useAuth();
 
   // CEO vai para visão estratégica
   if (isCEO) {
@@ -167,20 +185,7 @@ function DefaultRedirect() {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Treinador Comercial: resolve board por grupo (ex: grupo-1-comercial),
-  // caindo para o global `comercial` se o específico não existir.
-  const resolveComercialPath = (): string => {
-    const userGroup = groups.find((g) => g.id === userGroupId);
-    const variants = getConsultorComercialBoardVariants(userGroup?.slug);
-    for (const slug of variants) {
-      if (boards.some((b) => b.slug === slug)) {
-        return `/kanban/${slug}`;
-      }
-    }
-    return '/kanban/comercial';
-  };
-
-  // Outros cargos vão para sua primeira aba autorizada
+  // Demais cargos: match EXATO pelo próprio role.
   const tabPriority = [
     { id: 'design', path: '/kanban/design' },
     { id: 'editor_video', path: '/kanban/editor-video' },
@@ -188,9 +193,9 @@ function DefaultRedirect() {
     { id: 'atrizes_gravacao', path: '/kanban/atrizes' },
     { id: 'produtora', path: '/kanban/produtora' },
     { id: 'gestor_crm', path: '/kanban/crm' },
-    { id: 'consultor_comercial', path: resolveComercialPath() },
+    { id: 'consultor_comercial', path: '/consultor-comercial' },
     { id: 'consultor_mktplace', path: '/consultor-mktplace' },
-    { id: 'gestor_ads', path: '/kanban/ads' },
+    { id: 'gestor_ads', path: '/gestor-ads' },
     { id: 'outbound', path: '/millennials-outbound' },
     { id: 'sucesso_cliente', path: '/kanban/sucesso' },
     { id: 'financeiro', path: '/financeiro' },
@@ -198,7 +203,7 @@ function DefaultRedirect() {
   ];
 
   for (const tab of tabPriority) {
-    if (canViewTabById(tab.id)) {
+    if (user?.role === tab.id) {
       return <Navigate to={tab.path} replace />;
     }
   }
@@ -238,9 +243,9 @@ function AppRoutes() {
       
       {/* Outbound Dashboard - dedicated */}
       <Route path="/outbound-dashboard" element={
-        <ProtectedRoute>
+        <RoleRoute roles={['outbound']}>
           <OutboundDashboardPage />
-        </ProtectedRoute>
+        </RoleRoute>
       } />
 
       {/* Generic Product Dashboard - CEO and Gestor de Projetos */}
@@ -304,44 +309,44 @@ function AppRoutes() {
       
       {/* Ads Manager Route - Generic */}
       <Route path="/gestor-ads" element={
-        <ProtectedRoute>
+        <RoleRoute roles={['gestor_ads']}>
           <AdsManagerPage />
-        </ProtectedRoute>
+        </RoleRoute>
       } />
-      
+
       {/* Ads Manager Route - Individual by user ID */}
       <Route path="/gestor-ads/:userId" element={
-        <ProtectedRoute>
+        <RoleRoute roles={['gestor_ads']}>
           <AdsManagerIndividualPage />
-        </ProtectedRoute>
+        </RoleRoute>
       } />
 
       {/* Outbound Manager Route - Generic */}
       <Route path="/millennials-outbound" element={
-        <ProtectedRoute>
+        <RoleRoute roles={['outbound']}>
           <OutboundManagerPage />
-        </ProtectedRoute>
+        </RoleRoute>
       } />
 
       {/* Outbound Manager Route - Individual by user ID */}
       <Route path="/millennials-outbound/:userId" element={
-        <ProtectedRoute>
+        <RoleRoute roles={['outbound']}>
           <OutboundManagerIndividualPage />
-        </ProtectedRoute>
+        </RoleRoute>
       } />
 
       {/* Sucesso do Cliente Route */}
       <Route path="/sucesso-cliente" element={
-        <ProtectedRoute>
+        <RoleRoute roles={['sucesso_cliente']}>
           <SucessoClientePage />
-        </ProtectedRoute>
+        </RoleRoute>
       } />
-      
+
       {/* Consultor Comercial Route */}
       <Route path="/consultor-comercial" element={
-        <ProtectedRoute>
+        <RoleRoute roles={['consultor_comercial']}>
           <ConsultorComercialPage />
-        </ProtectedRoute>
+        </RoleRoute>
       } />
       
       {/* Consultoria de MKT Place - Dashboard */}
@@ -353,16 +358,16 @@ function AppRoutes() {
 
       {/* Consultor MKT Place Route */}
       <Route path="/consultor-mktplace" element={
-        <ProtectedRoute>
+        <RoleRoute roles={['consultor_mktplace']}>
           <ConsultorMKTPlacePage />
-        </ProtectedRoute>
+        </RoleRoute>
       } />
 
       {/* Financeiro Route */}
       <Route path="/financeiro" element={
-        <ProtectedRoute>
+        <RoleRoute roles={['financeiro']}>
           <FinanceiroPage />
-        </ProtectedRoute>
+        </RoleRoute>
       } />
       
       {/* Financeiro Dashboard Route */}

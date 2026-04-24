@@ -85,7 +85,7 @@ export const ROLE_BOARD_SLUGS: Record<UserRole, string[][]> = {
   gestor_crm: [],
 
   // Treinador Comercial: kanban comercial (dentro do Paddock)
-  consultor_comercial: [['comercial']],
+  consultor_comercial: [],
 
   // Consultor(a) de MKT Place: próprio kanban
   consultor_mktplace: [['mktplace']],
