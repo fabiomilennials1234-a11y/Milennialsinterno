@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useComercialPaddockClients } from '@/hooks/useComercialClients';
@@ -8,9 +8,20 @@ import PaddockDiagnosticoBadge from './PaddockDiagnosticoBadge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FileText, Eye, Clock, AlertTriangle } from 'lucide-react';
+import { FileText, Eye, Clock, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import ClientViewModal from '@/components/client/ClientViewModal';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface PendingTask {
   id: string;
@@ -82,13 +93,36 @@ function TaskDeadlineBadge({ task }: { task: PendingTask }) {
 }
 
 export default function PaddockOnboardingSection() {
+  const queryClient = useQueryClient();
   const { data: clients = [] } = useComercialPaddockClients();
   const { data: tasks = [] } = usePaddockPendingTasks();
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [confirmFinalizeId, setConfirmFinalizeId] = useState<string | null>(null);
 
   const getClientTask = (clientId: string) => {
     return tasks.find(t => t.related_client_id === clientId);
   };
+
+  const finalizeMutation = useMutation({
+    mutationFn: async (clientId: string) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any).rpc('dismiss_client_torque_tag', {
+        p_client_id: clientId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('CRM finalizado', { description: 'Etiqueta e cronômetro removidos do cliente' });
+      queryClient.invalidateQueries({ queryKey: ['client-tags'] });
+      queryClient.invalidateQueries({ queryKey: ['client-tags-batch'] });
+      queryClient.invalidateQueries({ queryKey: ['client-tag-delay-pending'] });
+    },
+    onError: (err: Error) => {
+      toast.error('Erro ao finalizar CRM', { description: err.message });
+    },
+  });
+
+  const finalizingClient = clients.find(c => c.id === confirmFinalizeId);
 
   return (
     <>
@@ -148,6 +182,19 @@ export default function PaddockOnboardingSection() {
                           <TaskDeadlineBadge task={pendingTask} />
                         </div>
                       )}
+
+                      {/* CRM FINALIZADO — visível só na coluna crm_solicitado */}
+                      {stepId === 'crm_solicitado' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full h-7 text-[11px] font-semibold uppercase tracking-wide gap-1.5 border-success/40 text-success hover:bg-success/10 hover:text-success"
+                          onClick={() => setConfirmFinalizeId(client.id)}
+                        >
+                          <CheckCircle2 size={12} />
+                          CRM Finalizado
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 );
@@ -172,6 +219,41 @@ export default function PaddockOnboardingSection() {
           clientId={selectedClientId}
         />
       )}
+
+      <AlertDialog
+        open={!!confirmFinalizeId}
+        onOpenChange={(open) => { if (!open) setConfirmFinalizeId(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar finalização do CRM</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que o CRM de{' '}
+              <span className="font-semibold text-foreground">
+                {finalizingClient?.razao_social || finalizingClient?.name || 'este cliente'}
+              </span>{' '}
+              está pronto? A etiqueta &quot;Esperar Torque ser finalizado&quot; e o cronômetro de 10 dias serão removidos do kanban do gestor de Ads.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={finalizeMutation.isPending}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={finalizeMutation.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                if (!confirmFinalizeId) return;
+                finalizeMutation.mutate(confirmFinalizeId, {
+                  onSuccess: () => setConfirmFinalizeId(null),
+                });
+              }}
+            >
+              {finalizeMutation.isPending ? 'Finalizando…' : 'Sim, está pronto'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
