@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAssignedClients, useClientOnboarding } from '@/hooks/useAdsManager';
+import { useClientTagsBatch } from '@/hooks/useClientTags';
 import { Plus, Timer, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,7 @@ import ClientViewModal from '@/components/client/ClientViewModal';
 import OverdueInvoiceBadge from '@/components/shared/OverdueInvoiceBadge';
 import ContractStatusBadge from '@/components/shared/ContractStatusBadge';
 import ClientLabelBadge, { type ClientLabel } from '@/components/shared/ClientLabelBadge';
+import { ClientTagsList } from '@/components/client-tags/ClientTagsList';
 
 interface MilestoneCard {
   id: string;
@@ -98,6 +100,8 @@ const MILESTONES = [
 export default function AdsOnboardingSection() {
   const { data: clients = [] } = useAssignedClients();
   const { data: onboardingData = [] } = useClientOnboarding();
+  const clientIds = useMemo(() => clients.map(c => c.id), [clients]);
+  const { data: tagsByClient } = useClientTagsBatch(clientIds);
   const [selectedCard, setSelectedCard] = useState<MilestoneCard | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isInstructionModalOpen, setIsInstructionModalOpen] = useState(false);
@@ -223,7 +227,13 @@ export default function AdsOnboardingSection() {
                               </span>
                             </div>
 
-                            <Button 
+                            <ClientTagsList
+                              tags={tagsByClient?.get(client.id) ?? []}
+                              size="sm"
+                              className="mt-0"
+                            />
+
+                            <Button
                               size="sm" 
                               variant="outline"
                               className="w-full h-8 text-xs gap-2"
