@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { useAssignedClients, useClientTracking, useMoveClientDay, useUpsertClientDocumentation, useCreateCombinadoTask } from '@/hooks/useAdsManager';
+import { useCrmManagers } from '@/hooks/useClientRegistration';
 import { useTargetAdsManager } from '@/contexts/AdsManagerContext';
 import { Clock, AlertCircle, CheckCircle, GripVertical, Eye, Calendar } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -56,7 +58,22 @@ interface DocForm {
   has_combinado: 'sim' | 'nao' | null; // null = not selected yet
   combinado_description: string;
   combinado_deadline: Date | undefined;
+  formulario_changed: 'sim' | 'nao' | null;
+  formulario_name: string;
+  formulario_crm_manager_id: string;
 }
+
+const EMPTY_DOC_FORM: DocForm = {
+  client_budget: '',
+  metrics: '',
+  actions_done: '',
+  has_combinado: null,
+  combinado_description: '',
+  combinado_deadline: undefined,
+  formulario_changed: null,
+  formulario_name: '',
+  formulario_crm_manager_id: '',
+};
 
 export default function AdsAcompanhamentoSection({ compact }: Props) {
   const { user, isCEO } = useAuth();
@@ -68,18 +85,12 @@ export default function AdsAcompanhamentoSection({ compact }: Props) {
   const moveClient = useMoveClientDay();
   const upsertDoc = useUpsertClientDocumentation();
   const createCombinadoTask = useCreateCombinadoTask();
-  
+  const { data: crmManagers = [] } = useCrmManagers();
+
   // Log context for debugging
-  
+
   const [docModal, setDocModal] = useState<{ open: boolean; clientId?: string; clientName?: string; newDay?: string }>({ open: false });
-  const [docForm, setDocForm] = useState<DocForm>({
-    client_budget: '',
-    metrics: '',
-    actions_done: '',
-    has_combinado: null,
-    combinado_description: '',
-    combinado_deadline: undefined,
-  });
+  const [docForm, setDocForm] = useState<DocForm>(EMPTY_DOC_FORM);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -120,7 +131,7 @@ export default function AdsAcompanhamentoSection({ compact }: Props) {
       toast.error('Selecione se foi combinado algo hoje');
       return;
     }
-    
+
     // Validate combinado fields if has_combinado is 'sim'
     if (docForm.has_combinado === 'sim') {
       if (!docForm.combinado_description.trim()) {
@@ -129,6 +140,22 @@ export default function AdsAcompanhamentoSection({ compact }: Props) {
       }
       if (!docForm.combinado_deadline) {
         toast.error('Selecione o prazo do combinado');
+        return;
+      }
+    }
+
+    // Validate formulário changed selection
+    if (docForm.formulario_changed === null) {
+      toast.error('Selecione se o formulário foi mudado hoje');
+      return;
+    }
+    if (docForm.formulario_changed === 'sim') {
+      if (!docForm.formulario_name.trim()) {
+        toast.error('Informe o nome do novo formulário');
+        return;
+      }
+      if (!docForm.formulario_crm_manager_id) {
+        toast.error('Selecione o gestor de CRM responsável pela automação');
         return;
       }
     }
@@ -165,6 +192,33 @@ export default function AdsAcompanhamentoSection({ compact }: Props) {
           toast.error('Erro ao criar tarefa de combinado');
         }
       }
+
+      // Create automation task for gestor_crm if formulário was changed
+      if (
+        docForm.formulario_changed === 'sim' &&
+        docForm.formulario_name.trim() &&
+        docForm.formulario_crm_manager_id
+      ) {
+        try {
+          const dueDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { error: crmTaskErr } = await (supabase as any).from('department_tasks').insert({
+            user_id: docForm.formulario_crm_manager_id,
+            title: `Fazer automação Leads META -> Torque ${docModal.clientName || 'Cliente'}`,
+            description: `Novo formulário: ${docForm.formulario_name.trim()}`,
+            task_type: 'daily',
+            status: 'todo',
+            priority: 'high',
+            department: 'gestor_crm',
+            related_client_id: docModal.clientId,
+            due_date: dueDate,
+          });
+          if (crmTaskErr) throw crmTaskErr;
+        } catch (taskError) {
+          console.error('[AdsAcompanhamentoSection] Error creating CRM automation task:', taskError);
+          toast.error('Erro ao criar tarefa de automação para CRM');
+        }
+      }
       
       // Move client to new day
       await moveClient.mutateAsync({
@@ -176,14 +230,7 @@ export default function AdsAcompanhamentoSection({ compact }: Props) {
       
       // Reset form and close modal
       setDocModal({ open: false });
-      setDocForm({
-        client_budget: '',
-        metrics: '',
-        actions_done: '',
-        has_combinado: null,
-        combinado_description: '',
-        combinado_deadline: undefined,
-      });
+      setDocForm(EMPTY_DOC_FORM);
     } catch (error) {
       console.error('Error saving documentation:', error);
       toast.error('Erro ao salvar documentação');
@@ -194,14 +241,7 @@ export default function AdsAcompanhamentoSection({ compact }: Props) {
 
   const handleCloseModal = () => {
     setDocModal({ open: false });
-    setDocForm({
-      client_budget: '',
-      metrics: '',
-      actions_done: '',
-      has_combinado: null,
-      combinado_description: '',
-      combinado_deadline: undefined,
-    });
+    setDocForm(EMPTY_DOC_FORM);
   };
 
   if (compact) {
@@ -485,8 +525,70 @@ export default function AdsAcompanhamentoSection({ compact }: Props) {
                 </div>
               )}
             </div>
-            
-            <Button 
+
+            {/* Formulário mudado hoje */}
+            <div className="p-4 bg-muted/50 rounded-xl space-y-4">
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">
+                  O formulário foi mudado hoje? <span className="text-destructive">*</span>
+                </Label>
+                <RadioGroup
+                  value={docForm.formulario_changed || ''}
+                  onValueChange={(value: 'sim' | 'nao') =>
+                    setDocForm(prev => ({
+                      ...prev,
+                      formulario_changed: value,
+                      formulario_name: value === 'sim' ? prev.formulario_name : '',
+                      formulario_crm_manager_id: value === 'sim' ? prev.formulario_crm_manager_id : '',
+                    }))
+                  }
+                  className="flex gap-4"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="sim" id="formulario_sim" />
+                    <Label htmlFor="formulario_sim" className="cursor-pointer">Sim</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="nao" id="formulario_nao" />
+                    <Label htmlFor="formulario_nao" className="cursor-pointer">Não</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              {docForm.formulario_changed === 'sim' && (
+                <div className="space-y-4 pt-2 border-t border-border">
+                  <div>
+                    <Label className="text-sm font-medium">Qual o nome do novo Formulário?</Label>
+                    <Textarea
+                      value={docForm.formulario_name}
+                      onChange={e => setDocForm(prev => ({ ...prev, formulario_name: e.target.value }))}
+                      placeholder="Ex: Formulário Black Friday 2026"
+                      className="mt-2 min-h-[44px] resize-none"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium">Gestor de CRM responsável pela automação</Label>
+                    <select
+                      value={docForm.formulario_crm_manager_id}
+                      onChange={e => setDocForm(prev => ({ ...prev, formulario_crm_manager_id: e.target.value }))}
+                      className="input-apple mt-2 w-full"
+                    >
+                      <option value="" disabled>Selecione o gestor de CRM…</option>
+                      {crmManagers.map((m: { user_id: string; name: string }) => (
+                        <option key={m.user_id} value={m.user_id}>{m.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground bg-warning/10 p-2 rounded-lg">
+                    ⚠️ Uma tarefa &quot;Fazer automação Leads META -&gt; Torque [Cliente]&quot; será criada automaticamente no kanban do gestor de CRM com prazo de 1 dia.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <Button
               onClick={handleDocSubmit} 
               className="w-full" 
               disabled={isSaving}
