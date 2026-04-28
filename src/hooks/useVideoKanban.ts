@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { UserRole } from '@/types/auth';
+import { UserRole, getRolesWithPageSlug } from '@/types/auth';
 
 // ============================================
 // TYPES
@@ -24,15 +24,9 @@ export interface VideoBriefing {
 // PERMISSION CONSTANTS
 // ============================================
 
-// Quem pode VER o Kanban de Editor de Vídeo
-export const VIDEO_BOARD_VIEWERS: UserRole[] = [
-  'ceo',
-  'gestor_projetos',
-  'gestor_ads',
-  'outbound',
-  'sucesso_cliente',
-  'editor_video',
-];
+// Quem pode VER o Kanban de Editor de Vídeo.
+// Derivado da matriz: união dos roles que declaram pageSlug 'editor-video' + execs.
+export const VIDEO_BOARD_VIEWERS: UserRole[] = getRolesWithPageSlug('editor-video');
 
 // Quem pode CRIAR cards (mesmas permissões do Design)
 export const VIDEO_CARD_CREATORS: UserRole[] = [

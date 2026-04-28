@@ -38,6 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { getRolesAllowedForPath } from '@/types/auth';
 
 // Generate month options for filter
 const generateMonthOptions = () => {
@@ -75,7 +76,7 @@ export default function FinanceiroDashboardPage() {
   }, [selectedMonth]);
 
   // Verificar acesso
-  const allowedRoles = ['financeiro', 'gestor_projetos', 'ceo'];
+  const allowedRoles = getRolesAllowedForPath('/financeiro');
   const canAccess = user?.role && allowedRoles.includes(user.role);
 
   // Fetch financial data

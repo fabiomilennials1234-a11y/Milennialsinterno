@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { isExecutive, type UserRole } from "@/types/auth";
+import { getRouteGuardRoles } from "@/lib/routeAuth";
 import { resolveKanbanRedirect } from "@/routing/kanbanRedirect";
 import { JustificationProvider } from "@/contexts/JustificationContext";
 import { usePermissionDivergenceLogger } from "@/hooks/usePermissionDivergenceLogger";
@@ -269,7 +270,7 @@ function AppRoutes() {
       
       {/* Outbound Dashboard - dedicated */}
       <Route path="/outbound-dashboard" element={
-        <RoleRoute roles={['outbound']}>
+        <RoleRoute roles={getRouteGuardRoles('/outbound-dashboard')}>
           <OutboundDashboardPage />
         </RoleRoute>
       } />
@@ -335,42 +336,42 @@ function AppRoutes() {
       
       {/* Ads Manager Route - Generic */}
       <Route path="/gestor-ads" element={
-        <RoleRoute roles={['gestor_ads']}>
+        <RoleRoute roles={getRouteGuardRoles('/gestor-ads')}>
           <AdsManagerPage />
         </RoleRoute>
       } />
 
       {/* Ads Manager Route - Individual by user ID */}
       <Route path="/gestor-ads/:userId" element={
-        <RoleRoute roles={['gestor_ads']}>
+        <RoleRoute roles={getRouteGuardRoles('/gestor-ads')}>
           <AdsManagerIndividualPage />
         </RoleRoute>
       } />
 
       {/* Outbound Manager Route - Generic */}
       <Route path="/millennials-outbound" element={
-        <RoleRoute roles={['outbound']}>
+        <RoleRoute roles={getRouteGuardRoles('/millennials-outbound')}>
           <OutboundManagerPage />
         </RoleRoute>
       } />
 
       {/* Outbound Manager Route - Individual by user ID */}
       <Route path="/millennials-outbound/:userId" element={
-        <RoleRoute roles={['outbound']}>
+        <RoleRoute roles={getRouteGuardRoles('/millennials-outbound')}>
           <OutboundManagerIndividualPage />
         </RoleRoute>
       } />
 
       {/* Sucesso do Cliente Route */}
       <Route path="/sucesso-cliente" element={
-        <RoleRoute roles={['sucesso_cliente']}>
+        <RoleRoute roles={getRouteGuardRoles('/sucesso-cliente')}>
           <SucessoClientePage />
         </RoleRoute>
       } />
 
       {/* Consultor Comercial Route */}
       <Route path="/consultor-comercial" element={
-        <RoleRoute roles={['consultor_comercial']}>
+        <RoleRoute roles={getRouteGuardRoles('/consultor-comercial')}>
           <ConsultorComercialPage />
         </RoleRoute>
       } />
@@ -384,14 +385,14 @@ function AppRoutes() {
 
       {/* Consultor MKT Place Route */}
       <Route path="/consultor-mktplace" element={
-        <RoleRoute roles={['consultor_mktplace']}>
+        <RoleRoute roles={getRouteGuardRoles('/consultor-mktplace')}>
           <ConsultorMKTPlacePage />
         </RoleRoute>
       } />
 
       {/* Financeiro Route */}
       <Route path="/financeiro" element={
-        <RoleRoute roles={['financeiro']}>
+        <RoleRoute roles={getRouteGuardRoles('/financeiro')}>
           <FinanceiroPage />
         </RoleRoute>
       } />

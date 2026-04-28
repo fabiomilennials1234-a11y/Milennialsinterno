@@ -25,6 +25,7 @@ import OutboundNovoClienteSection from '@/components/outbound-manager/OutboundNo
 import OutboundOnboardingSection from '@/components/outbound-manager/OutboundOnboardingSection';
 import OutboundChurnSection from '@/components/outbound-manager/OutboundChurnSection';
 import OutboundMovimentacaoNotification from '@/components/outbound-manager/OutboundMovimentacaoNotification';
+import { getRolesAllowedForPath } from '@/types/auth';
 
 // Cores vibrantes para cada seção - Ordem definida pelo usuário
 const COLUMNS = [
@@ -65,7 +66,7 @@ export default function OutboundManagerPage() {
     }
   }, []);
 
-  const allowedRoles = ['outbound', 'sucesso_cliente', 'gestor_projetos', 'ceo'];
+  const allowedRoles = getRolesAllowedForPath('/millennials-outbound');
   const canAccess = user?.role && allowedRoles.includes(user.role);
 
   if (!canAccess && !isCEO && !isAdminUser) {

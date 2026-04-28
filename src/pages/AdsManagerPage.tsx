@@ -35,6 +35,7 @@ import AdsChurnSection from '@/components/ads-manager/AdsChurnSection';
 import AdsMovimentacaoNotification from '@/components/ads-manager/AdsMovimentacaoNotification';
 import { useDailyMovementDelayCheck } from '@/hooks/useDailyMovementDelayCheck';
 import { useResultsReportAutomation } from '@/hooks/useResultsReportAutomation';
+import { getRolesAllowedForPath } from '@/types/auth';
 
 // Cores vibrantes para cada seção - Ordem definida pelo usuário
 const COLUMNS = [
@@ -81,7 +82,7 @@ export default function AdsManagerPage() {
     }
   }, []);
 
-  const allowedRoles = ['gestor_ads', 'sucesso_cliente', 'gestor_projetos', 'ceo'];
+  const allowedRoles = getRolesAllowedForPath('/gestor-ads');
   const canAccess = user?.role && allowedRoles.includes(user.role);
   
   if (!canAccess && !isCEO && !isAdminUser) {

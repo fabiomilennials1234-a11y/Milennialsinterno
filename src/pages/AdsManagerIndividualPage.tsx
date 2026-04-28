@@ -23,6 +23,7 @@ import AdsLemasSection from '@/components/ads-manager/AdsLemasSection';
 import AdsChurnSection from '@/components/ads-manager/AdsChurnSection';
 import AdsMovimentacaoNotification from '@/components/ads-manager/AdsMovimentacaoNotification';
 import AdsTaskDelayModal from '@/components/AdsTaskDelayModal';
+import { getRolesAllowedForPath } from '@/types/auth';
 
 // Cores vibrantes para cada seção - Ordem definida pelo usuário
 const COLUMNS = [{
@@ -147,7 +148,7 @@ export default function AdsManagerIndividualPage() {
   }, []);
 
   // Access control: CEO, Admin, or the manager themselves
-  const allowedRoles = ['gestor_ads', 'sucesso_cliente', 'gestor_projetos', 'ceo'];
+  const allowedRoles = getRolesAllowedForPath('/gestor-ads');
   const canAccess = user?.role && allowedRoles.includes(user.role);
   if (!canAccess && !isCEO && !isAdminUser) {
     return <Navigate to="/" replace />;

@@ -18,6 +18,7 @@ import MktplaceAcompanhamentoSection from '@/components/mktplace/MktplaceAcompan
 import MktplaceDocumentacaoSection from '@/components/mktplace/MktplaceDocumentacaoSection';
 import ClientViewModal from '@/components/client/ClientViewModal';
 import { useCreateMktplaceInitialTask, isGestaoMktplace, useMktplaceProfiles } from '@/hooks/useMktplaceKanban';
+import { getRolesAllowedForPath } from '@/types/auth';
 
 const COLUMNS = [
   { id: 'novo-cliente', title: 'Novos Clientes', icon: UserPlus, headerClass: 'section-header-green', iconColor: 'text-white' },
@@ -186,7 +187,7 @@ export default function ConsultorMKTPlacePage() {
     }
   }, []);
 
-  const allowedRoles = ['consultor_mktplace', 'consultor_comercial', 'gestor_projetos', 'ceo'];
+  const allowedRoles = getRolesAllowedForPath('/consultor-mktplace');
   const canAccess = user?.role && allowedRoles.includes(user.role);
 
   if (!canAccess && !isCEO && !isAdminUser) {

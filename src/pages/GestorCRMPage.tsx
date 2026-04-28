@@ -18,6 +18,7 @@ import CrmFinalizadosSection from '@/components/gestor-crm/CrmFinalizadosSection
 import CrmDocumentacaoSection from '@/components/gestor-crm/CrmDocumentacaoSection';
 import CrmFerramentasProSection from '@/components/gestor-crm/CrmFerramentasProSection';
 import { CrmSectionBoundary } from '@/components/gestor-crm/CrmSectionBoundary';
+import { getRolesAllowedForPath } from '@/types/auth';
 
 // Colunas do kanban do Gestor de CRM — mesma lógica estrutural do Consultor de MKT Place.
 // As três colunas de "Configuração" (V8/Automation/Copilot) e "CRMs Finalizados" entram
@@ -59,7 +60,7 @@ export default function GestorCRMPage() {
     }
   }, []);
 
-  const allowedRoles = ['gestor_crm', 'gestor_projetos', 'ceo'];
+  const allowedRoles = getRolesAllowedForPath('/gestor-crm');
   const canAccess = user?.role && allowedRoles.includes(user.role);
   if (!canAccess && !isCEO && !isAdminUser) {
     return <Navigate to="/" replace />;

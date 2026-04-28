@@ -40,7 +40,8 @@ import {
   isOutboundBoard,
   getBoardPath,
   getBoardLabel,
-  SPECIAL_ROUTES
+  SPECIAL_ROUTES,
+  SPECIAL_ROUTES_BY_ROLE,
 } from '@/hooks/useSidebarPermissions';
 import { useAllTreinadorClientCounts, useAllGestorClientCounts, useAllCrmClientCounts, useAllOutboundClientCounts, useAllMktplaceClientCounts } from '@/hooks/useTreinadorClientCount';
 import { useUsers } from '@/hooks/useUsers';
@@ -235,6 +236,13 @@ export default function AppSidebar() {
     rh: ['rh', 'rh-board'],
   };
 
+  // Conjunto de paths PRO+ já renderizados como hub na seção "Minha Área".
+  // Usado pra suprimir boards do DB que duplicariam esses hubs (ex: gestor_ads
+  // com hub /design + board 'design' no DB renderia duas vezes).
+  const proPlusRoutePaths = new Set(
+    (user?.role ? SPECIAL_ROUTES_BY_ROLE[user.role] ?? [] : []).map(r => r.path)
+  );
+
   // Renderiza os boards visíveis para o usuário atual
   const renderVisibleBoards = (size: 'sm' | 'md' = 'sm') => {
     if (!user?.role) return null;
@@ -252,6 +260,9 @@ export default function AppSidebar() {
           if (isAdsBoard(board) && user.role === 'gestor_ads') return false;
           if (isOutboundBoard(board) && user.role === 'outbound') return false;
         }
+        // De-dup vs hubs PRO+ cross-page: se o board mapeia pra um path
+        // já renderizado em "Minha Área", não duplicar aqui.
+        if (proPlusRoutePaths.has(getBoardPath(board))) return false;
         return true;
       })
       .map(board => (
@@ -1203,20 +1214,27 @@ export default function AppSidebar() {
         )}
 
         {/* ========== MINHA ÁREA PRO+ (topo — independe de grupo) ========== */}
-        {/* Roles com hub PRO+ próprio (ex: consultor_comercial, gestor_ads) veem o atalho
-            no topo do sidebar mesmo quando pertencem a um grupo. Bug Maycon (2026-04-24):
-            consultor_comercial com grupo-2 não via `/consultor-comercial` porque o bloco
-            de fallback abaixo estava gated por `!userGroup`. */}
-        {!isAdminUser && !isCollapsed && userSpecialRoute && (
+        {/* Renderiza TODAS as rotas PRO+ que o cargo enxerga (não só a própria).
+            Antes (pre-refactor 2026-04-27) só renderizava a rota do próprio role,
+            criando 11 gaps duros entre o que o admin "anunciava" no modal e o que
+            o runtime entregava. Agora consome SPECIAL_ROUTES_BY_ROLE, derivado
+            de ROLE_PAGE_MATRIX (single source of truth). */}
+        {!isAdminUser && !isCollapsed && user?.role && (SPECIAL_ROUTES_BY_ROLE[user.role]?.length ?? 0) > 0 && (
           <div className="space-y-1">
             <div className="sidebar-section-label"><span>Minha Área</span></div>
-            <NavLink
-              to={userSpecialRoute.path}
-              className={({ isActive }) => cn("sidebar-item", isActive && "active")}
-            >
-              <userSpecialRoute.icon size={20} />
-              <span>{userSpecialRoute.label}</span>
-            </NavLink>
+            {SPECIAL_ROUTES_BY_ROLE[user.role].map(route => {
+              const Icon = route.icon;
+              return (
+                <NavLink
+                  key={route.path}
+                  to={route.path}
+                  className={({ isActive }) => cn("sidebar-item", isActive && "active")}
+                >
+                  <Icon size={20} />
+                  <span>{route.label}</span>
+                </NavLink>
+              );
+            })}
           </div>
         )}
 
@@ -1394,6 +1412,8 @@ export default function AppSidebar() {
                   if (isAdsBoard(board) && user.role === 'gestor_ads') return false;
                   if (isOutboundBoard(board) && user.role === 'outbound') return false;
                 }
+                // De-dup vs hubs PRO+ cross-page (ver renderVisibleBoards acima).
+                if (proPlusRoutePaths.has(getBoardPath(board))) return false;
                 return true;
               })
               .map(board => {

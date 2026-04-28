@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { UserRole } from '@/types/auth';
+import { UserRole, getRolesWithPageSlug } from '@/types/auth';
 
 // ============================================
 // TYPES
@@ -22,16 +22,9 @@ export interface AtrizesBriefing {
 // PERMISSION CONSTANTS
 // ============================================
 
-// Quem pode VER o Kanban de Atrizes de Gravação
-export const ATRIZES_BOARD_VIEWERS: UserRole[] = [
-  'ceo',
-  'gestor_projetos',
-  'gestor_ads',
-  'outbound',
-  'sucesso_cliente',
-  'editor_video',
-  'atrizes_gravacao',
-];
+// Quem pode VER o Kanban de Atrizes de Gravação.
+// Derivado da matriz: união dos roles que declaram pageSlug 'atrizes-gravacao' + execs.
+export const ATRIZES_BOARD_VIEWERS: UserRole[] = getRolesWithPageSlug('atrizes-gravacao');
 
 // Quem pode CRIAR cards
 export const ATRIZES_CARD_CREATORS: UserRole[] = [

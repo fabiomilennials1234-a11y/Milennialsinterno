@@ -6,120 +6,118 @@ import { useUsers } from '@/hooks/useUsers';
 import { useAdsManagerBoards } from '@/hooks/useAdsManagerBoards';
 import { useOutboundManagerBoards } from '@/hooks/useOutboundManagerBoards';
 import { useCrmManagerBoards } from '@/hooks/useCrmManagerBoards';
-import { ROLE_LABELS, canViewBoard, canViewRole, isExecutive, UserRole } from '@/types/auth';
+import { ROLE_LABELS, canViewBoard, canViewRole, isExecutive, UserRole, ROLE_PAGE_MATRIX } from '@/types/auth';
 import { Target } from 'lucide-react';
 
 // ============================================
-// CONFIGURAÇÕES CENTRALIZADAS DE PERMISSÕES
+// CONFIGURAÇÕES DERIVADAS DA MATRIZ ÚNICA
 // ============================================
+// Toda configuração abaixo é DERIVADA de ROLE_PAGE_MATRIX em src/types/auth.ts.
+// Não editar manualmente — toda mudança vai na matriz pra propagar
+// consistentemente: admin UI (PAGE_DEFAULTS), filtro de boards (BOARD_VISIBILITY),
+// sidebar (SPECIAL_ROUTES, ROLE_BOARD_SLUGS) e categorias independentes.
+
+const EXECUTIVE_ROLES: UserRole[] = ['ceo', 'cto', 'gestor_projetos'];
 
 /**
- * Rotas especiais para cargos (como a página PRO+ do Gestor de Ads)
+ * Slug "próprio" de cada cargo (kebab) — usado pra escolher a rota PRO+ default
+ * que aparece no atalho "Minha Área". Casa com pageSlug das entries do role.
  */
-export const SPECIAL_ROUTES: Record<string, { path: string; label: string; icon: React.ElementType }> = {
-  gestor_ads: { path: '/gestor-ads', label: 'Gestão de Tráfego PRO+', icon: Target },
-  outbound: { path: '/millennials-outbound', label: 'Outbound PRO+', icon: Target },
-  sucesso_cliente: { path: '/sucesso-cliente', label: 'Sucesso do Cliente PRO+', icon: Target },
-  consultor_comercial: { path: '/consultor-comercial', label: 'Treinador Comercial PRO+', icon: Target },
-  consultor_mktplace: { path: '/consultor-mktplace', label: 'Consultor(a) de MKT Place PRO+', icon: Target },
-  financeiro: { path: '/financeiro', label: 'Financeiro PRO+', icon: Target },
-  gestor_projetos: { path: '/gestor-projetos', label: 'Gestão de Projetos PRO+', icon: Target },
-  gestor_crm: { path: '/gestor-crm', label: 'CRM PRO+', icon: Target },
-  design: { path: '/design', label: 'Design PRO+', icon: Target },
-  editor_video: { path: '/editor-video', label: 'Editor de Vídeo PRO+', icon: Target },
-  devs: { path: '/devs', label: 'Desenvolvedor PRO+', icon: Target },
-  atrizes_gravacao: { path: '/atrizes-gravacao', label: 'Gravação PRO+', icon: Target },
-};
+function getOwnPageSlug(role: UserRole): string {
+  return role.replace(/_/g, '-');
+}
 
 /**
- * Boards canônicos por cargo (somente mostrar se existir no banco)
+ * Rota PRO+ "principal" do cargo — aparece como atalho "Minha Área" no topo da sidebar.
+ * Mantida com a API antiga (singular por role) pra retrocompat com AppSidebar/tests.
+ * Agora derivada da matriz: usa a entry cujo pageSlug = role.
+ */
+export const SPECIAL_ROUTES: Record<string, { path: string; label: string; icon: React.ElementType }> = (() => {
+  const out: Record<string, { path: string; label: string; icon: React.ElementType }> = {};
+  for (const role of Object.keys(ROLE_PAGE_MATRIX) as UserRole[]) {
+    const ownSlug = getOwnPageSlug(role);
+    const entry = ROLE_PAGE_MATRIX[role].find(e => e.pageSlug === ownSlug && !!e.proPlusRoute);
+    if (entry?.proPlusRoute) {
+      out[role] = { ...entry.proPlusRoute, icon: Target };
+    }
+  }
+  // Casos especiais que não casam pageSlug=role (ex: outbound vive em /millennials-outbound,
+  // sucesso_cliente em /sucesso-cliente). A lookup acima já cobre porque pageSlug usa kebab do role.
+  // gestor_projetos: hub administrativo dedicado, fora da matriz operacional.
+  if (!out.gestor_projetos) {
+    out.gestor_projetos = { path: '/gestor-projetos', label: 'Gestão de Projetos PRO+', icon: Target };
+  }
+  return out;
+})();
+
+/**
+ * TODAS as rotas PRO+ que o role consegue navegar (não só a própria).
+ * Sidebar deve renderizar TODAS pra fechar os 11 gaps duros entre o que o admin
+ * promete e o que o runtime entrega. Cada item vira um link no menu lateral.
+ */
+export const SPECIAL_ROUTES_BY_ROLE: Record<UserRole, Array<{
+  pageSlug: string;
+  path: string;
+  label: string;
+  icon: React.ElementType;
+}>> = (() => {
+  const out = {} as Record<UserRole, Array<{ pageSlug: string; path: string; label: string; icon: React.ElementType }>>;
+  for (const role of Object.keys(ROLE_PAGE_MATRIX) as UserRole[]) {
+    out[role] = ROLE_PAGE_MATRIX[role]
+      .filter(e => !!e.proPlusRoute)
+      .map(e => ({
+        pageSlug: e.pageSlug,
+        path: e.proPlusRoute!.path,
+        label: e.proPlusRoute!.label,
+        icon: Target,
+      }));
+  }
+  return out;
+})();
+
+/**
+ * Boards canônicos por cargo (somente mostrar se existir no banco).
  * Cada item do array é UM kanban; dentro dele, há variações de slug aceitas (fallbacks).
+ * Derivado: pega cada entry com boardSlugs declarado e usa esses como variants.
  */
-export const ROLE_BOARD_SLUGS: Record<UserRole, string[][]> = {
-  ceo: [['ceo']],
-  cto: [['ceo']],
-  gestor_projetos: [], // Vê tudo via admin view
-
-  // Gestor de Ads: próprio + permitidos
-  gestor_ads: [
-    ['ads'],
-    ['design'],
-    ['editor-video'],
-    ['devs'],
-  ],
-
-  // Outbound: mesma visibilidade do Gestor de Ads
-  outbound: [
-    ['ads'],
-    ['design'],
-    ['editor-video'],
-    ['devs'],
-  ],
-
-  // Sucesso do Cliente: próprio + permitidos
-  sucesso_cliente: [
-    ['sucesso'],
-    ['ads'],
-    ['design'],
-    ['editor-video'],
-    ['devs'],
-    ['rh', 'rh-board'],
-  ],
-
-  // Design: apenas próprio
-  design: [['design']],
-
-  // Editor de Vídeo: apenas próprio
-  editor_video: [['editor-video']],
-
-  // Devs: próprio + design
-  devs: [['devs'], ['design']],
-
-  // Atrizes para Gravação: próprio independente
-  atrizes_gravacao: [['atrizes']],
-
-  // Produtora: NÃO tem kanban de grupo, só independente
-  produtora: [],
-
-  // Gestor de CRM: sem kanban de grupo
-  gestor_crm: [],
-
-  // Treinador Comercial: kanban comercial (dentro do Paddock)
-  consultor_comercial: [],
-
-  // Consultor(a) de MKT Place: próprio kanban
-  consultor_mktplace: [['mktplace']],
-
-  // Financeiro: apenas próprio
-  financeiro: [['financeiro', 'financeiro-board']],
-
-  // RH: apenas próprio
-  rh: [['rh', 'rh-board']],
-};
+export const ROLE_BOARD_SLUGS: Record<UserRole, string[][]> = (() => {
+  const out = {} as Record<UserRole, string[][]>;
+  for (const role of Object.keys(ROLE_PAGE_MATRIX) as UserRole[]) {
+    if (role === 'ceo') {
+      out[role] = [['ceo']];
+      continue;
+    }
+    if (role === 'cto') {
+      out[role] = [['ceo']];
+      continue;
+    }
+    if (role === 'gestor_projetos') {
+      out[role] = []; // Admin view cobre tudo
+      continue;
+    }
+    out[role] = ROLE_PAGE_MATRIX[role]
+      .filter(e => (e.boardSlugs?.length ?? 0) > 0)
+      .map(e => e.boardSlugs!);
+  }
+  return out;
+})();
 
 /**
- * Categorias independentes que cada cargo pode ver
- * Produtora e Atrizes são áreas independentes
- * Cadastro de Clientes é visível apenas para CEO e Gestor de Projetos
+ * Categorias independentes que cada cargo pode ver.
+ * Derivado: união dos independentCategorySlugs declarados nas entries do role.
  */
-export const ROLE_INDEPENDENT_CATEGORIES: Record<UserRole, string[]> = {
-  ceo: ['*'],
-  cto: ['*'],
-  gestor_projetos: ['*'],
-  gestor_ads: ['produtora', 'atrizes'],
-  outbound: ['produtora', 'atrizes'],
-  sucesso_cliente: ['produtora', 'atrizes'],
-  design: [],
-  editor_video: ['atrizes'],
-  devs: [],
-  atrizes_gravacao: ['atrizes'],
-  produtora: ['produtora'],
-  gestor_crm: [],
-  consultor_comercial: [],
-  consultor_mktplace: ['mktplace'],
-  financeiro: ['financeiro'],
-  rh: ['rh'],
-};
+export const ROLE_INDEPENDENT_CATEGORIES: Record<UserRole, string[]> = (() => {
+  const out = {} as Record<UserRole, string[]>;
+  for (const role of Object.keys(ROLE_PAGE_MATRIX) as UserRole[]) {
+    if (EXECUTIVE_ROLES.includes(role)) {
+      out[role] = ['*'];
+      continue;
+    }
+    const slugs = ROLE_PAGE_MATRIX[role].flatMap(e => e.independentCategorySlugs ?? []);
+    out[role] = Array.from(new Set(slugs));
+  }
+  return out;
+})();
 
 // ============================================
 // FUNÇÕES AUXILIARES

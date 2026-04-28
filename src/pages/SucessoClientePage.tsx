@@ -20,6 +20,7 @@ import CSPendenciaCXColumn from '@/components/sucesso-cliente/CSPendenciaCXColum
 import { useCXPendingClients } from '@/hooks/useCXValidation';
 import CrmDelayJustificationsSection from '@/components/gestor-crm/CrmDelayJustificationsSection';
 import ClientTagDelayJustificationsSection from '@/components/client-tags/ClientTagDelayJustificationsSection';
+import { getRolesAllowedForPath } from '@/types/auth';
 export default function SucessoClientePage() {
   const {
     user,
@@ -61,7 +62,7 @@ export default function SucessoClientePage() {
   };
 
   // Access control - must be after all hooks
-  const allowedRoles = ['sucesso_cliente', 'gestor_projetos', 'ceo', 'gestor_ads', 'financeiro'];
+  const allowedRoles = getRolesAllowedForPath('/sucesso-cliente');
   const canAccess = user?.role && allowedRoles.includes(user.role);
   const shouldRedirect = !canAccess && !isCEO && !isAdminUser;
 

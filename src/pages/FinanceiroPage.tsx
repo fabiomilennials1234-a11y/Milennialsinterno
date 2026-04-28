@@ -23,6 +23,7 @@ import FinanceiroContasSection from '@/components/financeiro/FinanceiroContasSec
 import FinanceiroDRESection from '@/components/financeiro/FinanceiroDRESection';
 import { FinanceiroComissoesSection } from '@/components/financeiro/FinanceiroComissoesSection';
 import FinanceiroTarefasKanban from '@/components/financeiro/FinanceiroTarefasKanban';
+import { getRolesAllowedForPath } from '@/types/auth';
 
 // Colunas do Kanban "Millennials Contratos"
 const CONTRATOS_COLUMNS = [
@@ -136,7 +137,7 @@ export default function FinanceiroPage() {
   
   const { data: clients = [], isLoading: clientsLoading } = useFinanceiroClients();
   
-  const allowedRoles = ['financeiro', 'gestor_projetos', 'ceo'];
+  const allowedRoles = getRolesAllowedForPath('/financeiro');
   const canAccess = user?.role && allowedRoles.includes(user.role);
 
   const checkScrollButtons = () => {

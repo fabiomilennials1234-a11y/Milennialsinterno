@@ -47,7 +47,10 @@ describe("AppSidebar — Minha Área PRO+ (bug Maycon)", () => {
     const end = SOURCE.indexOf(endMarker, start);
     const slice = SOURCE.slice(start, end);
 
-    expect(slice).toContain("userSpecialRoute");
+    // Pós-refactor (2026-04-27): bloco passou a renderizar TODAS as rotas PRO+
+    // do role via SPECIAL_ROUTES_BY_ROLE (não só userSpecialRoute) pra fechar
+    // os 11 gaps duros entre PAGE_DEFAULTS e runtime. Aceita ambas as fontes.
+    expect(slice).toMatch(/SPECIAL_ROUTES_BY_ROLE|userSpecialRoute/);
     expect(slice).toContain("!isAdminUser");
     expect(slice).toContain("!isCollapsed");
     // Invariante crítica: a condição não pode checar `!userGroup` — senão

@@ -7,6 +7,7 @@ import { useGroupsWithOccupancy } from '@/hooks/useGroupManagement';
 import { useCustomRoles, useCreateCustomRole, useDeleteCustomRole } from '@/hooks/useCustomRoles';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { ALL_PAGES as PAGE_CATALOG, DEFAULT_PAGES_BY_ROLE } from '@/lib/pageCatalog';
 
 interface CreateUserModalProps {
   isOpen: boolean;
@@ -42,45 +43,9 @@ const FIXED_TORQUE_ROLES: UserRole[] = ['gestor_crm'];
 const FIXED_OUTBOUND_ROLES: UserRole[] = ['outbound'];
 const ALL_FIXED_ROLES: UserRole[] = [...FIXED_PADDOCK_ROLES, ...FIXED_TORQUE_ROLES, ...FIXED_OUTBOUND_ROLES];
 
-// Páginas disponíveis no sistema
-const ALL_PAGES = [
-  { id: 'gestor-ads', label: 'Gestão de Tráfego PRO+', icon: '📊' },
-  { id: 'sucesso-cliente', label: 'Sucesso do Cliente PRO+', icon: '🤝' },
-  { id: 'consultor-comercial', label: 'Treinador Comercial PRO+', icon: '💼' },
-  { id: 'financeiro', label: 'Financeiro PRO+', icon: '💰' },
-  { id: 'gestor-projetos', label: 'Gestão de Projetos PRO+', icon: '📋' },
-  { id: 'gestor-crm', label: 'CRM PRO+', icon: '📇' },
-  { id: 'design', label: 'Design PRO+', icon: '🎨' },
-  { id: 'editor-video', label: 'Editor de Vídeo PRO+', icon: '🎬' },
-  { id: 'devs', label: 'Desenvolvedor PRO+', icon: '💻' },
-  { id: 'atrizes-gravacao', label: 'Gravação PRO+', icon: '🎭' },
-  { id: 'rh', label: 'RH PRO+', icon: '👥' },
-  { id: 'produtora', label: 'Produtora', icon: '🎥' },
-  { id: 'cliente-list', label: 'Lista de Clientes', icon: '📝' },
-  { id: 'cadastro-clientes', label: 'Cadastro de Clientes', icon: '➕' },
-  { id: 'upsells', label: 'UP Sells', icon: '📈' },
-  { id: 'comissoes', label: 'Comissões', icon: '💵' },
-];
-
-// Páginas padrão por cargo
-const DEFAULT_PAGES_BY_ROLE: Record<UserRole, string[]> = {
-  ceo: ALL_PAGES.map(p => p.id),
-  cto: ALL_PAGES.map(p => p.id),
-  gestor_projetos: ALL_PAGES.map(p => p.id),
-  gestor_ads: ['gestor-ads', 'design', 'editor-video', 'devs', 'produtora', 'atrizes-gravacao', 'gestor-crm', 'consultor-comercial'],
-  outbound: ['gestor-ads', 'design', 'editor-video', 'devs', 'produtora', 'atrizes-gravacao', 'gestor-crm', 'consultor-comercial'],
-  sucesso_cliente: ['sucesso-cliente', 'gestor-ads', 'design', 'editor-video', 'devs', 'produtora', 'atrizes-gravacao', 'gestor-crm', 'consultor-comercial', 'rh', 'cliente-list', 'cadastro-clientes', 'upsells'],
-  design: ['design'],
-  editor_video: ['editor-video', 'atrizes-gravacao'],
-  devs: ['devs', 'design'],
-  atrizes_gravacao: ['atrizes-gravacao', 'editor-video'],
-  produtora: ['produtora'],
-  gestor_crm: ['gestor-crm'],
-  consultor_comercial: ['consultor-comercial'],
-  consultor_mktplace: ['consultor-comercial'],
-  financeiro: ['financeiro', 'cliente-list', 'comissoes'],
-  rh: ['rh'],
-};
+// Catálogo de páginas e defaults por cargo: importados de @/lib/pageCatalog,
+// que por sua vez derivam de ROLE_PAGE_MATRIX (single source of truth em @/types/auth).
+const ALL_PAGES = PAGE_CATALOG;
 
 function getRoleAssignmentType(role: UserRole): 'group' | 'independent' | 'fixed' | null {
   if (GROUP_SQUAD_ROLES.includes(role) || CORINGA_ROLES.includes(role)) return 'group';

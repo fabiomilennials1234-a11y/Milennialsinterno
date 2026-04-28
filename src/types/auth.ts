@@ -26,6 +26,398 @@ export interface User {
   can_access_mtech: boolean;
 }
 
+// ============================================
+// MATRIZ ÚNICA DE PÁGINAS POR CARGO (single source of truth)
+// ============================================
+// Toda informação de "o que esse cargo enxerga" deriva daqui:
+//  - PAGE_DEFAULTS (admin UI) → derivado em src/lib/pageCatalog.ts
+//  - BOARD_VISIBILITY (filtro de boards) → derivado abaixo neste arquivo
+//  - SPECIAL_ROUTES / SPECIAL_ROUTES_BY_ROLE / ROLE_BOARD_SLUGS
+//    → derivados em src/hooks/useSidebarPermissions.ts
+//
+// Antes desse refactor, 5 fontes (modais, BOARD_VISIBILITY, SPECIAL_ROUTES,
+// ROLE_BOARD_SLUGS, ROLE_INDEPENDENT_CATEGORIES) divergiram independentemente
+// e o admin "anunciava" páginas que o runtime não entregava (11 gaps duros).
+// Mudar AQUI propaga pra todas as superfícies.
+
+export interface RolePageEntry {
+  /** Slug canônico da página (kebab-case) — usado em additional_pages e ALL_PAGES */
+  pageSlug: string;
+  /** Rota direta da sidebar (PRO+). Quando presente, vira um item do menu "Minha Área". */
+  proPlusRoute?: { path: string; label: string };
+  /** Slugs de board no DB que satisfazem essa página (fallbacks aceitos) */
+  boardSlugs?: string[];
+  /** Slugs de categoria independente que satisfazem essa página */
+  independentCategorySlugs?: string[];
+  /** Aliases aceitos no canViewBoard pra essa página (slugs/nomes que devem retornar true) */
+  canViewBoardAliases?: string[];
+}
+
+export type RolePageMatrix = Record<UserRole, RolePageEntry[]>;
+
+// Helper para o "wildcard" dos executivos: precisa enumerar todas as páginas existentes.
+// Construído implicitamente abaixo a partir das próprias entries dos demais cargos.
+const _allPagesEntriesPlaceholder: RolePageEntry[] = [];
+
+export const ROLE_PAGE_MATRIX: RolePageMatrix = {
+  // CEO/CTO/Gestor de Projetos: wildcard. Preenchido após declaração via Object.assign abaixo.
+  ceo: _allPagesEntriesPlaceholder,
+  cto: _allPagesEntriesPlaceholder,
+  gestor_projetos: _allPagesEntriesPlaceholder,
+
+  gestor_ads: [
+    {
+      pageSlug: 'gestor-ads',
+      proPlusRoute: { path: '/gestor-ads', label: 'Gestão de Tráfego PRO+' },
+      boardSlugs: ['ads'],
+      canViewBoardAliases: ['gestor_ads', 'ads', 'trafego'],
+    },
+    {
+      pageSlug: 'design',
+      proPlusRoute: { path: '/design', label: 'Design PRO+' },
+      boardSlugs: ['design'],
+      canViewBoardAliases: ['design'],
+    },
+    {
+      pageSlug: 'editor-video',
+      proPlusRoute: { path: '/editor-video', label: 'Editor de Vídeo PRO+' },
+      boardSlugs: ['editor-video'],
+      canViewBoardAliases: ['editor_video', 'video', 'editor'],
+    },
+    {
+      pageSlug: 'devs',
+      proPlusRoute: { path: '/devs', label: 'Desenvolvedor PRO+' },
+      boardSlugs: ['devs'],
+      canViewBoardAliases: ['devs'],
+    },
+    {
+      pageSlug: 'produtora',
+      independentCategorySlugs: ['produtora'],
+      canViewBoardAliases: ['produtora'],
+    },
+    {
+      pageSlug: 'atrizes-gravacao',
+      proPlusRoute: { path: '/atrizes-gravacao', label: 'Gravação PRO+' },
+      independentCategorySlugs: ['atrizes'],
+      canViewBoardAliases: ['atrizes_gravacao', 'atrizes'],
+    },
+    {
+      pageSlug: 'gestor-crm',
+      proPlusRoute: { path: '/gestor-crm', label: 'CRM PRO+' },
+      canViewBoardAliases: ['gestor_crm', 'crm'],
+    },
+    {
+      pageSlug: 'consultor-comercial',
+      proPlusRoute: { path: '/consultor-comercial', label: 'Treinador Comercial PRO+' },
+      canViewBoardAliases: ['consultor_comercial', 'comercial'],
+    },
+  ],
+
+  outbound: [
+    {
+      pageSlug: 'gestor-ads',
+      proPlusRoute: { path: '/gestor-ads', label: 'Gestão de Tráfego PRO+' },
+      boardSlugs: ['ads'],
+      canViewBoardAliases: ['gestor_ads', 'ads', 'trafego'],
+    },
+    {
+      pageSlug: 'design',
+      proPlusRoute: { path: '/design', label: 'Design PRO+' },
+      boardSlugs: ['design'],
+      canViewBoardAliases: ['design'],
+    },
+    {
+      pageSlug: 'editor-video',
+      proPlusRoute: { path: '/editor-video', label: 'Editor de Vídeo PRO+' },
+      boardSlugs: ['editor-video'],
+      canViewBoardAliases: ['editor_video', 'video', 'editor'],
+    },
+    {
+      pageSlug: 'devs',
+      proPlusRoute: { path: '/devs', label: 'Desenvolvedor PRO+' },
+      boardSlugs: ['devs'],
+      canViewBoardAliases: ['devs'],
+    },
+    {
+      pageSlug: 'produtora',
+      independentCategorySlugs: ['produtora'],
+      canViewBoardAliases: ['produtora'],
+    },
+    {
+      pageSlug: 'atrizes-gravacao',
+      proPlusRoute: { path: '/atrizes-gravacao', label: 'Gravação PRO+' },
+      independentCategorySlugs: ['atrizes'],
+      canViewBoardAliases: ['atrizes_gravacao', 'atrizes'],
+    },
+    {
+      pageSlug: 'gestor-crm',
+      proPlusRoute: { path: '/gestor-crm', label: 'CRM PRO+' },
+      canViewBoardAliases: ['gestor_crm', 'crm'],
+    },
+    {
+      pageSlug: 'consultor-comercial',
+      proPlusRoute: { path: '/consultor-comercial', label: 'Treinador Comercial PRO+' },
+      canViewBoardAliases: ['consultor_comercial', 'comercial'],
+    },
+    // Próprio hub Outbound (admin não anunciava antes — runtime entregava). Agora explícito.
+    {
+      pageSlug: 'outbound',
+      proPlusRoute: { path: '/millennials-outbound', label: 'Outbound PRO+' },
+      canViewBoardAliases: ['outbound'],
+    },
+  ],
+
+  sucesso_cliente: [
+    {
+      pageSlug: 'sucesso-cliente',
+      proPlusRoute: { path: '/sucesso-cliente', label: 'Sucesso do Cliente PRO+' },
+      boardSlugs: ['sucesso'],
+      canViewBoardAliases: ['sucesso_cliente', 'sucesso'],
+    },
+    {
+      pageSlug: 'gestor-ads',
+      proPlusRoute: { path: '/gestor-ads', label: 'Gestão de Tráfego PRO+' },
+      boardSlugs: ['ads'],
+      canViewBoardAliases: ['gestor_ads', 'ads', 'trafego'],
+    },
+    {
+      pageSlug: 'design',
+      proPlusRoute: { path: '/design', label: 'Design PRO+' },
+      boardSlugs: ['design'],
+      canViewBoardAliases: ['design'],
+    },
+    {
+      pageSlug: 'editor-video',
+      proPlusRoute: { path: '/editor-video', label: 'Editor de Vídeo PRO+' },
+      boardSlugs: ['editor-video'],
+      canViewBoardAliases: ['editor_video', 'video', 'editor'],
+    },
+    {
+      pageSlug: 'devs',
+      proPlusRoute: { path: '/devs', label: 'Desenvolvedor PRO+' },
+      boardSlugs: ['devs'],
+      canViewBoardAliases: ['devs'],
+    },
+    {
+      pageSlug: 'produtora',
+      independentCategorySlugs: ['produtora'],
+      canViewBoardAliases: ['produtora'],
+    },
+    {
+      pageSlug: 'atrizes-gravacao',
+      proPlusRoute: { path: '/atrizes-gravacao', label: 'Gravação PRO+' },
+      independentCategorySlugs: ['atrizes'],
+      canViewBoardAliases: ['atrizes_gravacao', 'atrizes'],
+    },
+    {
+      pageSlug: 'gestor-crm',
+      proPlusRoute: { path: '/gestor-crm', label: 'CRM PRO+' },
+      canViewBoardAliases: ['gestor_crm', 'crm'],
+    },
+    {
+      pageSlug: 'consultor-comercial',
+      proPlusRoute: { path: '/consultor-comercial', label: 'Treinador Comercial PRO+' },
+      canViewBoardAliases: ['consultor_comercial', 'comercial'],
+    },
+    {
+      pageSlug: 'rh',
+      proPlusRoute: { path: '/rh', label: 'RH PRO+' },
+      boardSlugs: ['rh', 'rh-board'],
+      canViewBoardAliases: ['rh'],
+    },
+    {
+      pageSlug: 'cliente-list',
+      proPlusRoute: { path: '/lista-clientes', label: 'Lista de Clientes' },
+    },
+    {
+      pageSlug: 'cadastro-clientes',
+      proPlusRoute: { path: '/cadastro-clientes', label: 'Cadastro de Clientes' },
+    },
+    {
+      pageSlug: 'upsells',
+      proPlusRoute: { path: '/upsells', label: 'UP Sells' },
+    },
+  ],
+
+  design: [
+    {
+      pageSlug: 'design',
+      proPlusRoute: { path: '/design', label: 'Design PRO+' },
+      boardSlugs: ['design'],
+      canViewBoardAliases: ['design'],
+    },
+  ],
+
+  editor_video: [
+    {
+      pageSlug: 'editor-video',
+      proPlusRoute: { path: '/editor-video', label: 'Editor de Vídeo PRO+' },
+      boardSlugs: ['editor-video'],
+      canViewBoardAliases: ['editor_video', 'video', 'editor'],
+    },
+    {
+      pageSlug: 'atrizes-gravacao',
+      proPlusRoute: { path: '/atrizes-gravacao', label: 'Gravação PRO+' },
+      independentCategorySlugs: ['atrizes'],
+      canViewBoardAliases: ['atrizes_gravacao', 'atrizes'],
+    },
+  ],
+
+  devs: [
+    {
+      pageSlug: 'devs',
+      proPlusRoute: { path: '/devs', label: 'Desenvolvedor PRO+' },
+      boardSlugs: ['devs'],
+      canViewBoardAliases: ['devs'],
+    },
+    {
+      pageSlug: 'design',
+      proPlusRoute: { path: '/design', label: 'Design PRO+' },
+      boardSlugs: ['design'],
+      canViewBoardAliases: ['design'],
+    },
+  ],
+
+  atrizes_gravacao: [
+    {
+      pageSlug: 'atrizes-gravacao',
+      proPlusRoute: { path: '/atrizes-gravacao', label: 'Gravação PRO+' },
+      independentCategorySlugs: ['atrizes'],
+      canViewBoardAliases: ['atrizes_gravacao', 'atrizes'],
+    },
+    {
+      pageSlug: 'editor-video',
+      proPlusRoute: { path: '/editor-video', label: 'Editor de Vídeo PRO+' },
+      boardSlugs: ['editor-video'],
+      canViewBoardAliases: ['editor_video', 'video', 'editor'],
+    },
+  ],
+
+  produtora: [
+    {
+      pageSlug: 'produtora',
+      independentCategorySlugs: ['produtora'],
+      canViewBoardAliases: ['produtora'],
+    },
+  ],
+
+  gestor_crm: [
+    {
+      pageSlug: 'gestor-crm',
+      proPlusRoute: { path: '/gestor-crm', label: 'CRM PRO+' },
+      canViewBoardAliases: ['gestor_crm', 'crm'],
+    },
+  ],
+
+  consultor_comercial: [
+    {
+      pageSlug: 'consultor-comercial',
+      proPlusRoute: { path: '/consultor-comercial', label: 'Treinador Comercial PRO+' },
+      // 'paddock' mantido como alias histórico (Treinador Comercial vive no Paddock)
+      canViewBoardAliases: ['consultor_comercial', 'comercial', 'paddock'],
+    },
+  ],
+
+  consultor_mktplace: [
+    {
+      pageSlug: 'consultor-mktplace',
+      proPlusRoute: { path: '/consultor-mktplace', label: 'Consultor(a) de MKT Place PRO+' },
+      boardSlugs: ['mktplace'],
+      canViewBoardAliases: ['consultor_mktplace', 'mktplace'],
+    },
+  ],
+
+  financeiro: [
+    {
+      pageSlug: 'financeiro',
+      proPlusRoute: { path: '/financeiro', label: 'Financeiro PRO+' },
+      boardSlugs: ['financeiro', 'financeiro-board'],
+      independentCategorySlugs: ['financeiro'],
+      canViewBoardAliases: ['financeiro'],
+    },
+    {
+      pageSlug: 'cliente-list',
+      proPlusRoute: { path: '/lista-clientes', label: 'Lista de Clientes' },
+    },
+    {
+      pageSlug: 'comissoes',
+      proPlusRoute: { path: '/comissoes', label: 'Comissões' },
+    },
+  ],
+
+  rh: [
+    {
+      pageSlug: 'rh',
+      proPlusRoute: { path: '/rh', label: 'RH PRO+' },
+      boardSlugs: ['rh', 'rh-board'],
+      independentCategorySlugs: ['rh'],
+      canViewBoardAliases: ['rh'],
+    },
+  ],
+};
+
+// Wildcards (CEO/CTO/Gestor de Projetos): união de todas as entries únicas por pageSlug.
+// Garantimos que executive enxerga TODAS as páginas declaradas pelos demais cargos.
+function buildAllPagesEntries(): RolePageEntry[] {
+  const seen = new Map<string, RolePageEntry>();
+  for (const role of Object.keys(ROLE_PAGE_MATRIX) as UserRole[]) {
+    if (role === 'ceo' || role === 'cto' || role === 'gestor_projetos') continue;
+    for (const entry of ROLE_PAGE_MATRIX[role]) {
+      if (!seen.has(entry.pageSlug)) seen.set(entry.pageSlug, entry);
+    }
+  }
+  return Array.from(seen.values());
+}
+
+const _allPagesEntries = buildAllPagesEntries();
+// Mutate placeholders in-place (mantém referência igual à do export).
+_allPagesEntriesPlaceholder.push(..._allPagesEntries);
+
+export function getAllPagesEntries(): RolePageEntry[] {
+  return _allPagesEntries;
+}
+
+// ============================================
+// HELPERS DE GUARDA DE PÁGINA (derivados da matriz)
+// ============================================
+// Usados pelos page guards (allowedRoles dentro de cada page component) para
+// garantir que sidebar promete == page aceita. Antes desse refactor, sidebar
+// derivava da matriz mas guards eram literais — divergência silenciosa.
+
+const _EXECUTIVE_FALLBACK_ROLES: UserRole[] = ['ceo', 'cto', 'gestor_projetos'];
+
+/**
+ * Roles permitidas pra acessar uma rota PRO+ específica.
+ * Derivado de ROLE_PAGE_MATRIX: cada role cuja entry declara `proPlusRoute.path === path`.
+ * Executivos (ceo/cto/gestor_projetos) sempre incluídos (têm '*' em BOARD_VISIBILITY).
+ */
+export function getRolesAllowedForPath(path: string): UserRole[] {
+  const out = new Set<UserRole>();
+  for (const role of Object.keys(ROLE_PAGE_MATRIX) as UserRole[]) {
+    if (ROLE_PAGE_MATRIX[role].some(e => e.proPlusRoute?.path === path)) {
+      out.add(role);
+    }
+  }
+  for (const r of _EXECUTIVE_FALLBACK_ROLES) out.add(r);
+  return Array.from(out);
+}
+
+/**
+ * Roles permitidas pra ver uma página (por pageSlug, não por path).
+ * Útil pra board viewers (Editor de Vídeo, Atrizes) onde o gating é por página
+ * cross-cutting, não por rota PRO+.
+ */
+export function getRolesWithPageSlug(pageSlug: string): UserRole[] {
+  const out = new Set<UserRole>();
+  for (const role of Object.keys(ROLE_PAGE_MATRIX) as UserRole[]) {
+    if (ROLE_PAGE_MATRIX[role].some(e => e.pageSlug === pageSlug)) {
+      out.add(role);
+    }
+  }
+  for (const r of _EXECUTIVE_FALLBACK_ROLES) out.add(r);
+  return Array.from(out);
+}
+
 // Hierarquia de cargos
 export const ROLE_HIERARCHY: Record<UserRole, number> = {
   ceo: 100,
@@ -67,96 +459,20 @@ export const ROLE_LABELS: Record<UserRole, string> = {
 };
 
 // Regras de visualização de Kanban/Cargo
-// Mapeia qual cargo pode ver quais outros cargos/kanbans
-export const BOARD_VISIBILITY: Record<UserRole, string[]> = {
-  // CEO: Acesso total a todos os Kanban/Cargo
-  ceo: ['*'],
-
-  // CTO: Mesmo acesso que CEO
-  cto: ['*'],
-
-  // Gestor de Projetos: Acesso total a todos os Kanban/Cargo
-  gestor_projetos: ['*'],
-  
-  // Gestor de Ads: Vê SOMENTE os listados
-  gestor_ads: [
-    // Próprio cargo (Gestor de Ads = Gestor de Tráfego = PRO+)
-    'gestor_ads', 'ads', 'trafego',
-
-    // Cargos permitidos
-    'design',
-    'editor_video', 'video', 'editor',
-    'devs',
-
-    // Cargos independentes
-    'produtora',
-    'atrizes_gravacao', 'atrizes',
-
-    // Outros cargos permitidos
-    'gestor_crm', 'crm',
-    'consultor_comercial', 'comercial',
-    'consultor_mktplace', 'mktplace'
-  ],
-
-  // Outbound: Mesma visibilidade que Gestor de Ads
-  outbound: [
-    'outbound',
-    'gestor_ads', 'ads', 'trafego',
-    'design',
-    'editor_video', 'video', 'editor',
-    'devs',
-    'produtora',
-    'atrizes_gravacao', 'atrizes',
-    'gestor_crm', 'crm',
-    'consultor_comercial', 'comercial',
-    'consultor_mktplace', 'mktplace'
-  ],
-
-  // Sucesso do Cliente: Vê apenas os listados
-  sucesso_cliente: [
-    'sucesso_cliente', 'sucesso',     // Próprio cargo
-    'gestor_ads', 'ads', 'trafego',   // Gestor de Ads
-    'design',                         // Design
-    'editor_video', 'video', 'editor', // Editor de Vídeo
-    'devs',                           // Devs
-    'produtora',                      // Produtora (independente)
-    'atrizes_gravacao', 'atrizes',    // Atrizes para Gravação (independente)
-    'gestor_crm', 'crm',              // Gestor de CRM
-    'consultor_comercial', 'comercial', // Treinador Comercial
-    'consultor_mktplace', 'mktplace', // Consultor MKT Place
-    'rh'                              // RH
-  ],
-  
-  // Design: Apenas próprio cargo
-  design: ['design'],
-  
-  // Editor de Vídeo: Apenas próprio cargo
-  editor_video: ['editor_video', 'video', 'editor'],
-  
-  // Devs: Próprio cargo + Design
-  devs: ['devs', 'design'],
-  
-  // Atrizes para Gravação (Independente): Próprio + Editor de Vídeo
-  atrizes_gravacao: ['atrizes_gravacao', 'atrizes', 'editor_video', 'video', 'editor'],
-  
-  // Produtora (Independente): Apenas próprio cargo
-  produtora: ['produtora'],
-  
-  // Gestor de CRM: Apenas próprio cargo
-  gestor_crm: ['gestor_crm', 'crm'],
-  
-  // Treinador Comercial (ex-Consultor Comercial): Próprio cargo + paddock
-  consultor_comercial: ['consultor_comercial', 'comercial', 'paddock'],
-
-  // Consultor(a) de MKT Place: Próprio cargo + mktplace
-  consultor_mktplace: ['consultor_mktplace', 'mktplace'],
-
-  // Financeiro: Apenas próprio cargo
-  financeiro: ['financeiro'],
-  
-  // RH: Apenas próprio cargo
-  rh: ['rh'],
-};
+// DERIVADO de ROLE_PAGE_MATRIX. NÃO editar manualmente — toda mudança vai na matriz.
+// Mantido como export pra compatibilidade com consumers existentes (canViewBoard, AppSidebar etc).
+export const BOARD_VISIBILITY: Record<UserRole, string[]> = (() => {
+  const out = {} as Record<UserRole, string[]>;
+  for (const role of Object.keys(ROLE_PAGE_MATRIX) as UserRole[]) {
+    if (role === 'ceo' || role === 'cto' || role === 'gestor_projetos') {
+      out[role] = ['*'];
+      continue;
+    }
+    const aliases = ROLE_PAGE_MATRIX[role].flatMap(e => e.canViewBoardAliases ?? []);
+    out[role] = Array.from(new Set(aliases));
+  }
+  return out;
+})();
 
 // Permissões de criação de abas
 export const CAN_CREATE_TABS: UserRole[] = ['ceo', 'cto', 'gestor_projetos'];
