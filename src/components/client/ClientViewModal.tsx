@@ -28,6 +28,7 @@ import {
   AlertTriangle as AlertTriangleIcon
 } from 'lucide-react';
 import ClientNotesSection from './ClientNotesSection';
+import ClientCallFormSection from './ClientCallFormSection';
 import OverdueInvoiceBadge from '@/components/shared/OverdueInvoiceBadge';
 import ClientLabelBadge, { type ClientLabel } from '@/components/shared/ClientLabelBadge';
 import ClientLabelSelector from '@/components/shared/ClientLabelSelector';
@@ -116,21 +117,56 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
   });
 
   const [formData, setFormData] = useState<Partial<ClientCallForm> & { strategy_link?: string }>({
+    // Bloco 1
     historia_empresa: '',
     produto_servico: '',
+    principais_produtos_margem: '',
+    produto_carro_chefe: '',
+    ticket_medio: '',
+    margem_media: '',
+    pedido_minimo: '',
+    condicao_distribuidor_representante: '',
     lista_produtos: '',
+    // Bloco 2
     cliente_ideal: '',
+    decisor_compra_cliente: '',
     dor_desejo: '',
+    diferencial_vs_concorrencia: '',
+    maior_dor_empresa: '',
+    concorrente_direto_n1: '',
+    feiras_eventos_setor: '',
+    // Bloco 3
+    comercial_existente: '',
+    representantes_comerciais_atual: '',
+    captar_novos_representantes: '',
+    tempo_ciclo_venda: '',
+    tempo_resposta_lead: '',
+    origem_clientes_atuais: '',
+    recompra_frequencia: '',
+    programa_indicacao: '',
+    cnpjs_ativos: '',
+    // Bloco 4
     historico_marketing: '',
     site: '',
-    comercial_existente: '',
+    catalogo_fotos_videos: '',
+    restricoes_comunicacao: '',
+    // Bloco 5
+    vende_marketplaces: '',
+    marketplaces_ativos: '',
+    faturamento_marketplaces: '',
+    // Bloco 6
+    foco_principal_empresa: '',
+    objetivo_contratar_milennials: '',
+    satisfacao_3_meses: '',
     expectativas_30d: '',
     expectativas_3m: '',
     expectativas_6m: '',
     expectativas_1a: '',
+    // Bloco 7
     proposito: '',
     referencias: '',
     localizacao: '',
+    ponto_focal_cliente: '',
     acoes_pontuais: '',
     investimento: '',
     strategy_link: '',
@@ -154,21 +190,56 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
   useEffect(() => {
     if (callForm) {
       setFormData({
+        // Bloco 1
         historia_empresa: callForm.historia_empresa || '',
         produto_servico: callForm.produto_servico || '',
+        principais_produtos_margem: callForm.principais_produtos_margem || '',
+        produto_carro_chefe: callForm.produto_carro_chefe || '',
+        ticket_medio: callForm.ticket_medio || '',
+        margem_media: callForm.margem_media || '',
+        pedido_minimo: callForm.pedido_minimo || '',
+        condicao_distribuidor_representante: callForm.condicao_distribuidor_representante || '',
         lista_produtos: callForm.lista_produtos || '',
+        // Bloco 2
         cliente_ideal: callForm.cliente_ideal || '',
+        decisor_compra_cliente: callForm.decisor_compra_cliente || '',
         dor_desejo: callForm.dor_desejo || '',
+        diferencial_vs_concorrencia: callForm.diferencial_vs_concorrencia || '',
+        maior_dor_empresa: callForm.maior_dor_empresa || '',
+        concorrente_direto_n1: callForm.concorrente_direto_n1 || '',
+        feiras_eventos_setor: callForm.feiras_eventos_setor || '',
+        // Bloco 3
+        comercial_existente: callForm.comercial_existente || '',
+        representantes_comerciais_atual: callForm.representantes_comerciais_atual || '',
+        captar_novos_representantes: callForm.captar_novos_representantes || '',
+        tempo_ciclo_venda: callForm.tempo_ciclo_venda || '',
+        tempo_resposta_lead: callForm.tempo_resposta_lead || '',
+        origem_clientes_atuais: callForm.origem_clientes_atuais || '',
+        recompra_frequencia: callForm.recompra_frequencia || '',
+        programa_indicacao: callForm.programa_indicacao || '',
+        cnpjs_ativos: callForm.cnpjs_ativos || '',
+        // Bloco 4
         historico_marketing: callForm.historico_marketing || '',
         site: callForm.site || '',
-        comercial_existente: callForm.comercial_existente || '',
+        catalogo_fotos_videos: callForm.catalogo_fotos_videos || '',
+        restricoes_comunicacao: callForm.restricoes_comunicacao || '',
+        // Bloco 5
+        vende_marketplaces: callForm.vende_marketplaces || '',
+        marketplaces_ativos: callForm.marketplaces_ativos || '',
+        faturamento_marketplaces: callForm.faturamento_marketplaces || '',
+        // Bloco 6
+        foco_principal_empresa: callForm.foco_principal_empresa || '',
+        objetivo_contratar_milennials: callForm.objetivo_contratar_milennials || '',
+        satisfacao_3_meses: callForm.satisfacao_3_meses || '',
         expectativas_30d: callForm.expectativas_30d || '',
         expectativas_3m: callForm.expectativas_3m || '',
         expectativas_6m: callForm.expectativas_6m || '',
         expectativas_1a: callForm.expectativas_1a || '',
+        // Bloco 7
         proposito: callForm.proposito || '',
         referencias: callForm.referencias || '',
         localizacao: callForm.localizacao || '',
+        ponto_focal_cliente: callForm.ponto_focal_cliente || '',
         acoes_pontuais: callForm.acoes_pontuais || '',
         investimento: callForm.investimento || '',
         strategy_link: (callForm as any).strategy_link || '',
@@ -412,212 +483,8 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
 
               <Separator />
 
-              {/* Call Form Fields */}
-              <div className="space-y-6">
-                <h3 className="text-sm font-bold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
-                  <FileText className="w-4 h-4" />
-                  Formulário da Call
-                </h3>
-
-                {/* Reminders - Not input fields */}
-                <div className="bg-info/10 rounded-xl p-4 border border-info/30">
-                  <h4 className="text-sm font-bold text-info mb-3 flex items-center gap-2">
-                    💡 Lembrete - Primeiras coisas a fazer na Call:
-                  </h4>
-                  <ul className="space-y-2 text-sm text-foreground">
-                    <li className="flex items-start gap-2">
-                      <span className="text-info font-bold">1.</span>
-                      <span><strong>Se apresentar</strong> - Diga seu nome e função na Millennials</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-info font-bold">2.</span>
-                      <span><strong>Explicar o motivo da Call</strong> - Alinhamento, expectativas e próximos passos</span>
-                    </li>
-                  </ul>
-                </div>
-
-                {/* Perguntas principais */}
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Qual a História da Empresa?</Label>
-                    <Textarea
-                      placeholder="Conte a história da empresa do cliente..."
-                      value={formData.historia_empresa || ''}
-                      onChange={(e) => handleChange('historia_empresa', e.target.value)}
-                      className="min-h-[100px]"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Qual o Produto/Serviço?</Label>
-                    <Textarea
-                      placeholder="Descreva os produtos ou serviços..."
-                      value={formData.produto_servico || ''}
-                      onChange={(e) => handleChange('produto_servico', e.target.value)}
-                      className="min-h-[80px]"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Pediu a lista de produtos (Se não, porquê?)</Label>
-                    <Input
-                      placeholder="Sim/Não e justificativa..."
-                      value={formData.lista_produtos || ''}
-                      onChange={(e) => handleChange('lista_produtos', e.target.value)}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Qual o Cliente Ideal?</Label>
-                    <Textarea
-                      placeholder="Descreva o cliente ideal..."
-                      value={formData.cliente_ideal || ''}
-                      onChange={(e) => handleChange('cliente_ideal', e.target.value)}
-                      className="min-h-[80px]"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Qual a Dor ou Desejo?</Label>
-                    <Textarea
-                      placeholder="Quais são as dores ou desejos do cliente..."
-                      value={formData.dor_desejo || ''}
-                      onChange={(e) => handleChange('dor_desejo', e.target.value)}
-                      className="min-h-[80px]"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Já fez Marketing? Quais melhor funcionaram? Porquê Parou?</Label>
-                    <Textarea
-                      placeholder="Histórico de marketing..."
-                      value={formData.historico_marketing || ''}
-                      onChange={(e) => handleChange('historico_marketing', e.target.value)}
-                      className="min-h-[80px]"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Tem site?</Label>
-                    <Input
-                      placeholder="URL do site ou 'Não possui'..."
-                      value={formData.site || ''}
-                      onChange={(e) => handleChange('site', e.target.value)}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Já tem Comercial? (Explicar sobre o acompanhamento comercial)</Label>
-                    <Textarea
-                      placeholder="Situação comercial atual..."
-                      value={formData.comercial_existente || ''}
-                      onChange={(e) => handleChange('comercial_existente', e.target.value)}
-                      className="min-h-[80px]"
-                    />
-                  </div>
-                </div>
-
-                {/* Expectativas */}
-                <div className="space-y-4">
-                  <h4 className="text-sm font-semibold text-foreground">
-                    Qual a sua expectativa daqui a... com a Millennials? (Alinhar expectativa)
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>30 dias</Label>
-                      <Textarea
-                        placeholder="Expectativas para 30 dias..."
-                        value={formData.expectativas_30d || ''}
-                        onChange={(e) => handleChange('expectativas_30d', e.target.value)}
-                        className="min-h-[60px]"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>3 meses</Label>
-                      <Textarea
-                        placeholder="Expectativas para 3 meses..."
-                        value={formData.expectativas_3m || ''}
-                        onChange={(e) => handleChange('expectativas_3m', e.target.value)}
-                        className="min-h-[60px]"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>6 meses</Label>
-                      <Textarea
-                        placeholder="Expectativas para 6 meses..."
-                        value={formData.expectativas_6m || ''}
-                        onChange={(e) => handleChange('expectativas_6m', e.target.value)}
-                        className="min-h-[60px]"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>1 ano</Label>
-                      <Textarea
-                        placeholder="Expectativas para 1 ano..."
-                        value={formData.expectativas_1a || ''}
-                        onChange={(e) => handleChange('expectativas_1a', e.target.value)}
-                        className="min-h-[60px]"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Resto das perguntas */}
-                <div className="space-y-4">
-                  <div className="p-3 bg-warning/10 border border-warning/20 rounded-lg">
-                    <p className="text-sm font-semibold text-warning">
-                      ⚡ Impor a Consultoria com a Equipe!
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Qual o Propósito?</Label>
-                    <Textarea
-                      placeholder="Propósito do cliente..."
-                      value={formData.proposito || ''}
-                      onChange={(e) => handleChange('proposito', e.target.value)}
-                      className="min-h-[80px]"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Quais as referências?</Label>
-                    <Textarea
-                      placeholder="Referências do cliente..."
-                      value={formData.referencias || ''}
-                      onChange={(e) => handleChange('referencias', e.target.value)}
-                      className="min-h-[80px]"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Qual a Localização?</Label>
-                    <Input
-                      placeholder="Cidade, Estado..."
-                      value={formData.localizacao || ''}
-                      onChange={(e) => handleChange('localizacao', e.target.value)}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Vai fazer ações pontuais?</Label>
-                    <Input
-                      placeholder="Sim/Não e quais..."
-                      value={formData.acoes_pontuais || ''}
-                      onChange={(e) => handleChange('acoes_pontuais', e.target.value)}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Qual o investimento?</Label>
-                    <Input
-                      placeholder="Valor do investimento..."
-                      value={formData.investimento || ''}
-                      onChange={(e) => handleChange('investimento', e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
+              {/* Formulário da Call — 7 blocos com chip-index sticky */}
+              <ClientCallFormSection formData={formData} handleChange={handleChange} />
 
               <Separator />
 
