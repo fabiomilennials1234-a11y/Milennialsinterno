@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import DepartmentTarefasSection from '@/components/department/DepartmentTarefasSection';
 import DepartmentJustificativaSection from '@/components/department/DepartmentJustificativaSection';
+import CrmDelayJustificationsSection from '@/components/gestor-crm/CrmDelayJustificationsSection';
 import CrmNovoClienteSection from '@/components/gestor-crm/CrmNovoClienteSection';
 import CrmBoasVindasSection from '@/components/gestor-crm/CrmBoasVindasSection';
 import CrmAcompanhamentoSection from '@/components/gestor-crm/CrmAcompanhamentoSection';
@@ -81,7 +82,12 @@ export default function GestorCRMPage() {
       case 'config-copilot':
         return <CrmSectionBoundary name="Config Copilot"><CrmConfigColumnSection produto="copilot" /></CrmSectionBoundary>;
       case 'justificativa':
-        return <DepartmentJustificativaSection department="gestor_crm" />;
+        return (
+          <div className="space-y-4">
+            <CrmDelayJustificationsSection />
+            <DepartmentJustificativaSection department="gestor_crm" />
+          </div>
+        );
       case 'finalizados':
         return <CrmSectionBoundary name="CRMs Finalizados"><CrmFinalizadosSection /></CrmSectionBoundary>;
       default:

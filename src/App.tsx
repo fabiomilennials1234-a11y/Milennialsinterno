@@ -9,6 +9,7 @@ import { isExecutive, type UserRole } from "@/types/auth";
 import { resolveKanbanRedirect } from "@/routing/kanbanRedirect";
 import { JustificationProvider } from "@/contexts/JustificationContext";
 import { usePermissionDivergenceLogger } from "@/hooks/usePermissionDivergenceLogger";
+import { useCrmDelayJustifications } from "@/hooks/useCrmDelayJustifications";
 import AppBootSkeleton from "@/components/AppBootSkeleton";
 
 // Pages — lazy para code-splitting por rota.
@@ -231,6 +232,11 @@ function AppRoutes() {
   // e o novo user_page_grants. Observacional — não altera UI. Ver
   // usePermissionDivergenceLogger para detalhes.
   usePermissionDivergenceLogger();
+
+  // Auto-trigger do modal bloqueante de justificativa coletiva CRM:
+  // sempre que houver pending da tabela crm_delay_justification_pending para o
+  // user logado, dispara o modal via JustificationContext (já globalmente montado).
+  useCrmDelayJustifications();
 
   return (
     <Suspense fallback={<AppBootSkeleton />}>

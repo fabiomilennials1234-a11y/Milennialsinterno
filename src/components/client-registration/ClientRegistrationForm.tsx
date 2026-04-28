@@ -26,6 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { UserPickerByRole } from '@/components/shared/UserPickerByRole';
 import {
   useGroups,
   useSquads,
@@ -141,6 +142,7 @@ const clientSchema = z.object({
   assigned_rh: z.string().optional(),
   assigned_outbound_manager: z.string().optional(),
   assigned_mktplace: z.string().optional(),
+  assigned_sucesso_cliente: z.string().optional(),
 }).refine((data) => {
   // Se Millennials Growth está selecionado, exige group_id e squad_id
   const hasMillennialsGrowth = data.contracted_products.includes('millennials-growth');
@@ -263,6 +265,7 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
       assigned_rh: '',
       assigned_outbound_manager: '',
       assigned_mktplace: '',
+      assigned_sucesso_cliente: '',
     },
     mode: 'onChange',
   });
@@ -417,6 +420,7 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
         assigned_rh: data.assigned_rh || undefined,
         assigned_outbound_manager: data.assigned_outbound_manager || undefined,
         assigned_mktplace: data.assigned_mktplace || undefined,
+        assigned_sucesso_cliente: data.assigned_sucesso_cliente || undefined,
         product_values: productValuesArray,
       });
 
@@ -1056,14 +1060,40 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
               </div>
             )}
 
-            {/* Section: Responsáveis - Sempre visível */}
+            {/* Section: Responsáveis - Sempre visível (Sucesso do Cliente sempre,
+                outros aparecem condicionalmente conforme produto) */}
             <div className="space-y-4 pt-4 border-t border-border">
+              <>
+                <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  Responsáveis
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Sucesso do Cliente — sempre visível, todo cliente tem um
+                      responsável de CS (necessário pra fluxo de cobrança coletiva
+                      de justificativa CRM e pra triagem CX). */}
+                  <FormField
+                    control={form.control}
+                    name="assigned_sucesso_cliente"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Sucesso do Cliente</FormLabel>
+                        <FormControl>
+                          <UserPickerByRole
+                            role="sucesso_cliente"
+                            value={field.value || null}
+                            onChange={(id) => field.onChange(id ?? '')}
+                            placeholder="Selecionar responsável de CS…"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </>
               {(showAdsManager || showComercial || showCrmManager) && (
                 <>
-                  <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                    Responsáveis
-                  </div>
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {showAdsManager && (
                       <FormField

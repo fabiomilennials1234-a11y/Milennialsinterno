@@ -24,6 +24,7 @@ import AdsDocumentacaoSection from '@/components/ads-manager/AdsDocumentacaoSect
 import AdsTarefasSection from '@/components/ads-manager/AdsTarefasSection';
 import AdsAcompanhamentoSection from '@/components/ads-manager/AdsAcompanhamentoSection';
 import AdsJustificativaSection from '@/components/ads-manager/AdsJustificativaSection';
+import CrmDelayJustificationsSection from '@/components/gestor-crm/CrmDelayJustificationsSection';
 import AdsNovoClienteSection from '@/components/ads-manager/AdsNovoClienteSection';
 import AdsOnboardingSection from '@/components/ads-manager/AdsOnboardingSection';
 import AdsFerramentasSection from '@/components/ads-manager/AdsFerramentasSection';
@@ -110,7 +111,12 @@ export default function AdsManagerPage() {
       case 'acompanhamento':
         return <AdsAcompanhamentoSection />;
       case 'justificativa':
-        return <AdsJustificativaSection role="gestor_ads" />;
+        return (
+          <div className="space-y-4">
+            <CrmDelayJustificationsSection />
+            <AdsJustificativaSection role="gestor_ads" />
+          </div>
+        );
       case 'novo-cliente':
         return <AdsNovoClienteSection />;
       case 'churn':

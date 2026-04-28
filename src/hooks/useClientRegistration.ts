@@ -91,6 +91,7 @@ export interface NewClientData {
   assigned_rh?: string;
   assigned_outbound_manager?: string;
   assigned_mktplace?: string;
+  assigned_sucesso_cliente?: string;
   entry_date?: string;
   contract_duration_months?: number;
   payment_due_day?: number;
@@ -344,6 +345,7 @@ function buildRpcPayload(clientData: NewClientData): Record<string, unknown> {
     assigned_rh: clientData.assigned_rh || null,
     assigned_outbound_manager: clientData.assigned_outbound_manager || null,
     assigned_mktplace: clientData.assigned_mktplace || null,
+    assigned_sucesso_cliente: clientData.assigned_sucesso_cliente || null,
     entry_date: clientData.entry_date ?? null,
     contract_duration_months: clientData.contract_duration_months ?? null,
     payment_due_day: clientData.payment_due_day ?? null,
@@ -432,6 +434,7 @@ async function createClientLegacy(
       assigned_rh: clientData.assigned_rh || null,
       assigned_outbound_manager: clientData.assigned_outbound_manager || null,
       assigned_mktplace: clientData.assigned_mktplace || null,
+      assigned_sucesso_cliente: clientData.assigned_sucesso_cliente || null,
       entry_date: clientData.entry_date,
       contract_duration_months: clientData.contract_duration_months || null,
       payment_due_day: clientData.payment_due_day || null,

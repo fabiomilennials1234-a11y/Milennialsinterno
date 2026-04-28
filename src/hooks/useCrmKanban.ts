@@ -683,6 +683,9 @@ export function useCreateCrmConfiguracoes() {
               current_step: initialStep,
               is_finalizado: false,
               form_data: formData,
+              // Q1=C: criador define o "treinador comercial responsável" (via fallback
+              // na RPC check_crm_configs_delayed). Lock-on-create por trigger.
+              created_by: user.id,
             })
             .select('id, created_at')
             .single();

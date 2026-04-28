@@ -24,6 +24,7 @@ import ComercialConsultoriaMarcadaSection from '@/components/comercial/Comercial
 import ComercialTarefasSection from '@/components/comercial/ComercialTarefasSection';
 import ComercialAcompanhamentoSection from '@/components/comercial/ComercialAcompanhamentoSection';
 import ComercialJustificativaSection from '@/components/comercial/ComercialJustificativaSection';
+import CrmDelayJustificationsSection from '@/components/gestor-crm/CrmDelayJustificationsSection';
 import ComercialDocumentacaoSection from '@/components/comercial/ComercialDocumentacaoSection';
 import ComercialChurnSection from '@/components/comercial/ComercialChurnSection';
 import ComercialDelayModal from '@/components/comercial/ComercialDelayModal';
@@ -110,7 +111,12 @@ export default function ConsultorComercialPage() {
       case 'churn':
         return <ComercialChurnSection />;
       case 'justificativa':
-        return <ComercialJustificativaSection />;
+        return (
+          <div className="space-y-4">
+            <CrmDelayJustificationsSection />
+            <ComercialJustificativaSection />
+          </div>
+        );
       case 'ferramentas':
         return <AdsFerramentasSection />;
       case 'bonus':

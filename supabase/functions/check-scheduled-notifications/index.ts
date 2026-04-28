@@ -43,6 +43,7 @@ Deno.serve(async (req) => {
       contract_expired_alert: false,
       ads_client_no_movement_7d: false,
       user_inactive: false,
+      crm_configs_delayed: false,
       generate_monthly_receivables: false,
     }
 
@@ -238,6 +239,14 @@ Deno.serve(async (req) => {
       results.user_inactive = true
     } catch (e) {
       console.error('Error checking user inactive:', e)
+    }
+
+    // CRM: configs atrasadas → cobra 4 papeis coletivamente (Q1..Q5 do fundador)
+    try {
+      await supabase.rpc('check_crm_configs_delayed')
+      results.crm_configs_delayed = true
+    } catch (e) {
+      console.error('Error checking crm configs delayed:', e)
     }
 
     // Generate monthly receivables (backup - main trigger is pg_cron at 6AM BRT)

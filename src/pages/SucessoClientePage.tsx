@@ -18,6 +18,7 @@ import CSClientDetailModal from '@/components/sucesso-cliente/CSClientDetailModa
 import CXValidationPopup from '@/components/sucesso-cliente/CXValidationPopup';
 import CSPendenciaCXColumn from '@/components/sucesso-cliente/CSPendenciaCXColumn';
 import { useCXPendingClients } from '@/hooks/useCXValidation';
+import CrmDelayJustificationsSection from '@/components/gestor-crm/CrmDelayJustificationsSection';
 export default function SucessoClientePage() {
   const {
     user,
@@ -153,6 +154,11 @@ export default function SucessoClientePage() {
           {!isLoading && <div className="mt-4">
               <CSHeaderStats clients={clients} managers={managers} />
             </div>}
+
+          {/* Justificativas coletivas CRM em atraso (envolvendo este CS) — silencioso se vazio */}
+          <div className="mt-4">
+            <CrmDelayJustificationsSection />
+          </div>
         </div>
 
         {/* Loading state */}

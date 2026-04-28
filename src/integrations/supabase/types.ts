@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       ads_daily_documentation: {
@@ -1429,6 +1404,7 @@ export type Database = {
           assigned_mktplace: string | null
           assigned_outbound_manager: string | null
           assigned_rh: string | null
+          assigned_sucesso_cliente: string | null
           campaign_published_at: string | null
           client_label: string | null
           cnpj: string | null
@@ -1484,6 +1460,7 @@ export type Database = {
           assigned_mktplace?: string | null
           assigned_outbound_manager?: string | null
           assigned_rh?: string | null
+          assigned_sucesso_cliente?: string | null
           campaign_published_at?: string | null
           client_label?: string | null
           cnpj?: string | null
@@ -1539,6 +1516,7 @@ export type Database = {
           assigned_mktplace?: string | null
           assigned_outbound_manager?: string | null
           assigned_rh?: string | null
+          assigned_sucesso_cliente?: string | null
           campaign_published_at?: string | null
           client_label?: string | null
           cnpj?: string | null
@@ -2032,6 +2010,7 @@ export type Database = {
         Row: {
           client_id: string
           created_at: string
+          created_by: string | null
           current_step: string
           finalizado_at: string | null
           form_data: Json
@@ -2044,6 +2023,7 @@ export type Database = {
         Insert: {
           client_id: string
           created_at?: string
+          created_by?: string | null
           current_step?: string
           finalizado_at?: string | null
           form_data?: Json
@@ -2056,6 +2036,7 @@ export type Database = {
         Update: {
           client_id?: string
           created_at?: string
+          created_by?: string | null
           current_step?: string
           finalizado_at?: string | null
           form_data?: Json
@@ -2174,6 +2155,77 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: true
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_delay_justification_pending: {
+        Row: {
+          client_id: string
+          config_id: string
+          detected_at: string
+          dismissed_at: string | null
+          dismissed_reason: string | null
+          id: string
+          justification_id: string | null
+          justified_at: string | null
+          notification_id: string | null
+          user_id: string
+          user_role: string
+        }
+        Insert: {
+          client_id: string
+          config_id: string
+          detected_at?: string
+          dismissed_at?: string | null
+          dismissed_reason?: string | null
+          id?: string
+          justification_id?: string | null
+          justified_at?: string | null
+          notification_id?: string | null
+          user_id: string
+          user_role: string
+        }
+        Update: {
+          client_id?: string
+          config_id?: string
+          detected_at?: string
+          dismissed_at?: string | null
+          dismissed_reason?: string | null
+          id?: string
+          justification_id?: string | null
+          justified_at?: string | null
+          notification_id?: string | null
+          user_id?: string
+          user_role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_delay_justification_pending_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_delay_justification_pending_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "crm_configuracoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_delay_justification_pending_justification_id_fkey"
+            columns: ["justification_id"]
+            isOneToOne: false
+            referencedRelation: "task_delay_justifications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_delay_justification_pending_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "task_delay_notifications"
             referencedColumns: ["id"]
           },
         ]
@@ -7368,6 +7420,7 @@ export type Database = {
       check_contract_no_renewal_plan: { Args: never; Returns: undefined }
       check_contract_renewals: { Args: never; Returns: undefined }
       check_creative_awaiting_approval: { Args: never; Returns: undefined }
+      check_crm_configs_delayed: { Args: never; Returns: undefined }
       check_department_tasks_stalled: { Args: never; Returns: undefined }
       check_financeiro_clients_stalled: { Args: never; Returns: undefined }
       check_no_clients_moved_today: { Args: never; Returns: undefined }
@@ -7393,8 +7446,37 @@ export type Database = {
         Returns: undefined
       }
       generate_monthly_receivables: { Args: never; Returns: undefined }
+      get_crm_config_collective_justifications: {
+        Args: { p_config_id: string }
+        Returns: {
+          detected_at: string
+          is_pending: boolean
+          justification: string
+          justified_at: string
+          pending_id: string
+          user_id: string
+          user_name: string
+          user_role: string
+        }[]
+      }
       get_day_of_week_portuguese: { Args: never; Returns: string }
       get_my_page_access: { Args: never; Returns: string[] }
+      get_pending_crm_justifications_for_user: {
+        Args: never
+        Returns: {
+          client_id: string
+          client_name: string
+          config_id: string
+          detected_at: string
+          notification_id: string
+          pending_id: string
+          produto: string
+          task_due_date: string
+          task_table: string
+          task_title: string
+          user_role: string
+        }[]
+      }
       get_user_group_id: { Args: { _user_id: string }; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
@@ -7429,6 +7511,14 @@ export type Database = {
       is_feature_enabled: {
         Args: { _key: string; _user_id: string }
         Returns: boolean
+      }
+      list_active_clients_minimal: {
+        Args: never
+        Returns: {
+          id: string
+          name: string
+          razao_social: string
+        }[]
       }
       revoke_page: {
         Args: { _page_slug: string; _reason?: string; _user_id: string }
@@ -7640,9 +7730,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       tech_sprint_status: ["PLANNING", "ACTIVE", "COMPLETED"],
