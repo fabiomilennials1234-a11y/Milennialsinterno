@@ -19,6 +19,7 @@ import CXValidationPopup from '@/components/sucesso-cliente/CXValidationPopup';
 import CSPendenciaCXColumn from '@/components/sucesso-cliente/CSPendenciaCXColumn';
 import { useCXPendingClients } from '@/hooks/useCXValidation';
 import CrmDelayJustificationsSection from '@/components/gestor-crm/CrmDelayJustificationsSection';
+import ClientTagDelayJustificationsSection from '@/components/client-tags/ClientTagDelayJustificationsSection';
 export default function SucessoClientePage() {
   const {
     user,
@@ -156,7 +157,8 @@ export default function SucessoClientePage() {
             </div>}
 
           {/* Justificativas coletivas CRM em atraso (envolvendo este CS) — silencioso se vazio */}
-          <div className="mt-4">
+          <div className="mt-4 space-y-3">
+            <ClientTagDelayJustificationsSection />
             <CrmDelayJustificationsSection />
           </div>
         </div>

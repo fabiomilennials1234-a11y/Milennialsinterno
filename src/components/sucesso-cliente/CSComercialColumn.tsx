@@ -30,6 +30,8 @@ import {
 } from '@/components/ui/collapsible';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import ClientTagsList from '@/components/client-tags/ClientTagsList';
+import { useClientTagsBatch } from '@/hooks/useClientTags';
 
 const STATUS_CONFIG: Record<string, { icon: typeof UserPlus; label: string; shortLabel: string; color: string; bgColor: string; step: number }> = {
   'novo': { icon: UserPlus, label: 'Novo Cliente', shortLabel: 'Novo', color: 'text-green-600', bgColor: 'bg-green-500/10', step: 1 },
@@ -63,6 +65,9 @@ export default function CSComercialColumn() {
   const { data: clients = [], isLoading: clientsLoading } = useCSComercialClients();
   const { data: trackingData = [], isLoading: trackingLoading } = useCSComercialTracking();
   const { data: pendingTasks, isLoading: tasksLoading } = useCSComercialTasks();
+
+  // Tags batch — todos os clientes da coluna em uma query.
+  const { data: tagsByClient } = useClientTagsBatch(clients.map(c => c.id));
 
   const isLoading = consultantsLoading || clientsLoading || trackingLoading || tasksLoading;
 
@@ -255,7 +260,13 @@ export default function CSComercialColumn() {
                                     <div className="flex items-center justify-between gap-2">
                                       <span className="text-sm font-medium truncate">{client.name}</span>
                                     </div>
-                                    
+
+                                    <ClientTagsList
+                                      tags={tagsByClient?.get(client.id) ?? []}
+                                      size="sm"
+                                      className="mt-1.5"
+                                    />
+
                                     {/* Pending Task Badge - HIGHLIGHTED */}
                                     {taskConfig && (
                                       <div className="bg-primary/10 border border-primary/30 rounded-lg px-2.5 py-2">

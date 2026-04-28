@@ -13,6 +13,8 @@ import ContractStatusBadge from '@/components/shared/ContractStatusBadge';
 import CXValidationBadge from '@/components/shared/CXValidationBadge';
 import ClientLabelBadge, { type ClientLabel } from '@/components/shared/ClientLabelBadge';
 import ProductBadges, { TorqueCRMProductBadges } from '@/components/shared/ProductBadges';
+import ClientTagsList from '@/components/client-tags/ClientTagsList';
+import { useClientTagsBatch } from '@/hooks/useClientTags';
 
 export default function AdsNovoClienteSection() {
   const { data: clients = [], isLoading: clientsLoading, error: clientsError } = useAssignedClients();
@@ -24,6 +26,9 @@ export default function AdsNovoClienteSection() {
 
   // Filter new clients and get their pending tasks
   const newClients = clients.filter(c => c.status === 'new_client');
+
+  // Tags batch — 1 query pra todos os cards visíveis (evita N+1).
+  const { data: tagsByClient } = useClientTagsBatch(newClients.map(c => c.id));
 
   // Get pending tasks for display (carregam em paralelo; clientes aparecem primeiro)
   const pendingTasks = tasks.filter(t => t.status === 'pending');
@@ -100,6 +105,11 @@ export default function AdsNovoClienteSection() {
                             className="shrink-0"
                           />
                         </div>
+                        <ClientTagsList
+                          tags={tagsByClient?.get(client.id) ?? []}
+                          size="sm"
+                          className="mt-1.5"
+                        />
                         {client.razao_social && (
                           <p className="text-xs text-muted-foreground truncate max-w-[180px]">
                             {client.razao_social}

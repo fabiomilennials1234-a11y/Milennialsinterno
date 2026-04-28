@@ -43,6 +43,9 @@ import WarRoomSection from '@/components/comercial/WarRoomSection';
 import CrmGerarTarefaSection from '@/components/gestor-crm/CrmGerarTarefaSection';
 import ClientTierBadge, { ClientCreativesLimit } from '@/components/shared/ClientTierBadge';
 import { PRODUCT_CONFIG, TorqueCRMProductBadges } from '@/components/shared/ProductBadges';
+import ClientTagsList from '@/components/client-tags/ClientTagsList';
+import ClientTagCountdownHero from '@/components/client-tags/ClientTagCountdownHero';
+import { useClientTags } from '@/hooks/useClientTags';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -71,6 +74,12 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
   const { user, isAdminUser, isCEO } = useAuth();
   const { data: clientInfo, isLoading: clientLoading } = useClientInfo(clientId);
   const { data: callForm, isLoading: formLoading } = useClientCallForm(clientId);
+  const { data: clientTags = [] } = useClientTags(clientId);
+
+  // Hero: única tag ativa com cronômetro vivo (não expirada).
+  const heroTag = clientTags.length === 1 && clientTags[0].expires_at && !clientTags[0].expired_at
+    ? clientTags[0]
+    : null;
   const saveForm = useSaveClientCallForm();
   const updateClientInfo = useUpdateClientInfo();
 
@@ -230,6 +239,7 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
               <ResultsReportCountdownBadge clientId={clientId} />
             </div>
             <div className="flex items-center gap-2">
+              {/* Stack de tags do cliente — sempre visível no header. */}
               {canSetClientLabel && (
                 <ClientLabelSelector
                   clientId={clientId}
@@ -253,7 +263,19 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
               </Button>
             </div>
           </div>
+
+          {/* Lista completa de tags do cliente — abaixo do título. */}
+          {clientTags.length > 0 && (
+            <ClientTagsList tags={clientTags} size="md" className="mt-2" />
+          )}
         </DialogHeader>
+
+        {/* Hero acima da ScrollArea quando há UMA E APENAS UMA tag ativa com cronômetro. */}
+        {heroTag && (
+          <div className="px-6 pt-4 shrink-0">
+            <ClientTagCountdownHero tag={heroTag} />
+          </div>
+        )}
 
         {isLoading ? (
           <div className="flex items-center justify-center py-20">

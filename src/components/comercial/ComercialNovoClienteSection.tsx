@@ -12,6 +12,8 @@ import OverdueInvoiceBadge from '@/components/shared/OverdueInvoiceBadge';
 import ContractStatusBadge from '@/components/shared/ContractStatusBadge';
 import ClientLabelBadge, { type ClientLabel } from '@/components/shared/ClientLabelBadge';
 import ProductBadges, { TorqueCRMProductBadges } from '@/components/shared/ProductBadges';
+import ClientTagsList from '@/components/client-tags/ClientTagsList';
+import { useClientTagsBatch, type ClientTag } from '@/hooks/useClientTags';
 import PaddockDiagnosticoBadge from './PaddockDiagnosticoBadge';
 import { fireCelebration } from '@/lib/confetti';
 
@@ -41,7 +43,7 @@ function getTaskDeadlineInfo(dueDate?: string) {
   return { label: `${diffDays}d restantes`, isOverdue: false, isUrgent: false };
 }
 
-function ClientCard({ client }: { client: any }) {
+function ClientCard({ client, tags = [] }: { client: any; tags?: ClientTag[] }) {
   const [showModal, setShowModal] = useState(false);
   const { data: tasks = [] } = useComercialTasksByClient(client.id);
   const completeTask = useCompleteComercialTaskWithAutomation();
@@ -89,6 +91,7 @@ function ClientCard({ client }: { client: any }) {
                 className="shrink-0"
               />
             </div>
+            <ClientTagsList tags={tags} size="sm" className="mt-1.5" />
             {client.razao_social && (
               <p className="text-xs text-muted-foreground truncate">{client.razao_social}</p>
             )}
@@ -181,7 +184,8 @@ function ClientCard({ client }: { client: any }) {
 
 export default function ComercialNovoClienteSection() {
   const { data: clients = [], isLoading } = useComercialNewClients();
-  
+  const { data: tagsByClient } = useClientTagsBatch(clients.map(c => c.id));
+
   // Auto-create tasks for new clients
   useAutoCreateTasksForNewClients();
 
@@ -220,7 +224,7 @@ export default function ComercialNovoClienteSection() {
       )}
 
       {clients.map((client) => (
-        <ClientCard key={client.id} client={client} />
+        <ClientCard key={client.id} client={client} tags={tagsByClient?.get(client.id) ?? []} />
       ))}
     </div>
   );

@@ -14,6 +14,7 @@ import AdsTarefasSection from '@/components/ads-manager/AdsTarefasSection';
 import AdsAcompanhamentoSection from '@/components/ads-manager/AdsAcompanhamentoSection';
 import AdsJustificativaSection from '@/components/ads-manager/AdsJustificativaSection';
 import CrmDelayJustificationsSection from '@/components/gestor-crm/CrmDelayJustificationsSection';
+import ClientTagDelayJustificationsSection from '@/components/client-tags/ClientTagDelayJustificationsSection';
 import AdsNovoClienteSection from '@/components/ads-manager/AdsNovoClienteSection';
 import AdsOnboardingSection from '@/components/ads-manager/AdsOnboardingSection';
 import AdsFerramentasSection from '@/components/ads-manager/AdsFerramentasSection';
@@ -213,6 +214,8 @@ export default function AdsManagerIndividualPage() {
             Gestor de ADS ({managerName})
           </h1>
           <p className="text-caption text-muted-foreground mt-1">Central de operações individual </p>
+          {/* Etiquetas vencidas (gestor_ads/sucesso_cliente do user logado) — silencioso quando vazio. */}
+          <ClientTagDelayJustificationsSection className="mt-4" />
         </div>
 
         {/* Board Container */}

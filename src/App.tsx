@@ -10,6 +10,7 @@ import { resolveKanbanRedirect } from "@/routing/kanbanRedirect";
 import { JustificationProvider } from "@/contexts/JustificationContext";
 import { usePermissionDivergenceLogger } from "@/hooks/usePermissionDivergenceLogger";
 import { useCrmDelayJustifications } from "@/hooks/useCrmDelayJustifications";
+import { useClientTagDelayJustifications } from "@/hooks/useClientTagDelayJustifications";
 import AppBootSkeleton from "@/components/AppBootSkeleton";
 
 // Pages — lazy para code-splitting por rota.
@@ -237,6 +238,10 @@ function AppRoutes() {
   // sempre que houver pending da tabela crm_delay_justification_pending para o
   // user logado, dispara o modal via JustificationContext (já globalmente montado).
   useCrmDelayJustifications();
+
+  // Auto-trigger análogo para etiquetas (client_tags) vencidas onde o user
+  // logado é responsável (gestor_ads / sucesso_cliente).
+  useClientTagDelayJustifications();
 
   return (
     <Suspense fallback={<AppBootSkeleton />}>
