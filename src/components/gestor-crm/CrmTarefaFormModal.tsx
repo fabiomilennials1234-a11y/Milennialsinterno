@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Badge } from '@/components/ui/badge';
+import { ClientCombobox } from '@/components/ui/client-combobox';
 import { Plus, X, Wand2, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -16,6 +17,7 @@ import {
   useCreateCrmConfiguracoes,
   type CrmProduto,
 } from '@/hooks/useCrmKanban';
+import { useAllActiveClients } from '@/hooks/useAllActiveClients';
 
 // ========= Pipeline padrão compartilhado V8/Automation =========
 const PIPELINE_PADRAO = [
@@ -191,14 +193,48 @@ export default function CrmTarefaFormModal({
   onSuccess,
 }: Props) {
   const createConfigs = useCreateCrmConfiguracoes();
+  const { data: allClients = [], isLoading: isLoadingClients } = useAllActiveClients();
 
   const [selected, setSelected] = useState<CrmProduto[]>(availableProdutos);
+  const [currentClient, setCurrentClient] = useState<{ id: string; name: string }>(() => ({
+    id: clientId,
+    name: clientName,
+  }));
   const [v8Data, setV8Data] = useState<V8FormData>(() => emptyV8(clientName));
   const [autoData, setAutoData] = useState<AutomationFormData>(() => emptyAutomation(clientName));
   const [copilotData, setCopilotData] = useState<CopilotFormData>(() => emptyCopilot(clientName));
   const [newPipelineItem, setNewPipelineItem] = useState<{ v8: string; auto: string }>({ v8: '', auto: '' });
 
+  // Re-sincroniza quando o modal é reaberto pra outro cliente (props mudaram)
+  useEffect(() => {
+    setCurrentClient({ id: clientId, name: clientName });
+    setV8Data(emptyV8(clientName));
+    setAutoData(emptyAutomation(clientName));
+    setCopilotData(emptyCopilot(clientName));
+  }, [clientId, clientName]);
+
+  const clientOptions = useMemo(
+    () =>
+      allClients.map(c => ({
+        id: c.id,
+        name: c.name,
+        razao_social: c.razao_social ?? null,
+      })),
+    [allClients],
+  );
+
+  const handleClientChange = (id: string, name: string) => {
+    setCurrentClient({ id, name });
+    setV8Data(d => ({ ...d, nome_cliente: name }));
+    setAutoData(d => ({ ...d, nome_cliente: name }));
+    setCopilotData(d => ({ ...d, nome_cliente: name }));
+  };
+
   const handleSubmit = async () => {
+    if (!currentClient.id) {
+      toast.error('Selecione o cliente');
+      return;
+    }
     if (selected.length === 0) {
       toast.error('Selecione ao menos um produto');
       return;
@@ -225,8 +261,8 @@ export default function CrmTarefaFormModal({
 
     try {
       await createConfigs.mutateAsync({
-        clientId,
-        clientName,
+        clientId: currentClient.id,
+        clientName: currentClient.name,
         gestorId,
         produtos: selected,
         formDataByProduto,
@@ -253,11 +289,29 @@ export default function CrmTarefaFormModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Wand2 size={18} className="text-primary" />
-            Gerar Tarefa — {clientName}
+            Gerar Tarefa — {currentClient.name}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6 mt-2">
+          {/* Seleção de cliente — fonte única de verdade pra todos os blocos */}
+          <div className="space-y-1.5">
+            <Label className="text-sm font-semibold">Cliente *</Label>
+            <ClientCombobox
+              value={currentClient.id}
+              onChange={handleClientChange}
+              clients={clientOptions}
+              currentFallback={{ id: clientId, name: clientName }}
+              isLoading={isLoadingClients}
+              disabled={saving}
+              placeholder="Selecionar cliente…"
+              emptyMessage="Nenhum cliente ativo encontrado."
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Pré-selecionado a partir do cliente aberto. Troque caso queira gerar a tarefa para outro.
+            </p>
+          </div>
+
           {/* Seleção de produtos */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold">Quais produtos deseja configurar?</Label>
@@ -398,9 +452,6 @@ export default function CrmTarefaFormModal({
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <FieldWrap label="Nome do cliente *">
-                  <Input value={copilotData.nome_cliente} onChange={(e) => setCopilotData(d => ({ ...d, nome_cliente: e.target.value }))} />
-                </FieldWrap>
                 <FieldWrap label="Nicho *">
                   <Input value={copilotData.nicho} onChange={(e) => setCopilotData(d => ({ ...d, nicho: e.target.value }))} placeholder="E-commerce, clínica..." />
                 </FieldWrap>
@@ -476,14 +527,11 @@ function ScriptField({ label, value, onChange }: { label: string; value: string;
 }
 
 function ClientBasicFields({ data, onChange }: {
-  data: { nome_cliente: string; nicho: string; whatsapp_principal: string; responsavel_atendimento: string };
-  onChange: (patch: Partial<{ nome_cliente: string; nicho: string; whatsapp_principal: string; responsavel_atendimento: string }>) => void;
+  data: { nicho: string; whatsapp_principal: string; responsavel_atendimento: string };
+  onChange: (patch: Partial<{ nicho: string; whatsapp_principal: string; responsavel_atendimento: string }>) => void;
 }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-      <FieldWrap label="Nome do cliente *">
-        <Input value={data.nome_cliente} onChange={(e) => onChange({ nome_cliente: e.target.value })} />
-      </FieldWrap>
       <FieldWrap label="Nicho *">
         <Input value={data.nicho} onChange={(e) => onChange({ nicho: e.target.value })} placeholder="Ex: E-commerce" />
       </FieldWrap>
