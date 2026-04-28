@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import {
   UserPlus, CheckSquare, ChevronLeft, ChevronRight, Users,
-  FileText, AlertCircle, Sparkles, Settings, CheckCircle2, Wrench
+  FileText, AlertCircle, Sparkles, Settings, CheckCircle2, Wrench, GraduationCap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import DepartmentTarefasSection from '@/components/department/DepartmentTarefasSection';
@@ -16,6 +16,7 @@ import CrmAcompanhamentoSection from '@/components/gestor-crm/CrmAcompanhamentoS
 import CrmConfigColumnSection from '@/components/gestor-crm/CrmConfigColumnSection';
 import CrmFinalizadosSection from '@/components/gestor-crm/CrmFinalizadosSection';
 import CrmDocumentacaoSection from '@/components/gestor-crm/CrmDocumentacaoSection';
+import CrmFerramentasProSection from '@/components/gestor-crm/CrmFerramentasProSection';
 import { CrmSectionBoundary } from '@/components/gestor-crm/CrmSectionBoundary';
 
 // Colunas do kanban do Gestor de CRM — mesma lógica estrutural do Consultor de MKT Place.
@@ -32,6 +33,7 @@ const COLUMNS = [
   { id: 'config-copilot', title: 'Configuração Copilot', icon: Settings, headerClass: 'section-header-amber', iconColor: 'text-foreground' },
   { id: 'justificativa', title: 'Justificativa', icon: AlertCircle, headerClass: 'section-header-danger', iconColor: 'text-white' },
   { id: 'finalizados', title: 'CRMs Finalizados', icon: CheckCircle2, headerClass: 'section-header-purple', iconColor: 'text-white' },
+  { id: 'ferramentas-pro', title: 'Ferramentas PRO+', icon: GraduationCap, headerClass: 'section-header-violet', iconColor: 'text-white' },
 ];
 
 export default function GestorCRMPage() {
@@ -90,6 +92,8 @@ export default function GestorCRMPage() {
         );
       case 'finalizados':
         return <CrmSectionBoundary name="CRMs Finalizados"><CrmFinalizadosSection /></CrmSectionBoundary>;
+      case 'ferramentas-pro':
+        return <CrmSectionBoundary name="Ferramentas PRO+"><CrmFerramentasProSection /></CrmSectionBoundary>;
       default:
         return null;
     }

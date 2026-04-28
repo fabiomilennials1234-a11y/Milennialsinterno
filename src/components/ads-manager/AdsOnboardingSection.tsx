@@ -50,13 +50,6 @@ Link do mapa mental: [Link]
   'm3-2': `**IMPORTANTE – NÃO ESQUECER**
 
 Após brifar os criativos, avisar o cliente que os materiais já foram brifados e informar o prazo de entrega previsto (Data X).`,
-  'm6-1': `**Cursos Torque — acesso direto**
-
-📚 **Curso [Torque] Gestor de CRM**
-https://drive.google.com/drive/folders/1q-QCOVMp_5KHTU7fDl8NcaUyZVn0LV4s?usp=sharing
-
-📚 **Curso [Torque] Cliente**
-https://drive.google.com/drive/folders/16MwAKqqSqQ-PLfgW1bqd5YftXEuoUeZg?usp=sharing`,
 };
 
 // Mapeamento de step para card ID
@@ -94,9 +87,6 @@ const MILESTONE_CARDS: Record<number, MilestoneCard[]> = {
     { id: 'm5-2', title: 'Confirmar se toda a produção está pronta', stepKey: 'certificando_consultoria' },
     { id: 'm5-3', title: 'Publicar campanha', stepKey: 'esperando_criativos' },
   ],
-  6: [
-    { id: 'm6-1', title: 'Acessar Cursos Torque', isInstructionCard: true },
-  ],
 };
 
 const MILESTONES = [
@@ -105,7 +95,6 @@ const MILESTONES = [
   { number: 3, title: 'Criativos PRO+ [Marco 3]', maxDays: 5, emoji: '3️⃣', color: 'bg-success', borderColor: 'border-l-success' },
   { number: 4, title: 'Otimizações PRO+ [Marco 4]', maxDays: 6, emoji: '4️⃣', color: 'bg-warning', borderColor: 'border-l-warning' },
   { number: 5, title: 'Início [Marco 5]', maxDays: 14, emoji: '5️⃣', color: 'bg-primary', borderColor: 'border-l-primary' },
-  { number: 6, title: 'Ferramentas PRO+', maxDays: 9999, emoji: '🛠️', color: 'bg-violet-500', borderColor: 'border-l-violet-500' },
 ];
 
 export default function AdsOnboardingSection() {
