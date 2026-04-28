@@ -165,13 +165,6 @@ export default function AdsFerramentasSection() {
       content: 'TABELA GANHO DE BÔNUS MILENNIALS',
     });
 
-    tools.push({
-      id: 'cursos_torque',
-      title: 'Acessar Cursos Torque',
-      icon: '🎓',
-      content: 'Curso [Torque] Gestor de CRM:\nhttps://drive.google.com/drive/folders/1q-QCOVMp_5KHTU7fDl8NcaUyZVn0LV4s?usp=sharing\n\nCurso [Torque] Cliente:\nhttps://drive.google.com/drive/folders/16MwAKqqSqQ-PLfgW1bqd5YftXEuoUeZg?usp=sharing',
-    });
-
     return tools;
   }, [
     makeReady,
