@@ -737,7 +737,7 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
 
               {/* War Room Guides - only for Paddock clients */}
               {clientInfo && (clientInfo.contracted_products?.includes('millennials-growth') || clientInfo.contracted_products?.includes('millennials-paddock')) && (
-                <WarRoomSection />
+                <WarRoomSection clientId={clientId} />
               )}
 
               {/* Paddock Diagnóstico Comercial Section - after War Rooms */}
