@@ -116,6 +116,8 @@ export default function PaddockOnboardingSection() {
       queryClient.invalidateQueries({ queryKey: ['client-tags'] });
       queryClient.invalidateQueries({ queryKey: ['client-tags-batch'] });
       queryClient.invalidateQueries({ queryKey: ['client-tag-delay-pending'] });
+      queryClient.invalidateQueries({ queryKey: ['comercial-paddock-clients'] });
+      queryClient.invalidateQueries({ queryKey: ['comercial-clients'] });
     },
     onError: (err: Error) => {
       toast.error('Erro ao finalizar CRM', { description: err.message });
@@ -183,8 +185,8 @@ export default function PaddockOnboardingSection() {
                         </div>
                       )}
 
-                      {/* CRM FINALIZADO — visível só na coluna crm_solicitado */}
-                      {stepId === 'crm_solicitado' && (
+                      {/* CRM FINALIZADO — visível só na coluna crm_solicitado e enquanto não finalizado */}
+                      {stepId === 'crm_solicitado' && !(client as { crm_finalizado_at?: string | null }).crm_finalizado_at && (
                         <Button
                           size="sm"
                           variant="outline"
@@ -194,6 +196,12 @@ export default function PaddockOnboardingSection() {
                           <CheckCircle2 size={12} />
                           CRM Finalizado
                         </Button>
+                      )}
+                      {stepId === 'crm_solicitado' && (client as { crm_finalizado_at?: string | null }).crm_finalizado_at && (
+                        <div className="w-full h-7 inline-flex items-center justify-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-success bg-success/10 border border-success/30 rounded-md">
+                          <CheckCircle2 size={12} />
+                          CRM Finalizado
+                        </div>
                       )}
                     </CardContent>
                   </Card>
