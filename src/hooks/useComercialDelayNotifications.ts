@@ -203,7 +203,7 @@ export function useSaveComercialJustification() {
       const { data: profile } = await supabase
         .from('profiles')
         .select('name')
-        .eq('id', user?.id)
+        .eq('user_id', user?.id)
         .single();
 
       const { data, error } = await supabase

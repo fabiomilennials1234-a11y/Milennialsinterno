@@ -328,7 +328,7 @@ export function useUpdateComercialTaskStatus() {
               const { data: profile } = await supabase
                 .from('profiles')
                 .select('name')
-                .eq('id', mId)
+                .eq('user_id', mId)
                 .single();
 
               const { data: existingTracking } = await supabase

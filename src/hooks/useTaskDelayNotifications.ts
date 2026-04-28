@@ -246,16 +246,24 @@ async function createNotificationIfNotExists(params: {
 
   if (existing) return;
 
-  // Fecha race: re-valida que task ainda está overdue (não arquivada nem concluída).
-  // Sem isso, uma task arquivada/concluída entre o fetch inicial e aqui gera notification órfã.
-  const { data: stillValid } = await supabase
-    .from(params.task_table as any)
-    .select('id, archived, status')
-    .eq('id', params.task_id)
-    .maybeSingle();
+  // Pseudo-tables (labels usados por hooks SECURITY DEFINER, não são tabelas reais).
+  // Skipa validação anti-órfã pra evitar 404 de console pollution.
+  const isPseudoTable =
+    params.task_table.startsWith('crm_config_delay__') ||
+    params.task_table.startsWith('client_tag_delay__');
 
-  if (!stillValid || (stillValid as any).archived === true || (stillValid as any).status === 'done') {
-    return;
+  if (!isPseudoTable) {
+    // Fecha race: re-valida que task ainda está overdue (não arquivada nem concluída).
+    // Sem isso, uma task arquivada/concluída entre o fetch inicial e aqui gera notification órfã.
+    const { data: stillValid } = await supabase
+      .from(params.task_table as any)
+      .select('id, archived, status')
+      .eq('id', params.task_id)
+      .maybeSingle();
+
+    if (!stillValid || (stillValid as any).archived === true || (stillValid as any).status === 'done') {
+      return;
+    }
   }
 
   // Buscar nome do dono
@@ -314,6 +322,16 @@ export function useTaskDelayNotifications() {
       for (const [table, notifs] of notifsByTable.entries()) {
         const taskIds = [...new Set(notifs.map(n => n.task_id))];
         if (taskIds.length === 0) continue;
+
+        // Pseudo-tables (não são tabelas reais — labels usados por RPCs SECURITY DEFINER).
+        // Aceita todas notifs como válidas; SECURITY DEFINER hooks dedicados filtram por estado real.
+        const isPseudoTable =
+          table.startsWith('crm_config_delay__') ||
+          table.startsWith('client_tag_delay__');
+        if (isPseudoTable) {
+          notifs.forEach((n: any) => validTaskKeys.add(`${table}:${n.task_id}`));
+          continue;
+        }
 
         const { data: tasks } = await supabase
           .from(table as any)

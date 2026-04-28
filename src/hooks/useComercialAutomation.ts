@@ -371,7 +371,7 @@ export function useCompleteComercialTaskWithAutomation() {
             const { data: profile } = await supabase
               .from('profiles')
               .select('name')
-              .eq('id', mId)
+              .eq('user_id', mId)
               .single();
 
             const { data: existing } = await supabase
@@ -513,7 +513,7 @@ export function useCheckComercialDelays() {
       const { data: profile } = await supabase
         .from('profiles')
         .select('name')
-        .eq('id', user.id)
+        .eq('user_id', user.id)
         .single();
 
       const userName = profile?.name || 'Usuário';
