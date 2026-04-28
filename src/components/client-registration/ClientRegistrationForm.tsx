@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -53,6 +53,7 @@ import {
   formatCurrency,
   parseCurrency,
 } from '@/lib/validators';
+import { cn } from '@/lib/utils';
 
 // Limites de carteira por cargo (mesmos da Sidebar)
 const MANAGER_LIMITS: Record<string, number> = {
@@ -143,6 +144,7 @@ const clientSchema = z.object({
   assigned_outbound_manager: z.string().optional(),
   assigned_mktplace: z.string().optional(),
   assigned_sucesso_cliente: z.string().optional(),
+  has_mktplace_consulting: z.enum(['sim', 'nao']).nullable().default(null),
 }).refine((data) => {
   // Se Millennials Growth está selecionado, exige group_id e squad_id
   const hasMillennialsGrowth = data.contracted_products.includes('millennials-growth');
@@ -162,11 +164,19 @@ const clientSchema = z.object({
   message: 'Selecione o Gestor de Ads responsável',
   path: ['assigned_ads_manager'],
 }).refine((data) => {
-  // Consultor de MKT Place é obrigatório quando o produto envolve MKT Place
   const needsMktplace = data.contracted_products.includes('millennials-growth') ||
     data.contracted_products.includes('gestor-mktplace');
-  if (needsMktplace) return !!data.assigned_mktplace;
-  return true;
+  if (!needsMktplace) return true;
+  return data.has_mktplace_consulting !== null;
+}, {
+  message: 'Indique se haverá consultoria de MKT Place',
+  path: ['has_mktplace_consulting'],
+}).refine((data) => {
+  const needsMktplace = data.contracted_products.includes('millennials-growth') ||
+    data.contracted_products.includes('gestor-mktplace');
+  if (!needsMktplace) return true;
+  if (data.has_mktplace_consulting !== 'sim') return true;
+  return !!data.assigned_mktplace;
 }, {
   message: 'Selecione o Consultor(a) de MKT Place',
   path: ['assigned_mktplace'],
@@ -266,6 +276,7 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
       assigned_outbound_manager: '',
       assigned_mktplace: '',
       assigned_sucesso_cliente: '',
+      has_mktplace_consulting: null,
     },
     mode: 'onChange',
   });
@@ -304,6 +315,21 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
   const showCrmManager = hasTorqueCRM;
   const showRhUser = hasHunting;
   const showOutboundManager = hasOutbound;
+
+  const watchedConsulting = form.watch('has_mktplace_consulting');
+
+  useEffect(() => {
+    if (!showMktplace && watchedConsulting !== null) {
+      form.setValue('has_mktplace_consulting', null);
+      form.setValue('assigned_mktplace', '');
+    }
+  }, [showMktplace, watchedConsulting, form]);
+
+  useEffect(() => {
+    if (watchedConsulting === 'nao' && form.getValues('assigned_mktplace')) {
+      form.setValue('assigned_mktplace', '');
+    }
+  }, [watchedConsulting, form]);
 
   // Handler para selects de responsáveis com verificação de limite
   const handleManagerSelect = useCallback((
@@ -1092,7 +1118,7 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
                   />
                 </div>
               </>
-              {(showAdsManager || showComercial || showCrmManager) && (
+              {(showAdsManager || showComercial || showCrmManager || showMktplace) && (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {showAdsManager && (
@@ -1185,45 +1211,78 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
                       />
                     )}
 
-                    {/* Consultor(a) de MKT Place */}
                     {showMktplace && (
-                      <FormField
-                        control={form.control}
-                        name="assigned_mktplace"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Consultor(a) de MKT Place</FormLabel>
-                            <FormControl>
-                              <select
-                                className="input-apple"
-                                value={field.value || ''}
-                                onChange={(e) => handleManagerSelect(
-                                  'assigned_mktplace',
-                                  e.target.value,
-                                  mktplaceCounts,
-                                  mktplaceConsultants,
-                                  MANAGER_LIMITS.consultor_mktplace,
-                                  field.onChange,
-                                )}
-                              >
-                                <option value="">Selecione o Consultor(a) de MKT Place</option>
-                                {mktplaceLoading ? (
-                                  <option value="" disabled>Carregando...</option>
-                                ) : mktplaceConsultants.length === 0 ? (
-                                  <option value="" disabled>Nenhum consultor encontrado</option>
-                                ) : (
-                                  mktplaceConsultants.map((consultant) => (
-                                    <option key={consultant.user_id} value={consultant.user_id}>
-                                      {consultant.name} — {mktplaceCounts[consultant.user_id] || 0}/{MANAGER_LIMITS.consultor_mktplace}
-                                    </option>
-                                  ))
-                                )}
-                              </select>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
+                      <>
+                        <FormField
+                          control={form.control}
+                          name="has_mktplace_consulting"
+                          render={({ field }) => (
+                            <FormItem className="md:col-span-2">
+                              <FormLabel>Vai haver consultoria de MKT Place para este cliente?</FormLabel>
+                              <FormControl>
+                                <div className="flex gap-2">
+                                  {(['sim', 'nao'] as const).map((opt) => (
+                                    <button
+                                      key={opt}
+                                      type="button"
+                                      onClick={() => field.onChange(opt)}
+                                      className={cn(
+                                        'input-apple flex-1 capitalize transition-colors',
+                                        field.value === opt
+                                          ? 'border-primary bg-primary/10 text-foreground'
+                                          : 'text-muted-foreground hover:text-foreground'
+                                      )}
+                                    >
+                                      {opt === 'sim' ? 'Sim' : 'Não'}
+                                    </button>
+                                  ))}
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        {watchedConsulting === 'sim' && (
+                          <FormField
+                            control={form.control}
+                            name="assigned_mktplace"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Consultor(a) de MKT Place</FormLabel>
+                                <FormControl>
+                                  <select
+                                    className="input-apple"
+                                    value={field.value || ''}
+                                    onChange={(e) => handleManagerSelect(
+                                      'assigned_mktplace',
+                                      e.target.value,
+                                      mktplaceCounts,
+                                      mktplaceConsultants,
+                                      MANAGER_LIMITS.consultor_mktplace,
+                                      field.onChange,
+                                    )}
+                                  >
+                                    <option value="">Selecione o Consultor(a) de MKT Place</option>
+                                    {mktplaceLoading ? (
+                                      <option value="" disabled>Carregando...</option>
+                                    ) : mktplaceConsultants.length === 0 ? (
+                                      <option value="" disabled>Nenhum consultor encontrado</option>
+                                    ) : (
+                                      mktplaceConsultants.map((consultant) => (
+                                        <option key={consultant.user_id} value={consultant.user_id}>
+                                          {consultant.name} — {mktplaceCounts[consultant.user_id] || 0}/{MANAGER_LIMITS.consultor_mktplace}
+                                        </option>
+                                      ))
+                                    )}
+                                  </select>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
                         )}
-                      />
+                      </>
                     )}
 
                     {/* Gestor de CRM (Torque CRM) */}
