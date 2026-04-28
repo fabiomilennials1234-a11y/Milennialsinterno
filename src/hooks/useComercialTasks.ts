@@ -9,6 +9,8 @@ import { useActionJustification } from '@/contexts/JustificationContext';
 
 // Paddock step progression maps (mirrored from useComercialAutomation)
 const PADDOCK_TASK_TO_STEP: Record<string, string> = {
+  [PADDOCK_AUTO_TASK_TYPES.MARCAR_ALINHAMENTO_INICIAL]: 'alinhamento_inicial_marcado',
+  [PADDOCK_AUTO_TASK_TYPES.REALIZAR_ALINHAMENTO_INICIAL]: 'alinhamento_inicial_realizado',
   [PADDOCK_AUTO_TASK_TYPES.MARCAR_WAR1]: 'war1_marcada',
   [PADDOCK_AUTO_TASK_TYPES.REALIZAR_WAR1]: 'diagnostico_crm_criado',
   [PADDOCK_AUTO_TASK_TYPES.ENVIAR_DIAGNOSTICO_COMERCIAL]: 'diagnostico_crm_enviado',
@@ -28,6 +30,8 @@ interface PaddockTaskTemplate {
 }
 
 const PADDOCK_STEP_TASKS: Record<string, PaddockTaskTemplate[]> = {
+  alinhamento_inicial_marcado: [{ taskType: PADDOCK_AUTO_TASK_TYPES.REALIZAR_ALINHAMENTO_INICIAL, titleFn: (n) => `Realizar alinhamento comercial ${n}`, deadlineDays: 1 }],
+  alinhamento_inicial_realizado: [{ taskType: PADDOCK_AUTO_TASK_TYPES.MARCAR_WAR1, titleFn: (n) => `Marcar War #1 ${n}`, deadlineDays: 3 }],
   war1_marcada: [{ taskType: PADDOCK_AUTO_TASK_TYPES.REALIZAR_WAR1, titleFn: (n) => `Realizar War #1 ${n}`, deadlineDays: 3 }],
   diagnostico_crm_criado: [{ taskType: PADDOCK_AUTO_TASK_TYPES.ENVIAR_DIAGNOSTICO_COMERCIAL, titleFn: (n) => `Enviar diagnóstico Comercial ${n}`, deadlineDays: 1 }],
   diagnostico_crm_enviado: [{ taskType: PADDOCK_AUTO_TASK_TYPES.GERAR_TAREFA_CRM, titleFn: (n) => `Gerar tarefa de implementação para Gestor de CRM ${n}`, deadlineDays: 1 }],
@@ -288,8 +292,8 @@ export function useUpdateComercialTaskStatus() {
           // Standard paddock progression
           let nextStep: string | undefined;
 
-          if (task.auto_task_type === PADDOCK_AUTO_TASK_TYPES.MARCAR_WAR1) {
-            nextStep = 'war1_marcada';
+          if (task.auto_task_type === PADDOCK_AUTO_TASK_TYPES.MARCAR_ALINHAMENTO_INICIAL) {
+            nextStep = 'alinhamento_inicial_marcado';
             await supabase
               .from('clients')
               .update({

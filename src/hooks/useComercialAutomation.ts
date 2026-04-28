@@ -21,6 +21,8 @@ export const AUTO_TASK_TYPES = {
 // ============================================================
 
 export const PADDOCK_AUTO_TASK_TYPES = {
+  MARCAR_ALINHAMENTO_INICIAL: 'marcar_alinhamento_inicial',
+  REALIZAR_ALINHAMENTO_INICIAL: 'realizar_alinhamento_inicial',
   MARCAR_WAR1: 'marcar_war1',
   REALIZAR_WAR1: 'realizar_war1',
   ENVIAR_DIAGNOSTICO_COMERCIAL: 'enviar_diagnostico_comercial',
@@ -34,6 +36,8 @@ export const PADDOCK_AUTO_TASK_TYPES = {
 };
 
 export const PADDOCK_STEPS = [
+  'alinhamento_inicial_marcado',
+  'alinhamento_inicial_realizado',
   'war1_marcada',
   'diagnostico_crm_criado',
   'diagnostico_crm_enviado',
@@ -48,19 +52,23 @@ export const PADDOCK_STEPS = [
 export type PaddockStep = typeof PADDOCK_STEPS[number];
 
 export const PADDOCK_STEP_LABELS: Record<PaddockStep, string> = {
-  war1_marcada: '[ 1 ] War #1 Marcada',
-  diagnostico_crm_criado: '[ 2 ] Diagnóstico Comercial Gerado',
-  diagnostico_crm_enviado: '[ 3 ] Diagnóstico comercial Enviado',
-  tarefa_gestor_crm_gerada: '[ 4 ] Tarefa Gestor de CRM gerada',
-  crm_solicitado: '[ 5 ] CRM solicitado',
-  war2_marcada: '[ 6 ] War #2 Marcada',
-  gerar_novo_diagnostico: '[ 7 ] Gerar novo Diagnóstico comercial',
-  marcar_war3: '[ 8 ] Marcar War #3',
-  war3_marcada: '[ 9 ] War #3 marcada',
+  alinhamento_inicial_marcado: '[ 1 ] Alinhamento inicial cliente marcado',
+  alinhamento_inicial_realizado: '[ 2 ] Alinhamento inicial realizado',
+  war1_marcada: '[ 3 ] War #1 Marcada',
+  diagnostico_crm_criado: '[ 4 ] Diagnóstico Comercial Gerado',
+  diagnostico_crm_enviado: '[ 5 ] Diagnóstico comercial Enviado',
+  tarefa_gestor_crm_gerada: '[ 6 ] Tarefa Gestor de CRM gerada',
+  crm_solicitado: '[ 7 ] CRM solicitado',
+  war2_marcada: '[ 8 ] War #2 Marcada',
+  gerar_novo_diagnostico: '[ 9 ] Gerar novo Diagnóstico comercial',
+  marcar_war3: '[ 10 ] Marcar War #3',
+  war3_marcada: '[ 11 ] War #3 marcada',
 };
 
 // Maps: when a task of type X completes → move client to step Y
 const TASK_TO_STEP: Record<string, PaddockStep | 'acompanhamento'> = {
+  [PADDOCK_AUTO_TASK_TYPES.MARCAR_ALINHAMENTO_INICIAL]: 'alinhamento_inicial_marcado',
+  [PADDOCK_AUTO_TASK_TYPES.REALIZAR_ALINHAMENTO_INICIAL]: 'alinhamento_inicial_realizado',
   [PADDOCK_AUTO_TASK_TYPES.MARCAR_WAR1]: 'war1_marcada',
   [PADDOCK_AUTO_TASK_TYPES.REALIZAR_WAR1]: 'diagnostico_crm_criado',
   [PADDOCK_AUTO_TASK_TYPES.ENVIAR_DIAGNOSTICO_COMERCIAL]: 'diagnostico_crm_enviado',
@@ -82,6 +90,16 @@ interface TaskTemplate {
 }
 
 const STEP_TASKS: Record<string, TaskTemplate[]> = {
+  alinhamento_inicial_marcado: [{
+    taskType: PADDOCK_AUTO_TASK_TYPES.REALIZAR_ALINHAMENTO_INICIAL,
+    titleFn: (n) => `Realizar alinhamento comercial ${n}`,
+    deadlineDays: 1,
+  }],
+  alinhamento_inicial_realizado: [{
+    taskType: PADDOCK_AUTO_TASK_TYPES.MARCAR_WAR1,
+    titleFn: (n) => `Marcar War #1 ${n}`,
+    deadlineDays: 3,
+  }],
   war1_marcada: [{
     taskType: PADDOCK_AUTO_TASK_TYPES.REALIZAR_WAR1,
     titleFn: (n) => `Realizar War #1 ${n}`,
@@ -315,9 +333,9 @@ export function useCompleteComercialTaskWithAutomation() {
         // Normal flow: determine next step from task type
         let nextStep: PaddockStep | 'acompanhamento' | undefined;
 
-        if (actualTaskType === PADDOCK_AUTO_TASK_TYPES.MARCAR_WAR1) {
+        if (actualTaskType === PADDOCK_AUTO_TASK_TYPES.MARCAR_ALINHAMENTO_INICIAL) {
           // Entry from novo → onboarding_paddock
-          nextStep = 'war1_marcada';
+          nextStep = 'alinhamento_inicial_marcado';
           await supabase
             .from('clients')
             .update({
@@ -548,7 +566,7 @@ export function useCheckComercialDelays() {
 }
 
 // ============================================================
-// Hook to auto-create "Marcar War #1" for new clients
+// Hook to auto-create "Marcar alinhamento inicial" for new clients
 // ============================================================
 export function useAutoCreateTasksForNewClients() {
   const { user } = useAuth();
@@ -574,7 +592,7 @@ export function useAutoCreateTasksForNewClients() {
             .from('comercial_tasks')
             .select('id')
             .eq('related_client_id', client.id)
-            .eq('auto_task_type', PADDOCK_AUTO_TASK_TYPES.MARCAR_WAR1)
+            .eq('auto_task_type', PADDOCK_AUTO_TASK_TYPES.MARCAR_ALINHAMENTO_INICIAL)
             .neq('status', 'done')
             .limit(1);
 
@@ -584,8 +602,8 @@ export function useAutoCreateTasksForNewClients() {
           }
 
           const template: TaskTemplate = {
-            taskType: PADDOCK_AUTO_TASK_TYPES.MARCAR_WAR1,
-            titleFn: (n) => `Marcar War #1 ${n}`,
+            taskType: PADDOCK_AUTO_TASK_TYPES.MARCAR_ALINHAMENTO_INICIAL,
+            titleFn: (n) => `Marcar alinhamento inicial ${n}`,
             deadlineDays: 1,
           };
           await createPaddockTask(user.id, client.id, template, client.razao_social || client.name);
