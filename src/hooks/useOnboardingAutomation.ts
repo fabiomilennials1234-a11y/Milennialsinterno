@@ -89,7 +89,7 @@ const ADVANCING_TASK_DEFINITIONS = {
     tasksGroup: 'post_configurar_conta',
   },
   certificar_consultoria_realizada: {
-    title: 'Certificar consultoria realizada',
+    title: 'Confirmar se toda a produção está pronta',
     description: 'Verificar se a consultoria comercial do cliente já foi realizada.',
     dueDays: 2,
     milestone: 5,
@@ -189,7 +189,7 @@ const POST_BRIFAR_OTIMIZACOES_TASKS = [
 const POST_CONFIGURAR_CONTA_TASKS = [
   {
     taskType: 'certificar_consultoria_realizada',
-    titleTemplate: 'Certificar que a consultoria comercial do(a) {clientName} já foi realizada',
+    titleTemplate: 'Confirmar se toda a produção está pronta {clientName}',
     description: 'Verificar se a consultoria comercial do cliente já foi realizada.',
     dueDays: 2,
     milestone: 5,

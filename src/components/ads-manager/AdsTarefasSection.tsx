@@ -64,8 +64,8 @@ const STEP_LABELS: Record<string, string> = {
   'brifar_criativos':        'Brifar Criativos',
   'elencar_otimizacoes':     'Elencar Otimizações',
   'configurar_conta_anuncios': 'Configurar Conta de Anúncios',
-  'certificando_consultoria':'Certificar Consultoria',
-  'esperando_criativos':     'Esperando Criativos',
+  'certificando_consultoria':'Confirmar se toda a produção está pronta',
+  'esperando_criativos':     'Publicar campanha',
   'acompanhamento':          'Acompanhamento',
 };
 

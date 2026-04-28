@@ -82,8 +82,8 @@ const MILESTONE_CARDS: Record<number, MilestoneCard[]> = {
   ],
   5: [
     { id: 'm5-1', title: 'Configurar Conta de Anúncios', stepKey: 'configurar_conta_anuncios' },
-    { id: 'm5-2', title: 'Certificando se a Consultoria já foi Realizada', stepKey: 'certificando_consultoria' },
-    { id: 'm5-3', title: 'Esperando Criativos', stepKey: 'esperando_criativos' },
+    { id: 'm5-2', title: 'Confirmar se toda a produção está pronta', stepKey: 'certificando_consultoria' },
+    { id: 'm5-3', title: 'Publicar campanha', stepKey: 'esperando_criativos' },
   ],
 };
 
