@@ -613,10 +613,28 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
 
   // -------- Derived --------
 
-  const personColumns = columns.filter(
-    c => c.title.startsWith('BY ') && !c.title.startsWith('JUSTIFICATIVA')
-  );
-  const justificationColumns = columns.filter(c => c.title.startsWith('JUSTIFICATIVA ('));
+  // Set de nomes (uppercase) das pessoas ATIVAS no role do board.
+  // Usado para filtrar colunas BY-* / JUSTIFICATIVA (*) cujo dono nao
+  // existe mais em public.profiles + user_roles. Sem isso, colunas
+  // orfas de users removidos continuam visiveis indefinidamente.
+  const activePersonNames = useMemo(() => {
+    return new Set(persons.map(p => p.name.toUpperCase()));
+  }, [persons]);
+
+  const personColumns = columns.filter(c => {
+    if (!c.title.startsWith('BY ')) return false;
+    if (c.title.startsWith('JUSTIFICATIVA')) return false;
+    const personName = c.title.replace(/^BY\s+/, '').trim();
+    return activePersonNames.has(personName);
+  });
+
+  const justificationColumns = columns.filter(c => {
+    if (!c.title.startsWith('JUSTIFICATIVA (')) return false;
+    const match = c.title.match(/^JUSTIFICATIVA\s*\(([^)]+)\)/);
+    const personName = match ? match[1].trim() : '';
+    return activePersonNames.has(personName);
+  });
+
   const personColumnsForModal = personColumns.map(c => ({ id: c.id, title: c.title }));
 
   const cardsByColumnAndStatus = useMemo(() => {

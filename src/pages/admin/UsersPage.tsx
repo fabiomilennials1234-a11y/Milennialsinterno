@@ -203,6 +203,7 @@ export default function UsersPage() {
     is_coringa: boolean;
     additional_pages: string[];
     can_access_mtech: boolean;
+    is_admin_override: boolean;
   }>, newPassword?: string) => {
     try {
       await updateUser.mutateAsync({

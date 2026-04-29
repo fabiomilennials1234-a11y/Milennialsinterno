@@ -22,6 +22,7 @@ interface EditUserModalProps {
     is_coringa: boolean;
     additional_pages: string[];
     can_access_mtech: boolean;
+    is_admin_override: boolean;
   }>, newPassword?: string) => void;
   isLoading?: boolean;
 }
@@ -62,6 +63,7 @@ export default function EditUserModal({ isOpen, user, onClose, onSubmit, isLoadi
     category_id: '',
     is_coringa: false,
     can_access_mtech: false,
+    is_admin_override: false,
   });
   const [additionalPages, setAdditionalPages] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -87,6 +89,7 @@ export default function EditUserModal({ isOpen, user, onClose, onSubmit, isLoadi
         category_id: user.category_id || '',
         is_coringa: user.is_coringa || false,
         can_access_mtech: user.can_access_mtech === true,
+        is_admin_override: user.is_admin_override === true,
       });
       setAdditionalPages(user.additional_pages || []);
     }
@@ -160,11 +163,13 @@ export default function EditUserModal({ isOpen, user, onClose, onSubmit, isLoadi
       is_coringa: boolean;
       additional_pages: string[];
       can_access_mtech: boolean;
+      is_admin_override: boolean;
     }> = {
       name: formData.name,
       email: formData.email,
       additional_pages: additionalPages,
       can_access_mtech: effectiveMtechAccess,
+      is_admin_override: formData.is_admin_override,
     };
 
     // Só inclui role se não for CEO
@@ -208,6 +213,7 @@ export default function EditUserModal({ isOpen, user, onClose, onSubmit, isLoadi
       category_id: '',
       is_coringa: false,
       can_access_mtech: false,
+      is_admin_override: false,
     });
     setAdditionalPages([]);
     setErrors({});
@@ -608,6 +614,48 @@ export default function EditUserModal({ isOpen, user, onClose, onSubmit, isLoadi
               </div>
             </label>
           </div>
+
+          {/* Permissões totais (igual CEO) */}
+          {!isCEO && (
+            <div className="space-y-2 pt-4 border-t border-border">
+              <label className="block text-sm font-medium text-foreground">
+                Permissões avançadas
+              </label>
+              <label
+                className={cn(
+                  'flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors',
+                  formData.is_admin_override
+                    ? 'bg-warning/10 border-warning/40'
+                    : 'bg-muted/30 border-border hover:bg-muted/50',
+                )}
+              >
+                <input
+                  type="checkbox"
+                  className="mt-1 h-4 w-4 rounded border-border text-warning focus:ring-warning/30"
+                  checked={formData.is_admin_override}
+                  disabled={isLoading}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, is_admin_override: e.target.checked }))
+                  }
+                />
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm font-medium text-foreground">
+                    Conceder permissões totais (igual CEO)
+                  </span>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Marca este usuário com bypass de admin: vê e opera tudo no sistema —
+                    todas as páginas, todos os kanbans, todos os clientes, todas as ações.
+                    Equivalente a CEO/CTO/Gestor de Projetos sem alterar o cargo.
+                  </p>
+                  {formData.is_admin_override && (
+                    <p className="text-xs text-warning font-medium mt-2">
+                      ⚠ Permissão sensível. Conceda apenas para usuários de confiança total.
+                    </p>
+                  )}
+                </div>
+              </label>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex items-center justify-end gap-3 pt-4">
