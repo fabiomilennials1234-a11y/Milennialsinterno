@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/auth';
 import * as tus from 'tus-js-client';
 import { upsertKanbanBriefing } from '@/lib/kanbanBriefingOperations';
