@@ -2,6 +2,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import {
+  archiveKanbanCard,
+  createKanbanCard,
+  deleteKanbanCard,
+  moveKanbanCard,
+} from '@/lib/kanbanCardOperations';
 
 export interface KanbanBoard {
   id: string;
@@ -55,6 +61,11 @@ export interface KanbanCard {
     client_label: string | null;
   } | null;
 }
+
+type KanbanCardRow = Omit<KanbanCard, 'priority' | 'assignee' | 'client'> & {
+  priority: string | null;
+  client?: KanbanCard['client'];
+};
 
 // Fetch single board by slug
 export function useBoard(slug: string) {
@@ -144,7 +155,10 @@ export function useBoardCards(boardId: string | undefined) {
       if (!cards) return [];
 
       // Fetch assignee profiles
-      const assigneeIds = [...new Set(cards.filter((c: any) => c.assigned_to).map((c: any) => c.assigned_to))];
+      const rawCards = cards as KanbanCardRow[];
+      const assigneeIds = [
+        ...new Set(rawCards.map((card) => card.assigned_to).filter((id): id is string => Boolean(id))),
+      ];
       
       let profiles: Record<string, { id: string; name: string; avatar: string | null }> = {};
       
@@ -162,7 +176,7 @@ export function useBoardCards(boardId: string | undefined) {
         }
       }
 
-      return (cards as any[]).map((card) => ({
+      return rawCards.map((card) => ({
         ...card,
         priority: card.priority as 'low' | 'medium' | 'high' | 'urgent',
         assignee: card.assigned_to ? profiles[card.assigned_to] || null : null,
@@ -203,7 +217,6 @@ export function useBoardCards(boardId: string | undefined) {
 // Create card mutation
 export function useCreateCard() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (data: {
@@ -216,49 +229,22 @@ export function useCreateCard() {
       assigned_to?: string;
       tags?: string[];
       status?: string;
+      client_id?: string | null;
+      card_type?: string | null;
     }) => {
-      // Get max position in column
-      const { data: existingCards } = await supabase
-        .from('kanban_cards')
-        .select('position')
-        .eq('column_id', data.column_id)
-        .order('position', { ascending: false })
-        .limit(1);
-
-      const maxPosition = existingCards?.[0]?.position ?? -1;
-
-      const { data: card, error } = await supabase
-        .from('kanban_cards')
-        .insert({
-          ...data,
-          position: maxPosition + 1,
-          created_by: user?.id,
-          progress: 0,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // Log activity with column info
-      if (card && user) {
-        // Fetch the column name for "Para" info
-        const { data: columnData } = await supabase
-          .from('kanban_columns')
-          .select('title')
-          .eq('id', data.column_id)
-          .single();
-
-        await supabase.from('card_activities').insert({
-          card_id: card.id,
-          user_id: user.id,
-          action: 'created',
-          details: { 
-            title: data.title,
-            to: columnData?.title || 'Coluna'
-          },
-        });
-      }
+      const card = await createKanbanCard({
+        boardId: data.board_id,
+        columnId: data.column_id,
+        title: data.title,
+        description: data.description ?? null,
+        priority: data.priority ?? 'medium',
+        dueDate: data.due_date ?? null,
+        assignedTo: data.assigned_to ?? null,
+        tags: data.tags ?? null,
+        status: data.status ?? null,
+        cardType: data.card_type ?? null,
+        clientId: data.client_id ?? null,
+      });
 
       return card;
     },
@@ -316,7 +302,6 @@ export function useUpdateCard() {
 // Uses optimistic updates for instant UI feedback
 export function useMoveCard() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({
@@ -336,86 +321,12 @@ export function useMoveCard() {
       sourceStatus?: string;
       destinationStatus?: string;
     }) => {
-      // Build update object
-      const updateData: { column_id: string; position: number; status?: string } = {
-        column_id: destinationColumnId,
-        position: newPosition,
-      };
-
-      // If destination status is provided, update status as well
-      if (destinationStatus) {
-        updateData.status = destinationStatus;
-      }
-
-      // Update card's column, position and optionally status
-      const { error } = await supabase
-        .from('kanban_cards')
-        .update(updateData)
-        .eq('id', cardId);
-
-      if (error) throw error;
-
-      // Reorder other cards in destination column with same status
-      const query = supabase
-        .from('kanban_cards')
-        .select('id, position')
-        .eq('column_id', destinationColumnId)
-        .neq('id', cardId)
-        .order('position', { ascending: true });
-
-      // If working with statuses, only reorder cards with same status
-      if (destinationStatus) {
-        query.eq('status', destinationStatus);
-      }
-
-      const { data: cardsInColumn } = await query;
-
-      if (cardsInColumn) {
-        for (let i = 0; i < cardsInColumn.length; i++) {
-          const card = cardsInColumn[i];
-          const expectedPosition = i >= newPosition ? i + 1 : i;
-          if (card.position !== expectedPosition) {
-            await supabase
-              .from('kanban_cards')
-              .update({ position: expectedPosition })
-              .eq('id', card.id);
-          }
-        }
-      }
-
-      // Log activity if column or status changed
-      const columnChanged = sourceColumnId !== destinationColumnId;
-      const statusChanged = sourceStatus && destinationStatus && sourceStatus !== destinationStatus;
-
-      if ((columnChanged || statusChanged) && user) {
-        const details: Record<string, string | undefined> = {};
-
-        if (columnChanged) {
-          const { data: columns } = await supabase
-            .from('kanban_columns')
-            .select('id, title')
-            .in('id', [sourceColumnId, destinationColumnId]);
-
-          const sourceCol = columns?.find(c => c.id === sourceColumnId);
-          const destCol = columns?.find(c => c.id === destinationColumnId);
-          details.from_column = sourceCol?.title;
-          details.to_column = destCol?.title;
-        }
-
-        if (statusChanged) {
-          details.from_status = sourceStatus;
-          details.to_status = destinationStatus;
-        }
-
-        await supabase.from('card_activities').insert({
-          card_id: cardId,
-          user_id: user.id,
-          action: 'moved',
-          details,
-        });
-      }
-
-      return { success: true };
+      return moveKanbanCard({
+        cardId,
+        destinationColumnId,
+        newPosition,
+        destinationStatus: destinationStatus ?? null,
+      });
     },
     // Optimistic update - instantly update UI before server responds
     onMutate: async (variables) => {
@@ -465,12 +376,7 @@ export function useDeleteCard() {
 
   return useMutation({
     mutationFn: async ({ cardId, boardId }: { cardId: string; boardId: string }) => {
-      const { error } = await supabase
-        .from('kanban_cards')
-        .delete()
-        .eq('id', cardId);
-
-      if (error) throw error;
+      await deleteKanbanCard(cardId);
       return { success: true };
     },
     onSuccess: (_, variables) => {
@@ -483,30 +389,10 @@ export function useDeleteCard() {
 // Archive card mutation
 export function useArchiveCard() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({ cardId, boardId }: { cardId: string; boardId: string }) => {
-      const { error } = await supabase
-        .from('kanban_cards')
-        .update({ 
-          archived: true, 
-          archived_at: new Date().toISOString() 
-        })
-        .eq('id', cardId);
-
-      if (error) throw error;
-
-      // Log activity
-      if (user) {
-        await supabase.from('card_activities').insert({
-          card_id: cardId,
-          user_id: user.id,
-          action: 'archived',
-          details: { archived_at: new Date().toISOString() },
-        });
-      }
-
+      await archiveKanbanCard(cardId);
       return { success: true };
     },
     onSuccess: (_, variables) => {

@@ -3,7 +3,6 @@ import { useRef, useEffect, useState } from 'react';
 import MainLayout from '@/layouts/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { AdsManagerProvider } from '@/contexts/AdsManagerContext';
-import { Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Calendar, FileText, CheckSquare, Users, AlertCircle, UserPlus, Flag, Wrench, Gift, Quote, ChevronLeft, ChevronRight, UserX } from 'lucide-react';
@@ -23,7 +22,6 @@ import AdsLemasSection from '@/components/ads-manager/AdsLemasSection';
 import AdsChurnSection from '@/components/ads-manager/AdsChurnSection';
 import AdsMovimentacaoNotification from '@/components/ads-manager/AdsMovimentacaoNotification';
 import AdsTaskDelayModal from '@/components/AdsTaskDelayModal';
-import { getRolesAllowedForPath } from '@/types/auth';
 
 // Cores vibrantes para cada seção - Ordem definida pelo usuário
 const COLUMNS = [{
@@ -106,11 +104,7 @@ export default function AdsManagerIndividualPage() {
   } = useParams<{
     userId: string;
   }>();
-  const {
-    user,
-    isCEO,
-    isAdminUser
-  } = useAuth();
+  const { user } = useAuth();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -147,12 +141,6 @@ export default function AdsManagerIndividualPage() {
     }
   }, []);
 
-  // Access control: CEO, Admin, or the manager themselves
-  const allowedRoles = getRolesAllowedForPath('/gestor-ads');
-  const canAccess = user?.role && allowedRoles.includes(user.role);
-  if (!canAccess && !isCEO && !isAdminUser) {
-    return <Navigate to="/" replace />;
-  }
   const scroll = (direction: 'left' | 'right') => {
     const container = scrollContainerRef.current;
     if (container) {

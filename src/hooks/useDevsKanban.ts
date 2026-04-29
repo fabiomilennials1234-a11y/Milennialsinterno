@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/auth';
+import { upsertKanbanBriefing } from '@/lib/kanbanBriefingOperations';
 
 // ============================================
 // TYPES
@@ -34,42 +34,6 @@ export const DEV_BOARD_VIEWERS: UserRole[] = [
   'devs',
 ];
 
-// Quem pode CRIAR cards
-export const DEV_CARD_CREATORS: UserRole[] = [
-  'ceo',
-  'gestor_projetos',
-  'gestor_ads',
-  'devs',
-  'sucesso_cliente',
-];
-
-// Quem pode ARQUIVAR e EXCLUIR cards
-export const DEV_CARD_ARCHIVERS: UserRole[] = [
-  'ceo',
-  'gestor_projetos',
-  'gestor_ads',
-  'devs',
-  'sucesso_cliente',
-];
-
-// Quem pode MOVER cards (drag and drop)
-export const DEV_CARD_MOVERS: UserRole[] = [
-  'ceo',
-  'gestor_projetos',
-  'gestor_ads',
-  'devs',
-  'sucesso_cliente',
-];
-
-// Quem pode EDITAR briefing
-export const DEV_BRIEFING_EDITORS: UserRole[] = [
-  'ceo',
-  'gestor_projetos',
-  'gestor_ads',
-  'devs',
-  'sucesso_cliente',
-];
-
 // ============================================
 // PERMISSION HELPERS
 // ============================================
@@ -77,26 +41,6 @@ export const DEV_BRIEFING_EDITORS: UserRole[] = [
 export function canViewDevBoard(role: UserRole | null): boolean {
   if (!role) return false;
   return DEV_BOARD_VIEWERS.includes(role);
-}
-
-export function canCreateDevCard(role: UserRole | null): boolean {
-  if (!role) return false;
-  return DEV_CARD_CREATORS.includes(role);
-}
-
-export function canArchiveDevCard(role: UserRole | null): boolean {
-  if (!role) return false;
-  return DEV_CARD_ARCHIVERS.includes(role);
-}
-
-export function canMoveDevCard(role: UserRole | null): boolean {
-  if (!role) return false;
-  return DEV_CARD_MOVERS.includes(role);
-}
-
-export function canEditDevBriefing(role: UserRole | null): boolean {
-  if (!role) return false;
-  return DEV_BRIEFING_EDITORS.includes(role);
 }
 
 // ============================================
@@ -144,7 +88,6 @@ export function useDevBriefing(cardId: string | undefined) {
 
 export function useUpsertDevBriefing() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({
@@ -154,39 +97,7 @@ export function useUpsertDevBriefing() {
       cardId: string;
       briefing: Partial<Omit<DevBriefing, 'id' | 'card_id' | 'created_at' | 'updated_at'>>;
     }) => {
-      // Check if briefing exists
-      const { data: existing } = await supabase
-        .from('dev_briefings')
-        .select('id')
-        .eq('card_id', cardId)
-        .maybeSingle();
-
-      if (existing) {
-        // Update
-        const { data, error } = await supabase
-          .from('dev_briefings')
-          .update(briefing)
-          .eq('card_id', cardId)
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data;
-      } else {
-        // Insert
-        const { data, error } = await supabase
-          .from('dev_briefings')
-          .insert({
-            card_id: cardId,
-            ...briefing,
-            created_by: user?.id,
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data;
-      }
+      return upsertKanbanBriefing<DevBriefing>(cardId, 'dev', briefing);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['dev-briefing', variables.cardId] });

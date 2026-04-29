@@ -3,7 +3,6 @@ import { useRef, useEffect, useState } from 'react';
 import MainLayout from '@/layouts/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { OutboundManagerProvider } from '@/contexts/OutboundManagerContext';
-import { Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Calendar, FileText, CheckSquare, Users, AlertCircle, UserPlus, Flag, Wrench, Gift, Quote, ChevronLeft, ChevronRight, UserX } from 'lucide-react';
@@ -20,7 +19,6 @@ import OutboundBonusSection from '@/components/outbound-manager/OutboundBonusSec
 import OutboundLemasSection from '@/components/outbound-manager/OutboundLemasSection';
 import OutboundChurnSection from '@/components/outbound-manager/OutboundChurnSection';
 import OutboundMovimentacaoNotification from '@/components/outbound-manager/OutboundMovimentacaoNotification';
-import { getRolesAllowedForPath } from '@/types/auth';
 
 const COLUMNS = [{
   id: 'reunioes',
@@ -100,7 +98,7 @@ const ONBOARDING_SECTION = {
 
 export default function OutboundManagerIndividualPage() {
   const { userId } = useParams<{ userId: string }>();
-  const { user, isCEO, isAdminUser } = useAuth();
+  const { user } = useAuth();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -136,12 +134,6 @@ export default function OutboundManagerIndividualPage() {
       return () => container.removeEventListener('scroll', checkScrollButtons);
     }
   }, []);
-
-  const allowedRoles = getRolesAllowedForPath('/millennials-outbound');
-  const canAccess = user?.role && allowedRoles.includes(user.role);
-  if (!canAccess && !isCEO && !isAdminUser) {
-    return <Navigate to="/" replace />;
-  }
 
   const scroll = (direction: 'left' | 'right') => {
     const container = scrollContainerRef.current;

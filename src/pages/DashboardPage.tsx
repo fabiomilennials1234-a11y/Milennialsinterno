@@ -1,4 +1,4 @@
-import { Navigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import MainLayout from '@/layouts/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { ROLE_LABELS } from '@/types/auth';
@@ -36,14 +36,9 @@ const getStatusLabel = (status: string): string => {
 const metricAccents = ['info', 'success', 'primary', 'danger'] as const;
 
 export default function DashboardPage() {
-  const { user, isAdminUser } = useAuth();
+  const { user } = useAuth();
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: users = [], isLoading: usersLoading } = useUsers();
-
-  // Dash Master é exclusivo para CEO e Gestor de Projetos
-  if (!isAdminUser) {
-    return <Navigate to="/" replace />;
-  }
 
   if (statsLoading) {
     return (

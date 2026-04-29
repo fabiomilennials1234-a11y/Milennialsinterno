@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 import { UserRole, getRolesWithPageSlug } from '@/types/auth';
+import { upsertKanbanBriefing } from '@/lib/kanbanBriefingOperations';
 
 // ============================================
 // TYPES
@@ -28,42 +28,6 @@ export interface VideoBriefing {
 // Derivado da matriz: união dos roles que declaram pageSlug 'editor-video' + execs.
 export const VIDEO_BOARD_VIEWERS: UserRole[] = getRolesWithPageSlug('editor-video');
 
-// Quem pode CRIAR cards (mesmas permissões do Design)
-export const VIDEO_CARD_CREATORS: UserRole[] = [
-  'ceo',
-  'gestor_projetos',
-  'gestor_ads',
-  'editor_video',
-  'sucesso_cliente',
-];
-
-// Quem pode ARQUIVAR e EXCLUIR cards
-export const VIDEO_CARD_ARCHIVERS: UserRole[] = [
-  'ceo',
-  'gestor_projetos',
-  'gestor_ads',
-  'editor_video',
-  'sucesso_cliente',
-];
-
-// Quem pode MOVER cards (drag and drop)
-export const VIDEO_CARD_MOVERS: UserRole[] = [
-  'ceo',
-  'gestor_projetos',
-  'gestor_ads',
-  'editor_video',
-  'sucesso_cliente',
-];
-
-// Quem pode EDITAR briefing
-export const VIDEO_BRIEFING_EDITORS: UserRole[] = [
-  'ceo',
-  'gestor_projetos',
-  'gestor_ads',
-  'editor_video',
-  'sucesso_cliente',
-];
-
 // ============================================
 // PERMISSION HELPERS
 // ============================================
@@ -71,26 +35,6 @@ export const VIDEO_BRIEFING_EDITORS: UserRole[] = [
 export function canViewVideoBoard(role: UserRole | null): boolean {
   if (!role) return false;
   return VIDEO_BOARD_VIEWERS.includes(role);
-}
-
-export function canCreateVideoCard(role: UserRole | null): boolean {
-  if (!role) return false;
-  return VIDEO_CARD_CREATORS.includes(role);
-}
-
-export function canArchiveVideoCard(role: UserRole | null): boolean {
-  if (!role) return false;
-  return VIDEO_CARD_ARCHIVERS.includes(role);
-}
-
-export function canMoveVideoCard(role: UserRole | null): boolean {
-  if (!role) return false;
-  return VIDEO_CARD_MOVERS.includes(role);
-}
-
-export function canEditVideoBriefing(role: UserRole | null): boolean {
-  if (!role) return false;
-  return VIDEO_BRIEFING_EDITORS.includes(role);
 }
 
 // ============================================
@@ -138,7 +82,6 @@ export function useVideoBriefing(cardId: string | undefined) {
 
 export function useUpsertVideoBriefing() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({
@@ -148,39 +91,7 @@ export function useUpsertVideoBriefing() {
       cardId: string;
       briefing: Partial<Omit<VideoBriefing, 'id' | 'card_id' | 'created_at' | 'updated_at'>>;
     }) => {
-      // Check if briefing exists
-      const { data: existing } = await supabase
-        .from('video_briefings')
-        .select('id')
-        .eq('card_id', cardId)
-        .maybeSingle();
-
-      if (existing) {
-        // Update
-        const { data, error } = await supabase
-          .from('video_briefings')
-          .update(briefing)
-          .eq('card_id', cardId)
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data;
-      } else {
-        // Insert
-        const { data, error } = await supabase
-          .from('video_briefings')
-          .insert({
-            card_id: cardId,
-            ...briefing,
-            created_by: user?.id,
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data;
-      }
+      return upsertKanbanBriefing<VideoBriefing>(cardId, 'video', briefing);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['video-briefing', variables.cardId] });

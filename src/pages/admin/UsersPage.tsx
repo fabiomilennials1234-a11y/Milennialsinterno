@@ -17,6 +17,48 @@ import { useUsers, useCreateUser, useUpdateUser, useDeleteUser, DbUser } from '@
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
+import { buildEffectivePageGrantSets } from '@/lib/pageGrantSync';
+
+async function reconcileGrantSource(
+  userId: string,
+  pageSlugs: string[],
+  source: 'role_default' | 'direct',
+  reason: string,
+) {
+  const { error } = await (supabase as any).rpc('reconcile_page_grants', {
+    _user_id: userId,
+    _page_slugs: pageSlugs,
+    _source: source,
+    _reason: reason,
+  });
+
+  if (error) throw error;
+}
+
+async function syncUserPageGrants({
+  userId,
+  role,
+  additionalPages,
+  canAccessMtech,
+  reason,
+}: {
+  userId: string;
+  role: UserRole;
+  additionalPages?: string[];
+  canAccessMtech?: boolean;
+  reason: string;
+}) {
+  if (!FEATURE_FLAGS.USE_PAGE_GRANTS) return;
+
+  const grants = buildEffectivePageGrantSets({
+    role,
+    additionalPages,
+    canAccessMtech,
+  });
+
+  await reconcileGrantSource(userId, grants.roleDefaultPages, 'role_default', reason);
+  await reconcileGrantSource(userId, grants.directPages, 'direct', reason);
+}
 
 export default function UsersPage() {
   const { user: currentUser, isAdminUser, isCEO, canManageUsersFlag, userGroupId, userSquadId } = useAuth();
@@ -45,6 +87,21 @@ export default function UsersPage() {
         old?.map((u) => (u.user_id === row.user_id ? { ...u, can_access_mtech: prev } : u)) ?? old
       );
       toast.error('Falha ao atualizar acesso Milennials Tech');
+      return;
+    }
+
+    try {
+      await syncUserPageGrants({
+        userId: row.user_id,
+        role: row.role,
+        additionalPages: row.additional_pages,
+        canAccessMtech: !prev,
+        reason: 'mtech toggle via UI',
+      });
+    } catch (grantError) {
+      toast.warning('Acesso Milennials Tech atualizado, mas a sincronização de páginas falhou.', {
+        description: grantError instanceof Error ? grantError.message : 'Verifique user_page_grants.',
+      });
     }
   };
 
@@ -104,21 +161,22 @@ export default function UsersPage() {
         can_access_mtech: newUser.can_access_mtech,
       });
 
-      // Dual-write: popula user_page_grants em paralelo. O grant é idempotente
-      // (ON CONFLICT) e source='direct' reflete escolha manual do admin no modal.
-      if (FEATURE_FLAGS.USE_PAGE_GRANTS && newUser.additional_pages?.length) {
-        const newUserId = response?.user?.id as string | undefined;
+      // Dual-write de cutover: sincroniza defaults do cargo + extras + mtech.
+      // O reconcile também revoga páginas removidas quando o modal editar depois.
+      if (FEATURE_FLAGS.USE_PAGE_GRANTS) {
+        const newUserId = (response?.user?.id ?? response?.user_id) as string | undefined;
         if (newUserId) {
-          const { error } = await supabase.rpc('grant_pages', {
-            _user_id: newUserId,
-            _page_slugs: newUser.additional_pages,
-            _source: 'direct',
-            _reason: 'created via UI',
-          });
-          if (error) {
-            console.error('[grant_pages] create failed', error);
-            toast.warning('Usuário criado, mas gravação em user_page_grants falhou.', {
-              description: error.message,
+          try {
+            await syncUserPageGrants({
+              userId: newUserId,
+              role: newUser.role,
+              additionalPages: newUser.additional_pages ?? [],
+              canAccessMtech: newUser.can_access_mtech === true,
+              reason: 'created via UI',
+            });
+          } catch (grantError) {
+            toast.warning('Usuário criado, mas a sincronização de páginas falhou.', {
+              description: grantError instanceof Error ? grantError.message : 'Verifique user_page_grants.',
             });
           }
         }
@@ -153,28 +211,23 @@ export default function UsersPage() {
         password: newPassword,
       });
 
-      // Dual-write: mesma ideia do handleCreateUser. Só aplica quando o admin
-      // explicitamente passou additional_pages na edição (o modal sempre passa,
-      // mesmo que vazio — então additional_pages === [] reflete "nenhum extra").
-      //
-      // Gap conhecido: não revoga grants que o admin removeu do array. Um cenário
-      // de parity total exige um reconcile dedicado (planejado pro cutover).
-      if (
-        FEATURE_FLAGS.USE_PAGE_GRANTS &&
-        updates.additional_pages &&
-        updates.additional_pages.length > 0
-      ) {
-        const { error } = await supabase.rpc('grant_pages', {
-          _user_id: userId,
-          _page_slugs: updates.additional_pages,
-          _source: 'direct',
-          _reason: 'updated via UI',
-        });
-        if (error) {
-          console.error('[grant_pages] update failed', error);
-          toast.warning('Usuário atualizado, mas gravação em user_page_grants falhou.', {
-            description: error.message,
-          });
+      if (FEATURE_FLAGS.USE_PAGE_GRANTS) {
+        const current = users.find((u) => u.user_id === userId);
+        const role = updates.role ?? current?.role;
+        if (role) {
+          try {
+            await syncUserPageGrants({
+              userId,
+              role,
+              additionalPages: updates.additional_pages ?? current?.additional_pages ?? [],
+              canAccessMtech: updates.can_access_mtech ?? current?.can_access_mtech ?? false,
+              reason: 'updated via UI',
+            });
+          } catch (grantError) {
+            toast.warning('Usuário atualizado, mas a sincronização de páginas falhou.', {
+              description: grantError instanceof Error ? grantError.message : 'Verifique user_page_grants.',
+            });
+          }
         }
       }
 

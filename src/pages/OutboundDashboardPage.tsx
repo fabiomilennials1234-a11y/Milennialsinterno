@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import MainLayout from '@/layouts/MainLayout';
-import { useAuth } from '@/contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import {
   Users,
@@ -21,7 +19,6 @@ import {
 } from 'lucide-react';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
 import { useOutboundDashboard } from '@/hooks/useOutboundDashboard';
-import { getRolesAllowedForPath } from '@/types/auth';
 import {
   BarChart,
   Bar,
@@ -176,15 +173,7 @@ function SectionHeader({ title, icon: Icon, color = 'primary' }: { title: string
 // --- Main Page ---
 
 export default function OutboundDashboardPage() {
-  const { user, isCEO, isAdminUser } = useAuth();
   const [selectedManagerId, setSelectedManagerId] = useState<string | null>(null);
-
-  const allowedRoles = getRolesAllowedForPath('/millennials-outbound');
-  const canAccess = user?.role && allowedRoles.includes(user.role);
-
-  if (!canAccess && !isCEO && !isAdminUser) {
-    return <Navigate to="/" replace />;
-  }
 
   const { data, isLoading } = useOutboundDashboard(selectedManagerId);
 

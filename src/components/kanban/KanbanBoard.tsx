@@ -1,16 +1,15 @@
 import { useState, useCallback, useMemo } from 'react';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
-import { useAuth } from '@/contexts/AuthContext';
 import { Plus, Loader2, Command } from 'lucide-react';
 import { useColumnCollapse } from '@/hooks/useColumnCollapse';
 import { useKanbanKeyboard } from '@/hooks/useKanbanKeyboard';
 import KanbanFilters, { applyKanbanFilter, type KanbanFilter } from './KanbanFilters';
 import KanbanQuickSearch from './KanbanQuickSearch';
 import type { GenericCardInput } from '@/types/kanbanInput';
-import { 
-  useBoard, 
-  useBoardColumns, 
-  useBoardCards, 
+import {
+  useBoard,
+  useBoardColumns,
+  useBoardCards,
   useMoveCard,
   useCreateCard,
   useDeleteCard,
@@ -30,18 +29,9 @@ import AtrizesKanbanBoard from '@/components/atrizes/AtrizesKanbanBoard';
 import ProdutoraKanbanBoard from '@/components/produtora/ProdutoraKanbanBoard';
 import { toast } from 'sonner';
 import { useAddJustification } from '@/hooks/useTaskJustification';
-import { 
-  canCreateDesignCard, 
-  canMoveDesignCard, 
-  canArchiveDesignCard,
-  useUpsertBriefing 
-} from '@/hooks/useDesignKanban';
-import {
-  canCreateVideoCard,
-  canMoveVideoCard,
-  canArchiveVideoCard,
-  useUpsertVideoBriefing,
-} from '@/hooks/useVideoKanban';
+import { useKanbanActionPermissions } from '@/hooks/useKanbanActionPermissions';
+import { useUpsertBriefing } from '@/hooks/useDesignKanban';
+import { useUpsertVideoBriefing } from '@/hooks/useVideoKanban';
 
 interface KanbanBoardProps {
   boardSlug: string;
@@ -67,8 +57,6 @@ export default function KanbanBoard({ boardSlug }: KanbanBoardProps) {
 }
 
 function StandardKanbanBoard({ boardSlug }: KanbanBoardProps) {
-  const { canMoveFreely, user } = useAuth();
-  const userRole = user?.role || null;
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedColumnId, setSelectedColumnId] = useState<string | null>(null);
   const [selectedCard, setSelectedCard] = useState<KanbanCard | null>(null);
@@ -98,21 +86,10 @@ function StandardKanbanBoard({ boardSlug }: KanbanBoardProps) {
     return columns.filter(col => col.title.toUpperCase().startsWith('BY '));
   }, [columns]);
 
-  const canCreateCard = isDesignBoard 
-    ? canCreateDesignCard(userRole) 
-    : isVideoBoard 
-      ? canCreateVideoCard(userRole) 
-      : canMoveFreely;
-  const canMove = isDesignBoard 
-    ? canMoveDesignCard(userRole) 
-    : isVideoBoard 
-      ? canMoveVideoCard(userRole) 
-      : canMoveFreely;
-  const canDelete = isDesignBoard 
-    ? canArchiveDesignCard(userRole) 
-    : isVideoBoard 
-      ? canArchiveVideoCard(userRole) 
-      : canMoveFreely;
+  const actionPermissions = useKanbanActionPermissions(board?.id);
+  const canCreateCard = actionPermissions.permissions.canCreate;
+  const canMove = actionPermissions.permissions.canMove;
+  const canDelete = actionPermissions.permissions.canDelete || actionPermissions.permissions.canArchive;
 
   const [filter, setFilter] = useState<KanbanFilter>('all');
   const [focusModeOn, setFocusModeOn] = useState(false);
@@ -206,6 +183,10 @@ function StandardKanbanBoard({ boardSlug }: KanbanBoardProps) {
   }, [canMove, board, moveCard, isSpecialBoard]);
 
   const handleCreateCard = async (data: GenericCardInput) => {
+    if (!canCreateCard) {
+      toast.error('Sem permissão', { description: 'Você não tem permissão para criar cards.' });
+      return;
+    }
     const columnId = data.column_id || selectedColumnId;
     if (!board || !columnId) return;
 
@@ -244,6 +225,10 @@ function StandardKanbanBoard({ boardSlug }: KanbanBoardProps) {
   };
 
   const handleDeleteCard = async (card?: KanbanCard) => {
+    if (!canDelete) {
+      toast.error('Sem permissão', { description: 'Você não tem permissão para excluir cards.' });
+      return;
+    }
     const cardToDelete = card || selectedCard;
     if (!cardToDelete || !board) return;
     try {
@@ -259,6 +244,10 @@ function StandardKanbanBoard({ boardSlug }: KanbanBoardProps) {
   };
 
   const handleArchiveCard = async (card?: KanbanCard) => {
+    if (!canDelete) {
+      toast.error('Sem permissão', { description: 'Você não tem permissão para arquivar cards.' });
+      return;
+    }
     const cardToArchive = card || selectedCard;
     if (!cardToArchive || !board) return;
     try {

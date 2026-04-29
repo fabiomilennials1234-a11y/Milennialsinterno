@@ -1,7 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
 import MainLayout from '@/layouts/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
 import { 
   UserPlus, 
   CheckSquare, 
@@ -36,7 +35,6 @@ import AdsFerramentasSection from '@/components/ads-manager/AdsFerramentasSectio
 import AdsBonusSection from '@/components/ads-manager/AdsBonusSection';
 import AdsLemasSection from '@/components/ads-manager/AdsLemasSection';
 import { useDailyMovementDelayCheck } from '@/hooks/useDailyMovementDelayCheck';
-import { getRolesAllowedForPath } from '@/types/auth';
 
 // Colunas do Consultor Comercial
 const COLUMNS = [
@@ -53,7 +51,7 @@ const COLUMNS = [
 ];
 
 export default function ConsultorComercialPage() {
-  const { user, isCEO, isAdminUser } = useAuth();
+  const { user } = useAuth();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -78,13 +76,6 @@ export default function ConsultorComercialPage() {
       return () => container.removeEventListener('scroll', checkScrollButtons);
     }
   }, []);
-
-  const allowedRoles = getRolesAllowedForPath('/consultor-comercial');
-  const canAccess = user?.role && allowedRoles.includes(user.role);
-  
-  if (!canAccess && !isCEO && !isAdminUser) {
-    return <Navigate to="/" replace />;
-  }
 
   const scroll = (direction: 'left' | 'right') => {
     const container = scrollContainerRef.current;

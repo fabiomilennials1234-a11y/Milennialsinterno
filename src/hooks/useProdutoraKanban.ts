@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/auth';
+import { upsertKanbanBriefing } from '@/lib/kanbanBriefingOperations';
 
 // ============================================
 // TYPES
@@ -33,44 +33,6 @@ export const PRODUTORA_BOARD_VIEWERS: UserRole[] = [
   'editor_video',
 ];
 
-// Quem pode CRIAR cards
-export const PRODUTORA_CARD_CREATORS: UserRole[] = [
-  'ceo',
-  'gestor_projetos',
-  'gestor_ads',
-  'produtora',
-  'sucesso_cliente',
-  'editor_video',
-];
-
-// Quem pode ARQUIVAR e EXCLUIR cards
-export const PRODUTORA_CARD_ARCHIVERS: UserRole[] = [
-  'ceo',
-  'gestor_projetos',
-  'gestor_ads',
-  'produtora',
-  'sucesso_cliente',
-];
-
-// Quem pode MOVER cards (drag and drop)
-export const PRODUTORA_CARD_MOVERS: UserRole[] = [
-  'ceo',
-  'gestor_projetos',
-  'gestor_ads',
-  'produtora',
-  'sucesso_cliente',
-  'editor_video',
-];
-
-// Quem pode EDITAR briefing
-export const PRODUTORA_BRIEFING_EDITORS: UserRole[] = [
-  'ceo',
-  'gestor_projetos',
-  'gestor_ads',
-  'produtora',
-  'sucesso_cliente',
-];
-
 // ============================================
 // PERMISSION HELPERS
 // ============================================
@@ -78,26 +40,6 @@ export const PRODUTORA_BRIEFING_EDITORS: UserRole[] = [
 export function canViewProdutoraBoard(role: UserRole | null): boolean {
   if (!role) return false;
   return PRODUTORA_BOARD_VIEWERS.includes(role);
-}
-
-export function canCreateProdutoraCard(role: UserRole | null): boolean {
-  if (!role) return false;
-  return PRODUTORA_CARD_CREATORS.includes(role);
-}
-
-export function canArchiveProdutoraCard(role: UserRole | null): boolean {
-  if (!role) return false;
-  return PRODUTORA_CARD_ARCHIVERS.includes(role);
-}
-
-export function canMoveProdutoraCard(role: UserRole | null): boolean {
-  if (!role) return false;
-  return PRODUTORA_CARD_MOVERS.includes(role);
-}
-
-export function canEditProdutoraBriefing(role: UserRole | null): boolean {
-  if (!role) return false;
-  return PRODUTORA_BRIEFING_EDITORS.includes(role);
 }
 
 // ============================================
@@ -145,7 +87,6 @@ export function useProdutoraBriefing(cardId: string | undefined) {
 
 export function useUpsertProdutoraBriefing() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({
@@ -155,39 +96,7 @@ export function useUpsertProdutoraBriefing() {
       cardId: string;
       briefing: Partial<Omit<ProdutoraBriefing, 'id' | 'card_id' | 'created_at' | 'updated_at'>>;
     }) => {
-      // Check if briefing exists
-      const { data: existing } = await supabase
-        .from('produtora_briefings')
-        .select('id')
-        .eq('card_id', cardId)
-        .maybeSingle();
-
-      if (existing) {
-        // Update
-        const { data, error } = await supabase
-          .from('produtora_briefings')
-          .update(briefing)
-          .eq('card_id', cardId)
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data;
-      } else {
-        // Insert
-        const { data, error } = await supabase
-          .from('produtora_briefings')
-          .insert({
-            card_id: cardId,
-            ...briefing,
-            created_by: user?.id,
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data;
-      }
+      return upsertKanbanBriefing<ProdutoraBriefing>(cardId, 'produtora', briefing);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['produtora-briefing', variables.cardId] });

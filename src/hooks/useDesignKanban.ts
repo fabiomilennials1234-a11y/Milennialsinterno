@@ -1,8 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/auth';
 import * as tus from 'tus-js-client';
+import { upsertKanbanBriefing } from '@/lib/kanbanBriefingOperations';
+import {
+  createKanbanCardAttachment,
+  deleteKanbanCardAttachment,
+} from '@/lib/kanbanAttachmentOperations';
+
+declare global {
+  interface Window {
+    __SUPABASE_URL__?: string;
+  }
+}
 
 // ============================================
 // TYPES
@@ -59,42 +69,6 @@ export const DESIGN_BOARD_VIEWERS: UserRole[] = [
   'design',
 ];
 
-// Quem pode CRIAR cards
-export const DESIGN_CARD_CREATORS: UserRole[] = [
-  'ceo',
-  'gestor_projetos',
-  'gestor_ads',
-  'design',
-  'sucesso_cliente',
-];
-
-// Quem pode ARQUIVAR e EXCLUIR cards
-export const DESIGN_CARD_ARCHIVERS: UserRole[] = [
-  'ceo',
-  'gestor_projetos',
-  'gestor_ads',
-  'design',
-  'sucesso_cliente',
-];
-
-// Quem pode MOVER cards (drag and drop)
-export const DESIGN_CARD_MOVERS: UserRole[] = [
-  'ceo',
-  'gestor_projetos',
-  'gestor_ads',
-  'design',
-  'sucesso_cliente',
-];
-
-// Quem pode EDITAR briefing
-export const DESIGN_BRIEFING_EDITORS: UserRole[] = [
-  'ceo',
-  'gestor_projetos',
-  'gestor_ads',
-  'design',
-  'sucesso_cliente',
-];
-
 // ============================================
 // PERMISSION HELPERS
 // ============================================
@@ -102,26 +76,6 @@ export const DESIGN_BRIEFING_EDITORS: UserRole[] = [
 export function canViewDesignBoard(role: UserRole | null): boolean {
   if (!role) return false;
   return DESIGN_BOARD_VIEWERS.includes(role);
-}
-
-export function canCreateDesignCard(role: UserRole | null): boolean {
-  if (!role) return false;
-  return DESIGN_CARD_CREATORS.includes(role);
-}
-
-export function canArchiveDesignCard(role: UserRole | null): boolean {
-  if (!role) return false;
-  return DESIGN_CARD_ARCHIVERS.includes(role);
-}
-
-export function canMoveDesignCard(role: UserRole | null): boolean {
-  if (!role) return false;
-  return DESIGN_CARD_MOVERS.includes(role);
-}
-
-export function canEditDesignBriefing(role: UserRole | null): boolean {
-  if (!role) return false;
-  return DESIGN_BRIEFING_EDITORS.includes(role);
 }
 
 // ============================================
@@ -149,7 +103,6 @@ export function useBriefing(cardId: string | undefined) {
 
 export function useUpsertBriefing() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({
@@ -159,39 +112,7 @@ export function useUpsertBriefing() {
       cardId: string;
       briefing: Partial<Omit<DesignBriefing, 'id' | 'card_id' | 'created_at' | 'updated_at'>>;
     }) => {
-      // Check if briefing exists
-      const { data: existing } = await supabase
-        .from('design_briefings')
-        .select('id')
-        .eq('card_id', cardId)
-        .maybeSingle();
-
-      if (existing) {
-        // Update
-        const { data, error } = await supabase
-          .from('design_briefings')
-          .update(briefing)
-          .eq('card_id', cardId)
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data;
-      } else {
-        // Insert
-        const { data, error } = await supabase
-          .from('design_briefings')
-          .insert({
-            card_id: cardId,
-            ...briefing,
-            created_by: user?.id,
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data;
-      }
+      return upsertKanbanBriefing<DesignBriefing>(cardId, 'design', briefing);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['briefing', variables.cardId] });
@@ -325,8 +246,8 @@ function uploadWithTus(
   token: string,
   onProgress?: (percentage: number) => void,
 ): Promise<void> {
-  const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL
-    || (window as any).__SUPABASE_URL__
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+    || window.__SUPABASE_URL__
     || '';
 
   return new Promise((resolve, reject) => {
@@ -420,22 +341,13 @@ export function useUploadAttachment() {
         publicUrl = urlData.publicUrl;
       }
 
-      // Save to database (keep original filename for display)
-      const { data, error } = await supabase
-        .from('card_attachments')
-        .insert({
-          card_id: cardId,
-          file_name: file.name,
-          file_url: publicUrl,
-          file_type: file.type,
-          file_size: file.size,
-          created_by: user.id,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return createKanbanCardAttachment({
+        cardId,
+        fileName: file.name,
+        fileUrl: publicUrl,
+        fileType: file.type,
+        fileSize: file.size,
+      });
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['card-attachments', variables.cardId] });
@@ -457,13 +369,7 @@ export function useDeleteAttachment() {
       cardId: string;
       fileUrl: string;
     }) => {
-      // Delete from database
-      const { error } = await supabase
-        .from('card_attachments')
-        .delete()
-        .eq('id', attachmentId);
-
-      if (error) throw error;
+      await deleteKanbanCardAttachment(attachmentId);
 
       // Try to delete from storage
       try {

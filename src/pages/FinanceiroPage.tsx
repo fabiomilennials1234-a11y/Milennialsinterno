@@ -1,7 +1,6 @@
 import { useRef, useEffect, useState, Fragment } from 'react';
 import MainLayout from '@/layouts/MainLayout';
-import { useAuth } from '@/contexts/AuthContext';
-import { Navigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { 
   CheckSquare, Users, ChevronLeft, ChevronRight, Wrench, FileText, 
   AlertCircle, UserPlus, Timer, UserCheck, ExternalLink,
@@ -23,7 +22,6 @@ import FinanceiroContasSection from '@/components/financeiro/FinanceiroContasSec
 import FinanceiroDRESection from '@/components/financeiro/FinanceiroDRESection';
 import { FinanceiroComissoesSection } from '@/components/financeiro/FinanceiroComissoesSection';
 import FinanceiroTarefasKanban from '@/components/financeiro/FinanceiroTarefasKanban';
-import { getRolesAllowedForPath } from '@/types/auth';
 
 // Colunas do Kanban "Millennials Contratos"
 const CONTRATOS_COLUMNS = [
@@ -122,7 +120,6 @@ const CONTAS_COLUMNS = [
 ];
 
 export default function FinanceiroPage() {
-  const { user, isCEO, isAdminUser } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const contratosScrollRef = useRef<HTMLDivElement>(null);
   const contasScrollRef = useRef<HTMLDivElement>(null);
@@ -137,9 +134,6 @@ export default function FinanceiroPage() {
   
   const { data: clients = [], isLoading: clientsLoading } = useFinanceiroClients();
   
-  const allowedRoles = getRolesAllowedForPath('/financeiro');
-  const canAccess = user?.role && allowedRoles.includes(user.role);
-
   const checkScrollButtons = () => {
     const container = activeTab === 'contratos' ? contratosScrollRef.current : contasScrollRef.current;
     if (container) {
@@ -156,10 +150,6 @@ export default function FinanceiroPage() {
       return () => container.removeEventListener('scroll', checkScrollButtons);
     }
   }, [activeTab]);
-
-  if (!canAccess && !isCEO && !isAdminUser) {
-    return <Navigate to="/" replace />;
-  }
 
   const scroll = (direction: 'left' | 'right') => {
     const container = activeTab === 'contratos' ? contratosScrollRef.current : contasScrollRef.current;

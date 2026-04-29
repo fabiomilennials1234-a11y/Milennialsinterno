@@ -1,7 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Navigate } from 'react-router-dom';
 import MainLayout from '@/layouts/MainLayout';
-import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format, subMonths } from 'date-fns';
@@ -38,7 +36,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { getRolesAllowedForPath } from '@/types/auth';
 
 // Generate month options for filter
 const generateMonthOptions = () => {
@@ -64,7 +61,6 @@ const formatCurrency = (value: number) => {
 };
 
 export default function FinanceiroDashboardPage() {
-  const { user, isCEO, isAdminUser } = useAuth();
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
   const monthOptions = useMemo(() => generateMonthOptions(), []);
 
@@ -74,10 +70,6 @@ export default function FinanceiroDashboardPage() {
     const prevDate = new Date(year, month - 2, 1);
     return format(prevDate, 'yyyy-MM');
   }, [selectedMonth]);
-
-  // Verificar acesso
-  const allowedRoles = getRolesAllowedForPath('/financeiro');
-  const canAccess = user?.role && allowedRoles.includes(user.role);
 
   // Fetch financial data
   const { data: dashboardData, isLoading } = useQuery({
@@ -351,10 +343,6 @@ export default function FinanceiroDashboardPage() {
     },
     refetchInterval: 60000,
   });
-
-  if (!canAccess && !isCEO && !isAdminUser) {
-    return <Navigate to="/" replace />;
-  }
 
   if (isLoading || !dashboardData) {
     return (

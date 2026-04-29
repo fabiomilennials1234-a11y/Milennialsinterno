@@ -9,12 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import SpecializedKanbanBoard from '@/components/kanban/SpecializedKanbanBoard';
 import CreateAtrizesCardModal from '@/components/kanban/CreateAtrizesCardModal';
-import {
-  canCreateAtrizesCard,
-  canArchiveAtrizesCard,
-  canMoveAtrizesCard,
-  ATRIZES_STATUSES,
-} from '@/hooks/useAtrizesKanban';
+import { ATRIZES_STATUSES } from '@/hooks/useAtrizesKanban';
 import { useAtrizesCompletionNotifications } from '@/hooks/useAtrizesCompletionNotifications';
 
 // Hook local: busca criadores por cardId. Mesma assinatura dos outros boards
@@ -103,11 +98,6 @@ export default function AtrizesKanbanBoard() {
         personsRole: 'atrizes_gravacao',
         personsEmptyMessage:
           'Nenhuma atriz de gravação cadastrada. Crie um usuário com cargo "Atrizes de Gravação" para começar.',
-        permissions: {
-          canCreate: canCreateAtrizesCard,
-          canMove: canMoveAtrizesCard,
-          canArchive: canArchiveAtrizesCard,
-        },
         columnDotClass: 'bg-primary',
         useCardCreators: useAtrizesCardCreators,
         // Atrizes não tem delay/justification — opcional fica omisso.
@@ -118,6 +108,7 @@ export default function AtrizesKanbanBoard() {
         cardDetailFlags: {},
         briefing: {
           tableName: 'atrizes_briefings',
+          briefingType: 'atrizes',
           fields: ['client_instagram', 'script_url', 'drive_upload_url'],
           untyped: true,
         },

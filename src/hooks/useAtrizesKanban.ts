@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 import { UserRole, getRolesWithPageSlug } from '@/types/auth';
+import { upsertKanbanBriefing } from '@/lib/kanbanBriefingOperations';
 
 // ============================================
 // TYPES
@@ -26,42 +26,6 @@ export interface AtrizesBriefing {
 // Derivado da matriz: união dos roles que declaram pageSlug 'atrizes-gravacao' + execs.
 export const ATRIZES_BOARD_VIEWERS: UserRole[] = getRolesWithPageSlug('atrizes-gravacao');
 
-// Quem pode CRIAR cards
-export const ATRIZES_CARD_CREATORS: UserRole[] = [
-  'ceo',
-  'gestor_projetos',
-  'gestor_ads',
-  'atrizes_gravacao',
-  'sucesso_cliente',
-];
-
-// Quem pode ARQUIVAR e EXCLUIR cards
-export const ATRIZES_CARD_ARCHIVERS: UserRole[] = [
-  'ceo',
-  'gestor_projetos',
-  'gestor_ads',
-  'atrizes_gravacao',
-  'sucesso_cliente',
-];
-
-// Quem pode MOVER cards (drag and drop)
-export const ATRIZES_CARD_MOVERS: UserRole[] = [
-  'ceo',
-  'gestor_projetos',
-  'gestor_ads',
-  'atrizes_gravacao',
-  'sucesso_cliente',
-];
-
-// Quem pode EDITAR briefing
-export const ATRIZES_BRIEFING_EDITORS: UserRole[] = [
-  'ceo',
-  'gestor_projetos',
-  'gestor_ads',
-  'atrizes_gravacao',
-  'sucesso_cliente',
-];
-
 // ============================================
 // PERMISSION HELPERS
 // ============================================
@@ -69,26 +33,6 @@ export const ATRIZES_BRIEFING_EDITORS: UserRole[] = [
 export function canViewAtrizesBoard(role: UserRole | null): boolean {
   if (!role) return false;
   return ATRIZES_BOARD_VIEWERS.includes(role);
-}
-
-export function canCreateAtrizesCard(role: UserRole | null): boolean {
-  if (!role) return false;
-  return ATRIZES_CARD_CREATORS.includes(role);
-}
-
-export function canArchiveAtrizesCard(role: UserRole | null): boolean {
-  if (!role) return false;
-  return ATRIZES_CARD_ARCHIVERS.includes(role);
-}
-
-export function canMoveAtrizesCard(role: UserRole | null): boolean {
-  if (!role) return false;
-  return ATRIZES_CARD_MOVERS.includes(role);
-}
-
-export function canEditAtrizesBriefing(role: UserRole | null): boolean {
-  if (!role) return false;
-  return ATRIZES_BRIEFING_EDITORS.includes(role);
 }
 
 // ============================================
@@ -137,7 +81,6 @@ export function useAtrizesBriefing(cardId: string | undefined) {
 
 export function useUpsertAtrizesBriefing() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({
@@ -147,39 +90,7 @@ export function useUpsertAtrizesBriefing() {
       cardId: string;
       briefing: Partial<Omit<AtrizesBriefing, 'id' | 'card_id' | 'created_at' | 'updated_at'>>;
     }) => {
-      // Check if briefing exists
-      const { data: existing } = await supabase
-        .from('atrizes_briefings')
-        .select('id')
-        .eq('card_id', cardId)
-        .maybeSingle();
-
-      if (existing) {
-        // Update
-        const { data, error } = await supabase
-          .from('atrizes_briefings')
-          .update(briefing as any)
-          .eq('card_id', cardId)
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data as unknown as AtrizesBriefing;
-      } else {
-        // Insert
-        const { data, error } = await supabase
-          .from('atrizes_briefings')
-          .insert({
-            card_id: cardId,
-            ...briefing,
-            created_by: user?.id,
-          } as any)
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data as unknown as AtrizesBriefing;
-      }
+      return upsertKanbanBriefing<AtrizesBriefing>(cardId, 'atrizes', briefing);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['atrizes-briefing', variables.cardId] });

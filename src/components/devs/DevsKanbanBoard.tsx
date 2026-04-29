@@ -5,11 +5,6 @@ import SpecializedKanbanBoard from '@/components/kanban/SpecializedKanbanBoard';
 import CreateDevCardModal from '@/components/kanban/CreateDevCardModal';
 import DevsDelayModal from '@/components/devs/DevsDelayModal';
 import {
-  canCreateDevCard,
-  canArchiveDevCard,
-  canMoveDevCard,
-} from '@/hooks/useDevsKanban';
-import {
   useDevDelayedCards,
   useDevJustifications,
 } from '@/hooks/useDevsDelayNotifications';
@@ -38,11 +33,6 @@ export default function DevsKanbanBoard() {
         personsRole: 'devs',
         personsEmptyMessage:
           'Nenhum desenvolvedor cadastrado neste squad. Crie um usuário com cargo "Desenvolvedor" para começar.',
-        permissions: {
-          canCreate: canCreateDevCard,
-          canMove: canMoveDevCard,
-          canArchive: canArchiveDevCard,
-        },
         columnDotClass: 'bg-info',
         useCardCreators: useMultipleDevCardsCreators,
         delay: {

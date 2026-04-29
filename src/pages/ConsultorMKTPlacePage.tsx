@@ -1,7 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
 import MainLayout from '@/layouts/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
 import {
   UserPlus, CheckSquare, ChevronLeft, ChevronRight, Eye,
   Users, FileText, AlertCircle
@@ -18,7 +17,6 @@ import MktplaceAcompanhamentoSection from '@/components/mktplace/MktplaceAcompan
 import MktplaceDocumentacaoSection from '@/components/mktplace/MktplaceDocumentacaoSection';
 import ClientViewModal from '@/components/client/ClientViewModal';
 import { useCreateMktplaceInitialTask, isGestaoMktplace, useMktplaceProfiles } from '@/hooks/useMktplaceKanban';
-import { getRolesAllowedForPath } from '@/types/auth';
 
 const COLUMNS = [
   { id: 'novo-cliente', title: 'Novos Clientes', icon: UserPlus, headerClass: 'section-header-green', iconColor: 'text-white' },
@@ -36,7 +34,7 @@ function formatCurrency(value: number): string {
 // ==================== Novo Cliente Section (com olhinho) ====================
 
 function MktplaceNovoClienteSection() {
-  const { user, isCEO, isAdminUser } = useAuth();
+  const { user } = useAuth();
   const createInitialTask = useCreateMktplaceInitialTask();
   const { data: profiles = [] } = useMktplaceProfiles();
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
@@ -165,7 +163,7 @@ function MktplaceNovoClienteSection() {
 // ==================== Main Page ====================
 
 export default function ConsultorMKTPlacePage() {
-  const { user, isCEO, isAdminUser } = useAuth();
+  const { user } = useAuth();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -186,13 +184,6 @@ export default function ConsultorMKTPlacePage() {
       return () => container.removeEventListener('scroll', checkScrollButtons);
     }
   }, []);
-
-  const allowedRoles = getRolesAllowedForPath('/consultor-mktplace');
-  const canAccess = user?.role && allowedRoles.includes(user.role);
-
-  if (!canAccess && !isCEO && !isAdminUser) {
-    return <Navigate to="/" replace />;
-  }
 
   const renderColumnContent = (columnId: string) => {
     switch (columnId) {

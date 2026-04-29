@@ -4,12 +4,7 @@
 import SpecializedKanbanBoard from '@/components/kanban/SpecializedKanbanBoard';
 import CreateProdutoraCardModal from '@/components/produtora/CreateProdutoraCardModal';
 import ProdutoraDelayModal from '@/components/produtora/ProdutoraDelayModal';
-import {
-  canCreateProdutoraCard,
-  canArchiveProdutoraCard,
-  canMoveProdutoraCard,
-  PRODUTORA_STATUSES,
-} from '@/hooks/useProdutoraKanban';
+import { PRODUTORA_STATUSES } from '@/hooks/useProdutoraKanban';
 import {
   useProdutoraDelayedCards,
   useProdutoraJustifications,
@@ -31,11 +26,6 @@ export default function ProdutoraKanbanBoard() {
         personsRole: 'produtora',
         personsEmptyMessage:
           'Nenhum usuário produtora cadastrado. Crie um usuário com cargo "Produtora" para começar.',
-        permissions: {
-          canCreate: canCreateProdutoraCard,
-          canMove: canMoveProdutoraCard,
-          canArchive: canArchiveProdutoraCard,
-        },
         columnDotClass: 'bg-primary',
         useCardCreators: useMultipleProdutoraCardsCreators,
         delay: {
@@ -54,6 +44,7 @@ export default function ProdutoraKanbanBoard() {
         cardDetailFlags: { isProdutoraBoard: true },
         briefing: {
           tableName: 'produtora_briefings',
+          briefingType: 'produtora',
           fields: ['script_url', 'observations', 'reference_video_url'],
         },
         mapPriority: (p) => (p === 'urgent' ? 'urgent' : 'medium'),

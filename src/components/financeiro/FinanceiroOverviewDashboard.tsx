@@ -16,9 +16,10 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { useFinanceiroActiveClients } from '@/hooks/useFinanceiroActiveClients';
+import { useFinanceiroOverview } from '@/hooks/useFinanceiroOverview';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
@@ -113,118 +114,10 @@ function StatCard({
 }
 
 export default function FinanceiroOverviewDashboard() {
-  const { activeClients, stats, isLoading: isLoadingClients } = useFinanceiroActiveClients();
-  
-  const currentMonth = format(new Date(), 'yyyy-MM');
-  const lastMonth = format(subMonths(new Date(), 1), 'yyyy-MM');
+  const { stats, isLoading: isLoadingClients } = useFinanceiroActiveClients();
+  const { data: overview } = useFinanceiroOverview();
 
-  // Fetch contas a receber do mês atual
-  const { data: contasReceber = [] } = useQuery({
-    queryKey: ['financeiro-contas-receber', currentMonth],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('financeiro_contas_receber')
-        .select('*, client:clients(id, name)')
-        .eq('mes_referencia', currentMonth);
-      
-      if (error) throw error;
-      return data || [];
-    },
-  });
-
-  // Fetch contas a pagar do mês atual
-  const { data: contasPagar = [] } = useQuery({
-    queryKey: ['financeiro-contas-pagar', currentMonth],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('financeiro_contas_pagar')
-        .select('*')
-        .eq('mes_referencia', currentMonth);
-      
-      if (error) throw error;
-      return data || [];
-    },
-  });
-
-  // Fetch MRR changes do mês atual
-  const { data: mrrMetrics } = useQuery({
-    queryKey: ['financeiro-mrr-metrics', currentMonth],
-    queryFn: async () => {
-      const now = new Date();
-      const startOfMonthDate = startOfMonth(now);
-      const endOfMonthDate = endOfMonth(now);
-      const startDate = format(startOfMonthDate, 'yyyy-MM-dd');
-      const endDate = format(endOfMonthDate, 'yyyy-MM-dd');
-      const startISO = startOfMonthDate.toISOString();
-      const endISO = endOfMonthDate.toISOString();
-
-      const [{ data: changes }, { data: upsells }, { data: clients }] = await Promise.all([
-        supabase.from('mrr_changes').select('*').gte('effective_date', startDate).lte('effective_date', endDate),
-        supabase.from('upsells').select('client_id, monthly_value').gte('created_at', startISO).lte('created_at', endISO).neq('status', 'cancelled'),
-        supabase.from('clients').select('id, entry_date, created_at, archived').eq('archived', false),
-      ]);
-
-      // IDs de clientes novos neste mês
-      const newClientIds = new Set(
-        clients?.filter(c => {
-          const entryDate = c.entry_date ? new Date(c.entry_date) : new Date(c.created_at);
-          return entryDate >= startOfMonthDate && entryDate <= endOfMonthDate;
-        }).map(c => c.id) || []
-      );
-
-      const manualExpansion = (changes || [])
-        .filter((mc: any) => mc.change_type === 'expansion' && !newClientIds.has(mc.client_id))
-        .reduce((sum: number, mc: any) => sum + Number(mc.change_value || 0), 0);
-
-      const manualDepreciation = (changes || [])
-        .filter((mc: any) => mc.change_type === 'depreciation' && !newClientIds.has(mc.client_id))
-        .reduce((sum: number, mc: any) => sum + Number(mc.change_value || 0), 0);
-
-      const upsellExpansion = (upsells || [])
-        .filter((u: any) => !newClientIds.has(u.client_id))
-        .reduce((sum: number, u: any) => sum + Number(u.monthly_value || 0), 0);
-
-      return {
-        expansion: manualExpansion + upsellExpansion,
-        depreciation: manualDepreciation,
-      };
-    },
-  });
-
-  // Fetch contratos expirando (próximos 30 dias)
-  const { data: contratosExpirando = [] } = useQuery({
-    queryKey: ['financeiro-contratos-expirando-count'],
-    queryFn: async () => {
-      const today = new Date();
-      const in30Days = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
-      
-      const { data, error } = await supabase
-        .from('financeiro_active_clients')
-        .select('id, contract_expires_at')
-        .gte('contract_expires_at', today.toISOString())
-        .lte('contract_expires_at', in30Days.toISOString());
-      
-      if (error) throw error;
-      return data || [];
-    },
-  });
-
-  // Fetch distratos em andamento
-  const { data: distratosCount = 0 } = useQuery({
-    queryKey: ['financeiro-distratos-count'],
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from('clients')
-        .select('id', { count: 'exact', head: true })
-        .not('distrato_step', 'is', null)
-        .eq('archived', false);
-      
-      if (error) throw error;
-      return count || 0;
-    },
-  });
-
-  // Fetch onboarding clients
+  // Fetch onboarding clients (sem agregacao — lista pequena de IDs/steps).
   const { data: onboardingClients = [] } = useQuery({
     queryKey: ['financeiro-onboarding-clients'],
     queryFn: async () => {
@@ -232,39 +125,23 @@ export default function FinanceiroOverviewDashboard() {
         .from('financeiro_client_onboarding')
         .select('id, current_step')
         .neq('current_step', 'concluido');
-      
+
       if (error) throw error;
       return data || [];
     },
   });
 
-  // Calculate financial metrics
   const financialMetrics = useMemo(() => {
-    // Receitas
-    const totalRecebiveis = contasReceber.reduce((sum, c) => sum + Number(c.valor || 0), 0);
-    const recebidosMes = contasReceber
-      .filter(c => c.status === 'pago')
-      .reduce((sum, c) => sum + Number(c.valor || 0), 0);
-    const pendentesReceber = contasReceber
-      .filter(c => c.status === 'pendente' || c.status === 'em_dia')
-      .reduce((sum, c) => sum + Number(c.valor || 0), 0);
-    const inadimplentes = contasReceber
-      .filter(c => c.status === 'inadimplente')
-      .reduce((sum, c) => sum + Number(c.valor || 0), 0);
-
-    // Despesas
-    const totalDespesas = contasPagar.reduce((sum, c) => sum + Number(c.valor || 0), 0);
-    const despesasPagas = contasPagar
-      .filter(c => c.status === 'pago')
-      .reduce((sum, c) => sum + Number(c.valor || 0), 0);
-    const despesasPendentes = contasPagar
-      .filter(c => c.status === 'pendente')
-      .reduce((sum, c) => sum + Number(c.valor || 0), 0);
-
-    // Resultado
-    const resultado = recebidosMes - despesasPagas;
-    const taxaRecebimento = totalRecebiveis > 0 ? (recebidosMes / totalRecebiveis) * 100 : 0;
-    const taxaPagamento = totalDespesas > 0 ? (despesasPagas / totalDespesas) * 100 : 0;
+    const totalRecebiveis    = overview?.contasReceber.total ?? 0;
+    const recebidosMes       = overview?.contasReceber.recebidos ?? 0;
+    const pendentesReceber   = overview?.contasReceber.pendentes ?? 0;
+    const inadimplentes      = overview?.contasReceber.inadimplentes ?? 0;
+    const totalDespesas      = overview?.contasPagar.total ?? 0;
+    const despesasPagas      = overview?.contasPagar.pagas ?? 0;
+    const despesasPendentes  = overview?.contasPagar.pendentes ?? 0;
+    const resultado          = recebidosMes - despesasPagas;
+    const taxaRecebimento    = totalRecebiveis > 0 ? (recebidosMes / totalRecebiveis) * 100 : 0;
+    const taxaPagamento      = totalDespesas > 0 ? (despesasPagas / totalDespesas) * 100 : 0;
 
     return {
       totalRecebiveis,
@@ -278,7 +155,11 @@ export default function FinanceiroOverviewDashboard() {
       taxaRecebimento,
       taxaPagamento,
     };
-  }, [contasReceber, contasPagar]);
+  }, [overview]);
+
+  const mrrMetrics = overview?.mrr;
+  const contratosExpirandoCount = overview?.contratosExpirando ?? 0;
+  const distratosCount = overview?.distratos ?? 0;
 
   if (isLoadingClients) {
     return (
@@ -386,24 +267,24 @@ export default function FinanceiroOverviewDashboard() {
           {/* Contratos Expirando */}
           <div className={cn(
             'flex items-center justify-between p-2.5 rounded-lg border',
-            contratosExpirando.length > 0 
+            contratosExpirandoCount > 0 
               ? 'bg-warning/5 border-warning/10' 
               : 'bg-muted/30 border-border'
           )}>
             <div className="flex items-center gap-2">
               <div className={cn(
                 'w-6 h-6 rounded-full flex items-center justify-center',
-                contratosExpirando.length > 0 ? 'bg-warning/20' : 'bg-muted'
+                contratosExpirandoCount > 0 ? 'bg-warning/20' : 'bg-muted'
               )}>
-                <FileText size={12} className={contratosExpirando.length > 0 ? 'text-warning' : 'text-muted-foreground'} />
+                <FileText size={12} className={contratosExpirandoCount > 0 ? 'text-warning' : 'text-muted-foreground'} />
               </div>
               <span className="text-xs font-medium">Contratos Expirando</span>
             </div>
             <span className={cn(
               'text-sm font-bold',
-              contratosExpirando.length > 0 ? 'text-warning' : 'text-muted-foreground'
+              contratosExpirandoCount > 0 ? 'text-warning' : 'text-muted-foreground'
             )}>
-              {contratosExpirando.length}
+              {contratosExpirandoCount}
             </span>
           </div>
 

@@ -1,19 +1,7 @@
 import MainLayout from '@/layouts/MainLayout';
-import { useAuth } from '@/contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
-import { canViewVideoBoard } from '@/hooks/useVideoKanban';
 import VideoKanbanBoard from '@/components/video/VideoKanbanBoard';
 
 export default function EditorVideoPage() {
-  const { user, isCEO, isAdminUser } = useAuth();
-
-  // Check if user can access this page
-  const canAccess = canViewVideoBoard(user?.role || null) || isCEO || isAdminUser;
-  
-  if (!canAccess) {
-    return <Navigate to="/" replace />;
-  }
-
   return (
     <MainLayout>
       <div className="h-full flex flex-col overflow-hidden bg-background">

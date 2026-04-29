@@ -2,7 +2,6 @@ import { useRef, useEffect, useState } from 'react';
 import MainLayout from '@/layouts/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { AdsManagerProvider } from '@/contexts/AdsManagerContext';
-import { Navigate } from 'react-router-dom';
 import { 
   Calendar, 
   FileText, 
@@ -35,7 +34,6 @@ import AdsChurnSection from '@/components/ads-manager/AdsChurnSection';
 import AdsMovimentacaoNotification from '@/components/ads-manager/AdsMovimentacaoNotification';
 import { useDailyMovementDelayCheck } from '@/hooks/useDailyMovementDelayCheck';
 import { useResultsReportAutomation } from '@/hooks/useResultsReportAutomation';
-import { getRolesAllowedForPath } from '@/types/auth';
 
 // Cores vibrantes para cada seção - Ordem definida pelo usuário
 const COLUMNS = [
@@ -55,7 +53,7 @@ const COLUMNS = [
 const ONBOARDING_SECTION = { id: 'onboarding', title: 'Onboarding', icon: Flag, headerClass: 'section-header-yellow', iconColor: 'text-foreground' };
 
 export default function AdsManagerPage() {
-  const { user, isCEO, isAdminUser } = useAuth();
+  const { user } = useAuth();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -81,13 +79,6 @@ export default function AdsManagerPage() {
       return () => container.removeEventListener('scroll', checkScrollButtons);
     }
   }, []);
-
-  const allowedRoles = getRolesAllowedForPath('/gestor-ads');
-  const canAccess = user?.role && allowedRoles.includes(user.role);
-  
-  if (!canAccess && !isCEO && !isAdminUser) {
-    return <Navigate to="/" replace />;
-  }
 
   const scroll = (direction: 'left' | 'right') => {
     const container = scrollContainerRef.current;

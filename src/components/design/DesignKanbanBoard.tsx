@@ -5,11 +5,6 @@ import SpecializedKanbanBoard from '@/components/kanban/SpecializedKanbanBoard';
 import CreateDesignCardModal from '@/components/kanban/CreateDesignCardModal';
 import DesignDelayModal from '@/components/design/DesignDelayModal';
 import {
-  canCreateDesignCard,
-  canArchiveDesignCard,
-  canMoveDesignCard,
-} from '@/hooks/useDesignKanban';
-import {
   useDesignerDelayedCards,
   useDesignerJustifications,
 } from '@/hooks/useDesignDelayNotifications';
@@ -46,11 +41,6 @@ export default function DesignKanbanBoard() {
         personsRole: 'design',
         personsEmptyMessage:
           'Nenhum designer cadastrado neste squad. Crie um usuário com cargo "Designer" para começar.',
-        permissions: {
-          canCreate: canCreateDesignCard,
-          canMove: canMoveDesignCard,
-          canArchive: canArchiveDesignCard,
-        },
         columnDotClass: 'bg-primary',
         useCardCreators: useMultipleCardsCreators,
         delay: {
@@ -69,6 +59,7 @@ export default function DesignKanbanBoard() {
         cardDetailFlags: { isDesignBoard: true },
         briefing: {
           tableName: 'design_briefings',
+          briefingType: 'design',
           fields: [
             'description',
             'references_url',

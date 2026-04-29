@@ -19,39 +19,31 @@ import {
 import CardAttachmentsTab from '@/components/design/CardAttachmentsTab';
 import { cn } from '@/lib/utils';
 import { KanbanCard, useArchiveCard } from '@/hooks/useKanban';
-import { 
-  useBriefing, 
-  useUpsertBriefing, 
-  useCardComments, 
+import {
+  useBriefing,
+  useUpsertBriefing,
+  useCardComments,
   useAddComment,
   useCardAttachments,
   useUploadAttachment,
   useDeleteAttachment,
   useCardActivities,
-  canEditDesignBriefing,
-  canArchiveDesignCard
 } from '@/hooks/useDesignKanban';
 import {
   useVideoBriefing,
   useUpsertVideoBriefing,
-  canEditVideoBriefing,
-  canArchiveVideoCard,
   VIDEO_STATUS_LABELS,
 } from '@/hooks/useVideoKanban';
 import {
   useDevBriefing,
   useUpsertDevBriefing,
-  canEditDevBriefing,
-  canArchiveDevCard,
 } from '@/hooks/useDevsKanban';
 import {
   useProdutoraBriefing,
   useUpsertProdutoraBriefing,
-  canEditProdutoraBriefing,
-  canArchiveProdutoraCard,
   PRODUTORA_STATUS_LABELS,
 } from '@/hooks/useProdutoraKanban';
-import { useAuth } from '@/contexts/AuthContext';
+import { useKanbanActionPermissions } from '@/hooks/useKanbanActionPermissions';
 import { format, isPast, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -99,8 +91,6 @@ export default function CardDetailModal({
 }: CardDetailModalProps) {
   const isSpecialBoard = isDesignBoard || isVideoBoard || isDevBoard || isProdutoraBoard;
   const archiveCard = useArchiveCard();
-  const { user } = useAuth();
-  const userRole = user?.role || null;
   const [activeTab, setActiveTab] = useState<TabType>(isSpecialBoard ? 'briefing' : 'comments');
   const [newComment, setNewComment] = useState('');
   
@@ -201,24 +191,10 @@ export default function CardDetailModal({
   // Activities
   const { data: activities = [], isLoading: activitiesLoading } = useCardActivities(card.id);
 
-  const canEditBriefing = isDesignBoard 
-    ? canEditDesignBriefing(userRole) 
-    : isVideoBoard 
-      ? canEditVideoBriefing(userRole) 
-      : isDevBoard
-        ? canEditDevBriefing(userRole)
-        : isProdutoraBoard
-          ? canEditProdutoraBriefing(userRole)
-          : false;
-  const canDelete = isDesignBoard 
-    ? canArchiveDesignCard(userRole) 
-    : isVideoBoard 
-      ? canArchiveVideoCard(userRole) 
-      : isDevBoard
-        ? canArchiveDevCard(userRole)
-        : isProdutoraBoard
-          ? canArchiveProdutoraCard(userRole)
-          : false;
+  const actionPermissions = useKanbanActionPermissions(boardId);
+  const canEditBriefing = actionPermissions.permissions.canEditBriefing;
+  const canDelete =
+    actionPermissions.permissions.canArchive || actionPermissions.permissions.canDelete;
 
   const handleStartEditBriefing = () => {
     if (isDesignBoard) {

@@ -1,7 +1,5 @@
 import { useRef, useEffect, useState, useMemo } from 'react';
 import MainLayout from '@/layouts/MainLayout';
-import { useAuth } from '@/contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAdsManagers, useCSClientsByManager, useCSPermissions, CSClient } from '@/hooks/useSucessoCliente';
@@ -20,13 +18,7 @@ import CSPendenciaCXColumn from '@/components/sucesso-cliente/CSPendenciaCXColum
 import { useCXPendingClients } from '@/hooks/useCXValidation';
 import CrmDelayJustificationsSection from '@/components/gestor-crm/CrmDelayJustificationsSection';
 import ClientTagDelayJustificationsSection from '@/components/client-tags/ClientTagDelayJustificationsSection';
-import { getRolesAllowedForPath } from '@/types/auth';
 export default function SucessoClientePage() {
-  const {
-    user,
-    isCEO,
-    isAdminUser
-  } = useAuth();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -60,11 +52,6 @@ export default function SucessoClientePage() {
       setCxPopupDismissed(prev => new Set(prev).add(cxCurrentClient.id));
     }
   };
-
-  // Access control - must be after all hooks
-  const allowedRoles = getRolesAllowedForPath('/sucesso-cliente');
-  const canAccess = user?.role && allowedRoles.includes(user.role);
-  const shouldRedirect = !canAccess && !isCEO && !isAdminUser;
 
   // Helper to check if client is in churn/closed state
   const isClientClosed = (client: CSClient) => {
@@ -130,10 +117,6 @@ export default function SucessoClientePage() {
   };
   const isLoading = managersLoading || clientsLoading;
 
-  // Redirect check - after all hooks
-  if (shouldRedirect) {
-    return <Navigate to="/" replace />;
-  }
   return <MainLayout>
       <div className="h-full flex flex-col overflow-hidden bg-background">
         {/* Header */}

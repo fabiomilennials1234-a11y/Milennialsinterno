@@ -1,19 +1,7 @@
 import MainLayout from '@/layouts/MainLayout';
-import { useAuth } from '@/contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
-import { canViewAtrizesBoard } from '@/hooks/useAtrizesKanban';
 import AtrizesKanbanBoard from '@/components/atrizes/AtrizesKanbanBoard';
 
 export default function AtrizesGravacaoPage() {
-  const { user, isCEO, isAdminUser } = useAuth();
-
-  // Check if user can access this page
-  const canAccess = canViewAtrizesBoard(user?.role || null) || isCEO || isAdminUser;
-  
-  if (!canAccess) {
-    return <Navigate to="/" replace />;
-  }
-
   return (
     <MainLayout>
       <div className="h-full flex flex-col overflow-hidden bg-background">

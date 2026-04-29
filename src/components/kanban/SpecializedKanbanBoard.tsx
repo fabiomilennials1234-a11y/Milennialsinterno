@@ -23,6 +23,15 @@ import CardDetailModal from '@/components/kanban/CardDetailModal';
 import { KanbanCard } from '@/hooks/useKanban';
 import type { BaseCardInput, CardAttachmentInput } from '@/types/kanbanInput';
 import type { UserRole } from '@/types/auth';
+import { useKanbanActionPermissions } from '@/hooks/useKanbanActionPermissions';
+import {
+  archiveKanbanCard,
+  createKanbanCard,
+  deleteKanbanCard,
+  moveKanbanCard,
+} from '@/lib/kanbanCardOperations';
+import { upsertKanbanBriefing, type KanbanBriefingType } from '@/lib/kanbanBriefingOperations';
+import { createKanbanCardAttachment } from '@/lib/kanbanAttachmentOperations';
 
 // ---------- Types ----------
 
@@ -78,13 +87,6 @@ export interface SpecializedBoardConfig {
 
   // Statuses dentro de cada coluna
   statuses: readonly BoardStatus[];
-
-  // Permissões
-  permissions: {
-    canCreate: (role: UserRole | null) => boolean;
-    canMove:   (role: UserRole | null) => boolean;
-    canArchive:(role: UserRole | null) => boolean;
-  };
 
   // Visual
   columnDotClass: string;                // ex: 'bg-info', 'bg-primary', 'bg-purple-500'
@@ -142,6 +144,7 @@ export interface SpecializedBoardConfig {
   // Briefing (opcional). Para Devs é null; para Atrizes usa tabela não-tipada.
   briefing?: {
     tableName: string;                   // ex: 'design_briefings', 'atrizes_briefings'
+    briefingType: KanbanBriefingType;    // valor aceito pela RPC upsert_kanban_briefing
     fields: string[];                    // nomes de colunas a serem gravadas
     untyped?: boolean;                   // se true, usa `as never` (atrizes_briefings)
   };
@@ -236,6 +239,11 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
       return data;
     },
   });
+
+  const actionPermissions = useKanbanActionPermissions(board?.id);
+  const canCreate = actionPermissions.permissions.canCreate;
+  const canMove = actionPermissions.permissions.canMove;
+  const canArchive = actionPermissions.permissions.canArchive || actionPermissions.permissions.canDelete;
 
   // -------- Pessoas --------
   const { data: persons = [], isLoading: isPersonsLoading } = useQuery({
@@ -369,17 +377,12 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
     mutationFn: async ({
       cardId, columnId, status, position,
     }: { cardId: string; columnId: string; status?: string; position: number }) => {
-      const updateData: Record<string, unknown> = {
-        column_id: columnId,
-        position,
-        updated_at: new Date().toISOString(),
-      };
-      if (status) updateData.status = status;
-      const { error } = await supabase
-        .from('kanban_cards')
-        .update(updateData)
-        .eq('id', cardId);
-      if (error) throw error;
+      await moveKanbanCard({
+        cardId,
+        destinationColumnId: columnId,
+        newPosition: position,
+        destinationStatus: status ?? null,
+      });
     },
     onMutate: async ({ cardId, columnId, status, position }) => {
       const key = [`${config.boardQueryKeyPrefix}-cards`, board?.id];
@@ -411,11 +414,7 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
 
   const archiveCardMutation = useMutation({
     mutationFn: async (cardId: string) => {
-      const { error } = await supabase
-        .from('kanban_cards')
-        .update({ archived: true, archived_at: new Date().toISOString() })
-        .eq('id', cardId);
-      if (error) throw error;
+      await archiveKanbanCard(cardId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -427,11 +426,7 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
 
   const deleteCardMutation = useMutation({
     mutationFn: async (cardId: string) => {
-      const { error } = await supabase
-        .from('kanban_cards')
-        .delete()
-        .eq('id', cardId);
-      if (error) throw error;
+      await deleteKanbanCard(cardId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -447,60 +442,41 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
         throw new Error('Board ou coluna não encontrados');
       }
 
-      const columnCards = cards.filter(c => c.column_id === data.column_id);
-      const maxPosition = columnCards.length > 0
-        ? Math.max(...columnCards.map(c => c.position)) + 1
-        : 0;
-
       const priority = config.mapPriority
         ? config.mapPriority(data.priority)
         : (data.priority || 'normal');
 
-      const { data: newCard, error } = await supabase
-        .from('kanban_cards')
-        .insert({
-          board_id: board.id,
-          column_id: data.column_id,
-          title: data.title,
-          description: data.description || null,
-          priority,
-          due_date: data.due_date || null,
-          position: maxPosition,
-          created_by: user?.id,
-          card_type: config.cardType,
-          status: data.status || config.fallbackStatus,
-        })
-        .select()
-        .single();
-      if (error) throw error;
+      const newCard = await createKanbanCard({
+        boardId: board.id,
+        columnId: String(data.column_id),
+        title: String(data.title),
+        description: typeof data.description === 'string' ? data.description : null,
+        priority: String(priority),
+        dueDate: typeof data.due_date === 'string' ? data.due_date : null,
+        assignedTo: null,
+        tags: null,
+        status: typeof data.status === 'string' ? data.status : config.fallbackStatus,
+        cardType: config.cardType,
+        clientId: null,
+      });
 
       // Briefing estruturado (Atrizes/Design/Video/Produtora)
       const briefingData = (data.briefing || null) as Record<string, unknown> | null;
       if (config.briefing && briefingData && newCard) {
-        const payload: Record<string, unknown> = { card_id: newCard.id, created_by: user?.id };
+        const payload: Record<string, string | null> = {};
         for (const field of config.briefing.fields) {
           payload[field] = (briefingData[field] as string | undefined) || null;
         }
-        if (config.briefing.untyped) {
-          // Tabela ainda não nos types gerados — escape localizado.
-          const table = supabase.from(config.briefing.tableName as never);
-          await table.insert(payload as never);
-        } else {
-          await supabase.from(config.briefing.tableName as never).insert(payload as never);
-        }
+        await upsertKanbanBriefing(newCard.id, config.briefing.briefingType, payload);
       }
 
       // Attachments (Devs)
       if (config.attachments && newCard) {
         const materials = (data[config.attachments.alsoCreateBriefing?.fieldFromPayload ?? ''] as string | undefined);
         if (config.attachments.alsoCreateBriefing && materials) {
-          await supabase
-            .from(config.attachments.alsoCreateBriefing.tableName as never)
-            .insert({
-              card_id: newCard.id,
-              [config.attachments.alsoCreateBriefing.fieldFromPayload]: materials,
-              created_by: user?.id,
-            } as never);
+          await upsertKanbanBriefing(newCard.id, 'dev', {
+            [config.attachments.alsoCreateBriefing.fieldFromPayload]: materials,
+          });
         }
 
         const attachments = (data.attachments as CardAttachmentInput[] | undefined) || [];
@@ -518,17 +494,13 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
             const { data: publicUrlData } = supabase.storage
               .from(config.attachments.storageBucket)
               .getPublicUrl(filePath);
-            const { error: insertError } = await supabase
-              .from(config.attachments.attachmentsTable as never)
-              .insert({
-                card_id: newCard.id,
-                file_name: att.name,
-                file_url: publicUrlData.publicUrl,
-                file_type: att.type,
-                file_size: att.size,
-                created_by: user?.id,
-              } as never);
-            if (insertError) console.error('Error inserting attachment record:', insertError);
+            await createKanbanCardAttachment({
+              cardId: newCard.id,
+              fileName: att.name,
+              fileUrl: publicUrlData.publicUrl,
+              fileType: att.type,
+              fileSize: att.size,
+            });
           } catch (err) {
             console.error('Exception during attachment upload:', err);
           }
@@ -560,7 +532,7 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
-    if (!config.permissions.canMove(user?.role || null)) {
+    if (!canMove) {
       toast.error('Você não tem permissão para mover cards');
       return;
     }
@@ -610,7 +582,7 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
   };
 
   const handleCreateCard = (columnId: string) => {
-    if (!config.permissions.canCreate(user?.role || null)) {
+    if (!canCreate) {
       toast.error('Você não tem permissão para criar cards');
       return;
     }
@@ -728,7 +700,7 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
                     <span className="text-[12px] font-medium text-muted-foreground/70 tabular-nums ml-0.5">
                       {totalCards}
                     </span>
-                    {config.permissions.canCreate(user?.role || null) && (
+                    {canCreate && (
                       <Button
                         variant="ghost"
                         size="icon"
@@ -780,7 +752,7 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
                                     key={card.id}
                                     draggableId={card.id}
                                     index={cardIndex}
-                                    isDragDisabled={!config.permissions.canMove(user?.role || null)}
+                                    isDragDisabled={!canMove}
                                   >
                                     {(provided, snapshot) => {
                                       const overdue = isCardOverdue(card);
@@ -836,7 +808,7 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
                                             <h4 className="text-[14px] font-semibold tracking-[-0.01em] text-foreground leading-[1.35] line-clamp-2">
                                               {card.title}
                                             </h4>
-                                            {config.permissions.canArchive(user?.role || null) && (
+                                            {canArchive && (
                                               <DropdownMenu>
                                                 <DropdownMenuTrigger
                                                   asChild
@@ -854,6 +826,10 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
                                                   <DropdownMenuItem
                                                     onClick={(e) => {
                                                       e.stopPropagation();
+                                                      if (!canArchive) {
+                                                        toast.error('Você não tem permissão para arquivar cards');
+                                                        return;
+                                                      }
                                                       archiveCardMutation.mutate(card.id);
                                                     }}
                                                   >
@@ -863,6 +839,10 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
                                                   <DropdownMenuItem
                                                     onClick={(e) => {
                                                       e.stopPropagation();
+                                                      if (!canArchive) {
+                                                        toast.error('Você não tem permissão para excluir cards');
+                                                        return;
+                                                      }
                                                       deleteCardMutation.mutate(card.id);
                                                     }}
                                                     className="text-danger"
@@ -926,6 +906,7 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
             setSelectedCard(null);
           }}
           card={selectedCard}
+          boardId={board?.id}
           {...config.cardDetailFlags}
         />
       )}

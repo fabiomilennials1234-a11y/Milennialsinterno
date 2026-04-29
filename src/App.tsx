@@ -5,9 +5,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { isExecutive, type UserRole } from "@/types/auth";
+import { canViewBoard, isExecutive } from "@/types/auth";
 import { getRouteGuardRoles } from "@/lib/routeAuth";
 import { resolveKanbanRedirect } from "@/routing/kanbanRedirect";
+import { AccessDenied, PageAccessRoute } from "@/routing/PageAccessRoute";
+import { FEATURE_FLAGS } from "@/lib/featureFlags";
+import { usePageAccess } from "@/hooks/usePageAccess";
+import { resolveKanbanPageSlug } from "@/lib/kanbanOperationalAccess";
 import { JustificationProvider } from "@/contexts/JustificationContext";
 import { usePermissionDivergenceLogger } from "@/hooks/usePermissionDivergenceLogger";
 import { useCrmDelayJustifications } from "@/hooks/useCrmDelayJustifications";
@@ -46,6 +50,7 @@ const RHPage = lazy(() => import("./pages/RHPage"));
 const RHJornadaEquipePage = lazy(() => import("./pages/RHJornadaEquipePage"));
 const UsersPage = lazy(() => import("./pages/admin/UsersPage"));
 const GroupsPage = lazy(() => import("./pages/admin/GroupsPage"));
+const AuditoriaPage = lazy(() => import("./pages/admin/AuditoriaPage"));
 const ClientRegistrationPage = lazy(() => import("./pages/ClientRegistrationPage"));
 const ClientListPage = lazy(() => import("./pages/ClientListPage"));
 const PublicStrategyPage = lazy(() => import("./pages/PublicStrategyPage"));
@@ -124,29 +129,8 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 
   if (isLoading) return <AppBootSkeleton />;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (!isAdminUser) return <Navigate to="/" replace />;
+  if (!isAdminUser) return <AccessDenied />;
 
-  return <>{children}</>;
-}
-
-// Role-gated route. CEO/CTO e Gestor de Projetos sempre passam (admins).
-// Qualquer outro papel precisa estar em `roles` para acessar. Sem role
-// permitido → volta pro redirect default (`/`).
-function RoleRoute({
-  children,
-  roles,
-}: {
-  children: React.ReactNode;
-  roles: readonly UserRole[];
-}) {
-  const { isAuthenticated, isLoading, user, isCEO, isAdminUser } = useAuth();
-
-  if (isLoading) return <AppBootSkeleton />;
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (isCEO || isAdminUser) return <>{children}</>;
-  if (!user?.role || !roles.includes(user.role)) {
-    return <Navigate to="/" replace />;
-  }
   return <>{children}</>;
 }
 
@@ -156,7 +140,7 @@ function ManagerRoute({ children }: { children: React.ReactNode }) {
 
   if (isLoading) return <AppBootSkeleton />;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (!canManageUsersFlag) return <Navigate to="/" replace />;
+  if (!canManageUsersFlag) return <AccessDenied />;
 
   return <>{children}</>;
 }
@@ -179,10 +163,21 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 // pra evitar que caia no board legacy. Mesmo padrão de `/kanban/rh → /rh`.
 function KanbanRoute() {
   const { boardId } = useParams<{ boardId: string }>();
-  const { user } = useAuth();
+  const { user, isAdminUser, isCEO } = useAuth();
+  const pageAccess = usePageAccess();
 
   const redirectTo = resolveKanbanRedirect(boardId, user?.role);
   if (redirectTo) return <Navigate to={redirectTo} replace />;
+
+  const pageSlug = resolveKanbanPageSlug(boardId);
+  if (pageSlug && !isCEO && !isAdminUser) {
+    if (FEATURE_FLAGS.USE_PAGE_GRANTS) {
+      if (pageAccess.isLoading) return <AppBootSkeleton />;
+      if (!pageAccess.data?.includes(pageSlug)) return <AccessDenied />;
+    } else if (!user?.role || !canViewBoard(user.role, boardId || pageSlug)) {
+      return <AccessDenied />;
+    }
+  }
 
   return <KanbanPage />;
 }
@@ -270,9 +265,9 @@ function AppRoutes() {
       
       {/* Outbound Dashboard - dedicated */}
       <Route path="/outbound-dashboard" element={
-        <RoleRoute roles={getRouteGuardRoles('/outbound-dashboard')}>
+        <PageAccessRoute pageSlug="outbound" fallbackRoles={getRouteGuardRoles('/outbound-dashboard')}>
           <OutboundDashboardPage />
-        </RoleRoute>
+        </PageAccessRoute>
       } />
 
       {/* Generic Product Dashboard - CEO and Gestor de Projetos */}
@@ -315,9 +310,9 @@ function AppRoutes() {
       
       {/* Dashboard - CEO e Gestor de Projetos */}
       <Route path="/dashboard" element={
-        <ProtectedRoute>
+        <AdminRoute>
           <DashboardPage />
-        </ProtectedRoute>
+        </AdminRoute>
       } />
       
       {/* RH Kanban Board Routes (must be before generic /kanban/:boardId) */}
@@ -336,44 +331,44 @@ function AppRoutes() {
       
       {/* Ads Manager Route - Generic */}
       <Route path="/gestor-ads" element={
-        <RoleRoute roles={getRouteGuardRoles('/gestor-ads')}>
+        <PageAccessRoute pageSlug="gestor-ads" fallbackRoles={getRouteGuardRoles('/gestor-ads')}>
           <AdsManagerPage />
-        </RoleRoute>
+        </PageAccessRoute>
       } />
 
       {/* Ads Manager Route - Individual by user ID */}
       <Route path="/gestor-ads/:userId" element={
-        <RoleRoute roles={getRouteGuardRoles('/gestor-ads')}>
+        <PageAccessRoute pageSlug="gestor-ads" fallbackRoles={getRouteGuardRoles('/gestor-ads')}>
           <AdsManagerIndividualPage />
-        </RoleRoute>
+        </PageAccessRoute>
       } />
 
       {/* Outbound Manager Route - Generic */}
       <Route path="/millennials-outbound" element={
-        <RoleRoute roles={getRouteGuardRoles('/millennials-outbound')}>
+        <PageAccessRoute pageSlug="outbound" fallbackRoles={getRouteGuardRoles('/millennials-outbound')}>
           <OutboundManagerPage />
-        </RoleRoute>
+        </PageAccessRoute>
       } />
 
       {/* Outbound Manager Route - Individual by user ID */}
       <Route path="/millennials-outbound/:userId" element={
-        <RoleRoute roles={getRouteGuardRoles('/millennials-outbound')}>
+        <PageAccessRoute pageSlug="outbound" fallbackRoles={getRouteGuardRoles('/millennials-outbound')}>
           <OutboundManagerIndividualPage />
-        </RoleRoute>
+        </PageAccessRoute>
       } />
 
       {/* Sucesso do Cliente Route */}
       <Route path="/sucesso-cliente" element={
-        <RoleRoute roles={getRouteGuardRoles('/sucesso-cliente')}>
+        <PageAccessRoute pageSlug="sucesso-cliente" fallbackRoles={getRouteGuardRoles('/sucesso-cliente')}>
           <SucessoClientePage />
-        </RoleRoute>
+        </PageAccessRoute>
       } />
 
       {/* Consultor Comercial Route */}
       <Route path="/consultor-comercial" element={
-        <RoleRoute roles={getRouteGuardRoles('/consultor-comercial')}>
+        <PageAccessRoute pageSlug="consultor-comercial" fallbackRoles={getRouteGuardRoles('/consultor-comercial')}>
           <ConsultorComercialPage />
-        </RoleRoute>
+        </PageAccessRoute>
       } />
       
       {/* Consultoria de MKT Place - Dashboard */}
@@ -385,23 +380,23 @@ function AppRoutes() {
 
       {/* Consultor MKT Place Route */}
       <Route path="/consultor-mktplace" element={
-        <RoleRoute roles={getRouteGuardRoles('/consultor-mktplace')}>
+        <PageAccessRoute pageSlug="consultor-mktplace" fallbackRoles={getRouteGuardRoles('/consultor-mktplace')}>
           <ConsultorMKTPlacePage />
-        </RoleRoute>
+        </PageAccessRoute>
       } />
 
       {/* Financeiro Route */}
       <Route path="/financeiro" element={
-        <RoleRoute roles={getRouteGuardRoles('/financeiro')}>
+        <PageAccessRoute pageSlug="financeiro" fallbackRoles={getRouteGuardRoles('/financeiro')}>
           <FinanceiroPage />
-        </RoleRoute>
+        </PageAccessRoute>
       } />
       
       {/* Financeiro Dashboard Route */}
       <Route path="/financeiro-dashboard" element={
-        <ProtectedRoute>
+        <PageAccessRoute pageSlug="financeiro" fallbackRoles={getRouteGuardRoles('/financeiro')}>
           <FinanceiroDashboardPage />
-        </ProtectedRoute>
+        </PageAccessRoute>
       } />
       
       {/* Redirect old kanban financeiro routes to new page */}
@@ -410,66 +405,66 @@ function AppRoutes() {
       
       {/* Gestor de Projetos Route */}
       <Route path="/gestor-projetos" element={
-        <ProtectedRoute>
+        <AdminRoute>
           <GestorProjetosPage />
-        </ProtectedRoute>
+        </AdminRoute>
       } />
       
       {/* Gestor de CRM Route */}
       <Route path="/gestor-crm" element={
-        <ProtectedRoute>
+        <PageAccessRoute pageSlug="gestor-crm" fallbackRoles={getRouteGuardRoles('/gestor-crm')}>
           <GestorCRMPage />
-        </ProtectedRoute>
+        </PageAccessRoute>
       } />
       <Route path="/gestor-crm/:userId" element={
-        <ProtectedRoute>
+        <PageAccessRoute pageSlug="gestor-crm" fallbackRoles={getRouteGuardRoles('/gestor-crm')}>
           <GestorCRMPage />
-        </ProtectedRoute>
+        </PageAccessRoute>
       } />
 
       {/* Design Route */}
       <Route path="/design" element={
-        <ProtectedRoute>
+        <PageAccessRoute pageSlug="design" fallbackRoles={getRouteGuardRoles('/design')}>
           <DesignPage />
-        </ProtectedRoute>
+        </PageAccessRoute>
       } />
       
       {/* Editor de Vídeo Route */}
       <Route path="/editor-video" element={
-        <ProtectedRoute>
+        <PageAccessRoute pageSlug="editor-video" fallbackRoles={getRouteGuardRoles('/editor-video')}>
           <EditorVideoPage />
-        </ProtectedRoute>
+        </PageAccessRoute>
       } />
       
       {/* Atrizes de Gravação Route */}
       <Route path="/atrizes-gravacao" element={
-        <ProtectedRoute>
+        <PageAccessRoute pageSlug="atrizes-gravacao" fallbackRoles={getRouteGuardRoles('/atrizes-gravacao')}>
           <AtrizesGravacaoPage />
-        </ProtectedRoute>
+        </PageAccessRoute>
       } />
       
       {/* Desenvolvedor Route */}
       <Route path="/devs" element={
-        <ProtectedRoute>
+        <PageAccessRoute pageSlug="devs" fallbackRoles={getRouteGuardRoles('/devs')}>
           <DevsPage />
-        </ProtectedRoute>
+        </PageAccessRoute>
       } />
       
       {/* RH Routes */}
       <Route path="/rh" element={
-        <ProtectedRoute>
+        <PageAccessRoute pageSlug="rh" fallbackRoles={getRouteGuardRoles('/rh')}>
           <RHPage />
-        </ProtectedRoute>
+        </PageAccessRoute>
       } />
       <Route path="/rh/contratacao" element={
-        <ProtectedRoute>
+        <PageAccessRoute pageSlug="rh" fallbackRoles={getRouteGuardRoles('/rh')}>
           <RHPage />
-        </ProtectedRoute>
+        </PageAccessRoute>
       } />
       <Route path="/rh/jornada-equipe" element={
-        <ProtectedRoute>
+        <PageAccessRoute pageSlug="rh" fallbackRoles={getRouteGuardRoles('/rh')}>
           <RHJornadaEquipePage />
-        </ProtectedRoute>
+        </PageAccessRoute>
       } />
       
       {/* UP Sells Route - CS, CEO and Gestor de Projetos */}
@@ -530,6 +525,12 @@ function AppRoutes() {
       <Route path="/admin/grupos" element={
         <AdminRoute>
           <GroupsPage />
+        </AdminRoute>
+      } />
+
+      <Route path="/admin/auditoria" element={
+        <AdminRoute>
+          <AuditoriaPage />
         </AdminRoute>
       } />
       

@@ -2,7 +2,6 @@ import { useRef, useEffect, useState } from 'react';
 import MainLayout from '@/layouts/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { OutboundManagerProvider } from '@/contexts/OutboundManagerContext';
-import { Navigate } from 'react-router-dom';
 import {
   Calendar,
   FileText,
@@ -25,7 +24,6 @@ import OutboundNovoClienteSection from '@/components/outbound-manager/OutboundNo
 import OutboundOnboardingSection from '@/components/outbound-manager/OutboundOnboardingSection';
 import OutboundChurnSection from '@/components/outbound-manager/OutboundChurnSection';
 import OutboundMovimentacaoNotification from '@/components/outbound-manager/OutboundMovimentacaoNotification';
-import { getRolesAllowedForPath } from '@/types/auth';
 
 // Cores vibrantes para cada seção - Ordem definida pelo usuário
 const COLUMNS = [
@@ -42,7 +40,7 @@ const COLUMNS = [
 const ONBOARDING_SECTION = { id: 'onboarding', title: 'Onboarding', icon: Flag, headerClass: 'section-header-yellow', iconColor: 'text-foreground' };
 
 export default function OutboundManagerPage() {
-  const { user, isCEO, isAdminUser } = useAuth();
+  const { user } = useAuth();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -65,13 +63,6 @@ export default function OutboundManagerPage() {
       return () => container.removeEventListener('scroll', checkScrollButtons);
     }
   }, []);
-
-  const allowedRoles = getRolesAllowedForPath('/millennials-outbound');
-  const canAccess = user?.role && allowedRoles.includes(user.role);
-
-  if (!canAccess && !isCEO && !isAdminUser) {
-    return <Navigate to="/" replace />;
-  }
 
   const scroll = (direction: 'left' | 'right') => {
     const container = scrollContainerRef.current;

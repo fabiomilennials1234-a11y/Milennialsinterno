@@ -79,11 +79,6 @@ function makeConfig(
     statuses: [
       { id: 'a_fazer', label: 'A FAZER', color: 'bg-blue-500' },
     ] as const,
-    permissions: {
-      canCreate: () => true,
-      canMove: () => true,
-      canArchive: () => true,
-    },
     columnDotClass: 'bg-primary',
     useCardCreators: () => ({ data: {} }),
     delay: {

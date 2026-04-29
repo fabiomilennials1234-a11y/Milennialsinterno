@@ -1,7 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
 import MainLayout from '@/layouts/MainLayout';
-import { useAuth } from '@/contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
 import { 
   ChevronLeft,
   ChevronRight,
@@ -39,16 +37,12 @@ const COLUMNS = [
 ];
 
 export default function GestorProjetosPage() {
-  const { user, isCEO, isAdminUser } = useAuth();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
 
   // Check for daily movement delays on page load
   useDailyMovementDelayCheck();
-
-  const allowedRoles = ['gestor_projetos', 'ceo'];
-  const canAccess = user?.role && allowedRoles.includes(user.role);
 
   const checkScrollButtons = () => {
     const container = scrollContainerRef.current;
@@ -69,10 +63,6 @@ export default function GestorProjetosPage() {
     }
   }, []);
   
-  if (!canAccess && !isCEO && !isAdminUser) {
-    return <Navigate to="/" replace />;
-  }
-
   const scroll = (direction: 'left' | 'right') => {
     const container = scrollContainerRef.current;
     if (container) {

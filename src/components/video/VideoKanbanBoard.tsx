@@ -4,12 +4,7 @@
 import SpecializedKanbanBoard from '@/components/kanban/SpecializedKanbanBoard';
 import CreateVideoCardModal from '@/components/kanban/CreateVideoCardModal';
 import VideoDelayModal from '@/components/video/VideoDelayModal';
-import {
-  canCreateVideoCard,
-  canArchiveVideoCard,
-  canMoveVideoCard,
-  VIDEO_STATUSES,
-} from '@/hooks/useVideoKanban';
+import { VIDEO_STATUSES } from '@/hooks/useVideoKanban';
 import {
   useEditorDelayedCards,
   useEditorJustifications,
@@ -31,11 +26,6 @@ export default function VideoKanbanBoard() {
         personsRole: 'editor_video',
         personsEmptyMessage:
           'Nenhum editor de vídeo cadastrado neste squad. Crie um usuário com cargo "Editor de Vídeo" para começar.',
-        permissions: {
-          canCreate: canCreateVideoCard,
-          canMove: canMoveVideoCard,
-          canArchive: canArchiveVideoCard,
-        },
         columnDotClass: 'bg-purple-500',
         useCardCreators: useMultipleVideoCardsCreators,
         delay: {
@@ -54,6 +44,7 @@ export default function VideoKanbanBoard() {
         cardDetailFlags: { isVideoBoard: true },
         briefing: {
           tableName: 'video_briefings',
+          briefingType: 'video',
           fields: [
             'script_url',
             'observations',

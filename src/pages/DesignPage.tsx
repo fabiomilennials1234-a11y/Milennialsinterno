@@ -1,18 +1,7 @@
 import MainLayout from '@/layouts/MainLayout';
-import { useAuth } from '@/contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
 import DesignKanbanBoard from '@/components/design/DesignKanbanBoard';
-import { canViewBoard } from '@/types/auth';
 
 export default function DesignPage() {
-  const { user, isCEO, isAdminUser } = useAuth();
-
-  const canAccess = user?.role && canViewBoard(user.role, 'design');
-
-  if (!canAccess && !isCEO && !isAdminUser) {
-    return <Navigate to="/" replace />;
-  }
-
   return (
     <MainLayout>
       <div className="h-full flex flex-col overflow-hidden bg-background">

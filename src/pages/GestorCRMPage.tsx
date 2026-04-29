@@ -1,7 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
 import MainLayout from '@/layouts/MainLayout';
-import { useAuth } from '@/contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
 import {
   UserPlus, CheckSquare, ChevronLeft, ChevronRight, Users,
   FileText, AlertCircle, Sparkles, Settings, CheckCircle2, Wrench, GraduationCap
@@ -18,7 +16,6 @@ import CrmFinalizadosSection from '@/components/gestor-crm/CrmFinalizadosSection
 import CrmDocumentacaoSection from '@/components/gestor-crm/CrmDocumentacaoSection';
 import CrmFerramentasProSection from '@/components/gestor-crm/CrmFerramentasProSection';
 import { CrmSectionBoundary } from '@/components/gestor-crm/CrmSectionBoundary';
-import { getRolesAllowedForPath } from '@/types/auth';
 
 // Colunas do kanban do Gestor de CRM — mesma lógica estrutural do Consultor de MKT Place.
 // As três colunas de "Configuração" (V8/Automation/Copilot) e "CRMs Finalizados" entram
@@ -38,7 +35,6 @@ const COLUMNS = [
 ];
 
 export default function GestorCRMPage() {
-  const { user, isCEO, isAdminUser } = useAuth();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -59,12 +55,6 @@ export default function GestorCRMPage() {
       return () => container.removeEventListener('scroll', checkScrollButtons);
     }
   }, []);
-
-  const allowedRoles = getRolesAllowedForPath('/gestor-crm');
-  const canAccess = user?.role && allowedRoles.includes(user.role);
-  if (!canAccess && !isCEO && !isAdminUser) {
-    return <Navigate to="/" replace />;
-  }
 
   const renderColumnContent = (columnId: string) => {
     switch (columnId) {
