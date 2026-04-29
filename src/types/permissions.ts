@@ -30,11 +30,12 @@ export interface CapabilityDef {
 }
 
 export interface KanbanActionDef {
-  key: 'create' | 'move' | 'archive' | 'delete' | 'edit_briefing';
+  key: 'view' | 'create' | 'move' | 'archive' | 'delete' | 'edit_briefing';
   label: string;
 }
 
 export const KANBAN_ACTIONS: KanbanActionDef[] = [
+  { key: 'view',          label: 'Ver' },
   { key: 'create',        label: 'Criar' },
   { key: 'move',          label: 'Mover' },
   { key: 'archive',       label: 'Arquivar' },

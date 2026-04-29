@@ -19,7 +19,7 @@ export interface UserCapabilityGrant {
 
 export interface UserActionOverride {
   page_slug: string;
-  action: 'create' | 'move' | 'archive' | 'delete' | 'edit_briefing';
+  action: 'view' | 'create' | 'move' | 'archive' | 'delete' | 'edit_briefing';
   granted: boolean;
 }
 
