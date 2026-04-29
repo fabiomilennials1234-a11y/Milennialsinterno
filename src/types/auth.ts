@@ -9,7 +9,6 @@ export type UserRole =
   | 'design'
   | 'editor_video'
   | 'devs'
-  | 'atrizes_gravacao'
   | 'produtora'
   | 'gestor_crm'
   | 'consultor_comercial'
@@ -96,12 +95,6 @@ export const ROLE_PAGE_MATRIX: RolePageMatrix = {
       canViewBoardAliases: ['produtora'],
     },
     {
-      pageSlug: 'atrizes-gravacao',
-      proPlusRoute: { path: '/atrizes-gravacao', label: 'Gravação PRO+' },
-      independentCategorySlugs: ['atrizes'],
-      canViewBoardAliases: ['atrizes_gravacao', 'atrizes'],
-    },
-    {
       pageSlug: 'gestor-crm',
       proPlusRoute: { path: '/gestor-crm', label: 'CRM PRO+' },
       canViewBoardAliases: ['gestor_crm', 'crm'],
@@ -142,12 +135,6 @@ export const ROLE_PAGE_MATRIX: RolePageMatrix = {
       pageSlug: 'produtora',
       independentCategorySlugs: ['produtora'],
       canViewBoardAliases: ['produtora'],
-    },
-    {
-      pageSlug: 'atrizes-gravacao',
-      proPlusRoute: { path: '/atrizes-gravacao', label: 'Gravação PRO+' },
-      independentCategorySlugs: ['atrizes'],
-      canViewBoardAliases: ['atrizes_gravacao', 'atrizes'],
     },
     {
       pageSlug: 'gestor-crm',
@@ -204,12 +191,6 @@ export const ROLE_PAGE_MATRIX: RolePageMatrix = {
       canViewBoardAliases: ['produtora'],
     },
     {
-      pageSlug: 'atrizes-gravacao',
-      proPlusRoute: { path: '/atrizes-gravacao', label: 'Gravação PRO+' },
-      independentCategorySlugs: ['atrizes'],
-      canViewBoardAliases: ['atrizes_gravacao', 'atrizes'],
-    },
-    {
       pageSlug: 'gestor-crm',
       proPlusRoute: { path: '/gestor-crm', label: 'CRM PRO+' },
       canViewBoardAliases: ['gestor_crm', 'crm'],
@@ -255,12 +236,6 @@ export const ROLE_PAGE_MATRIX: RolePageMatrix = {
       boardSlugs: ['editor-video'],
       canViewBoardAliases: ['editor_video', 'video', 'editor'],
     },
-    {
-      pageSlug: 'atrizes-gravacao',
-      proPlusRoute: { path: '/atrizes-gravacao', label: 'Gravação PRO+' },
-      independentCategorySlugs: ['atrizes'],
-      canViewBoardAliases: ['atrizes_gravacao', 'atrizes'],
-    },
   ],
 
   devs: [
@@ -275,21 +250,6 @@ export const ROLE_PAGE_MATRIX: RolePageMatrix = {
       proPlusRoute: { path: '/design', label: 'Design PRO+' },
       boardSlugs: ['design'],
       canViewBoardAliases: ['design'],
-    },
-  ],
-
-  atrizes_gravacao: [
-    {
-      pageSlug: 'atrizes-gravacao',
-      proPlusRoute: { path: '/atrizes-gravacao', label: 'Gravação PRO+' },
-      independentCategorySlugs: ['atrizes'],
-      canViewBoardAliases: ['atrizes_gravacao', 'atrizes'],
-    },
-    {
-      pageSlug: 'editor-video',
-      proPlusRoute: { path: '/editor-video', label: 'Editor de Vídeo PRO+' },
-      boardSlugs: ['editor-video'],
-      canViewBoardAliases: ['editor_video', 'video', 'editor'],
     },
   ],
 
@@ -429,7 +389,6 @@ export const ROLE_HIERARCHY: Record<UserRole, number> = {
   design: 40,
   editor_video: 40,
   devs: 40,
-  atrizes_gravacao: 40,
   produtora: 40,
   gestor_crm: 40,
   consultor_comercial: 40,
@@ -449,7 +408,6 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   design: 'Design',
   editor_video: 'Editor de Vídeo',
   devs: 'Desenvolvedor',
-  atrizes_gravacao: 'Atrizes para Gravação',
   produtora: 'Produtora',
   gestor_crm: 'Gestor de CRM',
   consultor_comercial: 'Treinador Comercial',

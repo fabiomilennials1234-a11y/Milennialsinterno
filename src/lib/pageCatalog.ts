@@ -16,7 +16,6 @@ export const ALL_PAGES = [
   { id: 'design', label: 'Design PRO+', icon: '🎨' },
   { id: 'editor-video', label: 'Editor de Vídeo PRO+', icon: '🎬' },
   { id: 'devs', label: 'Desenvolvedor PRO+', icon: '💻' },
-  { id: 'atrizes-gravacao', label: 'Gravação PRO+', icon: '🎭' },
   { id: 'rh', label: 'RH PRO+', icon: '👥' },
   { id: 'produtora', label: 'Produtora', icon: '🎥' },
   { id: 'cliente-list', label: 'Lista de Clientes', icon: '📝' },

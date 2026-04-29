@@ -48,7 +48,6 @@ export const KANBAN_PAGE_SLUGS: { slug: string; label: string }[] = [
   { slug: 'design',              label: 'Design' },
   { slug: 'editor-video',        label: 'Editor de Vídeo' },
   { slug: 'devs',                label: 'Desenvolvedores' },
-  { slug: 'atrizes-gravacao',    label: 'Atrizes de Gravação' },
   { slug: 'produtora',           label: 'Produtora' },
   { slug: 'rh',                  label: 'RH' },
   { slug: 'financeiro',          label: 'Financeiro' },

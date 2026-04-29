@@ -35,7 +35,6 @@ const AVAILABLE_ROLES: UserRole[] = [
   'design',
   'editor_video',
   'devs',
-  'atrizes_gravacao',
   'produtora',
   'gestor_crm',
   'consultor_comercial',

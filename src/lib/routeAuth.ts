@@ -25,7 +25,6 @@ export const ROUTE_GUARDS_BY_PATH: Record<string, UserRole[]> = {
   '/outbound-dashboard': getRolesAllowedForPath('/millennials-outbound'),
   '/gestor-crm': getRolesAllowedForPath('/gestor-crm'),
   '/editor-video': getRolesAllowedForPath('/editor-video'),
-  '/atrizes-gravacao': getRolesAllowedForPath('/atrizes-gravacao'),
   '/design': getRolesAllowedForPath('/design'),
   '/devs': getRolesAllowedForPath('/devs'),
   '/rh': getRolesAllowedForPath('/rh'),

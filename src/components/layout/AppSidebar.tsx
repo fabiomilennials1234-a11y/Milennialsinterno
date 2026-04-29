@@ -229,7 +229,6 @@ export default function AppSidebar() {
     design: ['design'],
     editor_video: ['editor-video'],
     devs: ['devs'],
-    atrizes_gravacao: ['atrizes'],
     consultor_comercial: ['comercial'],
     financeiro: ['financeiro', 'financeiro-board'],
     gestor_crm: ['crm'],

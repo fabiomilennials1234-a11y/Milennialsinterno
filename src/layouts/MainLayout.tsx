@@ -6,7 +6,6 @@ import TaskDelayModal from '@/components/TaskDelayModal';
 import { useDesignCompletionToasts } from '@/hooks/useDesignCompletionNotifications';
 import { useVideoCompletionToasts } from '@/hooks/useVideoCompletionNotifications';
 import { useDevCompletionToasts } from '@/hooks/useDevsCompletionNotifications';
-import { useAtrizesCompletionToasts } from '@/hooks/useAtrizesCompletionNotifications';
 import { useProdutoraCompletionToasts } from '@/hooks/useProdutoraCompletionNotifications';
 import { useAdsNoteNotifications } from '@/hooks/useAdsNoteNotifications';
 import { useAdsNewClientNotifications } from '@/hooks/useAdsNewClientNotifications';
@@ -25,8 +24,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
   useVideoCompletionToasts();
   // Show dev completion toasts globally
   useDevCompletionToasts();
-  // Show atrizes completion toasts globally
-  useAtrizesCompletionToasts();
   // Show produtora completion toasts globally
   useProdutoraCompletionToasts();
   // Listen for ads note notifications (creates toasts via realtime)

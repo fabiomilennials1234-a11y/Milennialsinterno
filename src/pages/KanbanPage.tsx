@@ -5,7 +5,6 @@ import DesignKanbanBoard from '@/components/design/DesignKanbanBoard';
 import VideoKanbanBoard from '@/components/video/VideoKanbanBoard';
 import DevsKanbanBoard from '@/components/devs/DevsKanbanBoard';
 import ProdutoraKanbanBoard from '@/components/produtora/ProdutoraKanbanBoard';
-import AtrizesKanbanBoard from '@/components/atrizes/AtrizesKanbanBoard';
 
 /**
  * Detects if a board slug corresponds to a specialized board
@@ -27,9 +26,6 @@ function getSpecializedBoard(slug: string): React.ReactNode | null {
   }
   if (normalized.includes('produtora')) {
     return <ProdutoraKanbanBoard />;
-  }
-  if (normalized.includes('atrizes')) {
-    return <AtrizesKanbanBoard />;
   }
 
   return null;

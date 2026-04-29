@@ -25,7 +25,6 @@ import CreateVideoCardModal from './CreateVideoCardModal';
 import CardDetailModal from './CardDetailModal';
 import JustificationModal from '@/components/shared/JustificationModal';
 import ClientRegistrationBoard from '@/components/client-registration/ClientRegistrationBoard';
-import AtrizesKanbanBoard from '@/components/atrizes/AtrizesKanbanBoard';
 import ProdutoraKanbanBoard from '@/components/produtora/ProdutoraKanbanBoard';
 import { toast } from 'sonner';
 import { useAddJustification } from '@/hooks/useTaskJustification';
@@ -41,11 +40,6 @@ export default function KanbanBoard({ boardSlug }: KanbanBoardProps) {
   // Se for o board de cadastro de clientes, renderiza componente especial
   if (boardSlug === 'cadastro-novos-clientes') {
     return <ClientRegistrationBoard boardSlug={boardSlug} />;
-  }
-
-  // Se for o board de atrizes, renderiza componente especial
-  if (boardSlug === 'atrizes' || boardSlug.includes('atrizes')) {
-    return <AtrizesKanbanBoard />;
   }
 
   // Se for o board de produtora, renderiza componente especial

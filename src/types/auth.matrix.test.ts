@@ -108,17 +108,13 @@ describe('SPECIAL_ROUTES_BY_ROLE — sidebar cross-page', () => {
   // Regressão dos 11 gaps: garantir que as rotas anunciadas no admin
   // realmente aparecem no sidebar como PRO+ do role.
   const gapAssertions: Array<[UserRole, string]> = [
-    ['gestor_ads', '/atrizes-gravacao'],
     ['gestor_ads', '/gestor-crm'],
     ['gestor_ads', '/consultor-comercial'],
-    ['outbound', '/atrizes-gravacao'],
     ['outbound', '/gestor-crm'],
     ['outbound', '/consultor-comercial'],
     ['outbound', '/millennials-outbound'],
     ['sucesso_cliente', '/gestor-crm'],
     ['sucesso_cliente', '/consultor-comercial'],
-    ['editor_video', '/atrizes-gravacao'],
-    ['atrizes_gravacao', '/editor-video'],
     ['consultor_mktplace', '/consultor-mktplace'],
     ['rh', '/rh'],
   ];
@@ -156,10 +152,9 @@ describe('Compat com SPECIAL_ROUTES (singular) e ROLE_BOARD_SLUGS', () => {
   });
 
   it('ROLE_INDEPENDENT_CATEGORIES espelha matriz', () => {
-    expect(ROLE_INDEPENDENT_CATEGORIES.atrizes_gravacao).toContain('atrizes');
     expect(ROLE_INDEPENDENT_CATEGORIES.produtora).toContain('produtora');
     expect(ROLE_INDEPENDENT_CATEGORIES.gestor_ads).toEqual(
-      expect.arrayContaining(['produtora', 'atrizes']),
+      expect.arrayContaining(['produtora']),
     );
   });
 });

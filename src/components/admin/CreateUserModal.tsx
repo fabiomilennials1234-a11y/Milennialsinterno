@@ -35,7 +35,7 @@ const GROUP_SQUAD_ROLES: UserRole[] = [
 const CORINGA_ROLES: UserRole[] = ['gestor_projetos'];
 
 // Cargos Independentes
-const INDEPENDENT_ROLES: UserRole[] = ['rh', 'financeiro', 'produtora', 'atrizes_gravacao'];
+const INDEPENDENT_ROLES: UserRole[] = ['rh', 'financeiro', 'produtora'];
 
 // Cargos com destino fixo (não pedem grupo, squad nem área)
 const FIXED_PADDOCK_ROLES: UserRole[] = ['consultor_comercial', 'consultor_mktplace'];

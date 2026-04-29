@@ -7,7 +7,6 @@ import {
   Palette,
   Video,
   Code,
-  Drama,
   Film,
   UserPlus,
   FileText,
@@ -18,7 +17,7 @@ import {
 
 export interface UnifiedNotification {
   id: string;
-  type: 'design' | 'video' | 'devs' | 'atrizes' | 'produtora' | 'new_client' | 'note' | 'churn' | 'system';
+  type: 'design' | 'video' | 'devs' | 'produtora' | 'new_client' | 'note' | 'churn' | 'system';
   title: string;
   description: string;
   read: boolean;
@@ -32,7 +31,6 @@ const TABLE_MAP: Record<string, string> = {
   design: 'design_completion_notifications',
   video: 'video_completion_notifications',
   devs: 'dev_completion_notifications',
-  atrizes: 'atrizes_completion_notifications',
   produtora: 'produtora_completion_notifications',
   new_client: 'ads_new_client_notifications',
   note: 'ads_note_notifications',
@@ -44,7 +42,6 @@ const QUERY_KEY_MAP: Record<string, string> = {
   design: 'design-completion-notifications',
   video: 'video-completion-notifications',
   devs: 'dev-completion-notifications',
-  atrizes: 'atrizes-completion-notifications',
   produtora: 'produtora-completion-notifications',
   new_client: 'ads-new-client-notifications',
   note: 'ads-note-notifications',
@@ -56,7 +53,6 @@ const NOTIFICATION_META: Record<string, { icon: LucideIcon; color: string }> = {
   design: { icon: Palette, color: '#8B5CF6' },
   video: { icon: Video, color: '#3B82F6' },
   devs: { icon: Code, color: '#10B981' },
-  atrizes: { icon: Drama, color: '#EC4899' },
   produtora: { icon: Film, color: '#F59E0B' },
   new_client: { icon: UserPlus, color: '#FFD400' },
   note: { icon: FileText, color: '#6366F1' },
@@ -125,22 +121,6 @@ export function useNotificationCenter() {
     },
     enabled: !!user?.id,
     refetchInterval: 10000,
-  });
-
-  const { data: atrizesNotifs = [] } = useQuery({
-    queryKey: ['atrizes-completion-notifications', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      const { data, error } = await supabase
-        .from('atrizes_completion_notifications')
-        .select('*')
-        .eq('requester_id', user.id)
-        .eq('read', false)
-        .order('created_at', { ascending: false });
-      if (error) return [];
-      return data || [];
-    },
-    enabled: !!user?.id,
   });
 
   const { data: produtoraNotifs = [] } = useQuery({
@@ -228,7 +208,6 @@ export function useNotificationCenter() {
       { data: designNotifs, type: 'design' as const, label: 'Design' },
       { data: videoNotifs, type: 'video' as const, label: 'Vídeo' },
       { data: devsNotifs, type: 'devs' as const, label: 'Desenvolvimento' },
-      { data: atrizesNotifs, type: 'atrizes' as const, label: 'Gravação' },
       { data: produtoraNotifs, type: 'produtora' as const, label: 'Produtora' },
     ];
 
@@ -316,7 +295,7 @@ export function useNotificationCenter() {
     unified.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     return unified;
-  }, [designNotifs, videoNotifs, devsNotifs, atrizesNotifs, produtoraNotifs, newClientNotifs, noteNotifs, churnNotifs, systemNotifs]);
+  }, [designNotifs, videoNotifs, devsNotifs, produtoraNotifs, newClientNotifs, noteNotifs, churnNotifs, systemNotifs]);
 
   const unreadCount = notifications.length;
 
@@ -351,7 +330,6 @@ export function useNotificationCenter() {
       { table: 'design_completion_notifications', field: 'requester_id' },
       { table: 'video_completion_notifications', field: 'requester_id' },
       { table: 'dev_completion_notifications', field: 'requester_id' },
-      { table: 'atrizes_completion_notifications', field: 'requester_id' },
       { table: 'produtora_completion_notifications', field: 'requester_id' },
     ];
 

@@ -44,7 +44,6 @@ const GestorProjetosPage = lazy(() => import("./pages/GestorProjetosPage"));
 const GestorCRMPage = lazy(() => import("./pages/GestorCRMPage"));
 const DesignPage = lazy(() => import("./pages/DesignPage"));
 const EditorVideoPage = lazy(() => import("./pages/EditorVideoPage"));
-const AtrizesGravacaoPage = lazy(() => import("./pages/AtrizesGravacaoPage"));
 const DevsPage = lazy(() => import("./pages/DevsPage"));
 const RHPage = lazy(() => import("./pages/RHPage"));
 const RHJornadaEquipePage = lazy(() => import("./pages/RHJornadaEquipePage"));
@@ -203,7 +202,6 @@ function DefaultRedirect() {
     { id: 'design', path: '/kanban/design' },
     { id: 'editor_video', path: '/kanban/editor-video' },
     { id: 'devs', path: '/kanban/devs' },
-    { id: 'atrizes_gravacao', path: '/kanban/atrizes' },
     { id: 'produtora', path: '/kanban/produtora' },
     { id: 'gestor_crm', path: '/kanban/crm' },
     { id: 'consultor_comercial', path: '/consultor-comercial' },
@@ -433,13 +431,6 @@ function AppRoutes() {
       <Route path="/editor-video" element={
         <PageAccessRoute pageSlug="editor-video" fallbackRoles={getRouteGuardRoles('/editor-video')}>
           <EditorVideoPage />
-        </PageAccessRoute>
-      } />
-      
-      {/* Atrizes de Gravação Route */}
-      <Route path="/atrizes-gravacao" element={
-        <PageAccessRoute pageSlug="atrizes-gravacao" fallbackRoles={getRouteGuardRoles('/atrizes-gravacao')}>
-          <AtrizesGravacaoPage />
         </PageAccessRoute>
       } />
       

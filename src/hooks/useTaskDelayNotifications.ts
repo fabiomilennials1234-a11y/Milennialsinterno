@@ -603,6 +603,5 @@ export const ROLE_LABELS: Record<string, string> = {
   'consultor_comercial': 'Treinador Comercial',
   'gestor_crm': 'Gestor de CRM',
   'produtora': 'Produtora',
-  'atrizes_gravacao': 'Atrizes/Gravação',
   'rh': 'RH',
 };

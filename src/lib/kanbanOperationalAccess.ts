@@ -8,7 +8,6 @@ export function resolveKanbanPageSlug(boardSlug: string | undefined | null): str
   if (normalized.includes('video') || normalized.includes('editor')) return 'editor-video';
   if (normalized.includes('dev')) return 'devs';
   if (normalized.includes('produtora')) return 'produtora';
-  if (normalized.includes('atrizes')) return 'atrizes-gravacao';
   if (normalized.includes('crm')) return 'gestor-crm';
   if (normalized.includes('comercial') || normalized.includes('paddock')) return 'consultor-comercial';
   if (normalized.includes('ads') || normalized.includes('trafego')) return 'gestor-ads';
