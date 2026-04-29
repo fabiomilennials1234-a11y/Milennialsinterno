@@ -140,6 +140,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
+    // Limpa preferências de scope (visão "minhas/todas") do localStorage
+    // para não vazar entre usuários no mesmo navegador.
+    if (typeof window !== 'undefined') {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < window.localStorage.length; i++) {
+        const key = window.localStorage.key(i);
+        if (key && key.startsWith('page-data-scope:')) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach((k) => window.localStorage.removeItem(k));
+    }
   }, []);
 
   const refreshUser = useCallback(async () => {
