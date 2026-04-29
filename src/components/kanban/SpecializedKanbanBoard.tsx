@@ -523,7 +523,8 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
     },
     onError: (error) => {
       console.error('Error creating card:', error);
-      toast.error('Erro ao criar demanda');
+      const msg = error instanceof Error ? error.message : String(error);
+      toast.error('Erro ao criar demanda', { description: msg });
       setIsCreating(false);
     },
   });
