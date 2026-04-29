@@ -16,7 +16,6 @@ export interface DbUser {
   is_coringa: boolean;
   additional_pages: string[];
   can_access_mtech: boolean;
-  is_admin_override: boolean;
   group_name?: string;
   squad_name?: string;
   category_name?: string;
@@ -63,7 +62,6 @@ export function useUsers() {
           is_coringa: profile.is_coringa || false,
           additional_pages: profile.additional_pages || [],
           can_access_mtech: profile.can_access_mtech === true,
-          is_admin_override: profile.is_admin_override === true,
           group_name: (profile.organization_groups as any)?.name || null,
           squad_name: (profile.squads as any)?.name || null,
           category_name: (profile.independent_categories as any)?.name || null,
@@ -134,15 +132,11 @@ export function useUpdateUser() {
       is_coringa?: boolean;
       additional_pages?: string[];
       can_access_mtech?: boolean;
-      is_admin_override?: boolean;
     }) => {
       const { data: session } = await supabase.auth.getSession();
 
-      // Separa is_admin_override (segue por RPC dedicada) do resto.
-      const { is_admin_override, ...updatePayload } = data;
-
       const response = await supabase.functions.invoke('update-user', {
-        body: updatePayload,
+        body: data,
         headers: {
           Authorization: `Bearer ${session.session?.access_token}`
         }
@@ -154,19 +148,6 @@ export function useUpdateUser() {
 
       if (response.data?.error) {
         throw new Error(response.data.error);
-      }
-
-      // Se is_admin_override foi explicitamente passado, aplica via RPC dedicada
-      // (apenas admins podem chamar — protegido pelo backend).
-      if (typeof is_admin_override === 'boolean') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error: rpcError } = await (supabase as any).rpc('set_admin_override', {
-          _target_user: data.userId,
-          _enabled: is_admin_override,
-        });
-        if (rpcError) {
-          throw new Error(rpcError.message || 'Erro ao aplicar permissão de admin');
-        }
       }
 
       return response.data;
