@@ -7,6 +7,7 @@ import { useAdsManagerBoards } from '@/hooks/useAdsManagerBoards';
 import { useOutboundManagerBoards } from '@/hooks/useOutboundManagerBoards';
 import { useCrmManagerBoards } from '@/hooks/useCrmManagerBoards';
 import { ROLE_LABELS, canViewBoard, canViewRole, isExecutive, UserRole, ROLE_PAGE_MATRIX } from '@/types/auth';
+import { usePageAccess } from '@/hooks/usePageAccess';
 import { Target } from 'lucide-react';
 
 // ============================================
@@ -196,7 +197,34 @@ export function useSidebarPermissions() {
   const { data: adsManagerBoards = [] } = useAdsManagerBoards();
   const { data: outboundManagerBoards = [] } = useOutboundManagerBoards();
   const { data: crmManagerBoards = [] } = useCrmManagerBoards();
-  
+  const { data: pageAccess = [] } = usePageAccess();
+
+  // Rotas PRO+ que o usuário REALMENTE pode ver — cruza catálogo (todos os
+  // proPlusRoute em ROLE_PAGE_MATRIX, dedup por pageSlug) com os grants reais
+  // em user_page_grants (via RPC get_my_page_access). Antes, sidebar consumia
+  // SPECIAL_ROUTES_BY_ROLE[user.role] direto da matriz hardcoded por role,
+  // ignorando grants direct → bug Maycon (treinador comercial com grants para
+  // design/editor-video/gestor-crm não via os links). Admin (isAdminUser)
+  // continua bypass — vê tudo.
+  const accessibleProPlusRoutes = useMemo(() => {
+    if (!user?.role) return [];
+    const allEntries = Object.values(ROLE_PAGE_MATRIX).flat();
+    const bySlug = new Map<string, { pageSlug: string; path: string; label: string; icon: React.ElementType }>();
+    for (const e of allEntries) {
+      if (e.proPlusRoute && !bySlug.has(e.pageSlug)) {
+        bySlug.set(e.pageSlug, {
+          pageSlug: e.pageSlug,
+          path: e.proPlusRoute.path,
+          label: e.proPlusRoute.label,
+          icon: Target,
+        });
+      }
+    }
+    return Array.from(bySlug.values()).filter(
+      e => isAdminUser || pageAccess.includes(e.pageSlug)
+    );
+  }, [user?.role, pageAccess, isAdminUser]);
+
   // Grupos visíveis (CEO vê todos, outros veem apenas seu grupo)
   const visibleGroups = useMemo(() => {
     return isCEO ? groups : groups.filter(g => g.id === userGroupId);
@@ -310,6 +338,7 @@ export function useSidebarPermissions() {
     userGroup,
     userSquad,
     userSpecialRoute,
+    accessibleProPlusRoutes,
 
     // Dados filtrados
     visibleGroups,

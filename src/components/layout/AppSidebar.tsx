@@ -41,7 +41,6 @@ import {
   getBoardPath,
   getBoardLabel,
   SPECIAL_ROUTES,
-  SPECIAL_ROUTES_BY_ROLE,
 } from '@/hooks/useSidebarPermissions';
 import { useAllTreinadorClientCounts, useAllGestorClientCounts, useAllCrmClientCounts, useAllOutboundClientCounts, useAllMktplaceClientCounts } from '@/hooks/useTreinadorClientCount';
 import { useUsers } from '@/hooks/useUsers';
@@ -102,6 +101,7 @@ export default function AppSidebar() {
     userGroup,
     userSquad,
     userSpecialRoute,
+    accessibleProPlusRoutes,
     visibleGroups,
     visibleCategories,
     visibleBoards,
@@ -238,9 +238,7 @@ export default function AppSidebar() {
   // Conjunto de paths PRO+ já renderizados como hub na seção "Minha Área".
   // Usado pra suprimir boards do DB que duplicariam esses hubs (ex: gestor_ads
   // com hub /design + board 'design' no DB renderia duas vezes).
-  const proPlusRoutePaths = new Set(
-    (user?.role ? SPECIAL_ROUTES_BY_ROLE[user.role] ?? [] : []).map(r => r.path)
-  );
+  const proPlusRoutePaths = new Set(accessibleProPlusRoutes.map(r => r.path));
 
   // Renderiza os boards visíveis para o usuário atual
   const renderVisibleBoards = (size: 'sm' | 'md' = 'sm') => {
@@ -1216,12 +1214,16 @@ export default function AppSidebar() {
         {/* Renderiza TODAS as rotas PRO+ que o cargo enxerga (não só a própria).
             Antes (pre-refactor 2026-04-27) só renderizava a rota do próprio role,
             criando 11 gaps duros entre o que o admin "anunciava" no modal e o que
-            o runtime entregava. Agora consome SPECIAL_ROUTES_BY_ROLE, derivado
-            de ROLE_PAGE_MATRIX (single source of truth). */}
-        {!isAdminUser && !isCollapsed && user?.role && (SPECIAL_ROUTES_BY_ROLE[user.role]?.length ?? 0) > 0 && (
+            o runtime entregava. Agora consome accessibleProPlusRoutes — cruza
+            o catálogo (ROLE_PAGE_MATRIX) com user_page_grants reais (RPC
+            get_my_page_access), respeitando grants direct além do role default.
+            Bug Maycon (2026-04-30): treinador comercial com grants direct para
+            design/editor-video/gestor-crm não via os links porque sidebar lia
+            só SPECIAL_ROUTES_BY_ROLE[role] hardcoded. */}
+        {!isAdminUser && !isCollapsed && user?.role && accessibleProPlusRoutes.length > 0 && (
           <div className="space-y-1">
             <div className="sidebar-section-label"><span>Minha Área</span></div>
-            {SPECIAL_ROUTES_BY_ROLE[user.role].map(route => {
+            {accessibleProPlusRoutes.map(route => {
               const Icon = route.icon;
               return (
                 <NavLink
