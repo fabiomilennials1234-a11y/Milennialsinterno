@@ -68,10 +68,10 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Fetch current state for kanban board sync
+    // Fetch current state for kanban board sync + page grants reconcile.
     const { data: currentProfile } = await supabaseAdmin
       .from('profiles')
-      .select('name, squad_id')
+      .select('name, squad_id, additional_pages, can_access_mtech')
       .eq('user_id', userId)
       .single()
     const { data: currentRoleRow } = await supabaseAdmin
@@ -81,6 +81,8 @@ Deno.serve(async (req) => {
       .single()
     const currentRole = currentRoleRow?.role ?? null
     const currentSquadId = currentProfile?.squad_id ?? null
+    const currentAdditionalPages = currentProfile?.additional_pages ?? []
+    const currentCanAccessMtech = currentProfile?.can_access_mtech ?? false
     
     // Update auth user if email or password changed
     if (email || password) {
@@ -189,7 +191,31 @@ Deno.serve(async (req) => {
         console.error('Error clearing ads manager board squad:', clearBoardError)
       }
     }
-    
+
+    // Sync user_page_grants para refletir role final + additional_pages + mtech.
+    // Substitui o dual-write client-side que ficava atras do FEATURE_FLAGS.USE_PAGE_GRANTS.
+    // RPC e atomica e idempotente: grants role_default e direct sao reconciliados
+    // (revoga slugs removidos no modal de edicao). Caller_id e o CEO autenticado.
+    const finalAdditionalPages = additional_pages !== undefined ? additional_pages : currentAdditionalPages
+    const finalCanAccessMtech = can_access_mtech !== undefined ? can_access_mtech : currentCanAccessMtech
+    if (finalRole) {
+      const { error: reconcileError } = await supabaseAdmin.rpc('admin_reconcile_user_page_grants', {
+        _caller_id: requestingUser.id,
+        _user_id: userId,
+        _role: finalRole,
+        _additional_pages: finalAdditionalPages ?? [],
+        _can_access_mtech: finalCanAccessMtech === true,
+        _reason: 'updated via update-user edge',
+      })
+      if (reconcileError) {
+        console.error('Error reconciling page grants:', reconcileError)
+        return new Response(
+          JSON.stringify({ error: 'Falha ao sincronizar paginas: ' + reconcileError.message }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    }
+
     return new Response(
       JSON.stringify({ success: true }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

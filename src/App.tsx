@@ -5,11 +5,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { canViewBoard, isExecutive } from "@/types/auth";
+import { isExecutive } from "@/types/auth";
 import { getRouteGuardRoles } from "@/lib/routeAuth";
 import { resolveKanbanRedirect } from "@/routing/kanbanRedirect";
 import { AccessDenied, PageAccessRoute } from "@/routing/PageAccessRoute";
-import { FEATURE_FLAGS } from "@/lib/featureFlags";
 import { usePageAccess } from "@/hooks/usePageAccess";
 import { resolveKanbanPageSlug } from "@/lib/kanbanOperationalAccess";
 import { JustificationProvider } from "@/contexts/JustificationContext";
@@ -170,12 +169,8 @@ function KanbanRoute() {
 
   const pageSlug = resolveKanbanPageSlug(boardId);
   if (pageSlug && !isCEO && !isAdminUser) {
-    if (FEATURE_FLAGS.USE_PAGE_GRANTS) {
-      if (pageAccess.isLoading) return <AppBootSkeleton />;
-      if (!pageAccess.data?.includes(pageSlug)) return <AccessDenied />;
-    } else if (!user?.role || !canViewBoard(user.role, boardId || pageSlug)) {
-      return <AccessDenied />;
-    }
+    if (pageAccess.isLoading) return <AppBootSkeleton />;
+    if (!pageAccess.data?.includes(pageSlug)) return <AccessDenied />;
   }
 
   return <KanbanPage />;

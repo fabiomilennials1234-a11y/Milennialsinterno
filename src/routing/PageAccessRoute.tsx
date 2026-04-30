@@ -1,7 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import AppBootSkeleton from '@/components/AppBootSkeleton';
 import { useAuth } from '@/contexts/AuthContext';
-import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { usePageAccess } from '@/hooks/usePageAccess';
 import { useLogPageAccess } from '@/hooks/useLogPageAccess';
 import type { UserRole } from '@/types/auth';
@@ -25,13 +24,15 @@ export function AccessDenied() {
 export function PageAccessRoute({
   children,
   pageSlug,
-  fallbackRoles,
 }: {
   children: React.ReactNode;
   pageSlug: string;
+  // fallbackRoles legado removido apos cutover de user_page_grants (2026-04-30).
+  // Callers ainda passam o prop por compatibilidade, mas e ignorado: a fonte
+  // de verdade e get_my_page_access via usePageAccess.
   fallbackRoles?: readonly UserRole[];
 }) {
-  const { isAuthenticated, isLoading, user, isAdminUser, isCEO } = useAuth();
+  const { isAuthenticated, isLoading, isAdminUser, isCEO } = useAuth();
   const pageAccess = usePageAccess();
   useLogPageAccess(isAuthenticated ? pageSlug : null);
 
@@ -39,15 +40,7 @@ export function PageAccessRoute({
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (isCEO || isAdminUser) return <>{children}</>;
 
-  if (FEATURE_FLAGS.USE_PAGE_GRANTS) {
-    if (pageAccess.isLoading) return <AppBootSkeleton />;
-    if (!pageAccess.data?.includes(pageSlug)) return <AccessDenied />;
-    return <>{children}</>;
-  }
-
-  if (fallbackRoles && user?.role && fallbackRoles.includes(user.role)) {
-    return <>{children}</>;
-  }
-
-  return <AccessDenied />;
+  if (pageAccess.isLoading) return <AppBootSkeleton />;
+  if (!pageAccess.data?.includes(pageSlug)) return <AccessDenied />;
+  return <>{children}</>;
 }

@@ -1,4 +1,3 @@
-import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import type { UserRole } from '@/types/auth';
 
 export function resolveKanbanPageSlug(boardSlug: string | undefined | null): string | null {
@@ -34,6 +33,5 @@ export function canOperateKanban({
 }) {
   if (isAdmin) return true;
   if (legacyCan((role ?? null) as UserRole | null)) return true;
-  if (!FEATURE_FLAGS.USE_PAGE_GRANTS) return false;
   return !!pageSlug && !!pageGrants?.includes(pageSlug);
 }

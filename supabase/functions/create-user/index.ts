@@ -140,6 +140,29 @@ Deno.serve(async (req) => {
       )
     }
 
+    // Sync user_page_grants para o user recem-criado (role_default + direct).
+    // Substitui o dual-write client-side que ficava atras do FEATURE_FLAGS.USE_PAGE_GRANTS.
+    // Caller_id e o CEO autenticado. Falha aqui aborta a criacao via cleanup
+    // explicito porque permission state pos-create deve estar coerente.
+    const { error: reconcileError } = await supabaseAdmin.rpc('admin_reconcile_user_page_grants', {
+      _caller_id: requestingUser.id,
+      _user_id: userId,
+      _role: role,
+      _additional_pages: additional_pages ?? [],
+      _can_access_mtech: can_access_mtech === true,
+      _reason: 'created via create-user edge',
+    })
+    if (reconcileError) {
+      console.error('Error reconciling page grants on create:', reconcileError)
+      await supabaseAdmin.from('user_roles').delete().eq('user_id', userId)
+      await supabaseAdmin.from('profiles').delete().eq('user_id', userId)
+      await supabaseAdmin.auth.admin.deleteUser(userId)
+      return new Response(
+        JSON.stringify({ error: 'Falha ao sincronizar paginas: ' + reconcileError.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // Create kanban board for gestor_ads with squad (required for sidebar)
     // Trigger ensure_ads_board_columns cria coluna "Novos Clientes" automaticamente
     if (role === 'gestor_ads' && squad_id) {

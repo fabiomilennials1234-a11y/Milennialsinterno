@@ -16,49 +16,6 @@ import { toast } from 'sonner';
 import { useUsers, useCreateUser, useUpdateUser, useDeleteUser, DbUser } from '@/hooks/useUsers';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { FEATURE_FLAGS } from '@/lib/featureFlags';
-import { buildEffectivePageGrantSets } from '@/lib/pageGrantSync';
-
-async function reconcileGrantSource(
-  userId: string,
-  pageSlugs: string[],
-  source: 'role_default' | 'direct',
-  reason: string,
-) {
-  const { error } = await (supabase as any).rpc('reconcile_page_grants', {
-    _user_id: userId,
-    _page_slugs: pageSlugs,
-    _source: source,
-    _reason: reason,
-  });
-
-  if (error) throw error;
-}
-
-async function syncUserPageGrants({
-  userId,
-  role,
-  additionalPages,
-  canAccessMtech,
-  reason,
-}: {
-  userId: string;
-  role: UserRole;
-  additionalPages?: string[];
-  canAccessMtech?: boolean;
-  reason: string;
-}) {
-  if (!FEATURE_FLAGS.USE_PAGE_GRANTS) return;
-
-  const grants = buildEffectivePageGrantSets({
-    role,
-    additionalPages,
-    canAccessMtech,
-  });
-
-  await reconcileGrantSource(userId, grants.roleDefaultPages, 'role_default', reason);
-  await reconcileGrantSource(userId, grants.directPages, 'direct', reason);
-}
 
 export default function UsersPage() {
   const { user: currentUser, isAdminUser, isCEO, canManageUsersFlag, userGroupId, userSquadId } = useAuth();
@@ -88,20 +45,6 @@ export default function UsersPage() {
       );
       toast.error('Falha ao atualizar acesso Milennials Tech');
       return;
-    }
-
-    try {
-      await syncUserPageGrants({
-        userId: row.user_id,
-        role: row.role,
-        additionalPages: row.additional_pages,
-        canAccessMtech: !prev,
-        reason: 'mtech toggle via UI',
-      });
-    } catch (grantError) {
-      toast.warning('Acesso Milennials Tech atualizado, mas a sincronização de páginas falhou.', {
-        description: grantError instanceof Error ? grantError.message : 'Verifique user_page_grants.',
-      });
     }
   };
 
@@ -161,26 +104,9 @@ export default function UsersPage() {
         can_access_mtech: newUser.can_access_mtech,
       });
 
-      // Dual-write de cutover: sincroniza defaults do cargo + extras + mtech.
-      // O reconcile também revoga páginas removidas quando o modal editar depois.
-      if (FEATURE_FLAGS.USE_PAGE_GRANTS) {
-        const newUserId = (response?.user?.id ?? response?.user_id) as string | undefined;
-        if (newUserId) {
-          try {
-            await syncUserPageGrants({
-              userId: newUserId,
-              role: newUser.role,
-              additionalPages: newUser.additional_pages ?? [],
-              canAccessMtech: newUser.can_access_mtech === true,
-              reason: 'created via UI',
-            });
-          } catch (grantError) {
-            toast.warning('Usuário criado, mas a sincronização de páginas falhou.', {
-              description: grantError instanceof Error ? grantError.message : 'Verifique user_page_grants.',
-            });
-          }
-        }
-      }
+      // user_page_grants ja e sincronizado pela edge function create-user via
+      // RPC admin_reconcile_user_page_grants. Sem dual-write client-side.
+      void response;
 
       setIsCreateModalOpen(false);
       toast.success('Usuário criado com sucesso!', {
@@ -211,25 +137,8 @@ export default function UsersPage() {
         password: newPassword,
       });
 
-      if (FEATURE_FLAGS.USE_PAGE_GRANTS) {
-        const current = users.find((u) => u.user_id === userId);
-        const role = updates.role ?? current?.role;
-        if (role) {
-          try {
-            await syncUserPageGrants({
-              userId,
-              role,
-              additionalPages: updates.additional_pages ?? current?.additional_pages ?? [],
-              canAccessMtech: updates.can_access_mtech ?? current?.can_access_mtech ?? false,
-              reason: 'updated via UI',
-            });
-          } catch (grantError) {
-            toast.warning('Usuário atualizado, mas a sincronização de páginas falhou.', {
-              description: grantError instanceof Error ? grantError.message : 'Verifique user_page_grants.',
-            });
-          }
-        }
-      }
+      // user_page_grants ja e sincronizado pela edge function update-user via
+      // RPC admin_reconcile_user_page_grants. Sem dual-write client-side.
 
       setEditingUser(null);
       toast.success('Usuário atualizado!', {
