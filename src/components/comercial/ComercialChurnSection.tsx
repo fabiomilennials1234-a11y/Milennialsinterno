@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import ClientLabelBadge, { type ClientLabel } from '@/components/shared/ClientLabelBadge';
+import ProductBadges, { TorqueCRMProductBadges } from '@/components/shared/ProductBadges';
 import {
   Dialog,
   DialogContent,
@@ -191,6 +192,10 @@ export default function ComercialChurnSection() {
                             {client.razao_social}
                           </p>
                         )}
+                        <div className="mt-1 flex flex-col gap-1">
+                          <ProductBadges products={(client as any).contracted_products} size="sm" maxVisible={3} />
+                          <TorqueCRMProductBadges products={(client as any).torque_crm_products} size="sm" />
+                        </div>
                       </div>
                     </div>
                     <span className={cn(

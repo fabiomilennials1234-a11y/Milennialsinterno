@@ -22,6 +22,8 @@ export interface ComercialTracking {
     name: string;
     comercial_status?: string;
     client_label?: 'otimo' | 'bom' | 'medio' | 'ruim' | null;
+    contracted_products?: string[] | null;
+    torque_crm_products?: string[] | null;
   };
 }
 
@@ -41,7 +43,7 @@ export function useComercialTracking() {
     queryFn: async (): Promise<ComercialTracking[]> => {
       let queryBuilder = supabase
         .from('comercial_tracking')
-        .select('*, client:clients(id, name, comercial_status, client_label)')
+        .select('*, client:clients(id, name, comercial_status, client_label, contracted_products, torque_crm_products)')
         .order('manager_name', { ascending: true });
 
       if (user?.role === 'consultor_comercial') {

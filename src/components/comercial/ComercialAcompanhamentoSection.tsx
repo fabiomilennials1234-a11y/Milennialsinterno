@@ -28,7 +28,7 @@ import OverdueInvoiceBadge from '@/components/shared/OverdueInvoiceBadge';
 import ContractStatusBadge from '@/components/shared/ContractStatusBadge';
 import ClientLabelBadge from '@/components/shared/ClientLabelBadge';
 import type { ClientLabel } from '@/components/shared/ClientLabelBadge';
-import { TorqueCRMProductBadges } from '@/components/shared/ProductBadges';
+import ProductBadges, { TorqueCRMProductBadges } from '@/components/shared/ProductBadges';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -94,7 +94,8 @@ function ClientItem({
             {tracking.client?.name || 'Cliente'}
           </p>
           <ClientLabelBadge label={(tracking.client?.client_label ?? null) as ClientLabel} size="sm" />
-          <TorqueCRMProductBadges products={(tracking.client as any)?.torque_crm_products} size="sm" />
+          <ProductBadges products={tracking.client?.contracted_products} size="sm" maxVisible={3} />
+          <TorqueCRMProductBadges products={tracking.client?.torque_crm_products} size="sm" />
         </div>
         {isDelayed && <AlertTriangle size={12} className="text-destructive flex-shrink-0" />}
         <Button

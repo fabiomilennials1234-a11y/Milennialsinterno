@@ -9,6 +9,7 @@ import { useCompleteComercialTaskWithAutomation, AUTO_TASK_TYPES } from '@/hooks
 import ClientViewModal from '@/components/client/ClientViewModal';
 import { fireCelebration } from '@/lib/confetti';
 import ClientLabelBadge, { type ClientLabel } from '@/components/shared/ClientLabelBadge';
+import ProductBadges, { TorqueCRMProductBadges } from '@/components/shared/ProductBadges';
 import { cn } from '@/lib/utils';
 
 function getTaskDeadlineInfo(dueDate?: string) {
@@ -94,6 +95,11 @@ function ClientCard({ client }: { client: any }) {
           >
             <Eye size={12} />
           </Button>
+        </div>
+
+        <div className="mt-2 flex flex-col gap-1">
+          <ProductBadges products={client.contracted_products} size="sm" maxVisible={3} />
+          <TorqueCRMProductBadges products={client.torque_crm_products} size="sm" />
         </div>
 
         <div className="mt-2 flex items-center gap-2">

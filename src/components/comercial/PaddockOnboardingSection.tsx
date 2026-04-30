@@ -12,6 +12,7 @@ import { FileText, Eye, Clock, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import ClientViewModal from '@/components/client/ClientViewModal';
+import ProductBadges, { TorqueCRMProductBadges } from '@/components/shared/ProductBadges';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -163,6 +164,10 @@ export default function PaddockOnboardingSection() {
                           <h4 className="font-medium text-sm text-foreground line-clamp-2">
                             {clientName}
                           </h4>
+                          <div className="mt-1 flex flex-col gap-1">
+                            <ProductBadges products={(client as any).contracted_products} size="sm" maxVisible={4} />
+                            <TorqueCRMProductBadges products={(client as any).torque_crm_products} size="sm" />
+                          </div>
                         </div>
                         <Button
                           variant="ghost"
