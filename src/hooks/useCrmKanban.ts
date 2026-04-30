@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePageAccess } from '@/hooks/usePageAccess';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { resolveTaskOwner } from './utils/resolveTaskOwner';
@@ -253,7 +254,11 @@ export function welcomeTaskTitle(clientName: string): string {
 
 /** Todos os clientes que estão no fluxo do Gestor de CRM (crm_status NOT NULL). */
 export function useCrmKanbanClients() {
-  const { user } = useAuth();
+  const { user, isAdminUser, isCEO } = useAuth();
+  const { data: pageAccess = [] } = usePageAccess();
+  // gestor_crm operacional padrão filtra. Mas user com page_grant 'gestor-crm'
+  // (ex: cargo cross-funcional) ou admin enxergam tudo.
+  const seesAll = isAdminUser || isCEO || pageAccess.includes('gestor-crm');
 
   return useQuery({
     queryKey: ['crm-kanban-clients', user?.id, user?.role],
@@ -266,8 +271,7 @@ export function useCrmKanbanClients() {
         .not('crm_status', 'is', null)
         .order('crm_entered_at', { ascending: true });
 
-      // Operational role vê apenas seus clientes; demais papéis com acesso veem tudo.
-      if (user?.role === 'gestor_crm') {
+      if (!seesAll && user?.role === 'gestor_crm') {
         query = query.eq('assigned_crm', user?.id);
       }
 
@@ -281,7 +285,9 @@ export function useCrmKanbanClients() {
 
 /** Clientes novos (crm_status='novo') — alimenta a coluna "Novos clientes". */
 export function useCrmNovosClientes() {
-  const { user } = useAuth();
+  const { user, isAdminUser, isCEO } = useAuth();
+  const { data: pageAccess = [] } = usePageAccess();
+  const seesAll = isAdminUser || isCEO || pageAccess.includes('gestor-crm');
 
   return useQuery({
     queryKey: ['crm-novos-clientes', user?.id, user?.role],
@@ -294,7 +300,7 @@ export function useCrmNovosClientes() {
         .not('assigned_crm' as any, 'is', null)
         .order('crm_entered_at' as any, { ascending: true });
 
-      if (user?.role === 'gestor_crm') {
+      if (!seesAll && user?.role === 'gestor_crm') {
         query = query.eq('assigned_crm' as any, user?.id);
       }
 
@@ -308,7 +314,9 @@ export function useCrmNovosClientes() {
 
 /** Clientes em estado "Boas-vindas" (tarefa criada, aguardando conclusão). */
 export function useCrmBoasVindasClientes() {
-  const { user } = useAuth();
+  const { user, isAdminUser, isCEO } = useAuth();
+  const { data: pageAccess = [] } = usePageAccess();
+  const seesAll = isAdminUser || isCEO || pageAccess.includes('gestor-crm');
 
   return useQuery({
     queryKey: ['crm-boasvindas-clientes', user?.id, user?.role],
@@ -321,7 +329,7 @@ export function useCrmBoasVindasClientes() {
         .not('assigned_crm' as any, 'is', null)
         .order('crm_entered_at' as any, { ascending: true });
 
-      if (user?.role === 'gestor_crm') {
+      if (!seesAll && user?.role === 'gestor_crm') {
         query = query.eq('assigned_crm' as any, user?.id);
       }
 
@@ -335,7 +343,9 @@ export function useCrmBoasVindasClientes() {
 
 /** Tracking diário (acompanhamento seg-sex). */
 export function useCrmTracking() {
-  const { user } = useAuth();
+  const { user, isAdminUser, isCEO } = useAuth();
+  const { data: pageAccess = [] } = usePageAccess();
+  const seesAll = isAdminUser || isCEO || pageAccess.includes('gestor-crm');
 
   return useQuery({
     queryKey: ['crm-tracking', user?.id, user?.role],
@@ -345,7 +355,7 @@ export function useCrmTracking() {
         .select('*, clients:client_id(id, name, razao_social, contracted_products, torque_crm_products, monthly_value, client_label)')
         .order('last_moved_at', { ascending: true });
 
-      if (user?.role === 'gestor_crm') {
+      if (!seesAll && user?.role === 'gestor_crm') {
         query = query.eq('gestor_id', user?.id);
       }
 
@@ -363,7 +373,9 @@ export function useCrmTracking() {
  * em acompanhamento que ainda não foi tocado hoje.
  */
 export function useCrmTodayDocumentedClients() {
-  const { user } = useAuth();
+  const { user, isAdminUser, isCEO } = useAuth();
+  const { data: pageAccess = [] } = usePageAccess();
+  const seesAll = isAdminUser || isCEO || pageAccess.includes('gestor-crm');
 
   return useQuery({
     queryKey: ['crm-today-documented', user?.id, user?.role],
@@ -374,7 +386,7 @@ export function useCrmTodayDocumentedClients() {
         .select('client_id')
         .eq('documentation_date', today);
 
-      if (user?.role === 'gestor_crm') {
+      if (!seesAll && user?.role === 'gestor_crm') {
         query = query.eq('gestor_id', user?.id);
       }
 
@@ -394,7 +406,9 @@ export function useCrmTodayDocumentedClients() {
 
 /** Documentação diária. */
 export function useCrmDocumentation() {
-  const { user } = useAuth();
+  const { user, isAdminUser, isCEO } = useAuth();
+  const { data: pageAccess = [] } = usePageAccess();
+  const seesAll = isAdminUser || isCEO || pageAccess.includes('gestor-crm');
 
   return useQuery({
     queryKey: ['crm-documentation', user?.id, user?.role],
@@ -404,7 +418,7 @@ export function useCrmDocumentation() {
         .select('*, clients:client_id(id, name, razao_social)')
         .order('documentation_date', { ascending: false });
 
-      if (user?.role === 'gestor_crm') {
+      if (!seesAll && user?.role === 'gestor_crm') {
         query = query.eq('gestor_id', user?.id);
       }
 
@@ -421,8 +435,10 @@ export function useCrmDocumentation() {
  * e por flag de finalização quando informadas.
  */
 export function useCrmConfiguracoes(opts: { produto?: CrmProduto; finalizado?: boolean } = {}) {
-  const { user } = useAuth();
+  const { user, isAdminUser, isCEO } = useAuth();
+  const { data: pageAccess = [] } = usePageAccess();
   const { produto, finalizado } = opts;
+  const seesAll = isAdminUser || isCEO || pageAccess.includes('gestor-crm');
 
   return useQuery({
     queryKey: ['crm-configuracoes', user?.id, user?.role, produto ?? 'all', finalizado ?? 'any'],
@@ -435,7 +451,7 @@ export function useCrmConfiguracoes(opts: { produto?: CrmProduto; finalizado?: b
       if (produto) query = query.eq('produto', produto);
       if (typeof finalizado === 'boolean') query = query.eq('is_finalizado', finalizado);
 
-      if (user?.role === 'gestor_crm') {
+      if (!seesAll && user?.role === 'gestor_crm') {
         query = query.eq('gestor_id', user?.id);
       }
 

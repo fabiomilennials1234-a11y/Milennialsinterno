@@ -246,22 +246,43 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
   const canArchive = actionPermissions.permissions.canArchive || actionPermissions.permissions.canDelete;
 
   // -------- Pessoas --------
+  // Usa RPC `list_users_by_role_for_page` em vez de SELECT direto em
+  // `user_roles` — a RPC valida `can_access_page_data(_role, _page_slug)`
+  // no DB, então um user com page_grant (ex: Maycon -> 'design') consegue
+  // listar designers sem precisar de policy aberta em user_roles.
+  // page_slug é derivado da role do board (devs -> 'devs', designer -> 'design',
+  // editor -> 'editor-video'). Erro 42501 (sem grant) cai num fallback vazio.
+  const personsPageSlug = useMemo(() => {
+    const map: Record<string, string> = {
+      devs: 'devs',
+      designer: 'design',
+      editor: 'editor-video',
+      produtora: 'produtora',
+      atrizes: 'produtora',
+    };
+    return map[config.personsRole] ?? config.boardQueryKeyPrefix;
+  }, [config.personsRole, config.boardQueryKeyPrefix]);
+
   const { data: persons = [], isLoading: isPersonsLoading } = useQuery({
-    queryKey: [`all-${config.boardQueryKeyPrefix}-persons`, config.personsRole],
+    queryKey: [`all-${config.boardQueryKeyPrefix}-persons`, config.personsRole, personsPageSlug],
     queryFn: async (): Promise<BoardPerson[]> => {
-      const { data: rolesData, error } = await supabase
-        .from('user_roles')
-        .select('user_id')
-        .eq('role', config.personsRole);
-      if (error) throw error;
-      const ids = rolesData?.map(r => r.user_id) || [];
-      if (ids.length === 0) return [];
-      const { data: profiles, error: profileError } = await supabase
-        .from('profiles')
-        .select('user_id, name')
-        .in('user_id', ids);
-      if (profileError) throw profileError;
-      return (profiles || []).map(p => ({ user_id: p.user_id, name: p.name }));
+      // RPC ainda não tipada — cast defensivo até o regen pós-migration.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc('list_users_by_role_for_page', {
+        _role: config.personsRole,
+        _page_slug: personsPageSlug,
+      });
+      if (error) {
+        // 42501 = insufficient_privilege (sem grant). Não derruba o board —
+        // SpecializedKanbanBoard já mostra "personsEmptyMessage" se vazio.
+        if ((error as { code?: string }).code === '42501') return [];
+        throw error;
+      }
+      type Row = { user_id: string; name: string | null };
+      return ((data ?? []) as Row[]).map((r) => ({
+        user_id: r.user_id,
+        name: r.name ?? '',
+      }));
     },
   });
 

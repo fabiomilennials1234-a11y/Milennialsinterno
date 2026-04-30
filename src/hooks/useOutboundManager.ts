@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePageAccess } from '@/hooks/usePageAccess';
 import { useTargetOutboundManager } from '@/contexts/OutboundManagerContext';
 import { useActionJustification } from '@/contexts/JustificationContext';
 import { toast } from 'sonner';
@@ -173,10 +174,15 @@ export function useOutboundAssignedClients() {
 
 // Fetch outbound tasks (only non-archived)
 export function useOutboundTasks(taskType: 'daily' | 'weekly') {
-  const { user } = useAuth();
+  const { user, isAdminUser, isCEO } = useAuth();
   const { targetUserId } = useTargetOutboundManager();
+  const { data: pageAccess = [] } = usePageAccess();
 
   const effectiveUserId = targetUserId || user?.id;
+  // page_grant 'outbound' libera visão geral; targetUserId força filtro
+  // (CEO inspeciona um manager específico). Owner natural já passa via role.
+  const seesAll =
+    !targetUserId && (isAdminUser || isCEO || pageAccess.includes('outbound'));
 
   return useQuery({
     queryKey: ['outbound-tasks', taskType, effectiveUserId],
@@ -188,7 +194,7 @@ export function useOutboundTasks(taskType: 'daily' | 'weekly') {
         .or('archived.is.null,archived.eq.false')
         .order('created_at', { ascending: false });
 
-      if (effectiveUserId) {
+      if (effectiveUserId && !seesAll) {
         query = query.eq('outbound_manager_id', effectiveUserId);
       }
 

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePageAccess } from '@/hooks/usePageAccess';
 import { useActionJustification } from '@/contexts/JustificationContext';
 import { toast } from 'sonner';
 import { CONSULTORIA_TASK_MAP, GESTAO_TASK_MAP, getCurrentWeekday } from '@/hooks/useMktplaceKanban';
@@ -13,6 +14,18 @@ import {
   type CrmProduto,
 } from '@/hooks/useCrmKanban';
 import { resolveTaskOwner } from './utils/resolveTaskOwner';
+
+// Map de department → page_slug correspondente em app_pages.
+// Mantido em paralelo aos slugs declarados em types/auth.ts ROLE_PAGE_MATRIX.
+const DEPARTMENT_TO_PAGE_SLUG: Record<string, string> = {
+  gestor_crm: 'gestor-crm',
+  consultor_mktplace: 'consultor-mktplace',
+  financeiro: 'financeiro',
+  gestor_projetos: 'gestor-projetos',
+  rh: 'rh',
+  sucesso_cliente: 'sucesso-cliente',
+  outbound: 'outbound',
+};
 
 export interface DepartmentTask {
   id: string;
@@ -38,20 +51,32 @@ export interface DepartmentTask {
 }
 
 export function useDepartmentTasks(department: string, type: 'daily' | 'weekly' = 'daily') {
-  const { user } = useAuth();
+  const { user, isAdminUser, isCEO } = useAuth();
+  const { data: pageAccess = [] } = usePageAccess();
+
+  // page_grant: user com grant na página do department vê dados completos
+  // (não é owner natural — owner já passa direto pelo RLS via has_role).
+  // Admin (ceo/cto/gestor_projetos) bypass via RLS — também ignora filtro.
+  const slug = DEPARTMENT_TO_PAGE_SLUG[department];
+  const seesAll = isAdminUser || isCEO || (!!slug && pageAccess.includes(slug));
 
   return useQuery({
     queryKey: ['department-tasks', user?.id, department, type],
     queryFn: async () => {
-      // 1. Fetch regular department tasks (personal, per user)
-      const { data, error } = await supabase
+      // 1. Fetch regular department tasks
+      let baseQuery = supabase
         .from('department_tasks')
         .select('*')
-        .eq('user_id', user?.id)
         .eq('department', department)
         .eq('task_type', type)
         .eq('archived', false)
         .order('created_at', { ascending: false });
+
+      if (!seesAll) {
+        baseQuery = baseQuery.eq('user_id', user?.id);
+      }
+
+      const { data, error } = await baseQuery;
 
       if (error) throw error;
 

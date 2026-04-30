@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePageAccess } from '@/hooks/usePageAccess';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { resolveTaskOwner } from './utils/resolveTaskOwner';
@@ -85,6 +86,10 @@ export const DAYS = [
 // Fetch clients assigned to the current consultor MKT Place
 export function useMktplaceClients() {
   const { user, isCEO, isAdminUser } = useAuth();
+  const { data: pageAccess = [] } = usePageAccess();
+  // page_grant 'consultor-mktplace' libera visão geral. Owner natural
+  // (consultor_mktplace) sem grant continua filtrado pelos seus clientes.
+  const seesAll = isAdminUser || isCEO || pageAccess.includes('consultor-mktplace');
 
   return useQuery({
     queryKey: ['mktplace-all-clients', user?.id],
@@ -97,7 +102,7 @@ export function useMktplaceClients() {
         .not('mktplace_status', 'is', null)
         .order('mktplace_entered_at', { ascending: true });
 
-      if (user?.role === 'consultor_mktplace') {
+      if (!seesAll && user?.role === 'consultor_mktplace') {
         query = query.eq('assigned_mktplace', user?.id);
       }
 
@@ -112,6 +117,8 @@ export function useMktplaceClients() {
 // Fetch daily tracking for acompanhamento
 export function useMktplaceTracking() {
   const { user, isCEO, isAdminUser } = useAuth();
+  const { data: pageAccess = [] } = usePageAccess();
+  const seesAll = isAdminUser || isCEO || pageAccess.includes('consultor-mktplace');
 
   return useQuery({
     queryKey: ['mktplace-tracking', user?.id],
@@ -121,7 +128,7 @@ export function useMktplaceTracking() {
         .select('*, clients:client_id(id, name, razao_social, contracted_products, monthly_value, client_label)')
         .order('last_moved_at', { ascending: true });
 
-      if (user?.role === 'consultor_mktplace') {
+      if (!seesAll && user?.role === 'consultor_mktplace') {
         query = query.eq('consultor_id', user?.id);
       }
 
@@ -136,6 +143,8 @@ export function useMktplaceTracking() {
 // Fetch daily documentation
 export function useMktplaceDocumentation() {
   const { user, isCEO, isAdminUser } = useAuth();
+  const { data: pageAccess = [] } = usePageAccess();
+  const seesAll = isAdminUser || isCEO || pageAccess.includes('consultor-mktplace');
 
   return useQuery({
     queryKey: ['mktplace-documentation', user?.id],
@@ -145,7 +154,7 @@ export function useMktplaceDocumentation() {
         .select('*, clients:client_id(id, name, razao_social)')
         .order('documentation_date', { ascending: false });
 
-      if (user?.role === 'consultor_mktplace') {
+      if (!seesAll && user?.role === 'consultor_mktplace') {
         query = query.eq('consultor_id', user?.id);
       }
 

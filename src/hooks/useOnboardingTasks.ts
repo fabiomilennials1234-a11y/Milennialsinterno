@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePageAccess } from '@/hooks/usePageAccess';
 import { useTargetAdsManager } from '@/contexts/AdsManagerContext';
 import { toast } from 'sonner';
 import { useEffect } from 'react';
@@ -30,11 +31,15 @@ export interface OnboardingTask {
 
 // Fetch all onboarding tasks for the current user (or target user)
 export function useOnboardingTasks() {
-  const { user } = useAuth();
+  const { user, isAdminUser, isCEO } = useAuth();
   const { targetUserId } = useTargetAdsManager();
+  const { data: pageAccess = [] } = usePageAccess();
   const queryClient = useQueryClient();
-  
+
   const effectiveUserId = targetUserId || user?.id;
+  // page_grant 'sucesso-cliente' libera visão geral; targetUserId força filtro.
+  const seesAll =
+    !targetUserId && (isAdminUser || isCEO || pageAccess.includes('sucesso-cliente'));
 
   const query = useQuery({
     queryKey: ['onboarding-tasks', effectiveUserId],
@@ -44,8 +49,8 @@ export function useOnboardingTasks() {
         .select('*, client:clients(id, name, created_at)')
         .or('archived.is.null,archived.eq.false')
         .order('created_at', { ascending: false });
-      
-      if (effectiveUserId) {
+
+      if (effectiveUserId && !seesAll) {
         queryBuilder = queryBuilder.eq('assigned_to', effectiveUserId);
       }
 
