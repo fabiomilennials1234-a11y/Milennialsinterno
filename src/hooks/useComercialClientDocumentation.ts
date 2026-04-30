@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { resolveTaskOwner } from './utils/resolveTaskOwner';
 
 // Helper to get date key in Brazil timezone (YYYY-MM-DD)
 function getDateKeyInBrazilTZ(date: Date = new Date()): string {
@@ -139,8 +140,10 @@ export function useCreateComercialCombinadoTask() {
     }) => {
       if (!user?.id) throw new Error('Usuário não autenticado');
 
+      const ownerId = await resolveTaskOwner(clientId, 'assigned_comercial', user.id);
+
       const { error } = await supabase.from('comercial_tasks').insert({
-        user_id: user.id,
+        user_id: ownerId,
         title: `📌 COMBINADO: ${title}`,
         description: `Cliente: ${clientName}\n\nCombinado: ${title}`,
         task_type: 'daily',

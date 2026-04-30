@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { resolveTaskOwner } from './utils/resolveTaskOwner';
 
 // ===================== STATUS / STEPS =====================
 
@@ -225,8 +226,9 @@ export function useAdvanceMktplaceStep() {
         // Create next task
         const taskNameFn = taskMap[nextStatus];
         if (taskNameFn && user?.id) {
+          const ownerId = await resolveTaskOwner(clientId, 'assigned_mktplace', user.id);
           await supabase.from('department_tasks').insert({
-            user_id: user.id,
+            user_id: ownerId,
             title: taskNameFn(clientName),
             task_type: 'daily',
             status: 'todo',
@@ -278,8 +280,10 @@ export function useCreateMktplaceInitialTask() {
 
       if (existing && existing.length > 0) return;
 
+      const ownerId = await resolveTaskOwner(clientId, 'assigned_mktplace', user.id);
+
       await supabase.from('department_tasks').insert({
-        user_id: user.id,
+        user_id: ownerId,
         title: taskNameFn(clientName),
         task_type: 'daily',
         status: 'todo',
@@ -356,8 +360,9 @@ export function useSaveMktplaceDoc() {
 
       // If combinado = sim and has prazo, create a task
       if (doc.combinado === 'sim' && doc.combinado_descricao && doc.combinado_prazo && user?.id) {
+        const ownerId = await resolveTaskOwner(doc.clientId, 'assigned_mktplace', user.id);
         await supabase.from('department_tasks').insert({
-          user_id: user.id,
+          user_id: ownerId,
           title: doc.combinado_descricao,
           task_type: 'daily',
           status: 'todo',

@@ -9,6 +9,7 @@ import {
   hasActiveJustificationForDelay,
 } from './useComercialDelayNotifications';
 import { useActionJustification } from '@/contexts/JustificationContext';
+import { resolveTaskOwner } from './utils/resolveTaskOwner';
 
 // Legacy auto task types (kept for backward compatibility with existing tasks)
 export const AUTO_TASK_TYPES = {
@@ -174,10 +175,12 @@ async function createPaddockTask(
 
   if (existingList && existingList.length > 0) return existingList[0];
 
+  const ownerId = await resolveTaskOwner(clientId, 'assigned_comercial', userId);
+
   const { data, error } = await supabase
     .from('comercial_tasks')
     .insert({
-      user_id: userId,
+      user_id: ownerId,
       title: template.titleFn(clientName),
       description: `Tarefa automática do Onboarding Paddock para ${clientName}`,
       task_type: 'daily',

@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { resolveTaskOwner } from './utils/resolveTaskOwner';
 
 // =============================================================
 // Gestor de CRM — Hook central
@@ -513,10 +514,13 @@ export function useCreateCrmWelcomeTask() {
         return;
       }
 
-      // Cria tarefa com user_id = usuário logado (espelha padrão MKT Place e
-      // respeita a RLS do department_tasks que exige auth.uid() = user_id).
+      // Cria tarefa com user_id = assigned_crm do cliente (fallback ao logado).
+      // RLS de department_tasks libera via page_grant gestor-crm; o user_id
+      // controla VISIBILIDADE do dono certo (fix do bug de tasks invisíveis
+      // pro gestor real quando criadas em massa pelo CEO).
+      const ownerId = await resolveTaskOwner(clientId, 'assigned_crm', user.id);
       const { error: taskError } = await supabase.from('department_tasks').insert({
-        user_id: user.id,
+        user_id: ownerId,
         title,
         task_type: 'daily',
         status: 'todo',
@@ -715,8 +719,9 @@ export function useCreateCrmConfiguracoes() {
           let taskCreated = false;
           if (!existingTask || existingTask.length === 0) {
             const dueDate = getConfigDueDate(configCreatedAt, produto);
+            const ownerId = await resolveTaskOwner(clientId, 'assigned_crm', user.id);
             const { error: taskErr } = await supabase.from('department_tasks').insert({
-              user_id: user.id,
+              user_id: ownerId,
               title: expectedTitle,
               description: `crm-config:${produto}`,
               task_type: 'daily',
@@ -801,12 +806,13 @@ export function useAdvanceCrmConfiguracao() {
         .eq('id', configId);
       if (updErr) throw updErr;
 
-      // Cria nova tarefa com user_id = usuário logado + tag do produto
-      // em description (ver useCreateCrmConfiguracoes para explicação).
+      // Cria nova tarefa com user_id = assigned_crm do cliente (fallback ao logado).
+      // Garante que o gestor real veja a task mesmo se o avanço foi feito pelo CEO.
       const titleFn = CRM_TASK_TITLE[produto][next];
       if (titleFn && user?.id) {
+        const ownerId = await resolveTaskOwner(clientId, 'assigned_crm', user.id);
         const { error: taskErr } = await supabase.from('department_tasks').insert({
-          user_id: user.id,
+          user_id: ownerId,
           title: titleFn(clientName),
           description: `crm-config:${produto}`,
           task_type: 'daily',
@@ -869,8 +875,9 @@ export function useSaveCrmDoc() {
       }, { onConflict: 'client_id,documentation_date' });
 
       if (doc.combinado === 'sim' && doc.combinado_descricao && doc.combinado_prazo && user?.id) {
+        const ownerId = await resolveTaskOwner(doc.clientId, 'assigned_crm', user.id);
         await supabase.from('department_tasks').insert({
-          user_id: user.id,
+          user_id: ownerId,
           title: doc.combinado_descricao,
           task_type: 'daily',
           status: 'todo',

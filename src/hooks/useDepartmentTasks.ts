@@ -12,6 +12,7 @@ import {
   CRM_TASK_TITLE,
   type CrmProduto,
 } from '@/hooks/useCrmKanban';
+import { resolveTaskOwner } from './utils/resolveTaskOwner';
 
 export interface DepartmentTask {
   id: string;
@@ -379,8 +380,9 @@ export function useUpdateDepartmentTaskStatus(department: string) {
                 // Create next task
                 const taskNameFn = taskMap[nextStatus];
                 if (taskNameFn && user?.id) {
+                  const ownerId = await resolveTaskOwner(clientId, 'assigned_mktplace', user.id);
                   await supabase.from('department_tasks').insert({
-                    user_id: user.id,
+                    user_id: ownerId,
                     title: taskNameFn(clientName),
                     task_type: 'daily',
                     status: 'todo',
@@ -520,8 +522,9 @@ export function useUpdateDepartmentTaskStatus(department: string) {
                     const dueDate = cfg.created_at
                       ? getCrmConfigDueDate(cfg.created_at, produto)
                       : undefined;
+                    const ownerId = await resolveTaskOwner(cfgTask.related_client_id, 'assigned_crm', user.id);
                     await supabase.from('department_tasks').insert({
-                      user_id: user.id,
+                      user_id: ownerId,
                       title: titleFn(clientName),
                       description: `crm-config:${produto}`,
                       task_type: 'daily',

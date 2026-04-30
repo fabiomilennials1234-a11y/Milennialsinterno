@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { fireCelebration } from '@/lib/confetti';
 import { getCurrentDayPortuguese, PADDOCK_AUTO_TASK_TYPES } from './useComercialAutomation';
 import { useActionJustification } from '@/contexts/JustificationContext';
+import { resolveTaskOwner } from './utils/resolveTaskOwner';
 
 // Paddock step progression maps (mirrored from useComercialAutomation)
 const PADDOCK_TASK_TO_STEP: Record<string, string> = {
@@ -59,8 +60,10 @@ async function createPaddockTaskFromTemplate(userId: string, clientId: string, t
 
   if (existingList && existingList.length > 0) return;
 
+  const ownerId = await resolveTaskOwner(clientId, 'assigned_comercial', userId);
+
   await supabase.from('comercial_tasks').insert({
-    user_id: userId,
+    user_id: ownerId,
     title: template.titleFn(clientName),
     description: `Tarefa automática do Onboarding Paddock para ${clientName}`,
     task_type: 'daily',
@@ -111,10 +114,9 @@ export function useComercialTasks(taskType?: 'daily' | 'weekly') {
         .or('archived.is.null,archived.eq.false')
         .order('created_at', { ascending: false });
 
-      // CEO sees all tasks, others see only their own
-      if (user?.role === 'consultor_comercial') {
-        queryBuilder = queryBuilder.eq('user_id', user?.id);
-      }
+      // RLS já filtra (policy comercial_tasks_select_visao_total) — sem
+      // filtro client-side. Antes excluía o consultor de tasks autogeradas
+      // criadas com user_id=ceo durante operações em massa.
 
       if (taskType) {
         queryBuilder = queryBuilder.eq('task_type', taskType);
@@ -473,8 +475,9 @@ export function useUpdateComercialTaskStatus() {
               .limit(1);
 
             if (!existingConfirm || existingConfirm.length === 0) {
+              const ownerId = await resolveTaskOwner(clientId, 'assigned_comercial', user.id);
               await supabase.from('comercial_tasks').insert({
-                user_id: user.id,
+                user_id: ownerId,
                 title: `Confirmar implementação ${productLabel} ${clientName}`,
                 description: confirmTag,
                 task_type: 'daily',
