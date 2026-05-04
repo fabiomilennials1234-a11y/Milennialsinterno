@@ -44,6 +44,7 @@ import {
 } from '@/hooks/useSidebarPermissions';
 import { useAllTreinadorClientCounts, useAllGestorClientCounts, useAllCrmClientCounts, useAllOutboundClientCounts, useAllMktplaceClientCounts } from '@/hooks/useTreinadorClientCount';
 import { useUsers } from '@/hooks/useUsers';
+import SidebarBadge from '@/components/justificativas/SidebarBadge';
 
 // Ícones das categorias independentes
 const categoryIcons: Record<string, React.ElementType> = {
@@ -1670,6 +1671,8 @@ export default function AppSidebar() {
         style={{ background: 'linear-gradient(to bottom, transparent 0%, hsl(var(--sidebar-background)) 85%)' }}
       />
       </div>
+
+      <SidebarBadge />
 
       {/* User Info */}
       {user && (
