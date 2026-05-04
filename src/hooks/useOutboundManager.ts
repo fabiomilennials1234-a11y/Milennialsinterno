@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { usePageAccess } from '@/hooks/usePageAccess';
+import { useDataScope } from '@/hooks/useDataScope';
 import { useTargetOutboundManager } from '@/contexts/OutboundManagerContext';
 import { useActionJustification } from '@/contexts/JustificationContext';
 import { toast } from 'sonner';
@@ -174,18 +174,17 @@ export function useOutboundAssignedClients() {
 
 // Fetch outbound tasks (only non-archived)
 export function useOutboundTasks(taskType: 'daily' | 'weekly') {
-  const { user, isAdminUser, isCEO } = useAuth();
+  const { user } = useAuth();
   const { targetUserId } = useTargetOutboundManager();
-  const { data: pageAccess = [] } = usePageAccess();
+  const { seesAll: pageSeesAll, isReady, scopeKey } = useDataScope('outbound');
 
   const effectiveUserId = targetUserId || user?.id;
   // page_grant 'outbound' libera visão geral; targetUserId força filtro
   // (CEO inspeciona um manager específico). Owner natural já passa via role.
-  const seesAll =
-    !targetUserId && (isAdminUser || isCEO || pageAccess.includes('outbound'));
+  const seesAll = !targetUserId && pageSeesAll;
 
   return useQuery({
-    queryKey: ['outbound-tasks', taskType, effectiveUserId],
+    queryKey: ['outbound-tasks', taskType, effectiveUserId, scopeKey],
     queryFn: async () => {
       let query = supabase
         .from('outbound_tasks')
@@ -202,7 +201,7 @@ export function useOutboundTasks(taskType: 'daily' | 'weekly') {
       if (error) throw error;
       return data as OutboundTask[];
     },
-    enabled: !!effectiveUserId,
+    enabled: isReady && !!effectiveUserId,
   });
 }
 
