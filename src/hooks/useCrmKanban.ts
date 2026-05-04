@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { usePageAccess } from '@/hooks/usePageAccess';
+import { useDataScope } from '@/hooks/useDataScope';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { resolveTaskOwner } from './utils/resolveTaskOwner';
@@ -254,14 +254,13 @@ export function welcomeTaskTitle(clientName: string): string {
 
 /** Todos os clientes que estão no fluxo do Gestor de CRM (crm_status NOT NULL). */
 export function useCrmKanbanClients() {
-  const { user, isAdminUser, isCEO } = useAuth();
-  const { data: pageAccess = [] } = usePageAccess();
+  const { user } = useAuth();
   // gestor_crm operacional padrão filtra. Mas user com page_grant 'gestor-crm'
   // (ex: cargo cross-funcional) ou admin enxergam tudo.
-  const seesAll = isAdminUser || isCEO || pageAccess.includes('gestor-crm');
+  const { seesAll, isReady, scopeKey } = useDataScope('gestor-crm');
 
   return useQuery({
-    queryKey: ['crm-kanban-clients', user?.id, user?.role],
+    queryKey: ['crm-kanban-clients', user?.id, user?.role, scopeKey],
     queryFn: async () => {
       let query = (supabase as any)
         .from('clients')
@@ -279,18 +278,17 @@ export function useCrmKanbanClients() {
       if (error) throw error;
       return (data || []) as any[];
     },
-    enabled: !!user?.id,
+    enabled: isReady && !!user?.id,
   });
 }
 
 /** Clientes novos (crm_status='novo') — alimenta a coluna "Novos clientes". */
 export function useCrmNovosClientes() {
-  const { user, isAdminUser, isCEO } = useAuth();
-  const { data: pageAccess = [] } = usePageAccess();
-  const seesAll = isAdminUser || isCEO || pageAccess.includes('gestor-crm');
+  const { user } = useAuth();
+  const { seesAll, isReady, scopeKey } = useDataScope('gestor-crm');
 
   return useQuery({
-    queryKey: ['crm-novos-clientes', user?.id, user?.role],
+    queryKey: ['crm-novos-clientes', user?.id, user?.role, scopeKey],
     queryFn: async () => {
       let query = supabase
         .from('clients')
@@ -308,18 +306,17 @@ export function useCrmNovosClientes() {
       if (error) throw error;
       return (data || []) as any[];
     },
-    enabled: !!user?.id,
+    enabled: isReady && !!user?.id,
   });
 }
 
 /** Clientes em estado "Boas-vindas" (tarefa criada, aguardando conclusão). */
 export function useCrmBoasVindasClientes() {
-  const { user, isAdminUser, isCEO } = useAuth();
-  const { data: pageAccess = [] } = usePageAccess();
-  const seesAll = isAdminUser || isCEO || pageAccess.includes('gestor-crm');
+  const { user } = useAuth();
+  const { seesAll, isReady, scopeKey } = useDataScope('gestor-crm');
 
   return useQuery({
-    queryKey: ['crm-boasvindas-clientes', user?.id, user?.role],
+    queryKey: ['crm-boasvindas-clientes', user?.id, user?.role, scopeKey],
     queryFn: async () => {
       let query = supabase
         .from('clients')
@@ -337,18 +334,17 @@ export function useCrmBoasVindasClientes() {
       if (error) throw error;
       return (data || []) as any[];
     },
-    enabled: !!user?.id,
+    enabled: isReady && !!user?.id,
   });
 }
 
 /** Tracking diário (acompanhamento seg-sex). */
 export function useCrmTracking() {
-  const { user, isAdminUser, isCEO } = useAuth();
-  const { data: pageAccess = [] } = usePageAccess();
-  const seesAll = isAdminUser || isCEO || pageAccess.includes('gestor-crm');
+  const { user } = useAuth();
+  const { seesAll, isReady, scopeKey } = useDataScope('gestor-crm');
 
   return useQuery({
-    queryKey: ['crm-tracking', user?.id, user?.role],
+    queryKey: ['crm-tracking', user?.id, user?.role, scopeKey],
     queryFn: async () => {
       let query = (supabase as any)
         .from('crm_daily_tracking')
@@ -363,7 +359,7 @@ export function useCrmTracking() {
       if (error) throw error;
       return (data || []) as any[];
     },
-    enabled: !!user?.id,
+    enabled: isReady && !!user?.id,
   });
 }
 
@@ -373,12 +369,11 @@ export function useCrmTracking() {
  * em acompanhamento que ainda não foi tocado hoje.
  */
 export function useCrmTodayDocumentedClients() {
-  const { user, isAdminUser, isCEO } = useAuth();
-  const { data: pageAccess = [] } = usePageAccess();
-  const seesAll = isAdminUser || isCEO || pageAccess.includes('gestor-crm');
+  const { user } = useAuth();
+  const { seesAll, isReady, scopeKey } = useDataScope('gestor-crm');
 
   return useQuery({
-    queryKey: ['crm-today-documented', user?.id, user?.role],
+    queryKey: ['crm-today-documented', user?.id, user?.role, scopeKey],
     queryFn: async () => {
       const today = format(new Date(), 'yyyy-MM-dd');
       let query = (supabase as any)
@@ -398,7 +393,7 @@ export function useCrmTodayDocumentedClients() {
       });
       return ids;
     },
-    enabled: !!user?.id,
+    enabled: isReady && !!user?.id,
     // Re-verifica a cada 60s caso o dia vire
     refetchInterval: 60_000,
   });
@@ -406,12 +401,11 @@ export function useCrmTodayDocumentedClients() {
 
 /** Documentação diária. */
 export function useCrmDocumentation() {
-  const { user, isAdminUser, isCEO } = useAuth();
-  const { data: pageAccess = [] } = usePageAccess();
-  const seesAll = isAdminUser || isCEO || pageAccess.includes('gestor-crm');
+  const { user } = useAuth();
+  const { seesAll, isReady, scopeKey } = useDataScope('gestor-crm');
 
   return useQuery({
-    queryKey: ['crm-documentation', user?.id, user?.role],
+    queryKey: ['crm-documentation', user?.id, user?.role, scopeKey],
     queryFn: async () => {
       let query = (supabase as any)
         .from('crm_daily_documentation')
@@ -426,7 +420,7 @@ export function useCrmDocumentation() {
       if (error) throw error;
       return (data || []) as any[];
     },
-    enabled: !!user?.id,
+    enabled: isReady && !!user?.id,
   });
 }
 
@@ -435,13 +429,12 @@ export function useCrmDocumentation() {
  * e por flag de finalização quando informadas.
  */
 export function useCrmConfiguracoes(opts: { produto?: CrmProduto; finalizado?: boolean } = {}) {
-  const { user, isAdminUser, isCEO } = useAuth();
-  const { data: pageAccess = [] } = usePageAccess();
+  const { user } = useAuth();
   const { produto, finalizado } = opts;
-  const seesAll = isAdminUser || isCEO || pageAccess.includes('gestor-crm');
+  const { seesAll, isReady, scopeKey } = useDataScope('gestor-crm');
 
   return useQuery({
-    queryKey: ['crm-configuracoes', user?.id, user?.role, produto ?? 'all', finalizado ?? 'any'],
+    queryKey: ['crm-configuracoes', user?.id, user?.role, produto ?? 'all', finalizado ?? 'any', scopeKey],
     queryFn: async () => {
       let query = (supabase as any)
         .from('crm_configuracoes')
@@ -459,7 +452,7 @@ export function useCrmConfiguracoes(opts: { produto?: CrmProduto; finalizado?: b
       if (error) throw error;
       return (data || []) as any[];
     },
-    enabled: !!user?.id,
+    enabled: isReady && !!user?.id,
   });
 }
 

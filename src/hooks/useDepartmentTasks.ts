@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { usePageAccess } from '@/hooks/usePageAccess';
+import { useDataScope } from '@/hooks/useDataScope';
 import { useActionJustification } from '@/contexts/JustificationContext';
 import { toast } from 'sonner';
 import { CONSULTORIA_TASK_MAP, GESTAO_TASK_MAP, getCurrentWeekday } from '@/hooks/useMktplaceKanban';
@@ -51,17 +51,16 @@ export interface DepartmentTask {
 }
 
 export function useDepartmentTasks(department: string, type: 'daily' | 'weekly' = 'daily') {
-  const { user, isAdminUser, isCEO } = useAuth();
-  const { data: pageAccess = [] } = usePageAccess();
+  const { user } = useAuth();
 
   // page_grant: user com grant na página do department vê dados completos
   // (não é owner natural — owner já passa direto pelo RLS via has_role).
   // Admin (ceo/cto/gestor_projetos) bypass via RLS — também ignora filtro.
   const slug = DEPARTMENT_TO_PAGE_SLUG[department];
-  const seesAll = isAdminUser || isCEO || (!!slug && pageAccess.includes(slug));
+  const { seesAll, isReady, scopeKey } = useDataScope(slug);
 
   return useQuery({
-    queryKey: ['department-tasks', user?.id, department, type],
+    queryKey: ['department-tasks', user?.id, department, type, scopeKey],
     queryFn: async () => {
       // 1. Fetch regular department tasks
       let baseQuery = supabase
@@ -121,7 +120,7 @@ export function useDepartmentTasks(department: string, type: 'daily' | 'weekly' 
 
       return departmentTasks;
     },
-    enabled: !!user?.id,
+    enabled: isReady && !!user?.id,
   });
 }
 
