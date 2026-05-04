@@ -132,30 +132,29 @@ export function useCSClientTracking(managerId?: string) {
   return query;
 }
 
-// Fetch all comercial consultants
+// Fetch all comercial consultants via SECURITY DEFINER RPC.
+// Direct SELECT on user_roles is restricted to own-row + admin (security wave 1).
+// The RPC bypasses RLS and gates on page access (sucesso-cliente grant).
 export function useComercialConsultants() {
   return useQuery({
     queryKey: ['comercial-consultants'],
     queryFn: async () => {
-      const { data: roles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id')
-        .eq('role', 'consultor_comercial');
+      const { data, error } = await supabase.rpc('list_users_by_role_for_page', {
+        _role: 'consultor_comercial',
+        _page_slug: 'sucesso-cliente',
+      });
 
-      if (rolesError) throw rolesError;
-      if (!roles || roles.length === 0) return [];
+      if (error) {
+        // 42501 = insufficient_privilege (no page grant). Return empty
+        // instead of crashing — column shows "Nenhum consultor" gracefully.
+        if (error.code === '42501') {
+          console.warn('[useComercialConsultants] RPC grant denied — returning empty', error.message);
+          return [];
+        }
+        throw error;
+      }
 
-      const userIds = roles.map(r => r.user_id);
-      
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('user_id, name')
-        .in('user_id', userIds)
-        .order('name');
-
-      if (profilesError) throw profilesError;
-      
-      return (profiles || []).map(p => ({
+      return (data || []).map(p => ({
         user_id: p.user_id,
         name: p.name,
       }));
