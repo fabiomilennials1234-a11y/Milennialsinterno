@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import MainLayout from '@/layouts/MainLayout';
 import { 
   ChevronLeft,
@@ -37,6 +38,7 @@ const COLUMNS = [
 ];
 
 export default function GestorProjetosPage() {
+  const { user } = useAuth();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
