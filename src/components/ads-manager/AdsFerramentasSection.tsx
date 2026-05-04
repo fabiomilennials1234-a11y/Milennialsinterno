@@ -89,7 +89,7 @@ export default function AdsFerramentasSection() {
         id: 'clientes_millennials',
         title: 'Treinamentos Milennials',
         icon: '👥',
-        content: `Como se livrar de Leads a distância:\nhttps://drive.google.com/drive/folders/18FwEAFLqwUIBp6CASjYKWcfettLJt-9R?usp=sharing\n\nComo gravar um bom anúncio:\nhttps://drive.google.com/drive/folders/1S5AY5cDEq3kdUud4wT0zJ4v-_wuo8xUC?usp=sharing\n\nComo rodar anúncios sem pagar impostos:\nhttps://drive.google.com/drive/folders/1F1vdNAJvRw3Y3Y7tzTtxA29absoHZ1YN?usp=sharing\n\nTreinamento Gestor de sucesso:\nhttps://pay.hotmart.com/R101977821G?bid=1773845381131\n\nComo fazer Automação CRM dos Clientes:\nAcesso Make\n${makeCredentialsBlock}\nDrive Tutorial: https://drive.google.com/drive/folders/1tBQJg75kKvWMEI9TVgi_BBKBzeli58Db?usp=sharing`,
+        content: `1. Como se livrar de Leads a distância:\nhttps://drive.google.com/drive/folders/18FwEAFLqwUIBp6CASjYKWcfettLJt-9R\n\n2. Curso Gestor de Sucesso:\nhttps://pay.hotmart.com/R101977821G\n\n3. Como fazer automação CRM Make:\n\nMeta ADS → Trello:\nhttps://drive.google.com/drive/folders/1tBQJg75kKvWMEI9TVgi_BBKBzeli58Db?usp=sharing\n\nAcesso Make\n${makeCredentialsBlock}\n\n4. Como conectar o Meta ao Claude:\nhttps://drive.google.com/drive/folders/1ifMVVmRu6EH3_QiUaVzcXKKf6E-qK454?usp=sharing`,
       });
     } else if (!makeLoading) {
       // Sem credencial: versão sem bloco de credenciais (conteúdo útil preservado)
@@ -97,7 +97,7 @@ export default function AdsFerramentasSection() {
         id: 'clientes_millennials',
         title: 'Treinamentos Milennials',
         icon: '👥',
-        content: `Como se livrar de Leads a distância:\nhttps://drive.google.com/drive/folders/18FwEAFLqwUIBp6CASjYKWcfettLJt-9R?usp=sharing\n\nComo gravar um bom anúncio:\nhttps://drive.google.com/drive/folders/1S5AY5cDEq3kdUud4wT0zJ4v-_wuo8xUC?usp=sharing\n\nComo rodar anúncios sem pagar impostos:\nhttps://drive.google.com/drive/folders/1F1vdNAJvRw3Y3Y7tzTtxA29absoHZ1YN?usp=sharing\n\nTreinamento Gestor de sucesso:\nhttps://pay.hotmart.com/R101977821G?bid=1773845381131\n\nDrive Tutorial: https://drive.google.com/drive/folders/1tBQJg75kKvWMEI9TVgi_BBKBzeli58Db?usp=sharing`,
+        content: `1. Como se livrar de Leads a distância:\nhttps://drive.google.com/drive/folders/18FwEAFLqwUIBp6CASjYKWcfettLJt-9R\n\n2. Curso Gestor de Sucesso:\nhttps://pay.hotmart.com/R101977821G\n\n3. Como fazer automação CRM Make:\n\nMeta ADS → Trello:\nhttps://drive.google.com/drive/folders/1tBQJg75kKvWMEI9TVgi_BBKBzeli58Db?usp=sharing\n\nAcesso Make\nLogin: leonardolestesul@hotmail.com\nSenha: Milennials123.\n\n4. Como conectar o Meta ao Claude:\nhttps://drive.google.com/drive/folders/1ifMVVmRu6EH3_QiUaVzcXKKf6E-qK454?usp=sharing`,
       });
     }
 
