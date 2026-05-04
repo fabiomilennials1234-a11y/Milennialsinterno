@@ -58,14 +58,23 @@ export default function CXValidationPopup({ client, isOpen, onClose }: Props) {
   };
 
   const handleConfirmApprove = async () => {
-    await approveValidation.mutateAsync({ clientId: client.id, notes });
-    setShowConfirmApprove(false);
-    onClose();
+    try {
+      await approveValidation.mutateAsync({ clientId: client.id, notes });
+    } finally {
+      setShowConfirmApprove(false);
+      onClose();
+    }
   };
 
   const handleNaoClick = async () => {
-    await rejectValidation.mutateAsync({ clientId: client.id, notes });
-    setShowRejectMessage(true);
+    try {
+      await rejectValidation.mutateAsync({ clientId: client.id, notes });
+      setShowRejectMessage(true);
+    } catch {
+      // Mutation error already handled by hook (toast.error).
+      // Close modal so user isn't trapped.
+      onClose();
+    }
   };
 
   const handleRejectMessageClose = () => {
@@ -182,7 +191,10 @@ export default function CXValidationPopup({ client, isOpen, onClose }: Props) {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleConfirmApprove}
+              onClick={(e) => {
+                e.preventDefault();
+                handleConfirmApprove();
+              }}
               disabled={approveValidation.isPending}
             >
               Sim, liberar cliente
