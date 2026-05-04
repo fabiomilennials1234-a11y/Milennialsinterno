@@ -65,6 +65,8 @@ import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { useQuery } from '@tanstack/react-query';
 import { useManagerOptions, useUpdateClientAssignment } from '@/hooks/useTreinadorClientCount';
+import SecondaryManagerModal from '@/components/client/SecondaryManagerModal';
+import { useSecondaryManagersBulk } from '@/hooks/useSecondaryManager';
 
 // Helper to generate month options
 const generateMonthOptions = () => {
@@ -104,6 +106,14 @@ export default function ClientListPage() {
   const { data: managerOptions } = useManagerOptions();
   const updateAssignment = useUpdateClientAssignment();
   
+  const { data: secondaryManagers = [] } = useSecondaryManagersBulk();
+  const [secondaryModalClient, setSecondaryModalClient] = useState<{
+    id: string;
+    name: string;
+    primaryManagerId: string | null;
+    primaryManagerName: string;
+  } | null>(null);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
@@ -717,6 +727,15 @@ export default function ClientListPage() {
                             ))}
                           </select>
                         </div>
+                        {(() => {
+                          const sec = secondaryManagers.find(s => s.client_id === client.id);
+                          return sec ? (
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] text-muted-foreground">2º Gestor:</span>
+                              <span className="text-[10px] text-primary">{sec.manager_name}</span>
+                            </div>
+                          ) : null;
+                        })()}
                       </>
                     ) : (
                       <>
@@ -726,6 +745,12 @@ export default function ClientListPage() {
                         {(client as any).comercial_name && (
                           <p className="text-xs text-primary">Treinador: {(client as any).comercial_name}</p>
                         )}
+                        {(() => {
+                          const sec = secondaryManagers.find(s => s.client_id === client.id);
+                          return sec ? (
+                            <p className="text-xs text-primary">2º Gestor: {sec.manager_name}</p>
+                          ) : null;
+                        })()}
                       </>
                     )}
                   </div>
@@ -868,6 +893,25 @@ export default function ClientListPage() {
                     </Button>
                   ) : (
                     <>
+                      {isCEO && (() => {
+                        const sec = secondaryManagers.find(s => s.client_id === client.id);
+                        return (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setSecondaryModalClient({
+                              id: client.id,
+                              name: client.name,
+                              primaryManagerId: client.assigned_ads_manager || null,
+                              primaryManagerName: client.ads_manager_name || 'Sem gestor',
+                            })}
+                            className={cn('gap-1', sec && 'border-primary text-primary bg-primary/10')}
+                          >
+                            <Users className="w-3 h-3" />
+                            {sec ? '2 Gestores' : '+ Gestor'}
+                          </Button>
+                        );
+                      })()}
                       <Button
                         size="sm"
                         variant="outline"
@@ -1273,6 +1317,17 @@ export default function ClientListPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {secondaryModalClient && (
+        <SecondaryManagerModal
+          open={!!secondaryModalClient}
+          onOpenChange={(open) => { if (!open) setSecondaryModalClient(null); }}
+          clientId={secondaryModalClient.id}
+          clientName={secondaryModalClient.name}
+          primaryManagerId={secondaryModalClient.primaryManagerId}
+          primaryManagerName={secondaryModalClient.primaryManagerName}
+        />
+      )}
     </MainLayout>
   );
 }
