@@ -1,13 +1,14 @@
 import { useRef, useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import MainLayout from '@/layouts/MainLayout';
-import { 
+import {
   ChevronLeft,
   ChevronRight,
   LayoutDashboard,
   Clock,
   AlertTriangle,
   ClipboardList,
+  CheckSquare,
   Users,
   Wrench,
   Gift,
@@ -22,6 +23,7 @@ import SquadDelaysJustificationsSection from '@/components/gestor-projetos/Squad
 import AdsFerramentasSection from '@/components/ads-manager/AdsFerramentasSection';
 import AdsBonusSection from '@/components/ads-manager/AdsBonusSection';
 import AdsLemasSection from '@/components/ads-manager/AdsLemasSection';
+import DepartmentTarefasSection from '@/components/department/DepartmentTarefasSection';
 import ProjectManagerWelcomeModal from '@/components/gestor-projetos/ProjectManagerWelcomeModal';
 import { useDailyMovementDelayCheck } from '@/hooks/useDailyMovementDelayCheck';
 
@@ -31,6 +33,7 @@ const COLUMNS = [
   { id: 'onboarding', title: 'Status Onboarding', icon: Clock, headerClass: 'section-header-purple', iconColor: 'text-white' },
   { id: 'atrasados', title: 'Atrasados por Área', icon: AlertTriangle, headerClass: 'section-header-danger', iconColor: 'text-white' },
   { id: 'atrasos-justificativas', title: 'Atrasos + Justificativas do Time', icon: ClipboardList, headerClass: 'section-header-orange', iconColor: 'text-white' },
+  { id: 'tarefas-recorrentes', title: 'Tarefas Recorrentes', icon: CheckSquare, headerClass: 'section-header-sky', iconColor: 'text-white' },
   { id: 'reuniao-1a1', title: 'Reunião 1 a 1', icon: Users, headerClass: 'section-header-cyan', iconColor: 'text-white' },
   { id: 'ferramentas', title: 'Ferramentas PRO+', icon: Wrench, headerClass: 'section-header-purple', iconColor: 'text-white' },
   { id: 'bonus', title: 'Bônus Millennials', icon: Gift, headerClass: 'section-header-yellow', iconColor: 'text-foreground' },
@@ -86,6 +89,8 @@ export default function GestorProjetosPage() {
         return <SquadDelaysByDepartmentSection />;
       case 'atrasos-justificativas':
         return <SquadDelaysJustificationsSection />;
+      case 'tarefas-recorrentes':
+        return <DepartmentTarefasSection department="gestor_projetos" type="daily" />;
       case 'reuniao-1a1':
         return <MeetingOneOnOneSection />;
       case 'ferramentas':

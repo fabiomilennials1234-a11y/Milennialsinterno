@@ -18,6 +18,8 @@ import CSPendenciaCXColumn from '@/components/sucesso-cliente/CSPendenciaCXColum
 import { useCXPendingClients } from '@/hooks/useCXValidation';
 import CrmDelayJustificationsSection from '@/components/gestor-crm/CrmDelayJustificationsSection';
 import ClientTagDelayJustificationsSection from '@/components/client-tags/ClientTagDelayJustificationsSection';
+import DepartmentTarefasSection from '@/components/department/DepartmentTarefasSection';
+import { CheckSquare } from 'lucide-react';
 export default function SucessoClientePage() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -165,6 +167,19 @@ export default function SucessoClientePage() {
               <div className="flex gap-6 h-full pr-12 pt-2" style={{
             minWidth: 'max-content'
           }}>
+                {/* Tarefas Recorrentes column */}
+                <div className="w-[340px] h-full flex-shrink-0 flex flex-col bg-card rounded-2xl border border-subtle overflow-hidden shadow-apple">
+                  <div className="section-header section-header-green">
+                    <div className="flex items-center gap-3">
+                      <CheckSquare size={18} className="text-white" />
+                      <h2 className="font-semibold text-sm">Tarefas Recorrentes</h2>
+                    </div>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-4 scrollbar-apple bg-card">
+                    <DepartmentTarefasSection department="sucesso_cliente" type="daily" />
+                  </div>
+                </div>
+
                 {/* Manager columns */}
                 {managers.map(manager => <CSManagerColumn key={manager.user_id} manager={manager} clients={clientsByManager.get(manager.user_id) || []} onClientClick={handleClientClick} />)}
 

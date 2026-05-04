@@ -33,12 +33,14 @@ import PaddockOnboardingSection from '@/components/comercial/PaddockOnboardingSe
 import AdsFerramentasSection from '@/components/ads-manager/AdsFerramentasSection';
 import AdsBonusSection from '@/components/ads-manager/AdsBonusSection';
 import AdsLemasSection from '@/components/ads-manager/AdsLemasSection';
+import DepartmentTarefasSection from '@/components/department/DepartmentTarefasSection';
 import { useDailyMovementDelayCheck } from '@/hooks/useDailyMovementDelayCheck';
 
 // Colunas do Consultor Comercial
 const COLUMNS = [
   { id: 'documentacao', title: 'Documentação do Dia', icon: FileText, headerClass: 'section-header-blue', iconColor: 'text-white' },
   { id: 'tarefas-diarias', title: 'Tarefas Diárias', icon: CheckSquare, headerClass: 'section-header-yellow', iconColor: 'text-foreground' },
+  { id: 'tarefas-recorrentes', title: 'Tarefas Recorrentes', icon: CheckSquare, headerClass: 'section-header-sky', iconColor: 'text-white' },
   { id: 'novo-cliente', title: 'Novo Cliente', icon: UserPlus, headerClass: 'section-header-green', iconColor: 'text-white' },
   { id: 'onboarding-paddock', title: 'Onboarding Paddock', icon: CalendarCheck, headerClass: 'section-header-green', iconColor: 'text-white' },
   { id: 'acompanhamento', title: 'Acompanhamento', icon: Users, headerClass: 'section-header-blue', iconColor: 'text-white', fullWidth: true },
@@ -93,6 +95,8 @@ export default function ConsultorComercialPage() {
         return <ComercialDocumentacaoSection />;
       case 'tarefas-diarias':
         return <ComercialTarefasSection taskType="daily" />;
+      case 'tarefas-recorrentes':
+        return <DepartmentTarefasSection department="consultor_comercial" type="daily" />;
       case 'onboarding-paddock':
         return <PaddockOnboardingSection />;
       case 'novo-cliente':

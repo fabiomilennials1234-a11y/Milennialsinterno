@@ -24,6 +24,7 @@ import OutboundNovoClienteSection from '@/components/outbound-manager/OutboundNo
 import OutboundOnboardingSection from '@/components/outbound-manager/OutboundOnboardingSection';
 import OutboundChurnSection from '@/components/outbound-manager/OutboundChurnSection';
 import OutboundMovimentacaoNotification from '@/components/outbound-manager/OutboundMovimentacaoNotification';
+import DepartmentTarefasSection from '@/components/department/DepartmentTarefasSection';
 
 // Cores vibrantes para cada seção - Ordem definida pelo usuário
 const COLUMNS = [
@@ -31,6 +32,7 @@ const COLUMNS = [
   { id: 'documentacao', title: 'Documentação', icon: FileText, headerClass: 'section-header-purple', iconColor: 'text-white' },
   { id: 'tarefas-diarias', title: 'Tarefas Diárias', icon: CheckSquare, headerClass: 'section-header-green', iconColor: 'text-white' },
   { id: 'tarefas-semanais', title: 'Tarefas Semanais', icon: CheckSquare, headerClass: 'section-header-yellow', iconColor: 'text-foreground' },
+  { id: 'tarefas-recorrentes', title: 'Tarefas Recorrentes', icon: CheckSquare, headerClass: 'section-header-sky', iconColor: 'text-white' },
   { id: 'acompanhamento', title: 'Acompanhamento', icon: Users, headerClass: 'section-header-orange', iconColor: 'text-white' },
   { id: 'justificativa', title: 'Justificativa', icon: AlertCircle, headerClass: 'section-header-danger', iconColor: 'text-white' },
   { id: 'novo-cliente', title: 'Novo Cliente', icon: UserPlus, headerClass: 'section-header-green', iconColor: 'text-white' },
@@ -85,6 +87,8 @@ export default function OutboundManagerPage() {
         return <OutboundTarefasSection type="daily" />;
       case 'tarefas-semanais':
         return <OutboundTarefasSection type="weekly" />;
+      case 'tarefas-recorrentes':
+        return <DepartmentTarefasSection department="outbound" type="daily" />;
       case 'acompanhamento':
         return <OutboundAcompanhamentoSection />;
       case 'justificativa':
