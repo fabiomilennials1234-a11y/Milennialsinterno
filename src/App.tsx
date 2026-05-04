@@ -13,8 +13,6 @@ import { usePageAccess } from "@/hooks/usePageAccess";
 import { resolveKanbanPageSlug } from "@/lib/kanbanOperationalAccess";
 import { JustificationProvider } from "@/contexts/JustificationContext";
 import { usePermissionDivergenceLogger } from "@/hooks/usePermissionDivergenceLogger";
-import { useCrmDelayJustifications } from "@/hooks/useCrmDelayJustifications";
-import { useClientTagDelayJustifications } from "@/hooks/useClientTagDelayJustifications";
 import AppBootSkeleton from "@/components/AppBootSkeleton";
 import MainLayout from "@/layouts/MainLayout";
 
@@ -221,15 +219,6 @@ function AppRoutes() {
   // e o novo user_page_grants. Observacional — não altera UI. Ver
   // usePermissionDivergenceLogger para detalhes.
   usePermissionDivergenceLogger();
-
-  // Auto-trigger do modal bloqueante de justificativa coletiva CRM:
-  // sempre que houver pending da tabela crm_delay_justification_pending para o
-  // user logado, dispara o modal via JustificationContext (já globalmente montado).
-  useCrmDelayJustifications();
-
-  // Auto-trigger análogo para etiquetas (client_tags) vencidas onde o user
-  // logado é responsável (gestor_ads / sucesso_cliente).
-  useClientTagDelayJustifications();
 
   return (
     <Suspense fallback={<AppBootSkeleton />}>
