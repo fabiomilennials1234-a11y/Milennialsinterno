@@ -150,6 +150,11 @@ Deno.serve(async (req) => {
 
     // Sync kanban board for gestor_ads (sidebar)
     const finalRole = role ?? currentRole
+    // Guard: if finalRole is somehow null (no role in request AND no existing
+    // role in user_roles), skip reconcile to avoid CASE ELSE wiping grants.
+    if (!finalRole) {
+      console.error('update-user: finalRole is null for user', userId, '— skipping page grants reconcile')
+    }
     const finalSquadId = squad_id !== undefined ? squad_id : currentSquadId
     const finalName = name ?? currentProfile?.name ?? 'Gestor'
 

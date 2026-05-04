@@ -3,7 +3,7 @@ import AppBootSkeleton from '@/components/AppBootSkeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePageAccess } from '@/hooks/usePageAccess';
 import { useLogPageAccess } from '@/hooks/useLogPageAccess';
-import type { UserRole } from '@/types/auth';
+import { getRolesWithPageSlug, type UserRole } from '@/types/auth';
 import MainLayout from '@/layouts/MainLayout';
 
 export function AccessDenied() {
@@ -27,12 +27,9 @@ export function PageAccessRoute({
 }: {
   children: React.ReactNode;
   pageSlug: string;
-  // fallbackRoles legado removido apos cutover de user_page_grants (2026-04-30).
-  // Callers ainda passam o prop por compatibilidade, mas e ignorado: a fonte
-  // de verdade e get_my_page_access via usePageAccess.
   fallbackRoles?: readonly UserRole[];
 }) {
-  const { isAuthenticated, isLoading, isAdminUser, isCEO } = useAuth();
+  const { isAuthenticated, isLoading, user, isAdminUser, isCEO } = useAuth();
   const pageAccess = usePageAccess();
   useLogPageAccess(isAuthenticated ? pageSlug : null);
 
@@ -40,7 +37,27 @@ export function PageAccessRoute({
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (isCEO || isAdminUser) return <>{children}</>;
 
+  // Source of truth: user_page_grants via RPC get_my_page_access.
   if (pageAccess.isLoading) return <AppBootSkeleton />;
-  if (!pageAccess.data?.includes(pageSlug)) return <AccessDenied />;
-  return <>{children}</>;
+  if (pageAccess.data?.includes(pageSlug)) return <>{children}</>;
+
+  // Defense-in-depth: if grants are missing or RPC errored, fall back to
+  // ROLE_PAGE_MATRIX check. Prevents total lockout when user_page_grants
+  // rows are absent (backfill gap, reconcile bug, or RPC failure).
+  // Emits structured warning so divergence logger picks it up.
+  if (user?.role) {
+    const matrixRoles = getRolesWithPageSlug(pageSlug);
+    if (matrixRoles.includes(user.role)) {
+      console.warn('[PageAccessRoute] grant fallback activated', {
+        userId: user.id,
+        role: user.role,
+        pageSlug,
+        grantError: pageAccess.isError,
+        grantData: pageAccess.data,
+      });
+      return <>{children}</>;
+    }
+  }
+
+  return <AccessDenied />;
 }

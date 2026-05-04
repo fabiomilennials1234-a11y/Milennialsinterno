@@ -257,6 +257,7 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
       devs: 'devs',
       designer: 'design',
       editor: 'editor-video',
+      editor_video: 'editor-video',
       produtora: 'produtora',
       atrizes: 'produtora',
     };
