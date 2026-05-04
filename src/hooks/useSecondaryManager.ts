@@ -60,6 +60,45 @@ export function useSetSecondaryManager() {
         .single();
 
       if (error) throw error;
+
+      // When phase=onboarding, duplicate pending onboarding tasks for secondary
+      if (phase === 'onboarding') {
+        const { data: pendingTasks } = await supabase
+          .from('onboarding_tasks')
+          .select('*')
+          .eq('client_id', clientId)
+          .eq('status', 'pending')
+          .neq('assigned_to', secondaryManagerId);
+
+        if (pendingTasks && pendingTasks.length > 0) {
+          const duplicates = pendingTasks.map(task => ({
+            client_id: task.client_id,
+            assigned_to: secondaryManagerId,
+            task_type: task.task_type,
+            title: task.title,
+            description: task.description,
+            status: 'pending',
+            due_date: task.due_date,
+            milestone: task.milestone,
+          }));
+
+          // Only insert tasks that don't already exist for secondary
+          for (const dup of duplicates) {
+            const { data: existing } = await supabase
+              .from('onboarding_tasks')
+              .select('id')
+              .eq('client_id', dup.client_id)
+              .eq('task_type', dup.task_type)
+              .eq('assigned_to', secondaryManagerId)
+              .maybeSingle();
+
+            if (!existing) {
+              await supabase.from('onboarding_tasks').insert(dup);
+            }
+          }
+        }
+      }
+
       return data;
     },
     onSuccess: (_, { clientId }) => {
@@ -67,6 +106,8 @@ export function useSetSecondaryManager() {
       queryClient.invalidateQueries({ queryKey: ['secondary-manager', clientId] });
       queryClient.invalidateQueries({ queryKey: ['secondary-managers-bulk'] });
       queryClient.invalidateQueries({ queryKey: ['assigned-clients'] });
+      queryClient.invalidateQueries({ queryKey: ['client-tracking'] });
+      queryClient.invalidateQueries({ queryKey: ['onboarding-tasks'] });
     },
     onError: () => toast.error('Erro ao salvar gestor secundário'),
   });
