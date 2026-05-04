@@ -282,10 +282,13 @@ export function useSaveDelayJustification() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ads-task-delay-notifications'] });
-      queryClient.invalidateQueries({ queryKey: ['my-delay-justifications'] });
       queryClient.invalidateQueries({ queryKey: ['task-delay-justifications-by-role'] });
       queryClient.invalidateQueries({ queryKey: ['all-task-delay-justifications'] });
       queryClient.invalidateQueries({ queryKey: ['task-delay-notifications'] });
+      // RPC canônica (substitui my-delay-justifications)
+      queryClient.invalidateQueries({ queryKey: ['justif-pending-mine'] });
+      queryClient.invalidateQueries({ queryKey: ['justif-done-mine'] });
+      queryClient.invalidateQueries({ queryKey: ['justif-team'] });
       toast.success('Justificativa salva com sucesso!');
     },
     onError: (error: any) => {
@@ -294,31 +297,9 @@ export function useSaveDelayJustification() {
   });
 }
 
-// Hook para buscar minhas justificativas (para exibir na seção de justificativas)
-export function useMyDelayJustifications() {
-  const { user } = useAuth();
-
-  return useQuery({
-    queryKey: ['my-delay-justifications', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-
-      const { data, error } = await (supabase as any)
-        .from('ads_task_delay_justifications')
-        .select(`
-          *,
-          notification:ads_task_delay_notifications(*)
-        `)
-        .eq('user_id', user.id)
-        .eq('archived', false)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!user?.id,
-  });
-}
+// useMyDelayJustifications removido — substituído por useJustificativasPendentes
+// + useJustificativasDoneMine em src/hooks/useJustificativas.ts (cobre todos
+// os departamentos, não só Ads). Único consumidor era MyDelayJustificationsSection.
 
 // Hook para buscar justificativas por CARGO (não por usuário logado)
 // Usado quando você quer ver as justificativas de um cargo específico na página daquele cargo
@@ -435,7 +416,9 @@ export function useArchiveJustification() {
     },
     onSuccess: (_, { archive }) => {
       queryClient.invalidateQueries({ queryKey: ['all-delay-justifications'] });
-      queryClient.invalidateQueries({ queryKey: ['my-delay-justifications'] });
+      queryClient.invalidateQueries({ queryKey: ['justif-pending-mine'] });
+      queryClient.invalidateQueries({ queryKey: ['justif-done-mine'] });
+      queryClient.invalidateQueries({ queryKey: ['justif-team'] });
       toast.success(archive ? 'Justificativa arquivada!' : 'Justificativa restaurada!');
     },
     onError: (error: any) => {
