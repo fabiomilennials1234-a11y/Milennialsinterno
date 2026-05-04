@@ -7,6 +7,40 @@ import { useActionJustification } from '@/contexts/JustificationContext';
 import { toast } from 'sonner';
 import { addDays, getDay } from 'date-fns';
 
+async function duplicateTaskForSecondaryManager(clientId: string, taskData: {
+  task_type: string;
+  title: string;
+  description: string;
+  status: string;
+  due_date: string;
+  milestone: number;
+}) {
+  const { data: secondary } = await supabase
+    .from('client_secondary_managers')
+    .select('secondary_manager_id')
+    .eq('client_id', clientId)
+    .eq('phase', 'onboarding')
+    .maybeSingle();
+
+  if (!secondary) return;
+
+  const { data: existing } = await supabase
+    .from('onboarding_tasks')
+    .select('id')
+    .eq('client_id', clientId)
+    .eq('task_type', taskData.task_type)
+    .eq('assigned_to', secondary.secondary_manager_id)
+    .maybeSingle();
+
+  if (existing) return;
+
+  await supabase.from('onboarding_tasks').insert({
+    ...taskData,
+    client_id: clientId,
+    assigned_to: secondary.secondary_manager_id,
+  });
+}
+
 // Map day of week number to Portuguese day name
 const DAY_OF_WEEK_MAP: Record<number, string> = {
   0: 'domingo',
@@ -263,7 +297,16 @@ export function useCreateInitialOnboardingTask() {
         console.error('[useCreateInitialOnboardingTask] Error:', error);
         throw error;
       }
-      
+
+      await duplicateTaskForSecondaryManager(clientId, {
+        task_type: 'marcar_call_1',
+        title: `Marcar Call 1: ${clientName}`,
+        description: `${taskDef.description} Cliente: ${clientName}.`,
+        status: 'pending',
+        due_date: dueDate.toISOString(),
+        milestone: taskDef.milestone,
+      });
+
       return data;
     },
     onSuccess: (data) => {
@@ -526,6 +569,15 @@ export function useCompleteOnboardingTaskWithAutomation() {
                 milestone: taskTemplate.milestone,
               });
 
+            await duplicateTaskForSecondaryManager(clientId, {
+              task_type: taskTemplate.taskType,
+              title,
+              description: taskTemplate.description,
+              status: 'pending',
+              due_date: dueDate.toISOString(),
+              milestone: taskTemplate.milestone,
+            });
+
             tasksCreated++;
           }
         }
@@ -558,6 +610,15 @@ export function useCompleteOnboardingTaskWithAutomation() {
                 due_date: dueDate.toISOString(),
                 milestone: nextTaskDef.milestone,
               });
+
+            await duplicateTaskForSecondaryManager(clientId, {
+              task_type: taskDef.nextTask,
+              title: nextTaskDef.title,
+              description: `${nextTaskDef.description} Cliente: ${clientName}.`,
+              status: 'pending',
+              due_date: dueDate.toISOString(),
+              milestone: nextTaskDef.milestone,
+            });
 
             tasksCreated++;
           }
