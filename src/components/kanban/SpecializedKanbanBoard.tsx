@@ -276,7 +276,15 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
       if (error) {
         // 42501 = insufficient_privilege (sem grant). Não derruba o board —
         // SpecializedKanbanBoard já mostra "personsEmptyMessage" se vazio.
-        if ((error as { code?: string }).code === '42501') return [];
+        // Structured warning para divergence logger capturar.
+        if ((error as { code?: string }).code === '42501') {
+          console.warn('[SpecializedKanbanBoard] persons RPC grant denied — data empty', {
+            role: config.personsRole,
+            pageSlug: personsPageSlug,
+            errorMessage: (error as { message?: string }).message,
+          });
+          return [];
+        }
         throw error;
       }
       type Row = { user_id: string; name: string | null };
