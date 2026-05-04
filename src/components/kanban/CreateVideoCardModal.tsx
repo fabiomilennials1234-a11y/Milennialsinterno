@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { VIDEO_STATUSES } from '@/hooks/useVideoKanban';
+import { ClientCombobox } from '@/components/ui/client-combobox';
+import { useAllActiveClients } from '@/hooks/useAllActiveClients';
 
 interface CreateVideoCardModalProps {
   isOpen: boolean;
@@ -18,12 +20,15 @@ export default function CreateVideoCardModal({
   isLoading = false,
   editorColumns,
 }: CreateVideoCardModalProps) {
+  const { data: clients = [], isLoading: clientsLoading } = useAllActiveClients();
   const [formData, setFormData] = useState({
     title: '',
     column_id: '',
     priority: 'medium' as 'low' | 'medium' | 'high' | 'urgent',
     due_date: '',
     status: 'a_fazer',
+    client_id: null as string | null,
+    creatives_quantity: 1,
     briefing: {
       script_url: '',
       observations: '',
@@ -44,6 +49,8 @@ export default function CreateVideoCardModal({
       priority: 'medium',
       due_date: '',
       status: 'a_fazer',
+      client_id: null,
+      creatives_quantity: 1,
       briefing: {
         script_url: '',
         observations: '',
@@ -178,6 +185,36 @@ export default function CreateVideoCardModal({
                 ))}
               </select>
             </div>
+
+            {/* Cliente (opcional) */}
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                Cliente (opcional)
+              </label>
+              <ClientCombobox
+                value={formData.client_id}
+                onChange={(id) => setFormData(prev => ({ ...prev, client_id: id }))}
+                clients={clients}
+                isLoading={clientsLoading}
+                placeholder="Selecionar cliente..."
+              />
+            </div>
+
+            {/* Quantidade de criativos */}
+            {formData.client_id && (
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  Quantidade de criativos
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  value={formData.creatives_quantity}
+                  onChange={e => setFormData(prev => ({ ...prev, creatives_quantity: Math.max(1, parseInt(e.target.value) || 1) }))}
+                  className="input-apple w-24"
+                />
+              </div>
+            )}
 
             {/* Separator */}
             <div className="border-t border-border pt-5">

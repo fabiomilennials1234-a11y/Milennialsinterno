@@ -43,6 +43,7 @@ import PaddockDiagnosticoListSection from '@/components/comercial/PaddockDiagnos
 import WarRoomSection from '@/components/comercial/WarRoomSection';
 import CrmGerarTarefaSection from '@/components/gestor-crm/CrmGerarTarefaSection';
 import ClientTierBadge, { ClientCreativesLimit } from '@/components/shared/ClientTierBadge';
+import ClientCreativesHistory from '@/components/shared/ClientCreativesHistory';
 import { PRODUCT_CONFIG, TorqueCRMProductBadges } from '@/components/shared/ProductBadges';
 import ClientTagsList from '@/components/client-tags/ClientTagsList';
 import ClientTagCountdownHero from '@/components/client-tags/ClientTagCountdownHero';
@@ -357,6 +358,9 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
             <div className="px-6 py-4 space-y-6">
               {/* Limite de criativos mensal */}
               <ClientCreativesLimit clientId={clientId} className="px-1" />
+
+              {/* Historico de criativos */}
+              <ClientCreativesHistory clientId={clientId} />
 
               {/* Produtos Inclusos */}
               {clientInfo?.contracted_products && clientInfo.contracted_products.length > 0 && (

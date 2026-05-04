@@ -10,6 +10,8 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
+import { ClientCombobox } from '@/components/ui/client-combobox';
+import { useAllActiveClients } from '@/hooks/useAllActiveClients';
 
 interface CreateDesignCardModalProps {
   isOpen: boolean;
@@ -21,6 +23,8 @@ interface CreateDesignCardModalProps {
     due_date?: string;
     column_id?: string;
     status?: string;
+    client_id?: string;
+    creatives_quantity?: number;
     briefing?: {
       description?: string;
       references_url?: string;
@@ -33,18 +37,21 @@ interface CreateDesignCardModalProps {
   designerColumns?: { id: string; title: string }[];
 }
 
-export default function CreateDesignCardModal({ 
-  isOpen, 
-  onClose, 
-  onSubmit, 
+export default function CreateDesignCardModal({
+  isOpen,
+  onClose,
+  onSubmit,
   isLoading,
   designerColumns = []
 }: CreateDesignCardModalProps) {
+  const { data: clients = [], isLoading: clientsLoading } = useAllActiveClients();
   const [formData, setFormData] = useState({
     title: '',
     column_id: '',
     priority: 'normal' as 'normal' | 'urgent',
     due_date: undefined as Date | undefined,
+    client_id: null as string | null,
+    creatives_quantity: 1,
   });
   
   const [briefingData, setBriefingData] = useState({
@@ -113,6 +120,8 @@ export default function CreateDesignCardModal({
       priority: formData.priority,
       due_date: formData.due_date ? format(formData.due_date, 'yyyy-MM-dd') : undefined,
       status: 'a_fazer', // Default status for new design cards
+      client_id: formData.client_id ?? undefined,
+      creatives_quantity: formData.client_id ? formData.creatives_quantity : undefined,
       briefing: {
         description: briefingData.description,
         references_url: briefingData.references_url,
@@ -128,6 +137,8 @@ export default function CreateDesignCardModal({
       column_id: designerColumns[0]?.id || '',
       priority: 'normal',
       due_date: undefined,
+      client_id: null,
+      creatives_quantity: 1,
     });
     setBriefingData({
       description: '',
@@ -146,6 +157,8 @@ export default function CreateDesignCardModal({
       column_id: designerColumns[0]?.id || '',
       priority: 'normal',
       due_date: undefined,
+      client_id: null,
+      creatives_quantity: 1,
     });
     setBriefingData({
       description: '',
@@ -308,6 +321,38 @@ export default function CreateDesignCardModal({
               </button>
             </div>
           </div>
+
+          {/* Cliente (opcional) */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-foreground">
+              Cliente (opcional)
+            </label>
+            <ClientCombobox
+              value={formData.client_id}
+              onChange={(id) => setFormData(prev => ({ ...prev, client_id: id }))}
+              clients={clients}
+              isLoading={clientsLoading}
+              disabled={isLoading}
+              placeholder="Selecionar cliente..."
+            />
+          </div>
+
+          {/* Quantidade de criativos */}
+          {formData.client_id && (
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-foreground">
+                Quantidade de criativos
+              </label>
+              <input
+                type="number"
+                min={1}
+                value={formData.creatives_quantity}
+                onChange={e => setFormData(prev => ({ ...prev, creatives_quantity: Math.max(1, parseInt(e.target.value) || 1) }))}
+                disabled={isLoading}
+                className="input-apple w-24"
+              />
+            </div>
+          )}
 
           {/* Divider */}
           <div className="relative py-4">

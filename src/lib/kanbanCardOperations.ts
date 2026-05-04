@@ -22,6 +22,7 @@ export type CreateKanbanCardInput = {
   status?: string | null;
   cardType?: string | null;
   clientId?: string | null;
+  creativesQuantity?: number | null;
 };
 
 export async function createKanbanCard(input: CreateKanbanCardInput): Promise<KanbanCard> {
@@ -37,6 +38,7 @@ export async function createKanbanCard(input: CreateKanbanCardInput): Promise<Ka
     _status: input.status ?? null,
     _card_type: input.cardType ?? null,
     _client_id: input.clientId ?? null,
+    _creatives_quantity: input.creativesQuantity ?? null,
   });
 
   if (error) throw error;

@@ -60,6 +60,30 @@ Detalhes em `.claude/agents/README.md`.
 
 Pular gate é dívida técnica explícita. Documente por quê.
 
+## Supabase — Execução de migrations
+
+**Sempre rode migrations no Supabase remoto via CLI. Nunca pergunte ao fundador se deve rodar — rode.**
+
+Credenciais em `.env.scripts`:
+- `SUPABASE_SERVICE_ROLE_KEY` — service role key
+- `SUPABASE_ACCESS_TOKEN` — CLI access token
+
+Projeto linkado: `semhnpwxptfgqxhkoqsk` (Milennials interno)
+
+Comando para rodar SQL no DB remoto:
+```bash
+SUPABASE_ACCESS_TOKEN=$(grep SUPABASE_ACCESS_TOKEN .env.scripts | cut -d= -f2) supabase db query --linked -f <arquivo.sql>
+```
+
+Ou inline:
+```bash
+SUPABASE_ACCESS_TOKEN=$(grep SUPABASE_ACCESS_TOKEN .env.scripts | cut -d= -f2) supabase db query --linked "<SQL>"
+```
+
+**Atenção**: `supabase db push` pode falhar com migrations fora de ordem. Nesse caso, usar `db query --linked` direto.
+
+**Quirk do schema**: `clients.assigned_mktplace` é `text`, não `uuid`. Ao comparar com `auth.uid()`, usar `auth.uid()::text`.
+
 ## Wiki
 
 Contexto do sistema vive em `docs/wiki/`. Entrada: `docs/wiki/README.md`. Todo agente deve ler o que é relevante antes de opinar.

@@ -468,6 +468,11 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
         ? config.mapPriority(data.priority)
         : (data.priority || 'normal');
 
+      const clientId = typeof data.client_id === 'string' ? data.client_id : null;
+      const creativesQuantity = typeof data.creatives_quantity === 'number' && clientId
+        ? data.creatives_quantity
+        : null;
+
       const newCard = await createKanbanCard({
         boardId: board.id,
         columnId: String(data.column_id),
@@ -479,8 +484,19 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
         tags: null,
         status: typeof data.status === 'string' ? data.status : config.fallbackStatus,
         cardType: config.cardType,
-        clientId: null,
+        clientId,
+        creativesQuantity,
       });
+
+      // Increment creative usage for client
+      if (clientId && creativesQuantity && newCard) {
+        const materialType = config.cardType === 'video' ? 'video' : 'design';
+        await supabase.rpc('increment_client_creatives' as never, {
+          _client_id: clientId,
+          _material_type: materialType,
+          _quantity: creativesQuantity,
+        } as never);
+      }
 
       // Briefing estruturado (Atrizes/Design/Video/Produtora)
       const briefingData = (data.briefing || null) as Record<string, unknown> | null;
@@ -537,6 +553,10 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
       });
       if (newCard && config.attachments) {
         queryClient.invalidateQueries({ queryKey: ['card-attachments', newCard.id] });
+      }
+      // Invalidate creative usage cache for the client
+      if (newCard?.client_id) {
+        queryClient.invalidateQueries({ queryKey: ['client-creatives', newCard.client_id] });
       }
       toast.success(config.createSuccessMessage);
       setIsCreateModalOpen(false);

@@ -344,7 +344,15 @@ export function getRolesAllowedForPath(path: string): UserRole[] {
       out.add(role);
     }
   }
-  for (const r of _EXECUTIVE_FALLBACK_ROLES) out.add(r);
+  // Slug do path (ex: '/rh' → 'rh', '/rh/jornada' → 'rh')
+  const pathSlug = path.replace(/^\//, '').split('/')[0];
+  for (const r of _EXECUTIVE_FALLBACK_ROLES) {
+    // gestor_projetos: não adicionar como fallback se path pertence a domínio oculto
+    if (r === 'gestor_projetos' && GESTOR_PROJETOS_HIDDEN_DOMAINS.includes(pathSlug)) {
+      continue;
+    }
+    out.add(r);
+  }
   return Array.from(out);
 }
 
@@ -360,7 +368,12 @@ export function getRolesWithPageSlug(pageSlug: string): UserRole[] {
       out.add(role);
     }
   }
-  for (const r of _EXECUTIVE_FALLBACK_ROLES) out.add(r);
+  for (const r of _EXECUTIVE_FALLBACK_ROLES) {
+    if (r === 'gestor_projetos' && GESTOR_PROJETOS_HIDDEN_DOMAINS.includes(pageSlug)) {
+      continue;
+    }
+    out.add(r);
+  }
   return Array.from(out);
 }
 
@@ -402,6 +415,13 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   rh: 'RH',
 };
 
+// Domínios ocultos para gestor_projetos.
+// gestor_projetos tem wildcard '*' em BOARD_VISIBILITY (vê tudo), mas NÃO deve
+// ver RH. Em vez de remover o wildcard (quebraria tudo), excluímos domínios
+// específicos nos chokepoints: canViewBoard, canViewRole, getRolesAllowedForPath.
+// Centralizado aqui pra facilitar futuras exclusões.
+export const GESTOR_PROJETOS_HIDDEN_DOMAINS: readonly string[] = ['rh'];
+
 // Regras de visualização de Kanban/Cargo
 // DERIVADO de ROLE_PAGE_MATRIX. NÃO editar manualmente — toda mudança vai na matriz.
 // Mantido como export pra compatibilidade com consumers existentes (canViewBoard, AppSidebar etc).
@@ -432,6 +452,17 @@ export const CAN_MOVE_CARDS_FREELY: UserRole[] = ['ceo', 'cto', 'gestor_projetos
 // Aceita: slug exato, prefixo seguido de '-' (ou '_' / espaço) ou algum segmento igual.
 export function canViewBoard(role: UserRole, boardSlugOrName: string): boolean {
   const visibility = BOARD_VISIBILITY[role];
+
+  // gestor_projetos: wildcard EXCETO domínios ocultos
+  if (role === 'gestor_projetos' && visibility.includes('*')) {
+    const normalized = boardSlugOrName.toLowerCase();
+    const segments = normalized.split(/[-_\s]+/).filter(Boolean);
+    if (GESTOR_PROJETOS_HIDDEN_DOMAINS.some(d => normalized === d || segments.includes(d))) {
+      return false;
+    }
+    return true;
+  }
+
   if (visibility.includes('*')) return true;
 
   const normalized = boardSlugOrName.toLowerCase();
@@ -454,7 +485,11 @@ export function canViewBoard(role: UserRole, boardSlugOrName: string): boolean {
 
 // Verificar se um cargo pode ver outro cargo/kanban
 export function canViewRole(viewerRole: UserRole, targetRole: UserRole): boolean {
-  if (isExecutive(viewerRole) || viewerRole === 'gestor_projetos') return true;
+  if (viewerRole === 'gestor_projetos') {
+    if (GESTOR_PROJETOS_HIDDEN_DOMAINS.includes(targetRole)) return false;
+    return true;
+  }
+  if (isExecutive(viewerRole)) return true;
   
   const visibility = BOARD_VISIBILITY[viewerRole];
   if (visibility.includes('*')) return true;

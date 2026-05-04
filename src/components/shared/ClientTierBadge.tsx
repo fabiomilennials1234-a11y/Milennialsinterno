@@ -2,6 +2,7 @@ import { Award } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useClientCreativeUsage } from '@/hooks/useClientCreativeUsage';
 
 export type ClientTier = 'bronze' | 'prata' | 'ouro' | 'platina';
 
@@ -105,17 +106,27 @@ interface CreativesProps {
 }
 
 export function ClientCreativesLimit({ clientId, className }: CreativesProps) {
-  const { data, isLoading } = useClientTier(clientId);
+  const { data: tierData, isLoading: tierLoading } = useClientTier(clientId);
+  const { data: usage, isLoading: usageLoading } = useClientCreativeUsage(clientId);
 
-  if (isLoading || !data) return null;
+  if (tierLoading || !tierData) return null;
 
-  const { config } = data;
+  const { config } = tierData;
+  const used = usage?.total ?? 0;
+  const isOverLimit = used >= config.creativesLimit;
 
   return (
     <div className={`flex items-center gap-3 p-3 rounded-lg border ${config.bgColor} ${config.borderColor} ${className || ''}`}>
       <Award size={18} className={config.color} />
       <span className="text-sm font-semibold text-foreground">Limite de criativos mensal:</span>
-      <span className={`text-lg font-bold ${config.color}`}>0/{config.creativesLimit}</span>
+      <span className={`text-lg font-bold ${isOverLimit ? 'text-danger' : config.color}`}>
+        {usageLoading ? '...' : used}/{config.creativesLimit}
+      </span>
+      {!usageLoading && usage && (usage.video > 0 || usage.design > 0) && (
+        <span className="text-xs text-muted-foreground ml-1">
+          ({usage.video}V + {usage.design}D)
+        </span>
+      )}
     </div>
   );
 }

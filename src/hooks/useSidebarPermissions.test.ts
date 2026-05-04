@@ -36,6 +36,21 @@ describe("consultor_comercial routing", () => {
   });
 });
 
+describe("gestor_projetos RH exclusion in sidebar", () => {
+  it("ROLE_INDEPENDENT_CATEGORIES.gestor_projetos has wildcard with rh exclusion", () => {
+    expect(ROLE_INDEPENDENT_CATEGORIES.gestor_projetos).toContain("*");
+    expect(ROLE_INDEPENDENT_CATEGORIES.gestor_projetos).toContain("!rh");
+  });
+
+  it("ROLE_INDEPENDENT_CATEGORIES.ceo has pure wildcard (no exclusions)", () => {
+    expect(ROLE_INDEPENDENT_CATEGORIES.ceo).toEqual(["*"]);
+  });
+
+  it("ROLE_INDEPENDENT_CATEGORIES.cto has pure wildcard (no exclusions)", () => {
+    expect(ROLE_INDEPENDENT_CATEGORIES.cto).toEqual(["*"]);
+  });
+});
+
 describe("gestor_ads routing", () => {
   it("SPECIAL_ROUTES.gestor_ads points to /gestor-ads hub", () => {
     expect(SPECIAL_ROUTES.gestor_ads).toBeDefined();

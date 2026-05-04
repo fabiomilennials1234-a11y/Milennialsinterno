@@ -6,7 +6,7 @@ import { useUsers } from '@/hooks/useUsers';
 import { useAdsManagerBoards } from '@/hooks/useAdsManagerBoards';
 import { useOutboundManagerBoards } from '@/hooks/useOutboundManagerBoards';
 import { useCrmManagerBoards } from '@/hooks/useCrmManagerBoards';
-import { ROLE_LABELS, canViewBoard, canViewRole, isExecutive, UserRole, ROLE_PAGE_MATRIX } from '@/types/auth';
+import { ROLE_LABELS, canViewBoard, canViewRole, isExecutive, UserRole, ROLE_PAGE_MATRIX, GESTOR_PROJETOS_HIDDEN_DOMAINS } from '@/types/auth';
 import { usePageAccess } from '@/hooks/usePageAccess';
 import { Target } from 'lucide-react';
 
@@ -111,7 +111,12 @@ export const ROLE_INDEPENDENT_CATEGORIES: Record<UserRole, string[]> = (() => {
   const out = {} as Record<UserRole, string[]>;
   for (const role of Object.keys(ROLE_PAGE_MATRIX) as UserRole[]) {
     if (EXECUTIVE_ROLES.includes(role)) {
-      out[role] = ['*'];
+      // gestor_projetos: wildcard com exclusões (ex: rh)
+      if (role === 'gestor_projetos') {
+        out[role] = ['*', ...GESTOR_PROJETOS_HIDDEN_DOMAINS.map(d => `!${d}`)];
+      } else {
+        out[role] = ['*'];
+      }
       continue;
     }
     const slugs = ROLE_PAGE_MATRIX[role].flatMap(e => e.independentCategorySlugs ?? []);
@@ -248,7 +253,12 @@ export function useSidebarPermissions() {
   const canViewCategory = (categorySlug: string): boolean => {
     if (!user?.role) return false;
     const allowed = ROLE_INDEPENDENT_CATEGORIES[user.role] || [];
-    if (allowed.includes('*')) return true;
+    if (allowed.includes('*')) {
+      // Check exclusions (entries prefixed with '!')
+      const excluded = allowed.filter(p => p.startsWith('!')).map(p => p.slice(1));
+      if (excluded.some(ex => categorySlug.toLowerCase().includes(ex))) return false;
+      return true;
+    }
     return allowed.some(pattern => categorySlug.toLowerCase().includes(pattern.toLowerCase()));
   };
 
