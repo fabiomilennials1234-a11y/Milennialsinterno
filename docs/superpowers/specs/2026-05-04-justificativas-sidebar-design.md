@@ -122,6 +122,7 @@ src/
   - **Justificada OK**: borda `border`, texto da justificativa.
   - **Justificada arquivada**: opacity 50%, label "Arquivada" (master only com toggle).
 - **EquipeTab**: header com `Switch` "Só não-justificadas". Lista de `PessoaAccordion`. Cada accordion: avatar + nome + role + contador "X pendentes / Y justificadas". Aberto mostra os itens da pessoa.
+- **Ações master por item** (não no header da pessoa): cada item pendente tem botão `Cobrar` (chama `nudge_user_for_justification` com `notification_id` do item). Cada item já justificado tem ações `Comentar` (abre `ComentarioMaster` com checkbox "Exigir refazer") e `Arquivar`. Per-item garante dedupe correto da janela de 1h por `notification_id`.
 - **Empty states**: Pendentes vazia → ilustração + "Sem pendências por enquanto. Continue assim."
 
 ### Remoção do legacy
@@ -162,7 +163,7 @@ CREATE INDEX idx_tdj_requires_revision
 | `get_team_users_in_scope()` | qualquer caller | Set de `user_id` que o caller pode ver na tab Equipe. Vazio = sem permissão master. |
 | `get_justifications_team_grouped(only_pending boolean default false)` | caller com escopo | Tabular `{user_id, user_name, user_role, task_id, task_table, task_title, task_due_date, justification_id, justification_text, master_comment, requires_revision, archived, created_at}`. Cliente agrupa por `user_id`. |
 | `submit_justification(notification_id uuid, text text)` | dono da notification | Cria/atualiza justificativa. Se já existe com `requires_revision=true`, arquiva antiga + cria nova limpa. Idempotente em duplo-submit. |
-| `request_justification_revision(justification_id uuid, comment text)` | master no escopo | Seta `requires_revision=true`, popula `master_comment*` e `revision_requested_*`. Insere notification persistente para o devedor. |
+| `request_justification_revision(justification_id uuid, comment text)` | master no escopo | Seta `requires_revision=true`, **sobrescreve** `master_comment` e atualiza `master_comment_by/at` + `revision_requested_by/at` (chamadas repetidas substituem o comentário, não acumulam). Insere notification persistente para o devedor. |
 | `nudge_user_for_justification(notification_id uuid)` | master no escopo | Insere notification persistente para `task_owner_id` da notification. Guard: dedupe nudges para mesma notification em janela < 1h. |
 | `archive_justification(justification_id uuid)` / `unarchive_justification(justification_id uuid)` | master no escopo | Substitui mutation client-side existente. |
 
