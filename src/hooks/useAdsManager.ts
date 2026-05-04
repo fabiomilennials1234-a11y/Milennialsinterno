@@ -169,6 +169,34 @@ export function useAssignedClients() {
         console.error('[useAssignedClients] Query error:', error);
         throw error;
       }
+
+      // Include clients where user is secondary manager
+      if (effectiveUserId && shouldFilterByManager) {
+        const { data: secondaryRecords } = await supabase
+          .from('client_secondary_managers')
+          .select('client_id')
+          .eq('secondary_manager_id', effectiveUserId);
+
+        if (secondaryRecords && secondaryRecords.length > 0) {
+          const existingIds = new Set((data || []).map(c => c.id));
+          const missingIds = secondaryRecords
+            .map(r => r.client_id)
+            .filter(id => !existingIds.has(id));
+
+          if (missingIds.length > 0) {
+            const { data: secondaryClients } = await supabase
+              .from('clients')
+              .select(selectFields)
+              .in('id', missingIds)
+              .eq('archived', false);
+
+            if (secondaryClients) {
+              return [...(data || []), ...secondaryClients] as Client[];
+            }
+          }
+        }
+      }
+
       return data as Client[];
     },
     enabled: !!effectiveUserId,
