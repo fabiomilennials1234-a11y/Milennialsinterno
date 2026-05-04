@@ -45,6 +45,10 @@ export interface TeamItem {
   requires_revision: boolean;
   archived: boolean;
   created_at: string;
+  client_name: string | null;
+  department: string | null;
+  justification_at: string | null;
+  task_archived: boolean | null;
 }
 
 const COMMON_QUERY_OPTS = {
@@ -101,14 +105,27 @@ export function useJustificativasDoneMine() {
   });
 }
 
-export function useJustificativasTeam(onlyPending = false) {
+export function useJustificativasTeam(
+  onlyPending = false,
+  taskTables?: readonly string[],
+) {
   const { user } = useAuth();
+  // Stable cache key: sort to ignore param ordering.
+  const tablesKey = taskTables ? [...taskTables].sort().join(',') : null;
   return useQuery({
-    queryKey: ['justif-team', user?.id, onlyPending],
+    queryKey: ['justif-team', user?.id, onlyPending, tablesKey],
     queryFn: async (): Promise<TeamItem[]> => {
-      const { data, error } = await supabase.rpc('get_justifications_team_grouped', {
+      const args: { p_only_pending: boolean; p_task_tables?: string[] } = {
         p_only_pending: onlyPending,
-      });
+      };
+      if (taskTables && taskTables.length > 0) {
+        args.p_task_tables = [...taskTables];
+      }
+      const { data, error } = await supabase.rpc(
+        'get_justifications_team_grouped',
+        // Cast: types regen pendente — RPC já aceita p_task_tables na DB.
+        args as never,
+      );
       if (error) throw error;
       return (data ?? []) as TeamItem[];
     },
