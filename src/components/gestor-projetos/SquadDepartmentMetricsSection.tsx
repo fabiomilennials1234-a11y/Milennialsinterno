@@ -40,13 +40,13 @@ export default function SquadDepartmentMetricsSection() {
         .from('comercial_tasks')
         .select('*', { count: 'exact', head: true })
         .lt('due_date', today)
-        .neq('status', 'completed')
+        .neq('status', 'done')
         .eq('archived', false);
 
       const { count: comercialCompleted } = await supabase
         .from('comercial_tasks')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'completed')
+        .eq('status', 'done')
         .gte('updated_at', todayStart.toISOString());
 
       // Ads stats
@@ -68,13 +68,13 @@ export default function SquadDepartmentMetricsSection() {
         .from('ads_tasks')
         .select('*', { count: 'exact', head: true })
         .lt('due_date', today)
-        .neq('status', 'completed')
+        .neq('status', 'done')
         .eq('archived', false);
 
       const { count: adsCompleted } = await supabase
         .from('ads_tasks')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'completed')
+        .eq('status', 'done')
         .gte('updated_at', todayStart.toISOString());
 
       return [

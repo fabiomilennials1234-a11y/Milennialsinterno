@@ -99,7 +99,7 @@ async function createTaskIfNotExists(
     .select('id')
     .eq('ads_manager_id', userId)
     .ilike('title', title)
-    .neq('status', 'completed')
+    .neq('status', 'done')
     .eq('archived', false)
     .maybeSingle();
 

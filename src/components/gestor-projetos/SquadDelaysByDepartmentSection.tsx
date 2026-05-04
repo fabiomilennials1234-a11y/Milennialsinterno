@@ -27,14 +27,14 @@ export default function SquadDelaysByDepartmentSection() {
           .from('comercial_tasks')
           .select('id, title, due_date, user_id, related_client_id')
           .lt('due_date', today)
-          .neq('status', 'completed')
+          .neq('status', 'done')
           .eq('archived', false)
           .order('due_date', { ascending: true }),
         supabase
           .from('ads_tasks')
           .select('id, title, due_date, ads_manager_id')
           .lt('due_date', today)
-          .neq('status', 'completed')
+          .neq('status', 'done')
           .eq('archived', false)
           .order('due_date', { ascending: true }),
         supabase
@@ -112,7 +112,7 @@ export default function SquadDelaysByDepartmentSection() {
             .select('id, title, due_date, assigned_to, column_id')
             .eq('board_id', boardId)
             .lt('due_date', today)
-            .neq('status', 'completed')
+            .neq('status', 'done')
             .eq('archived', false)
             .order('due_date', { ascending: true }),
           supabase

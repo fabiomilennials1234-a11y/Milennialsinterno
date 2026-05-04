@@ -27,7 +27,7 @@ export default function SquadDelaysSection() {
         .from('ads_tasks')
         .select('id, title, due_date')
         .lt('due_date', today)
-        .neq('status', 'completed')
+        .neq('status', 'done')
         .eq('archived', false);
 
       if (adsTasks) {
@@ -48,7 +48,7 @@ export default function SquadDelaysSection() {
         .from('comercial_tasks')
         .select('id, title, due_date')
         .lt('due_date', today)
-        .neq('status', 'completed')
+        .neq('status', 'done')
         .eq('archived', false);
 
       if (comercialTasks) {

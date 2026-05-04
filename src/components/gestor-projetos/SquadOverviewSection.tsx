@@ -45,7 +45,7 @@ export default function SquadOverviewSection() {
         .from('ads_tasks')
         .select('*', { count: 'exact', head: true })
         .lt('due_date', today)
-        .neq('status', 'completed')
+        .neq('status', 'done')
         .eq('archived', false);
 
       // Delayed comercial tasks
@@ -53,7 +53,7 @@ export default function SquadOverviewSection() {
         .from('comercial_tasks')
         .select('*', { count: 'exact', head: true })
         .lt('due_date', today)
-        .neq('status', 'completed')
+        .neq('status', 'done')
         .eq('archived', false);
 
       // Completed tasks today
@@ -63,13 +63,13 @@ export default function SquadOverviewSection() {
       const { count: completedAds } = await supabase
         .from('ads_tasks')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'completed')
+        .eq('status', 'done')
         .gte('updated_at', todayStart.toISOString());
 
       const { count: completedComercial } = await supabase
         .from('comercial_tasks')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'completed')
+        .eq('status', 'done')
         .gte('updated_at', todayStart.toISOString());
 
       return {
