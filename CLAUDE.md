@@ -1,51 +1,52 @@
 # CLAUDE.md — Instruções do projeto
 
-## Regra número zero: tudo passa pelos agentes
+## Regra número zero: tudo passa pelo arquiteto
 
-**Toda ação de trabalho neste projeto passa pelo harness de agentes em `.claude/agents/`.** Sem exceção. Sem atalho. Sem "é rapidinho".
+**Toda ação de trabalho não-trivial neste projeto entra pelo `arquiteto`** (em `.claude/agents/arquiteto.md`). Sem exceção. Sem atalho. Sem "é rapidinho".
 
-Isso vale pra:
+O arquiteto faz sanity-check estratégico, desenha arquitetura quando aplicável, e invoca os outros agents (`design` ou `engenheiro`) diretamente. O Claude principal **não invoca** `design` nem `engenheiro` por conta própria — sempre via arquiteto.
 
-- Planejar feature → `conselheiro` → `orquestrador` monta o DAG
-- Desenhar arquitetura → `arquiteto`
-- Qualquer superfície visual → `frontend-design` (invoca `hm-design`)
-- Qualquer código TS/React/Deno → `engenheiro`
-- Qualquer coisa de DB (schema, RLS, migration, RPC, query) → `db-specialist`
-- Antes de declarar "pronto" → `qa` (invoca `hm-qa`) **sempre**
-- Qualquer toque em auth/dados/exposição externa → `seguranca`
+## Harness — 3 agents
 
-**Orquestrador é o ponto de entrada quando o trabalho toca >1 disciplina.** Ele decide quem entra, em que ordem, e sintetiza tudo.
+| Agente | Cobertura | Skill obrigatória |
+|---|---|---|
+| `arquiteto` | Gateway: sanity-check + arquitetura + roteamento | — |
+| `design` | UI/UX, frontend visual, interação | `hm-design` |
+| `engenheiro` | Código TS/React/Deno + DB schema/RLS/RPC/migrations + Testes (vitest/playwright/pgTAP) + Segurança (auth/dados/exposição) + QA | `hm-qa`, `hm-engineer`, `supabase-postgres-best-practices` quando aplicável |
 
-## O que NÃO precisa passar pelos agentes
+`engenheiro` cobre 4 disciplinas em **seções nomeadas** (Implementação / DB / Testes / Segurança). Ativa cada seção conforme o pedido — bug de 1 linha não roda pgTAP; tabela nova exige tudo.
+
+## O que NÃO precisa passar pelo harness
 
 Apenas três classes:
 
-1. **Pergunta factual sem ação** ("o que faz a função is_ceo?")
-2. **Leitura de documentação/código sem mudança** (explorar, responder, referenciar)
-3. **Trivialidade mecânica pura** (corrigir um typo que o usuário apontou com arquivo:linha)
+1. **Pergunta factual sem ação** ("o que faz `is_ceo()`?")
+2. **Leitura de documentação/código sem mudança**
+3. **Trivialidade mecânica pura** (typo apontado pelo usuário com arquivo:linha)
 
-Qualquer coisa **além** dessas três — agente. Se estiver em dúvida se é trivial ou não, é porque não é — chame o agente.
+Qualquer coisa **além** dessas três — arquiteto. Em dúvida se é trivial ou não, é porque não é — chame o arquiteto.
 
 ## Quando o usuário pede "só faz X direto"
 
-Explique que neste projeto tudo passa pelos agentes, e invoque o agente correto assim mesmo. A barra é world-class e o harness é o que garante isso.
+Explique que neste projeto tudo passa pelo arquiteto, e invoque o arquiteto. A barra é world-class — o harness garante.
 
-A única exceção é se o usuário disser explicitamente "pule o harness, faça direto" — nesse caso, proceda e documente que foi decisão explícita do fundador.
+Exceção única: usuário disser literalmente "pule o harness, faça direto". Nesse caso, proceda e documente que foi decisão explícita do fundador.
 
-## Elenco
+## Fluxo
 
-Ver `.claude/agents/README.md` para o mapa completo. Resumo:
+```
+pedido → arquiteto
+            ↓
+       Fase 0: sanity-check (sempre)
+            ↓
+       Fase 1: arquitetura (quando aplica)
+            ↓
+       Fase 2: invoca design e/ou engenheiro
+            ↓
+       arquiteto sintetiza → entrega ao fundador
+```
 
-| Agente | Quando |
-|---|---|
-| `conselheiro` | Sempre antes de feature não-trivial — sanity-check estratégico |
-| `orquestrador` | Quando o trabalho toca >1 disciplina |
-| `arquiteto` | Design de módulo/feature novo, mudança estrutural |
-| `frontend-design` | Qualquer UI — roda `hm-design` obrigatoriamente |
-| `engenheiro` | Implementação de código |
-| `db-specialist` | Schema, RLS, migrations, RPCs, queries |
-| `qa` | Antes de declarar "done" — roda `hm-qa` obrigatoriamente |
-| `seguranca` | Auth, dados sensíveis, exposição externa |
+Detalhes em `.claude/agents/README.md`.
 
 ## Princípio comum
 
@@ -53,13 +54,9 @@ Ver `.claude/agents/README.md` para o mapa completo. Resumo:
 
 ## Gates antes de merge
 
-- [ ] Conselheiro consultado (se feature não-trivial)
-- [ ] Arquiteto assinou (se multi-módulo)
-- [ ] db-specialist validou (se tocou DB)
-- [ ] frontend-design rodou `hm-design` (se tocou UI)
-- [ ] Engenheiro entregou com arquivos:linhas
-- [ ] QA rodou `hm-qa` e aprovou
-- [ ] Segurança aprovou (se tocou auth/dados)
+- [ ] Arquiteto: sanity-check aprovado (sempre); arquitetura assinada (se aplicável)
+- [ ] Design: rodou `hm-design` (se tocou UI)
+- [ ] Engenheiro: typecheck/lint clean, testes passando, hm-qa rodada, segurança auditada (se tocou auth/dados)
 
 Pular gate é dívida técnica explícita. Documente por quê.
 
