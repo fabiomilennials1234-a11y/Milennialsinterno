@@ -61,10 +61,20 @@ export function useSetSecondaryManager() {
 
       if (error) throw error;
 
-      // When phase=onboarding, create initial "Marcar Call 1" task for secondary
-      // Treats client as brand new for the secondary — independent of primary's progress
+      // When phase=onboarding, create initial tasks for secondary (independent of primary)
       if (phase === 'onboarding') {
-        const { data: existingTask } = await supabase
+        const { data: client } = await supabase
+          .from('clients')
+          .select('name')
+          .eq('id', clientId)
+          .single();
+
+        const clientName = client?.name || 'Cliente';
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + 1);
+
+        // 1. Ensure onboarding_task exists
+        const { data: existingOnboarding } = await supabase
           .from('onboarding_tasks')
           .select('id')
           .eq('client_id', clientId)
@@ -72,17 +82,7 @@ export function useSetSecondaryManager() {
           .eq('assigned_to', secondaryManagerId)
           .maybeSingle();
 
-        if (!existingTask) {
-          const { data: client } = await supabase
-            .from('clients')
-            .select('name')
-            .eq('id', clientId)
-            .single();
-
-          const clientName = client?.name || 'Cliente';
-          const dueDate = new Date();
-          dueDate.setDate(dueDate.getDate() + 1);
-
+        if (!existingOnboarding) {
           await supabase.from('onboarding_tasks').insert({
             client_id: clientId,
             assigned_to: secondaryManagerId,
@@ -93,27 +93,27 @@ export function useSetSecondaryManager() {
             due_date: dueDate.toISOString(),
             milestone: 1,
           });
+        }
 
-          // Create corresponding ads_task (visible in Tarefas Diárias column)
-          const { data: existingAdsTask } = await supabase
-            .from('ads_tasks')
-            .select('id')
-            .eq('ads_manager_id', secondaryManagerId)
-            .contains('tags', [`client_id:${clientId}`, 'onboarding_task_type:marcar_call_1'])
-            .maybeSingle();
+        // 2. Ensure ads_task exists (visible kanban card)
+        const { data: existingAdsTask } = await supabase
+          .from('ads_tasks')
+          .select('id')
+          .eq('ads_manager_id', secondaryManagerId)
+          .contains('tags', [`client_id:${clientId}`, 'onboarding_task_type:marcar_call_1'])
+          .maybeSingle();
 
-          if (!existingAdsTask) {
-            await supabase.from('ads_tasks').insert({
-              ads_manager_id: secondaryManagerId,
-              title: `Marcar Call 1: ${clientName}`,
-              description: `Agendar a primeira call com o cliente para alinhamento inicial. Cliente: ${clientName}.`,
-              task_type: 'daily',
-              status: 'todo',
-              priority: 'high',
-              due_date: dueDate.toISOString(),
-              tags: [`client_id:${clientId}`, 'onboarding_task_type:marcar_call_1'],
-            });
-          }
+        if (!existingAdsTask) {
+          await supabase.from('ads_tasks').insert({
+            ads_manager_id: secondaryManagerId,
+            title: `Marcar Call 1: ${clientName}`,
+            description: `Agendar a primeira call com o cliente para alinhamento inicial. Cliente: ${clientName}.`,
+            task_type: 'daily',
+            status: 'todo',
+            priority: 'high',
+            due_date: dueDate.toISOString(),
+            tags: [`client_id:${clientId}`, 'onboarding_task_type:marcar_call_1'],
+          });
         }
       }
 
