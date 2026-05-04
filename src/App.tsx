@@ -46,6 +46,7 @@ const DevsPage = lazy(() => import("./pages/DevsPage"));
 const UsersPage = lazy(() => import("./pages/admin/UsersPage"));
 const GroupsPage = lazy(() => import("./pages/admin/GroupsPage"));
 const AuditoriaPage = lazy(() => import("./pages/admin/AuditoriaPage"));
+const RecurringTasksPage = lazy(() => import("./pages/admin/RecurringTasksPage"));
 const ClientRegistrationPage = lazy(() => import("./pages/ClientRegistrationPage"));
 const ClientListPage = lazy(() => import("./pages/ClientListPage"));
 const PublicStrategyPage = lazy(() => import("./pages/PublicStrategyPage"));
@@ -495,7 +496,13 @@ function AppRoutes() {
           <AuditoriaPage />
         </AdminRoute>
       } />
-      
+
+      <Route path="/admin/tarefas-recorrentes" element={
+        <AdminRoute>
+          <RecurringTasksPage />
+        </AdminRoute>
+      } />
+
       {/* Public Strategy Page - accessible without authentication */}
       <Route path="/estrategia/:token" element={<PublicStrategyPage />} />
       <Route path="/estrategia-outbound/:token" element={<PublicOutboundStrategyPage />} />

@@ -28,7 +28,8 @@ import {
   Coins,
   VideoIcon,
   CheckSquare,
-  Cpu
+  Cpu,
+  ListChecks
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ROLE_LABELS, canViewBoard, isExecutive, UserRole } from '@/types/auth';
@@ -386,6 +387,14 @@ export default function AppSidebar() {
                 <NavLink to="/admin/grupos" className={({ isActive }) => cn("sidebar-item", isActive && "active")}>
                   <Building2 size={20} />
                   {!isCollapsed && <span>Grupos</span>}
+                </NavLink>
+              </NavTooltip>
+            )}
+            {isAdminUser && (
+              <NavTooltip label="Tarefas Recorrentes">
+                <NavLink to="/admin/tarefas-recorrentes" className={({ isActive }) => cn("sidebar-item", isActive && "active")}>
+                  <ListChecks size={20} />
+                  {!isCollapsed && <span>Tarefas Recorrentes</span>}
                 </NavLink>
               </NavTooltip>
             )}
@@ -1616,6 +1625,12 @@ export default function AppSidebar() {
               <NavLink to="/admin/configuracoes" className={({ isActive }) => cn("sidebar-item", isActive && "active")}>
                 <Settings size={20} />
                 {!isCollapsed && <span>Configurações</span>}
+              </NavLink>
+            </NavTooltip>
+            <NavTooltip label="Tarefas Recorrentes">
+              <NavLink to="/admin/tarefas-recorrentes" className={({ isActive }) => cn("sidebar-item", isActive && "active")}>
+                <ListChecks size={20} />
+                {!isCollapsed && <span>Tarefas Recorrentes</span>}
               </NavLink>
             </NavTooltip>
           </div>
