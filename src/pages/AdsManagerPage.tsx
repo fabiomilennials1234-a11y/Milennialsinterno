@@ -32,7 +32,6 @@ import AdsBonusSection from '@/components/ads-manager/AdsBonusSection';
 import AdsLemasSection from '@/components/ads-manager/AdsLemasSection';
 import AdsChurnSection from '@/components/ads-manager/AdsChurnSection';
 import AdsMovimentacaoNotification from '@/components/ads-manager/AdsMovimentacaoNotification';
-import DepartmentTarefasSection from '@/components/department/DepartmentTarefasSection';
 import { useDailyMovementDelayCheck } from '@/hooks/useDailyMovementDelayCheck';
 import { useResultsReportAutomation } from '@/hooks/useResultsReportAutomation';
 
@@ -42,7 +41,6 @@ const COLUMNS = [
   { id: 'documentacao', title: 'Documentação', icon: FileText, headerClass: 'section-header-purple', iconColor: 'text-white' },
   { id: 'tarefas-diarias', title: 'Tarefas Diárias', icon: CheckSquare, headerClass: 'section-header-green', iconColor: 'text-white' },
   { id: 'tarefas-semanais', title: 'Tarefas Semanais', icon: CheckSquare, headerClass: 'section-header-yellow', iconColor: 'text-foreground' },
-  { id: 'tarefas-recorrentes', title: 'Tarefas Recorrentes', icon: CheckSquare, headerClass: 'section-header-sky', iconColor: 'text-white' },
   { id: 'acompanhamento', title: 'Acompanhamento', icon: Users, headerClass: 'section-header-orange', iconColor: 'text-white' },
   { id: 'justificativa', title: 'Justificativa', icon: AlertCircle, headerClass: 'section-header-danger', iconColor: 'text-white' },
   { id: 'novo-cliente', title: 'Novo Cliente', icon: UserPlus, headerClass: 'section-header-green', iconColor: 'text-white' },
@@ -103,8 +101,6 @@ export default function AdsManagerPage() {
         return <AdsTarefasSection type="daily" />;
       case 'tarefas-semanais':
         return <AdsTarefasSection type="weekly" />;
-      case 'tarefas-recorrentes':
-        return <DepartmentTarefasSection department="gestor_ads" type="daily" />;
       case 'acompanhamento':
         return <AdsAcompanhamentoSection />;
       case 'justificativa':
@@ -181,7 +177,7 @@ export default function AdsManagerPage() {
           >
             <div className="flex gap-6 h-full pb-4" style={{ minWidth: 'max-content' }}>
               {/* Colunas antes do Onboarding (1-9) */}
-              {COLUMNS.slice(0, 9).map((column) => {
+              {COLUMNS.slice(0, 8).map((column) => {
                 const Icon = column.icon;
                 return (
                   <div
@@ -215,7 +211,7 @@ export default function AdsManagerPage() {
               </div>
 
               {/* Colunas após o Onboarding: Ferramentas, Bônus, Lemas */}
-              {COLUMNS.slice(9).map((column) => {
+              {COLUMNS.slice(8).map((column) => {
                 const Icon = column.icon;
                 return (
                   <div

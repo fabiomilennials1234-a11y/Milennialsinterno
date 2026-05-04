@@ -25,6 +25,12 @@ const DEPARTMENT_TO_PAGE_SLUG: Record<string, string> = {
   rh: 'rh',
   sucesso_cliente: 'sucesso-cliente',
   outbound: 'outbound',
+  gestor_ads: 'gestor-ads',
+  design: 'design',
+  editor_video: 'editor-video',
+  devs: 'devs',
+  produtora: 'produtora',
+  consultor_comercial: 'consultor-comercial',
 };
 
 export interface DepartmentTask {

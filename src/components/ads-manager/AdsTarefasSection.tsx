@@ -293,7 +293,8 @@ export default function AdsTarefasSection({ type, compact }: Props) {
       }
     }
 
-    updateStatus.mutate({ id: taskId, status: newStatus, task_type: type });
+    const draggedTask = tasks.find(t => t.id === taskId);
+    updateStatus.mutate({ id: taskId, status: newStatus, task_type: type, _source: draggedTask?._source });
   };
 
   const handleStatusChange = (taskId: string, newStatus: string, isOnboarding?: boolean, onboardingTask?: any) => {
@@ -344,7 +345,8 @@ export default function AdsTarefasSection({ type, compact }: Props) {
       }
     }
 
-    updateStatus.mutate({ id: taskId, status: newStatus, task_type: type });
+    const changedTask = tasks.find(t => t.id === taskId);
+    updateStatus.mutate({ id: taskId, status: newStatus, task_type: type, _source: changedTask?._source });
   };
 
   const handleTaskClick = (task: AdsTask) => {
@@ -392,12 +394,12 @@ export default function AdsTarefasSection({ type, compact }: Props) {
     return [];
   };
 
-  const handleArchiveTask = (taskId: string) => {
-    archiveTask.mutate({ id: taskId, task_type: type });
+  const handleArchiveTask = (taskId: string, _source?: 'department') => {
+    archiveTask.mutate({ id: taskId, task_type: type, _source });
   };
 
-  const handleDeleteTask = (taskId: string) => {
-    deleteTask.mutate({ id: taskId, task_type: type });
+  const handleDeleteTask = (taskId: string, _source?: 'department') => {
+    deleteTask.mutate({ id: taskId, task_type: type, _source });
   };
 
   if (isLoading) {
@@ -496,7 +498,7 @@ export default function AdsTarefasSection({ type, compact }: Props) {
                       size="sm"
                       className="h-7 text-xs text-muted-foreground hover:text-foreground gap-1.5"
                       onClick={() => {
-                        statusTasks.forEach(task => handleArchiveTask(task.id));
+                        statusTasks.forEach(task => handleArchiveTask(task.id, task._source));
                         if (canArchive) {
                           onboardingTasksForColumn.forEach(task => archiveOnboardingTask.mutate(task.id));
                         }
@@ -794,7 +796,7 @@ export default function AdsTarefasSection({ type, compact }: Props) {
                                     <DropdownMenuItem
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        handleArchiveTask(task.id);
+                                        handleArchiveTask(task.id, task._source);
                                       }}
                                       className="text-muted-foreground"
                                     >
@@ -804,7 +806,7 @@ export default function AdsTarefasSection({ type, compact }: Props) {
                                     <DropdownMenuItem
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        handleDeleteTask(task.id);
+                                        handleDeleteTask(task.id, task._source);
                                       }}
                                       className="text-destructive focus:text-destructive"
                                     >

@@ -50,6 +50,7 @@ export interface AdsTask {
   due_date: string | null;
   tags: string[] | null;
   created_at: string;
+  _source?: 'department';
 }
 
 export interface AdsTaskComment {
@@ -245,7 +246,38 @@ export function useAdsTasks(taskType: 'daily' | 'weekly') {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as AdsTask[];
+      const adsTasks = (data || []) as AdsTask[];
+
+      // Merge recurring tasks from department_tasks (gestor_ads)
+      if (effectiveUserId) {
+        const { data: deptData } = await (supabase as any)
+          .from('department_tasks')
+          .select('*')
+          .eq('department', 'gestor_ads')
+          .eq('task_type', taskType)
+          .eq('user_id', effectiveUserId)
+          .eq('archived', false)
+          .order('created_at', { ascending: false });
+
+        if (deptData && deptData.length > 0) {
+          const mapped: AdsTask[] = deptData.map((dt: any) => ({
+            id: dt.id,
+            ads_manager_id: dt.user_id,
+            title: dt.title,
+            description: dt.description,
+            task_type: dt.task_type,
+            status: dt.status,
+            priority: dt.priority,
+            due_date: dt.due_date,
+            tags: ['recorrente'],
+            created_at: dt.created_at,
+            _source: 'department' as const,
+          }));
+          return [...mapped, ...adsTasks];
+        }
+      }
+
+      return adsTasks;
     },
     enabled: !!effectiveUserId,
   });
@@ -500,9 +532,9 @@ export function useUpdateTaskStatus() {
   const { requireJustification } = useActionJustification();
 
   return useMutation({
-    mutationFn: async ({ id, status, task_type, taskTitle }: { id: string; status: string; task_type: string; taskTitle?: string }) => {
+    mutationFn: async ({ id, status, task_type, taskTitle, _source }: { id: string; status: string; task_type: string; taskTitle?: string; _source?: 'department' }) => {
       // J11: Require justification when marking ads task as done
-      if (status === 'done') {
+      if (status === 'done' && _source !== 'department') {
         await requireJustification({
           title: 'Justificativa: Tarefa Concluída',
           subtitle: 'Registro obrigatório',
@@ -513,8 +545,9 @@ export function useUpdateTaskStatus() {
         });
       }
 
-      const { error } = await supabase
-        .from('ads_tasks')
+      const table = _source === 'department' ? 'department_tasks' : 'ads_tasks';
+      const { error } = await (supabase as any)
+        .from(table)
         .update({ status })
         .eq('id', id);
 
@@ -1037,15 +1070,16 @@ export function useArchiveTask() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, task_type }: { id: string; task_type: string }) => {
-      const { error } = await supabase
-        .from('ads_tasks')
-        .update({ 
-          archived: true, 
-          archived_at: new Date().toISOString() 
+    mutationFn: async ({ id, task_type, _source }: { id: string; task_type: string; _source?: 'department' }) => {
+      const table = _source === 'department' ? 'department_tasks' : 'ads_tasks';
+      const { error } = await (supabase as any)
+        .from(table)
+        .update({
+          archived: true,
+          archived_at: new Date().toISOString()
         })
         .eq('id', id);
-      
+
       if (error) throw error;
     },
     onSuccess: (_, variables) => {
@@ -1063,12 +1097,13 @@ export function useDeleteTask() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, task_type }: { id: string; task_type: string }) => {
-      const { error } = await supabase
-        .from('ads_tasks')
+    mutationFn: async ({ id, task_type, _source }: { id: string; task_type: string; _source?: 'department' }) => {
+      const table = _source === 'department' ? 'department_tasks' : 'ads_tasks';
+      const { error } = await (supabase as any)
+        .from(table)
         .delete()
         .eq('id', id);
-      
+
       if (error) throw error;
     },
     onSuccess: (_, variables) => {
