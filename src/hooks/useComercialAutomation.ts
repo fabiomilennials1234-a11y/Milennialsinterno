@@ -339,7 +339,7 @@ export function useCompleteComercialTaskWithAutomation() {
         if (actualTaskType === PADDOCK_AUTO_TASK_TYPES.MARCAR_ALINHAMENTO_INICIAL) {
           // Entry from novo → onboarding_paddock
           nextStep = 'alinhamento_inicial_marcado';
-          await supabase
+          const { error: clientErr } = await supabase
             .from('clients')
             .update({
               comercial_status: 'onboarding_paddock',
@@ -347,14 +347,20 @@ export function useCompleteComercialTaskWithAutomation() {
               comercial_onboarding_started_at: new Date().toISOString(),
             })
             .eq('id', clientId);
+          if (clientErr) {
+            console.error('[Paddock] Failed to advance client status:', clientErr.message);
+          }
         } else {
           // Standard progression via map
           nextStep = TASK_TO_STEP[actualTaskType];
           if (nextStep && nextStep !== 'acompanhamento') {
-            await supabase
+            const { error: stepErr } = await supabase
               .from('clients')
               .update({ paddock_onboarding_step: nextStep })
               .eq('id', clientId);
+            if (stepErr) {
+              console.error('[Paddock] Failed to advance paddock step:', stepErr.message);
+            }
           }
         }
 
@@ -590,13 +596,15 @@ export function useAutoCreateTasksForNewClients() {
         if (processedClientsRef.current.has(client.id)) continue;
 
         try {
-          // Check if task already exists in DB (handles component remounts)
+          // Check if task already exists in DB (ANY status, including done).
+          // Previously used .neq('status', 'done') which allowed re-creation
+          // after completion — causing an infinite loop when RLS blocked the
+          // client status update from 'novo' to 'onboarding_paddock'.
           const { data: existingList } = await supabase
             .from('comercial_tasks')
             .select('id')
             .eq('related_client_id', client.id)
             .eq('auto_task_type', PADDOCK_AUTO_TASK_TYPES.MARCAR_ALINHAMENTO_INICIAL)
-            .neq('status', 'done')
             .limit(1);
 
           if (existingList && existingList.length > 0) {
