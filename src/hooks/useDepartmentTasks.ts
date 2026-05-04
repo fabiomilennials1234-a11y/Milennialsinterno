@@ -275,12 +275,18 @@ export function useUpdateDepartmentTaskStatus(department: string) {
       }
 
       // Normal department_tasks update
-      const { error } = await supabase
+      // Use .select() to detect silent RLS-blocked 0-row updates:
+      // Supabase returns error=null with empty data when RLS blocks the UPDATE.
+      const { data: updatedRows, error } = await supabase
         .from('department_tasks')
         .update({ status } as any)
-        .eq('id', taskId);
+        .eq('id', taskId)
+        .select('id');
 
       if (error) throw error;
+      if (!updatedRows || updatedRows.length === 0) {
+        throw new Error('Sem permissão para atualizar esta tarefa');
+      }
 
       // When a financeiro department_task is completed, activate THIS PRODUCT
       let financeiroCompleted = false;
@@ -641,15 +647,19 @@ export function useArchiveDepartmentTask(department: string) {
       // Financeiro tasks don't support archiving — just skip
       if (_source === 'financeiro') return;
 
-      const { error } = await supabase
+      const { data: archivedRows, error } = await supabase
         .from('department_tasks')
         .update({
           archived: true,
           archived_at: new Date().toISOString()
         } as any)
-        .eq('id', taskId);
+        .eq('id', taskId)
+        .select('id');
 
       if (error) throw error;
+      if (!archivedRows || archivedRows.length === 0) {
+        throw new Error('Sem permissão para arquivar esta tarefa');
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
@@ -669,12 +679,16 @@ export function useDeleteDepartmentTask(department: string) {
       // Financeiro tasks should not be deleted from here
       if (_source === 'financeiro') return;
 
-      const { error } = await supabase
+      const { data: deletedRows, error } = await supabase
         .from('department_tasks')
         .delete()
-        .eq('id', taskId);
+        .eq('id', taskId)
+        .select('id');
 
       if (error) throw error;
+      if (!deletedRows || deletedRows.length === 0) {
+        throw new Error('Sem permissão para excluir esta tarefa');
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
