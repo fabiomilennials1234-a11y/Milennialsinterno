@@ -40,7 +40,7 @@ export default function PresentationDateModal({ open, onClose, clientName, taskI
       // Mark the current task as done
       await supabase
         .from('ads_tasks')
-        .update({ status: 'completed' })
+        .update({ status: 'done' })
         .eq('id', taskId);
 
       // Create the call task with the selected date as due_date
