@@ -203,10 +203,13 @@ export function useAdvanceMktplaceStep() {
         const acompStatus = isGestao ? 'acompanhamento_gestao' : 'acompanhamento_consultoria';
         const weekday = getCurrentWeekday();
 
-        await supabase
+        const { data: acompRows, error: acompErr } = await supabase
           .from('clients')
           .update({ mktplace_status: acompStatus })
-          .eq('id', clientId);
+          .eq('id', clientId)
+          .select('id');
+        if (acompErr) console.error('[MktPlace] Failed to update mktplace_status to acompanhamento:', acompErr.message);
+        if (!acompRows || acompRows.length === 0) console.error('[MktPlace] 0 rows updated — RLS likely blocked mktplace_status update for client', clientId);
 
         // Get assigned_mktplace
         const { data: clientData } = await supabase
@@ -224,10 +227,13 @@ export function useAdvanceMktplaceStep() {
         }, { onConflict: 'client_id' });
       } else {
         // Move to next onboarding step
-        await supabase
+        const { data: stepRows, error: stepErr } = await supabase
           .from('clients')
           .update({ mktplace_status: nextStatus })
-          .eq('id', clientId);
+          .eq('id', clientId)
+          .select('id');
+        if (stepErr) console.error('[MktPlace] Failed to advance mktplace_status:', stepErr.message);
+        if (!stepRows || stepRows.length === 0) console.error('[MktPlace] 0 rows updated — RLS likely blocked mktplace_status advance for client', clientId);
 
         // Create next task
         const taskNameFn = taskMap[nextStatus];

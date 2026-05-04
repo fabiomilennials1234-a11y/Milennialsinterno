@@ -395,7 +395,14 @@ export function useUpdateDepartmentTaskStatus(department: string) {
                 const acompStatus = isGestao ? 'acompanhamento_gestao' : 'acompanhamento_consultoria';
                 const weekday = getCurrentWeekday();
 
-                await supabase.from('clients').update({ mktplace_status: acompStatus }).eq('id', clientId);
+                const { data: acompRows, error: acompErr } = await supabase
+                  .from('clients')
+                  .update({ mktplace_status: acompStatus })
+                  .eq('id', clientId)
+                  .select('id');
+                if (acompErr) console.error('[MktPlace] Failed to update client mktplace_status to acompanhamento:', acompErr.message);
+                if (!acompRows || acompRows.length === 0) console.error('[MktPlace] 0 rows updated — RLS likely blocked mktplace_status update for client', clientId);
+
                 await (supabase as any).from('mktplace_daily_tracking').upsert({
                   client_id: clientId,
                   consultor_id: client.assigned_mktplace || user?.id,
@@ -405,7 +412,13 @@ export function useUpdateDepartmentTaskStatus(department: string) {
                 }, { onConflict: 'client_id' });
               } else {
                 // Move to next onboarding step
-                await supabase.from('clients').update({ mktplace_status: nextStatus }).eq('id', clientId);
+                const { data: stepRows, error: stepErr } = await supabase
+                  .from('clients')
+                  .update({ mktplace_status: nextStatus })
+                  .eq('id', clientId)
+                  .select('id');
+                if (stepErr) console.error('[MktPlace] Failed to advance mktplace_status:', stepErr.message);
+                if (!stepRows || stepRows.length === 0) console.error('[MktPlace] 0 rows updated — RLS likely blocked mktplace_status advance for client', clientId);
 
                 // Create next task
                 const taskNameFn = taskMap[nextStatus];
