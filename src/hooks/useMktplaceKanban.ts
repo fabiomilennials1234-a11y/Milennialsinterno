@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { usePageAccess } from '@/hooks/usePageAccess';
+import { useDataScope } from '@/hooks/useDataScope';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { resolveTaskOwner } from './utils/resolveTaskOwner';
@@ -85,14 +85,13 @@ export const DAYS = [
 
 // Fetch clients assigned to the current consultor MKT Place
 export function useMktplaceClients() {
-  const { user, isCEO, isAdminUser } = useAuth();
-  const { data: pageAccess = [] } = usePageAccess();
+  const { user } = useAuth();
   // page_grant 'consultor-mktplace' libera visão geral. Owner natural
   // (consultor_mktplace) sem grant continua filtrado pelos seus clientes.
-  const seesAll = isAdminUser || isCEO || pageAccess.includes('consultor-mktplace');
+  const { seesAll, isReady, scopeKey } = useDataScope('consultor-mktplace');
 
   return useQuery({
-    queryKey: ['mktplace-all-clients', user?.id],
+    queryKey: ['mktplace-all-clients', user?.id, scopeKey],
     queryFn: async () => {
       let query = supabase
         .from('clients')
@@ -110,18 +109,17 @@ export function useMktplaceClients() {
       if (error) throw error;
       return data || [];
     },
-    enabled: !!user?.id,
+    enabled: isReady && !!user?.id,
   });
 }
 
 // Fetch daily tracking for acompanhamento
 export function useMktplaceTracking() {
-  const { user, isCEO, isAdminUser } = useAuth();
-  const { data: pageAccess = [] } = usePageAccess();
-  const seesAll = isAdminUser || isCEO || pageAccess.includes('consultor-mktplace');
+  const { user } = useAuth();
+  const { seesAll, isReady, scopeKey } = useDataScope('consultor-mktplace');
 
   return useQuery({
-    queryKey: ['mktplace-tracking', user?.id],
+    queryKey: ['mktplace-tracking', user?.id, scopeKey],
     queryFn: async () => {
       let query = (supabase as any)
         .from('mktplace_daily_tracking')
@@ -136,18 +134,17 @@ export function useMktplaceTracking() {
       if (error) throw error;
       return data || [];
     },
-    enabled: !!user?.id,
+    enabled: isReady && !!user?.id,
   });
 }
 
 // Fetch daily documentation
 export function useMktplaceDocumentation() {
-  const { user, isCEO, isAdminUser } = useAuth();
-  const { data: pageAccess = [] } = usePageAccess();
-  const seesAll = isAdminUser || isCEO || pageAccess.includes('consultor-mktplace');
+  const { user } = useAuth();
+  const { seesAll, isReady, scopeKey } = useDataScope('consultor-mktplace');
 
   return useQuery({
-    queryKey: ['mktplace-documentation', user?.id],
+    queryKey: ['mktplace-documentation', user?.id, scopeKey],
     queryFn: async () => {
       let query = (supabase as any)
         .from('mktplace_daily_documentation')
@@ -162,7 +159,7 @@ export function useMktplaceDocumentation() {
       if (error) throw error;
       return data || [];
     },
-    enabled: !!user?.id,
+    enabled: isReady && !!user?.id,
   });
 }
 
