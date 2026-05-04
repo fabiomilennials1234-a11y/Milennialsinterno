@@ -172,10 +172,14 @@ export function useAssignedClients() {
 
       // Include clients where user is secondary manager
       if (effectiveUserId && shouldFilterByManager) {
-        const { data: secondaryRecords } = await supabase
+        const { data: secondaryRecords, error: secError } = await supabase
           .from('client_secondary_managers')
           .select('client_id')
           .eq('secondary_manager_id', effectiveUserId);
+
+        if (secError) {
+          console.error('[useAssignedClients] Secondary manager query error:', secError);
+        }
 
         if (secondaryRecords && secondaryRecords.length > 0) {
           const existingIds = new Set((data || []).map(c => c.id));
@@ -184,11 +188,15 @@ export function useAssignedClients() {
             .filter(id => !existingIds.has(id));
 
           if (missingIds.length > 0) {
-            const { data: secondaryClients } = await supabase
+            const { data: secondaryClients, error: clientError } = await supabase
               .from('clients')
               .select(selectFields)
               .in('id', missingIds)
               .eq('archived', false);
+
+            if (clientError) {
+              console.error('[useAssignedClients] Secondary clients fetch error:', clientError);
+            }
 
             if (secondaryClients) {
               return [...(data || []), ...secondaryClients] as Client[];
@@ -302,13 +310,40 @@ export function useClientTracking() {
       let query = supabase
         .from('client_daily_tracking')
         .select('*, clients(*)');
-      
+
       if (effectiveUserId) {
         query = query.eq('ads_manager_id', effectiveUserId);
       }
-      
+
       const { data, error } = await query;
       if (error) throw error;
+
+      // Include tracking for clients where user is secondary manager
+      if (effectiveUserId) {
+        const { data: secondaryRecords } = await supabase
+          .from('client_secondary_managers')
+          .select('client_id')
+          .eq('secondary_manager_id', effectiveUserId);
+
+        if (secondaryRecords && secondaryRecords.length > 0) {
+          const existingClientIds = new Set((data || []).map((t: any) => t.client_id));
+          const missingClientIds = secondaryRecords
+            .map(r => r.client_id)
+            .filter(id => !existingClientIds.has(id));
+
+          if (missingClientIds.length > 0) {
+            const { data: secondaryTracking } = await supabase
+              .from('client_daily_tracking')
+              .select('*, clients(*)')
+              .in('client_id', missingClientIds);
+
+            if (secondaryTracking && secondaryTracking.length > 0) {
+              return [...(data || []), ...secondaryTracking];
+            }
+          }
+        }
+      }
+
       return data;
     },
     enabled: !!effectiveUserId,
