@@ -116,7 +116,6 @@ describe('SPECIAL_ROUTES_BY_ROLE — sidebar cross-page', () => {
     ['sucesso_cliente', '/gestor-crm'],
     ['sucesso_cliente', '/consultor-comercial'],
     ['consultor_mktplace', '/consultor-mktplace'],
-    ['rh', '/rh'],
   ];
 
   for (const [role, path] of gapAssertions) {

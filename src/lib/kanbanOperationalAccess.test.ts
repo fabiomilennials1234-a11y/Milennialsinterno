@@ -7,7 +7,6 @@ describe('resolveKanbanPageSlug', () => {
     expect(resolveKanbanPageSlug('editor-video')).toBe('editor-video');
     expect(resolveKanbanPageSlug('produtora-board')).toBe('produtora');
     expect(resolveKanbanPageSlug('kanban-crm')).toBe('gestor-crm');
-    expect(resolveKanbanPageSlug('rh-board')).toBe('rh');
   });
 
   it('returns null for unknown boards', () => {

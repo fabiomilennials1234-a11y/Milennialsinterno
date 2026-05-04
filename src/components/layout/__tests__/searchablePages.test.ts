@@ -56,7 +56,6 @@ describe("SEARCHABLE_PAGES — role-based filtering", () => {
       "editor_video",
       "devs",
       "financeiro",
-      "rh",
     ];
     for (const role of roles) {
       const paths = filterForRole(role).map((p) => p.path);

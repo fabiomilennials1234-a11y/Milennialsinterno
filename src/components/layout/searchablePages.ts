@@ -43,7 +43,6 @@ export const SEARCHABLE_PAGES: readonly SearchablePage[] = [
   { path: '/design', label: 'Design PRO+', category: 'PRO+' },
   { path: '/editor-video', label: 'Editor de Vídeo PRO+', category: 'PRO+' },
   { path: '/devs', label: 'Desenvolvedor PRO+', category: 'PRO+' },
-  { path: '/rh', label: 'RH', category: 'PRO+' },
   { path: '/lista-clientes', label: 'Lista de Clientes (Todos)', category: 'Clientes' },
   { path: '/clientes/millennials-growth', label: 'Clientes Millennials Growth', category: 'Clientes' },
   { path: '/clientes/millennials-outbound', label: 'Clientes Outbound', category: 'Clientes' },

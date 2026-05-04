@@ -27,7 +27,6 @@ const TAB_PRIORITY_SNAPSHOT = [
   { id: "outbound", path: "/millennials-outbound" },
   { id: "sucesso_cliente", path: "/kanban/sucesso" },
   { id: "financeiro", path: "/financeiro" },
-  { id: "rh", path: "/kanban/rh" },
 ];
 
 function defaultPathForRole(role: UserRole): string | null {
@@ -87,8 +86,8 @@ describe("DefaultRedirect: role → path mapping", () => {
     expect(defaultPathForRole("financeiro")).toBe("/financeiro");
   });
 
-  it("rh continua em /kanban/rh", () => {
-    expect(defaultPathForRole("rh")).toBe("/kanban/rh");
+  it("rh não tem mais rota no tabPriority (RH PRO+ removido)", () => {
+    expect(defaultPathForRole("rh")).toBeNull();
   });
 
   it("gestor_crm continua em /kanban/crm", () => {

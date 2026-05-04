@@ -233,7 +233,6 @@ export default function AppSidebar() {
     consultor_comercial: ['comercial'],
     financeiro: ['financeiro', 'financeiro-board'],
     gestor_crm: ['crm'],
-    rh: ['rh', 'rh-board'],
   };
 
   // Conjunto de paths PRO+ já renderizados como hub na seção "Minha Área".
@@ -1564,49 +1563,6 @@ export default function AppSidebar() {
                       >
                         <Wallet size={14} />
                         <span className="truncate">Contas a Pagar e Receber</span>
-                      </NavLink>
-                    </CollapsibleContent>
-                  </Collapsible>
-                );
-              }
-
-              // RH como dropdown com subitens (Contratação e Jornada Equipe)
-              if (categoryBoard.slug === 'rh' || categoryBoard.slug === 'rh-board') {
-                const isRHActive = currentPath.startsWith('/rh');
-                
-                return (
-                  <Collapsible
-                    key={category.id}
-                    open={openProductCategories['rh']}
-                    onOpenChange={() => toggleProductCategory('rh')}
-                  >
-                    <CollapsibleTrigger 
-                      className={cn(
-                        "sidebar-item w-full justify-between",
-                        isRHActive && "active"
-                      )}
-                    >
-                      <div className="flex items-center gap-3">
-                        <IconComponent size={20} />
-                        <span>{category.name}</span>
-                      </div>
-                      <ChevronDown 
-                        size={16} 
-                        className={cn("transition-transform duration-200", openProductCategories['rh'] && "rotate-180")} 
-                      />
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="pl-6 space-y-0.5 mt-1 sidebar-open-indicator">
-                      <NavLink
-                        to="/rh/jornada-equipe"
-                        className={({ isActive }) => cn(
-                          "flex items-center gap-2 px-2 py-1.5 text-sm rounded-lg transition-colors",
-                          isActive
-                            ? "bg-sidebar-primary text-sidebar-primary-foreground" 
-                            : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-                        )}
-                      >
-                        <Users size={14} />
-                        <span className="truncate">Jornada Equipe</span>
                       </NavLink>
                     </CollapsibleContent>
                   </Collapsible>

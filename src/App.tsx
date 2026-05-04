@@ -45,8 +45,6 @@ const GestorCRMPage = lazy(() => import("./pages/GestorCRMPage"));
 const DesignPage = lazy(() => import("./pages/DesignPage"));
 const EditorVideoPage = lazy(() => import("./pages/EditorVideoPage"));
 const DevsPage = lazy(() => import("./pages/DevsPage"));
-const RHPage = lazy(() => import("./pages/RHPage"));
-const RHJornadaEquipePage = lazy(() => import("./pages/RHJornadaEquipePage"));
 const UsersPage = lazy(() => import("./pages/admin/UsersPage"));
 const GroupsPage = lazy(() => import("./pages/admin/GroupsPage"));
 const AuditoriaPage = lazy(() => import("./pages/admin/AuditoriaPage"));
@@ -207,7 +205,6 @@ function DefaultRedirect() {
     { id: 'outbound', path: '/millennials-outbound' },
     { id: 'sucesso_cliente', path: '/kanban/sucesso' },
     { id: 'financeiro', path: '/financeiro' },
-    { id: 'rh', path: '/kanban/rh' },
   ];
 
   for (const tab of tabPriority) {
@@ -319,10 +316,6 @@ function AppRoutes() {
         </AdminRoute>
       } />
       
-      {/* RH Kanban Board Routes (must be before generic /kanban/:boardId) */}
-      <Route path="/kanban/rh" element={<Navigate to="/rh" replace />} />
-      <Route path="/kanban/rh-board" element={<Navigate to="/rh" replace />} />
-
       {/* Redirect outbound kanban route to PRO+ page */}
       <Route path="/kanban/millennials-outbound" element={<Navigate to="/millennials-outbound" replace />} />
       
@@ -444,23 +437,6 @@ function AppRoutes() {
       <Route path="/devs" element={
         <PageAccessRoute pageSlug="devs" fallbackRoles={getRouteGuardRoles('/devs')}>
           <DevsPage />
-        </PageAccessRoute>
-      } />
-      
-      {/* RH Routes */}
-      <Route path="/rh" element={
-        <PageAccessRoute pageSlug="rh" fallbackRoles={getRouteGuardRoles('/rh')}>
-          <RHPage />
-        </PageAccessRoute>
-      } />
-      <Route path="/rh/contratacao" element={
-        <PageAccessRoute pageSlug="rh" fallbackRoles={getRouteGuardRoles('/rh')}>
-          <RHPage />
-        </PageAccessRoute>
-      } />
-      <Route path="/rh/jornada-equipe" element={
-        <PageAccessRoute pageSlug="rh" fallbackRoles={getRouteGuardRoles('/rh')}>
-          <RHJornadaEquipePage />
         </PageAccessRoute>
       } />
       

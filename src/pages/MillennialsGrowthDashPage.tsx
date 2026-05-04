@@ -738,22 +738,6 @@ export default function MillennialsGrowthDashPage() {
                     </div>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-muted/30 border border-border">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="font-semibold">RH</span>
-                      <Badge variant="secondary">{stats.tasks.rhTasks.total}</Badge>
-                    </div>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Pendentes</span>
-                        <span>{stats.tasks.rhTasks.pending}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-destructive">Atrasadas</span>
-                        <span className="font-bold text-destructive">{stats.tasks.rhTasks.overdue}</span>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>

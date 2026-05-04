@@ -201,12 +201,6 @@ export const ROLE_PAGE_MATRIX: RolePageMatrix = {
       canViewBoardAliases: ['consultor_comercial', 'comercial'],
     },
     {
-      pageSlug: 'rh',
-      proPlusRoute: { path: '/rh', label: 'RH PRO+' },
-      boardSlugs: ['rh', 'rh-board'],
-      canViewBoardAliases: ['rh'],
-    },
-    {
       pageSlug: 'cliente-list',
       proPlusRoute: { path: '/lista-clientes', label: 'Lista de Clientes' },
     },
@@ -305,15 +299,7 @@ export const ROLE_PAGE_MATRIX: RolePageMatrix = {
     },
   ],
 
-  rh: [
-    {
-      pageSlug: 'rh',
-      proPlusRoute: { path: '/rh', label: 'RH PRO+' },
-      boardSlugs: ['rh', 'rh-board'],
-      independentCategorySlugs: ['rh'],
-      canViewBoardAliases: ['rh'],
-    },
-  ],
+  rh: [],
 };
 
 // Wildcards (CEO/CTO/Gestor de Projetos): união de todas as entries únicas por pageSlug.
