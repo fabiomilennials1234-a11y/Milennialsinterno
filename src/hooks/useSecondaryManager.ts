@@ -79,6 +79,7 @@ export function useSetSecondaryManager() {
             .eq('id', clientId)
             .single();
 
+          const clientName = client?.name || 'Cliente';
           const dueDate = new Date();
           dueDate.setDate(dueDate.getDate() + 1);
 
@@ -86,12 +87,33 @@ export function useSetSecondaryManager() {
             client_id: clientId,
             assigned_to: secondaryManagerId,
             task_type: 'marcar_call_1',
-            title: `Marcar Call 1: ${client?.name || 'Cliente'}`,
+            title: `Marcar Call 1: ${clientName}`,
             description: 'Agendar a primeira call com o cliente para alinhamento inicial.',
             status: 'pending',
             due_date: dueDate.toISOString(),
             milestone: 1,
           });
+
+          // Create corresponding ads_task (visible in Tarefas Diárias column)
+          const { data: existingAdsTask } = await supabase
+            .from('ads_tasks')
+            .select('id')
+            .eq('ads_manager_id', secondaryManagerId)
+            .contains('tags', [`client_id:${clientId}`, 'onboarding_task_type:marcar_call_1'])
+            .maybeSingle();
+
+          if (!existingAdsTask) {
+            await supabase.from('ads_tasks').insert({
+              ads_manager_id: secondaryManagerId,
+              title: `Marcar Call 1: ${clientName}`,
+              description: `Agendar a primeira call com o cliente para alinhamento inicial. Cliente: ${clientName}.`,
+              task_type: 'daily',
+              status: 'todo',
+              priority: 'high',
+              due_date: dueDate.toISOString(),
+              tags: [`client_id:${clientId}`, 'onboarding_task_type:marcar_call_1'],
+            });
+          }
         }
       }
 
@@ -104,6 +126,7 @@ export function useSetSecondaryManager() {
       queryClient.invalidateQueries({ queryKey: ['assigned-clients'] });
       queryClient.invalidateQueries({ queryKey: ['client-tracking'] });
       queryClient.invalidateQueries({ queryKey: ['onboarding-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['ads-tasks'] });
     },
     onError: () => toast.error('Erro ao salvar gestor secundário'),
   });

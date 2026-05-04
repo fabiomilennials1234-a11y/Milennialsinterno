@@ -245,36 +245,6 @@ export function useAdsTasks(taskType: 'daily' | 'weekly') {
 
       const { data, error } = await query;
       if (error) throw error;
-
-      // Include ads_tasks for clients where user is secondary manager (phase=onboarding)
-      if (effectiveUserId) {
-        const { data: secondaryRecords } = await supabase
-          .from('client_secondary_managers')
-          .select('client_id')
-          .eq('secondary_manager_id', effectiveUserId)
-          .eq('phase', 'onboarding');
-
-        if (secondaryRecords && secondaryRecords.length > 0) {
-          const existingClientIds = new Set((data || []).map((t: any) => t.client_id));
-          const missingClientIds = secondaryRecords
-            .map(r => r.client_id)
-            .filter(id => !existingClientIds.has(id));
-
-          if (missingClientIds.length > 0) {
-            const { data: secondaryTasks } = await supabase
-              .from('ads_tasks')
-              .select('*')
-              .eq('task_type', taskType)
-              .or('archived.is.null,archived.eq.false')
-              .in('client_id', missingClientIds);
-
-            if (secondaryTasks && secondaryTasks.length > 0) {
-              return [...(data || []), ...secondaryTasks] as AdsTask[];
-            }
-          }
-        }
-      }
-
       return data as AdsTask[];
     },
     enabled: !!effectiveUserId,
