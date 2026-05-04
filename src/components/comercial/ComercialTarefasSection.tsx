@@ -111,34 +111,34 @@ function TaskCard({ task, onStatusChange, onDelete, onArchive }: {
           </div>
         </div>
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+          <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
             <Button variant="ghost" size="icon" className="h-6 w-6">
               <MoreVertical size={12} />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             {task.status !== 'todo' && (
-              <DropdownMenuItem onClick={() => onStatusChange('todo')}>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange('todo'); }}>
                 <Circle size={12} className="mr-2" /> A Fazer
               </DropdownMenuItem>
             )}
             {task.status !== 'doing' && (
-              <DropdownMenuItem onClick={() => onStatusChange('doing')}>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange('doing'); }}>
                 <Clock size={12} className="mr-2" /> Fazendo
               </DropdownMenuItem>
             )}
             {task.status !== 'done' && (
-              <DropdownMenuItem onClick={() => onStatusChange('done')}>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange('done'); }}>
                 <CheckCircle2 size={12} className="mr-2" /> Feito
               </DropdownMenuItem>
             )}
             {!task.is_auto_generated && (
-              <DropdownMenuItem onClick={onArchive}>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onArchive(); }}>
                 <Archive size={12} className="mr-2" /> Arquivar
               </DropdownMenuItem>
             )}
             {!task.is_auto_generated && (
-              <DropdownMenuItem onClick={onDelete} className="text-red-600">
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-red-600">
                 <Trash2 size={12} className="mr-2" /> Excluir
               </DropdownMenuItem>
             )}

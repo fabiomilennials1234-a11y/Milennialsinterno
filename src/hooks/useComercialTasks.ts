@@ -296,7 +296,7 @@ export function useUpdateComercialTaskStatus() {
 
           if (task.auto_task_type === PADDOCK_AUTO_TASK_TYPES.MARCAR_ALINHAMENTO_INICIAL) {
             nextStep = 'alinhamento_inicial_marcado';
-            await supabase
+            const { error: clientErr } = await supabase
               .from('clients')
               .update({
                 comercial_status: 'onboarding_paddock',
@@ -304,14 +304,20 @@ export function useUpdateComercialTaskStatus() {
                 comercial_onboarding_started_at: new Date().toISOString(),
               })
               .eq('id', clientId);
+            if (clientErr) {
+              console.error('[Paddock] Failed to advance client status:', clientErr.message);
+            }
           } else {
             // Standard progression via map
             nextStep = PADDOCK_TASK_TO_STEP[task.auto_task_type];
             if (nextStep && nextStep !== 'acompanhamento') {
-              await supabase
+              const { error: stepErr } = await supabase
                 .from('clients')
                 .update({ paddock_onboarding_step: nextStep })
                 .eq('id', clientId);
+              if (stepErr) {
+                console.error('[Paddock] Failed to advance paddock step:', stepErr.message);
+              }
             }
           }
 
@@ -497,22 +503,27 @@ export function useUpdateComercialTaskStatus() {
     },
     onMutate: async ({ taskId, status }) => {
       await queryClient.cancelQueries({ queryKey: ['comercial-tasks'] });
-      
-      const previousTasks = queryClient.getQueryData<ComercialTask[]>(['comercial-tasks', user?.id]);
-      
-      if (previousTasks) {
-        queryClient.setQueryData<ComercialTask[]>(['comercial-tasks', user?.id], 
-          previousTasks.map(task => 
-            task.id === taskId ? { ...task, status } : task
-          )
-        );
-      }
-      
-      return { previousTasks };
+
+      // Capture snapshots of ALL comercial-tasks query variants (daily/weekly/undefined)
+      const snapshots: Array<{ queryKey: readonly unknown[]; data: ComercialTask[] }> = [];
+
+      queryClient.getQueriesData<ComercialTask[]>({ queryKey: ['comercial-tasks', user?.id] })
+        .forEach(([queryKey, data]) => {
+          if (data) {
+            snapshots.push({ queryKey, data });
+            queryClient.setQueryData<ComercialTask[]>(queryKey,
+              data.map(task => task.id === taskId ? { ...task, status } : task)
+            );
+          }
+        });
+
+      return { snapshots };
     },
     onError: (err, variables, context) => {
-      if (context?.previousTasks) {
-        queryClient.setQueryData(['comercial-tasks', user?.id], context.previousTasks);
+      if (context?.snapshots) {
+        for (const { queryKey, data } of context.snapshots) {
+          queryClient.setQueryData(queryKey, data);
+        }
       }
       toast.error('Erro ao atualizar tarefa');
     },
