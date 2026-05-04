@@ -2,7 +2,6 @@ import { ReactNode } from 'react';
 import AppSidebar from '@/components/layout/AppSidebar';
 import AppHeader from '@/components/layout/AppHeader';
 import ChurnNotificationModal from '@/components/ChurnNotificationModal';
-import TaskDelayModal from '@/components/TaskDelayModal';
 import { useDesignCompletionToasts } from '@/hooks/useDesignCompletionNotifications';
 import { useVideoCompletionToasts } from '@/hooks/useVideoCompletionNotifications';
 import { useDevCompletionToasts } from '@/hooks/useDevsCompletionNotifications';
@@ -52,9 +51,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
       {/* Churn Notification Modal - appears globally */}
       <ChurnNotificationModal />
-
-      {/* Task Delay Modal - appears globally for all roles */}
-      <TaskDelayModal />
     </div>
   );
 }

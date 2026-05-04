@@ -472,11 +472,45 @@ export type Database = {
           },
         ]
       }
+      app_capabilities: {
+        Row: {
+          category: string
+          created_at: string
+          default_roles: string[]
+          description: string | null
+          is_sensitive: boolean
+          key: string
+          label: string
+          position: number
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          default_roles?: string[]
+          description?: string | null
+          is_sensitive?: boolean
+          key: string
+          label: string
+          position?: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          default_roles?: string[]
+          description?: string | null
+          is_sensitive?: boolean
+          key?: string
+          label?: string
+          position?: number
+        }
+        Relationships: []
+      }
       app_pages: {
         Row: {
           category: string
           created_at: string
           is_active: boolean
+          is_sensitive: boolean
           label: string
           route: string
           slug: string
@@ -485,6 +519,7 @@ export type Database = {
           category: string
           created_at?: string
           is_active?: boolean
+          is_sensitive?: boolean
           label: string
           route: string
           slug: string
@@ -493,89 +528,10 @@ export type Database = {
           category?: string
           created_at?: string
           is_active?: boolean
+          is_sensitive?: boolean
           label?: string
           route?: string
           slug?: string
-        }
-        Relationships: []
-      }
-      atrizes_briefings: {
-        Row: {
-          card_id: string
-          client_instagram: string | null
-          created_at: string
-          created_by: string | null
-          drive_upload_url: string | null
-          id: string
-          script_url: string | null
-          updated_at: string
-        }
-        Insert: {
-          card_id: string
-          client_instagram?: string | null
-          created_at?: string
-          created_by?: string | null
-          drive_upload_url?: string | null
-          id?: string
-          script_url?: string | null
-          updated_at?: string
-        }
-        Update: {
-          card_id?: string
-          client_instagram?: string | null
-          created_at?: string
-          created_by?: string | null
-          drive_upload_url?: string | null
-          id?: string
-          script_url?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "atrizes_briefings_card_id_fkey"
-            columns: ["card_id"]
-            isOneToOne: true
-            referencedRelation: "kanban_cards"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      atrizes_completion_notifications: {
-        Row: {
-          card_id: string
-          card_title: string
-          completed_by: string
-          completed_by_name: string
-          created_at: string
-          id: string
-          read: boolean
-          read_at: string | null
-          requester_id: string
-          requester_name: string
-        }
-        Insert: {
-          card_id: string
-          card_title: string
-          completed_by: string
-          completed_by_name: string
-          created_at?: string
-          id?: string
-          read?: boolean
-          read_at?: string | null
-          requester_id: string
-          requester_name: string
-        }
-        Update: {
-          card_id?: string
-          card_title?: string
-          completed_by?: string
-          completed_by_name?: string
-          created_at?: string
-          id?: string
-          read?: boolean
-          read_at?: string | null
-          requester_id?: string
-          requester_name?: string
         }
         Relationships: []
       }
@@ -755,80 +711,164 @@ export type Database = {
         Row: {
           acoes_pontuais: string | null
           apresentacao: string | null
+          captar_novos_representantes: string | null
+          catalogo_fotos_videos: string | null
           client_id: string
           cliente_ideal: string | null
+          cnpjs_ativos: string | null
           comercial_existente: string | null
+          concorrente_direto_n1: string | null
+          condicao_distribuidor_representante: string | null
           created_at: string
+          decisor_compra_cliente: string | null
+          diferencial_vs_concorrencia: string | null
           dor_desejo: string | null
           expectativas_1a: string | null
           expectativas_30d: string | null
           expectativas_3m: string | null
           expectativas_6m: string | null
+          faturamento_marketplaces: string | null
+          feiras_eventos_setor: string | null
+          foco_principal_empresa: string | null
           historia_empresa: string | null
           historico_marketing: string | null
           id: string
           investimento: string | null
           lista_produtos: string | null
           localizacao: string | null
+          maior_dor_empresa: string | null
+          margem_media: string | null
+          marketplaces_ativos: string | null
           motivo_call: string | null
+          objetivo_contratar_milennials: string | null
+          origem_clientes_atuais: string | null
+          pedido_minimo: string | null
+          ponto_focal_cliente: string | null
+          principais_produtos_margem: string | null
+          produto_carro_chefe: string | null
           produto_servico: string | null
+          programa_indicacao: string | null
           proposito: string | null
+          recompra_frequencia: string | null
           referencias: string | null
+          representantes_comerciais_atual: string | null
+          restricoes_comunicacao: string | null
+          satisfacao_3_meses: string | null
           site: string | null
           strategy_link: string | null
+          tempo_ciclo_venda: string | null
+          tempo_resposta_lead: string | null
+          ticket_medio: string | null
           updated_at: string
+          vende_marketplaces: string | null
         }
         Insert: {
           acoes_pontuais?: string | null
           apresentacao?: string | null
+          captar_novos_representantes?: string | null
+          catalogo_fotos_videos?: string | null
           client_id: string
           cliente_ideal?: string | null
+          cnpjs_ativos?: string | null
           comercial_existente?: string | null
+          concorrente_direto_n1?: string | null
+          condicao_distribuidor_representante?: string | null
           created_at?: string
+          decisor_compra_cliente?: string | null
+          diferencial_vs_concorrencia?: string | null
           dor_desejo?: string | null
           expectativas_1a?: string | null
           expectativas_30d?: string | null
           expectativas_3m?: string | null
           expectativas_6m?: string | null
+          faturamento_marketplaces?: string | null
+          feiras_eventos_setor?: string | null
+          foco_principal_empresa?: string | null
           historia_empresa?: string | null
           historico_marketing?: string | null
           id?: string
           investimento?: string | null
           lista_produtos?: string | null
           localizacao?: string | null
+          maior_dor_empresa?: string | null
+          margem_media?: string | null
+          marketplaces_ativos?: string | null
           motivo_call?: string | null
+          objetivo_contratar_milennials?: string | null
+          origem_clientes_atuais?: string | null
+          pedido_minimo?: string | null
+          ponto_focal_cliente?: string | null
+          principais_produtos_margem?: string | null
+          produto_carro_chefe?: string | null
           produto_servico?: string | null
+          programa_indicacao?: string | null
           proposito?: string | null
+          recompra_frequencia?: string | null
           referencias?: string | null
+          representantes_comerciais_atual?: string | null
+          restricoes_comunicacao?: string | null
+          satisfacao_3_meses?: string | null
           site?: string | null
           strategy_link?: string | null
+          tempo_ciclo_venda?: string | null
+          tempo_resposta_lead?: string | null
+          ticket_medio?: string | null
           updated_at?: string
+          vende_marketplaces?: string | null
         }
         Update: {
           acoes_pontuais?: string | null
           apresentacao?: string | null
+          captar_novos_representantes?: string | null
+          catalogo_fotos_videos?: string | null
           client_id?: string
           cliente_ideal?: string | null
+          cnpjs_ativos?: string | null
           comercial_existente?: string | null
+          concorrente_direto_n1?: string | null
+          condicao_distribuidor_representante?: string | null
           created_at?: string
+          decisor_compra_cliente?: string | null
+          diferencial_vs_concorrencia?: string | null
           dor_desejo?: string | null
           expectativas_1a?: string | null
           expectativas_30d?: string | null
           expectativas_3m?: string | null
           expectativas_6m?: string | null
+          faturamento_marketplaces?: string | null
+          feiras_eventos_setor?: string | null
+          foco_principal_empresa?: string | null
           historia_empresa?: string | null
           historico_marketing?: string | null
           id?: string
           investimento?: string | null
           lista_produtos?: string | null
           localizacao?: string | null
+          maior_dor_empresa?: string | null
+          margem_media?: string | null
+          marketplaces_ativos?: string | null
           motivo_call?: string | null
+          objetivo_contratar_milennials?: string | null
+          origem_clientes_atuais?: string | null
+          pedido_minimo?: string | null
+          ponto_focal_cliente?: string | null
+          principais_produtos_margem?: string | null
+          produto_carro_chefe?: string | null
           produto_servico?: string | null
+          programa_indicacao?: string | null
           proposito?: string | null
+          recompra_frequencia?: string | null
           referencias?: string | null
+          representantes_comerciais_atual?: string | null
+          restricoes_comunicacao?: string | null
+          satisfacao_3_meses?: string | null
           site?: string | null
           strategy_link?: string | null
+          tempo_ciclo_venda?: string | null
+          tempo_resposta_lead?: string | null
+          ticket_medio?: string | null
           updated_at?: string
+          vende_marketplaces?: string | null
         }
         Relationships: [
           {
@@ -1394,8 +1434,56 @@ export type Database = {
           },
         ]
       }
+      client_tags: {
+        Row: {
+          client_id: string
+          created_at: string
+          dismissed_at: string | null
+          dismissed_by: string | null
+          dismissed_reason: string | null
+          expired_at: string | null
+          expires_at: string | null
+          id: string
+          name: string
+          source: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          dismissed_at?: string | null
+          dismissed_by?: string | null
+          dismissed_reason?: string | null
+          expired_at?: string | null
+          expires_at?: string | null
+          id?: string
+          name: string
+          source: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          dismissed_at?: string | null
+          dismissed_by?: string | null
+          dismissed_reason?: string | null
+          expired_at?: string | null
+          expires_at?: string | null
+          id?: string
+          name?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_tags_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
+          alinhamento_inicial: Json | null
           archived: boolean
           archived_at: string | null
           assigned_ads_manager: string | null
@@ -1417,6 +1505,8 @@ export type Database = {
           created_at: string
           created_by: string | null
           crm_entered_at: string | null
+          crm_finalizado_at: string | null
+          crm_finalizado_by: string | null
           crm_status: string | null
           cs_classification: string | null
           cs_classification_reason: string | null
@@ -1452,6 +1542,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          alinhamento_inicial?: Json | null
           archived?: boolean
           archived_at?: string | null
           assigned_ads_manager?: string | null
@@ -1473,6 +1564,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           crm_entered_at?: string | null
+          crm_finalizado_at?: string | null
+          crm_finalizado_by?: string | null
           crm_status?: string | null
           cs_classification?: string | null
           cs_classification_reason?: string | null
@@ -1508,6 +1601,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          alinhamento_inicial?: Json | null
           archived?: boolean
           archived_at?: string | null
           assigned_ads_manager?: string | null
@@ -1529,6 +1623,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           crm_entered_at?: string | null
+          crm_finalizado_at?: string | null
+          crm_finalizado_by?: string | null
           crm_status?: string | null
           cs_classification?: string | null
           cs_classification_reason?: string | null
@@ -5344,6 +5440,33 @@ export type Database = {
           },
         ]
       }
+      page_access_audit: {
+        Row: {
+          accessed_at: string
+          grant_source: string
+          id: string
+          page_slug: string
+          user_id: string
+          user_role: string
+        }
+        Insert: {
+          accessed_at?: string
+          grant_source: string
+          id?: string
+          page_slug: string
+          user_id: string
+          user_role: string
+        }
+        Update: {
+          accessed_at?: string
+          grant_source?: string
+          id?: string
+          page_slug?: string
+          user_id?: string
+          user_role?: string
+        }
+        Relationships: []
+      }
       predefined_challenges: {
         Row: {
           challenge_text: string
@@ -6454,7 +6577,13 @@ export type Database = {
           created_at: string
           id: string
           justification: string
+          master_comment: string | null
+          master_comment_at: string | null
+          master_comment_by: string | null
           notification_id: string
+          requires_revision: boolean
+          revision_requested_at: string | null
+          revision_requested_by: string | null
           user_id: string
           user_role: string
         }
@@ -6465,7 +6594,13 @@ export type Database = {
           created_at?: string
           id?: string
           justification: string
+          master_comment?: string | null
+          master_comment_at?: string | null
+          master_comment_by?: string | null
           notification_id: string
+          requires_revision?: boolean
+          revision_requested_at?: string | null
+          revision_requested_by?: string | null
           user_id: string
           user_role: string
         }
@@ -6476,7 +6611,13 @@ export type Database = {
           created_at?: string
           id?: string
           justification?: string
+          master_comment?: string | null
+          master_comment_at?: string | null
+          master_comment_by?: string | null
           notification_id?: string
+          requires_revision?: boolean
+          revision_requested_at?: string | null
+          revision_requested_by?: string | null
           user_id?: string
           user_role?: string
         }
@@ -7046,6 +7187,71 @@ export type Database = {
           },
         ]
       }
+      user_action_overrides: {
+        Row: {
+          action: string
+          granted: boolean
+          granted_at: string
+          granted_by: string | null
+          page_slug: string
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          granted?: boolean
+          granted_at?: string
+          granted_by?: string | null
+          page_slug: string
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          granted?: boolean
+          granted_at?: string
+          granted_by?: string | null
+          page_slug?: string
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_capability_grants: {
+        Row: {
+          capability_key: string
+          granted: boolean
+          granted_at: string
+          granted_by: string | null
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          capability_key: string
+          granted?: boolean
+          granted_at?: string
+          granted_by?: string | null
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          capability_key?: string
+          granted?: boolean
+          granted_at?: string
+          granted_by?: string | null
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_capability_grants_capability_key_fkey"
+            columns: ["capability_key"]
+            isOneToOne: false
+            referencedRelation: "app_capabilities"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
       user_page_grants: {
         Row: {
           expires_at: string | null
@@ -7395,6 +7601,30 @@ export type Database = {
       }
     }
     Functions: {
+      admin_reconcile_user_page_grants: {
+        Args: {
+          _additional_pages?: string[]
+          _caller_id: string
+          _can_access_mtech?: boolean
+          _reason?: string
+          _role: string
+          _user_id: string
+        }
+        Returns: Json
+      }
+      archive_justification: { Args: { p_id: string }; Returns: undefined }
+      assert_user_in_my_scope: {
+        Args: { target_user_id: string }
+        Returns: undefined
+      }
+      can_access_page_data: {
+        Args: { _page_slug: string; _user_id: string }
+        Returns: boolean
+      }
+      can_operate_kanban_card: {
+        Args: { _action: string; _board_id: string; _user_id: string }
+        Returns: boolean
+      }
       can_see_tech: { Args: { _user_id: string }; Returns: boolean }
       can_view_board: {
         Args: { _board_id: string; _user_id: string }
@@ -7422,6 +7652,7 @@ export type Database = {
       check_creative_awaiting_approval: { Args: never; Returns: undefined }
       check_crm_configs_delayed: { Args: never; Returns: undefined }
       check_department_tasks_stalled: { Args: never; Returns: undefined }
+      check_expired_client_tags: { Args: never; Returns: undefined }
       check_financeiro_clients_stalled: { Args: never; Returns: undefined }
       check_no_clients_moved_today: { Args: never; Returns: undefined }
       check_onboarding_tasks_stuck: { Args: never; Returns: undefined }
@@ -7432,6 +7663,13 @@ export type Database = {
       check_stalled_onboarding: { Args: never; Returns: undefined }
       check_training_notifications: { Args: never; Returns: undefined }
       check_user_inactive: { Args: never; Returns: undefined }
+      cleanup_orphan_person_columns: {
+        Args: never
+        Returns: {
+          deleted_count: number
+          deleted_titles: string[]
+        }[]
+      }
       cleanup_user_references: {
         Args: { target_user_id: string }
         Returns: undefined
@@ -7440,12 +7678,69 @@ export type Database = {
         Args: { p_idempotency_key?: string; p_payload: Json }
         Returns: Json
       }
+      create_kanban_card_attachment: {
+        Args: {
+          _card_id: string
+          _file_name: string
+          _file_size?: number
+          _file_type?: string
+          _file_url: string
+        }
+        Returns: {
+          card_id: string
+          created_at: string
+          created_by: string | null
+          file_name: string
+          file_size: number | null
+          file_type: string | null
+          file_url: string
+          id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "card_attachments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_weekly_gestor_tasks: { Args: never; Returns: undefined }
+      delete_kanban_card_attachment: {
+        Args: { _attachment_id: string }
+        Returns: {
+          card_id: string
+          created_at: string
+          created_by: string | null
+          file_name: string
+          file_size: number | null
+          file_type: string | null
+          file_url: string
+          id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "card_attachments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      dismiss_client_torque_tag: {
+        Args: { p_client_id: string }
+        Returns: undefined
+      }
       ensure_onboarding_columns: {
         Args: { p_board_slug: string }
         Returns: undefined
       }
       generate_monthly_receivables: { Args: never; Returns: undefined }
+      get_ceo_advanced_stats: { Args: never; Returns: Json }
+      get_ceo_indicadores: { Args: { _month?: string }; Returns: Json }
+      get_ceo_stats_churn: { Args: never; Returns: Json }
+      get_ceo_stats_client_labels: { Args: never; Returns: Json }
+      get_ceo_stats_financial: { Args: never; Returns: Json }
+      get_ceo_stats_group_squad: { Args: never; Returns: Json }
+      get_ceo_stats_onboarding: { Args: never; Returns: Json }
+      get_ceo_stats_production: { Args: never; Returns: Json }
+      get_ceo_stats_tasks: { Args: never; Returns: Json }
       get_crm_config_collective_justifications: {
         Args: { p_config_id: string }
         Returns: {
@@ -7460,7 +7755,87 @@ export type Database = {
         }[]
       }
       get_day_of_week_portuguese: { Args: never; Returns: string }
+      get_financeiro_overview: { Args: never; Returns: Json }
+      get_justifications_done_mine: {
+        Args: never
+        Returns: {
+          created_at: string
+          justification: string
+          justification_id: string
+          master_comment: string
+          master_comment_at: string
+          notification_id: string
+          task_due_date: string
+          task_id: string
+          task_table: string
+          task_title: string
+        }[]
+      }
+      get_justifications_pending_mine: {
+        Args: never
+        Returns: {
+          created_at: string
+          master_comment: string
+          notification_id: string
+          requires_revision: boolean
+          task_due_date: string
+          task_id: string
+          task_owner_id: string
+          task_owner_name: string
+          task_owner_role: string
+          task_table: string
+          task_title: string
+        }[]
+      }
+      get_justifications_team_grouped: {
+        Args: { p_only_pending?: boolean }
+        Returns: {
+          archived: boolean
+          created_at: string
+          justification_id: string
+          justification_text: string
+          master_comment: string
+          notification_id: string
+          requires_revision: boolean
+          task_due_date: string
+          task_id: string
+          task_table: string
+          task_title: string
+          user_id: string
+          user_name: string
+          user_role: string
+        }[]
+      }
+      get_kanban_action_permissions: {
+        Args: { _board_id: string }
+        Returns: Json
+      }
       get_my_page_access: { Args: never; Returns: string[] }
+      get_outbound_dashboard: { Args: { _manager_id?: string }; Returns: Json }
+      get_page_access_audit: {
+        Args: {
+          _limit?: number
+          _page_slug?: string
+          _since?: string
+          _user_id?: string
+        }
+        Returns: Json
+      }
+      get_pending_client_tag_justifications_for_user: {
+        Args: never
+        Returns: {
+          client_id: string
+          client_name: string
+          detected_at: string
+          expires_at: string
+          notification_id: string
+          tag_id: string
+          tag_name: string
+          task_table: string
+          task_title: string
+          user_role: string
+        }[]
+      }
       get_pending_crm_justifications_for_user: {
         Args: never
         Returns: {
@@ -7477,7 +7852,15 @@ export type Database = {
           user_role: string
         }[]
       }
+      get_team_users_in_scope: {
+        Args: never
+        Returns: {
+          user_id: string
+        }[]
+      }
+      get_tv_dashboard_stats: { Args: never; Returns: Json }
       get_user_group_id: { Args: { _user_id: string }; Returns: string }
+      get_user_permissions: { Args: { _target_user: string }; Returns: Json }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
@@ -7494,6 +7877,10 @@ export type Database = {
         }
         Returns: number
       }
+      has_capability: {
+        Args: { _key: string; _user_id: string }
+        Returns: boolean
+      }
       has_page_access: {
         Args: { _page: string; _user: string }
         Returns: boolean
@@ -7505,12 +7892,133 @@ export type Database = {
         }
         Returns: boolean
       }
+      import_client_pre_validated: {
+        Args: { p_payload: Json; p_target_step: string }
+        Returns: Json
+      }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_ceo: { Args: { _user_id: string }; Returns: boolean }
       is_executive: { Args: { _user_id: string }; Returns: boolean }
       is_feature_enabled: {
         Args: { _key: string; _user_id: string }
         Returns: boolean
+      }
+      kanban_archive_card: {
+        Args: { _card_id: string }
+        Returns: {
+          archived: boolean
+          archived_at: string | null
+          assigned_to: string | null
+          board_id: string
+          card_type: string | null
+          client_id: string | null
+          column_id: string
+          created_at: string
+          created_by: string | null
+          creatives_quantity: number | null
+          description: string | null
+          due_date: string | null
+          id: string
+          justification: string | null
+          justification_at: string | null
+          position: number
+          priority: string | null
+          progress: number | null
+          status: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "kanban_cards"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      kanban_create_card: {
+        Args: {
+          _assigned_to?: string
+          _board_id: string
+          _card_type?: string
+          _client_id?: string
+          _column_id: string
+          _description?: string
+          _due_date?: string
+          _priority?: string
+          _status?: string
+          _tags?: string[]
+          _title: string
+        }
+        Returns: {
+          archived: boolean
+          archived_at: string | null
+          assigned_to: string | null
+          board_id: string
+          card_type: string | null
+          client_id: string | null
+          column_id: string
+          created_at: string
+          created_by: string | null
+          creatives_quantity: number | null
+          description: string | null
+          due_date: string | null
+          id: string
+          justification: string | null
+          justification_at: string | null
+          position: number
+          priority: string | null
+          progress: number | null
+          status: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "kanban_cards"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      kanban_delete_card: { Args: { _card_id: string }; Returns: string }
+      kanban_move_card: {
+        Args: {
+          _card_id: string
+          _destination_column_id: string
+          _destination_status?: string
+          _new_position: number
+        }
+        Returns: {
+          archived: boolean
+          archived_at: string | null
+          assigned_to: string | null
+          board_id: string
+          card_type: string | null
+          client_id: string | null
+          column_id: string
+          created_at: string
+          created_by: string | null
+          creatives_quantity: number | null
+          description: string | null
+          due_date: string | null
+          id: string
+          justification: string | null
+          justification_at: string | null
+          position: number
+          priority: string | null
+          progress: number | null
+          status: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "kanban_cards"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       list_active_clients_minimal: {
         Args: never
@@ -7520,6 +8028,41 @@ export type Database = {
           razao_social: string
         }[]
       }
+      list_users_by_role_for_page: {
+        Args: {
+          _page_slug: string
+          _role: Database["public"]["Enums"]["user_role"]
+        }
+        Returns: {
+          email: string
+          name: string
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }[]
+      }
+      log_page_access: { Args: { _page_slug: string }; Returns: undefined }
+      maybe_create_growth_onboarding_tag: {
+        Args: { p_client_id: string }
+        Returns: undefined
+      }
+      nudge_user_for_justification: {
+        Args: { p_notification_id: string }
+        Returns: undefined
+      }
+      reconcile_page_grants: {
+        Args: {
+          _page_slugs: string[]
+          _reason?: string
+          _source?: string
+          _source_ref?: string
+          _user_id: string
+        }
+        Returns: Json
+      }
+      request_justification_revision: {
+        Args: { p_comment: string; p_justification_id: string }
+        Returns: undefined
+      }
       revoke_page: {
         Args: { _page_slug: string; _reason?: string; _user_id: string }
         Returns: boolean
@@ -7527,6 +8070,18 @@ export type Database = {
       set_mtech_access: {
         Args: { _user_id: string; _value: boolean }
         Returns: undefined
+      }
+      set_user_permissions: {
+        Args: {
+          _action_overrides: Json
+          _capability_grants: Json
+          _target_user: string
+        }
+        Returns: undefined
+      }
+      submit_justification: {
+        Args: { p_notification_id: string; p_text: string }
+        Returns: string
       }
       tech_add_comment: {
         Args: { _task_id: string; _text: string }
@@ -7581,6 +8136,15 @@ export type Database = {
         Returns: boolean
       }
       tech_unblock_task: { Args: { _task_id: string }; Returns: undefined }
+      unarchive_justification: { Args: { p_id: string }; Returns: undefined }
+      upsert_kanban_briefing: {
+        Args: { _briefing_type: string; _card_id: string; _payload: Json }
+        Returns: Json
+      }
+      user_is_crm_pending_involved: {
+        Args: { p_config_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       tech_sprint_status: "PLANNING" | "ACTIVE" | "COMPLETED"

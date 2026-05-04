@@ -16,6 +16,7 @@ import { usePermissionDivergenceLogger } from "@/hooks/usePermissionDivergenceLo
 import { useCrmDelayJustifications } from "@/hooks/useCrmDelayJustifications";
 import { useClientTagDelayJustifications } from "@/hooks/useClientTagDelayJustifications";
 import AppBootSkeleton from "@/components/AppBootSkeleton";
+import MainLayout from "@/layouts/MainLayout";
 
 // Pages — lazy para code-splitting por rota.
 // LoginPage e NotFound ficam eager: uma é sempre o destino de redirect,
@@ -66,6 +67,7 @@ const ProvasSociaisPage = lazy(() => import("./pages/ProvasSociaisPage"));
 const DashGestoresPage = lazy(() => import("./pages/DashGestoresPage"));
 const TVDashboardPage = lazy(() => import("./pages/TVDashboardPage"));
 const TreinamentosPage = lazy(() => import("./pages/TreinamentosPage"));
+const JustificativasPage = lazy(() => import("./pages/Justificativas"));
 const RecordedMeetingsPage = lazy(() => import("./pages/RecordedMeetingsPage"));
 const MilennialsTechPage = lazy(() => import("./features/milennials-tech/pages/MilennialsTechPage").then(m => ({ default: m.MilennialsTechPage })));
 const BacklogTab = lazy(() => import("./features/milennials-tech/pages/BacklogTab").then(m => ({ default: m.BacklogTab })));
@@ -288,6 +290,15 @@ function AppRoutes() {
       <Route path="/treinamentos" element={
         <ProtectedRoute>
           <TreinamentosPage />
+        </ProtectedRoute>
+      } />
+
+      {/* Justificativas Page - All authenticated users */}
+      <Route path="/justificativas" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <JustificativasPage />
+          </MainLayout>
         </ProtectedRoute>
       } />
 
