@@ -86,6 +86,10 @@ export default function CreateDesignCardModal({
       newErrors.due_date = 'Prazo é obrigatório';
     }
 
+    if (!formData.client_id) {
+      newErrors.client_id = 'Cliente é obrigatório';
+    }
+
     if (!briefingData.description.trim()) {
       newErrors.description = 'Descrição das artes é obrigatória';
     }
@@ -322,10 +326,10 @@ export default function CreateDesignCardModal({
             </div>
           </div>
 
-          {/* Cliente (opcional) */}
+          {/* Cliente */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-foreground">
-              Cliente (opcional)
+              Cliente *
             </label>
             <ClientCombobox
               value={formData.client_id}
@@ -334,7 +338,11 @@ export default function CreateDesignCardModal({
               isLoading={clientsLoading}
               disabled={isLoading}
               placeholder="Selecionar cliente..."
+              className={errors.client_id ? "border-danger" : undefined}
             />
+            {errors.client_id && (
+              <p className="text-xs text-danger">{errors.client_id}</p>
+            )}
           </div>
 
           {/* Quantidade de criativos */}
