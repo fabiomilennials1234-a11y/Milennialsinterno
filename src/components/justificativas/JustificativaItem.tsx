@@ -10,7 +10,6 @@ interface Props {
   title: string;
   dueDate: string;
   state: State;
-  daysOverdue?: number;
   justificationText?: string;
   masterComment?: string | null;
   ownerName?: string;
