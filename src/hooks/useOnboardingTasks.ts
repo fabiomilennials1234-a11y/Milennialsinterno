@@ -137,26 +137,25 @@ export function useUpdateOnboardingTaskStatus() {
     onMutate: async ({ taskId, status }) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['onboarding-tasks'] });
-      
-      // Snapshot the previous value - use effectiveUserId for proper cache key
-      const previousTasks = queryClient.getQueryData<OnboardingTask[]>(['onboarding-tasks', effectiveUserId]);
-      
-      // Optimistically update to the new value
-      if (previousTasks) {
-        queryClient.setQueryData<OnboardingTask[]>(['onboarding-tasks', effectiveUserId], 
-          previousTasks.map(task => 
-            task.id === taskId ? { ...task, status } : task
-          )
-        );
-      }
-      
-      return { previousTasks };
+
+      // Snapshot: prefix-match cobre toda variante de scopeKey na queryKey real.
+      const previousData = queryClient.getQueriesData<OnboardingTask[]>({
+        queryKey: ['onboarding-tasks', effectiveUserId],
+      });
+
+      queryClient.setQueriesData<OnboardingTask[]>(
+        { queryKey: ['onboarding-tasks', effectiveUserId] },
+        (old) =>
+          old?.map(task => (task.id === taskId ? { ...task, status } : task)) ?? old,
+      );
+
+      return { previousData };
     },
     onError: (err, variables, context) => {
       // Rollback on error
-      if (context?.previousTasks) {
-        queryClient.setQueryData(['onboarding-tasks', effectiveUserId], context.previousTasks);
-      }
+      context?.previousData?.forEach(([key, data]) => {
+        queryClient.setQueryData(key, data);
+      });
       toast.error('Erro ao atualizar tarefa');
     },
     onSuccess: (result) => {
