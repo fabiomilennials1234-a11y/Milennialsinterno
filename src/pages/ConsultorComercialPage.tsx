@@ -26,7 +26,6 @@ import ComercialJustificativaSection from '@/components/comercial/ComercialJusti
 import CrmDelayJustificationsSection from '@/components/gestor-crm/CrmDelayJustificationsSection';
 import ComercialDocumentacaoSection from '@/components/comercial/ComercialDocumentacaoSection';
 import ComercialChurnSection from '@/components/comercial/ComercialChurnSection';
-import ComercialDelayModal from '@/components/comercial/ComercialDelayModal';
 import ComercialMovimentacaoNotification from '@/components/comercial/ComercialMovimentacaoNotification';
 import PaddockOnboardingSection from '@/components/comercial/PaddockOnboardingSection';
 
@@ -189,9 +188,6 @@ export default function ConsultorComercialPage() {
         </div>
       </div>
 
-      {/* Modal de Justificativa de Atraso - Apenas para consultor_comercial */}
-      {user?.role === 'consultor_comercial' && <ComercialDelayModal />}
-      
       {/* Notificação de Movimentação Pendente - Apenas para consultor_comercial */}
       {user?.role === 'consultor_comercial' && <ComercialMovimentacaoNotification />}
     </MainLayout>
