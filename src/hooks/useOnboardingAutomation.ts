@@ -370,6 +370,82 @@ export function useCompleteOnboardingTaskWithAutomation() {
         return { taskCompleted: true, clientMoved: false, tasksCreated: 0, isAuxiliaryTask: true };
       }
 
+      // Check if this is a secondary manager completing their independent task
+      // Secondary managers only create next tasks — no client status/onboarding changes
+      const { data: clientForCheck } = await supabase
+        .from('clients')
+        .select('assigned_ads_manager')
+        .eq('id', clientId)
+        .single();
+
+      const isSecondaryCompletion = clientForCheck?.assigned_ads_manager !== effectiveUserId;
+
+      if (isSecondaryCompletion) {
+        // Only create next tasks, skip status/milestone/justification updates
+        let tasksCreated = 0;
+        if (taskDef.createMultipleTasks) {
+          let tasksToCreate: typeof POST_CALL_1_TASKS = [];
+          if (taskType === 'realizar_call_1') tasksToCreate = POST_CALL_1_TASKS;
+          else if (taskType === 'enviar_estrategia') tasksToCreate = POST_ESTRATEGIA_TASKS;
+          else if (taskType === 'brifar_criativos') tasksToCreate = POST_BRIFAR_CRIATIVOS_TASKS;
+          else if (taskType === 'brifar_otimizacoes') tasksToCreate = POST_BRIFAR_OTIMIZACOES_TASKS;
+          else if (taskType === 'configurar_conta_anuncios') tasksToCreate = POST_CONFIGURAR_CONTA_TASKS;
+          else if (taskType === 'certificar_consultoria_realizada') tasksToCreate = POST_CERTIFICAR_CONSULTORIA_TASKS;
+
+          for (const taskTemplate of tasksToCreate) {
+            const { data: existing } = await supabase
+              .from('onboarding_tasks')
+              .select('id')
+              .eq('client_id', clientId)
+              .eq('task_type', taskTemplate.taskType)
+              .eq('assigned_to', effectiveUserId)
+              .maybeSingle();
+
+            if (!existing) {
+              const dueDate = addDays(new Date(), taskTemplate.dueDays);
+              await supabase.from('onboarding_tasks').insert({
+                client_id: clientId,
+                assigned_to: effectiveUserId,
+                task_type: taskTemplate.taskType,
+                title: taskTemplate.titleTemplate.replace('{clientName}', clientName),
+                description: taskTemplate.description,
+                status: 'pending',
+                due_date: dueDate.toISOString(),
+                milestone: taskTemplate.milestone,
+              });
+              tasksCreated++;
+            }
+          }
+        } else if (taskDef.nextTask) {
+          const nextTaskDef = ADVANCING_TASK_DEFINITIONS[taskDef.nextTask as keyof typeof ADVANCING_TASK_DEFINITIONS];
+          if (nextTaskDef) {
+            const { data: existing } = await supabase
+              .from('onboarding_tasks')
+              .select('id')
+              .eq('client_id', clientId)
+              .eq('task_type', taskDef.nextTask)
+              .eq('assigned_to', effectiveUserId)
+              .maybeSingle();
+
+            if (!existing) {
+              const dueDate = addDays(new Date(), nextTaskDef.dueDays);
+              await supabase.from('onboarding_tasks').insert({
+                client_id: clientId,
+                assigned_to: effectiveUserId,
+                task_type: taskDef.nextTask,
+                title: nextTaskDef.title,
+                description: `${nextTaskDef.description} Cliente: ${clientName}.`,
+                status: 'pending',
+                due_date: dueDate.toISOString(),
+                milestone: nextTaskDef.milestone,
+              });
+              tasksCreated++;
+            }
+          }
+        }
+        return { taskCompleted: true, clientMoved: false, tasksCreated, nextStep: taskDef.nextStep, nextMilestone: taskDef.nextMilestone };
+      }
+
       // J8: Require justification when completing an advancing milestone task
       await requireJustification({
         title: 'Justificativa: Milestone Concluído',
@@ -713,16 +789,19 @@ export function useAutoCreateTaskForNewClients(clients: any[]) {
       for (const client of newClients) {
         if (cancelled) break;
 
-        // 1. Ensure onboarding_tasks "marcar_call_1" exists
+        // 1. Ensure onboarding_tasks "marcar_call_1" exists for THIS user
+        // Use effectiveUserId (the viewing manager) not client.assigned_ads_manager
+        // because secondary managers see clients with overridden status
+        const assignedTo = targetUserId || user.id;
         const { data: existingTask } = await supabase
           .from('onboarding_tasks')
           .select('id')
           .eq('client_id', client.id)
           .eq('task_type', 'marcar_call_1')
+          .eq('assigned_to', assignedTo)
           .maybeSingle();
 
         if (!existingTask && !cancelled) {
-          const assignedTo = client.assigned_ads_manager || targetUserId || user.id;
           const dueDate = addDays(new Date(), 1);
 
           const { error } = await supabase

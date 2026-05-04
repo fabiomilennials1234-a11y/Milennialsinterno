@@ -174,7 +174,7 @@ export function useAssignedClients() {
       if (effectiveUserId && shouldFilterByManager) {
         const { data: secondaryRecords, error: secError } = await supabase
           .from('client_secondary_managers')
-          .select('client_id')
+          .select('client_id, phase')
           .eq('secondary_manager_id', effectiveUserId);
 
         if (secError) {
@@ -199,7 +199,16 @@ export function useAssignedClients() {
             }
 
             if (secondaryClients) {
-              return [...(data || []), ...secondaryClients] as Client[];
+              // Override status for onboarding-phase secondary clients
+              // Secondary sees client as "new_client" regardless of actual status
+              const phaseMap = new Map(secondaryRecords.map(r => [r.client_id, r.phase]));
+              const adjusted = secondaryClients.map(c => {
+                if (phaseMap.get(c.id) === 'onboarding') {
+                  return { ...c, status: 'new_client' as const };
+                }
+                return c;
+              });
+              return [...(data || []), ...adjusted] as Client[];
             }
           }
         }

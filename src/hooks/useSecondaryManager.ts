@@ -61,41 +61,37 @@ export function useSetSecondaryManager() {
 
       if (error) throw error;
 
-      // When phase=onboarding, duplicate pending onboarding tasks for secondary
+      // When phase=onboarding, create initial "Marcar Call 1" task for secondary
+      // Treats client as brand new for the secondary — independent of primary's progress
       if (phase === 'onboarding') {
-        const { data: pendingTasks } = await supabase
+        const { data: existingTask } = await supabase
           .from('onboarding_tasks')
-          .select('*')
+          .select('id')
           .eq('client_id', clientId)
-          .eq('status', 'pending')
-          .neq('assigned_to', secondaryManagerId);
+          .eq('task_type', 'marcar_call_1')
+          .eq('assigned_to', secondaryManagerId)
+          .maybeSingle();
 
-        if (pendingTasks && pendingTasks.length > 0) {
-          const duplicates = pendingTasks.map(task => ({
-            client_id: task.client_id,
+        if (!existingTask) {
+          const { data: client } = await supabase
+            .from('clients')
+            .select('name')
+            .eq('id', clientId)
+            .single();
+
+          const dueDate = new Date();
+          dueDate.setDate(dueDate.getDate() + 1);
+
+          await supabase.from('onboarding_tasks').insert({
+            client_id: clientId,
             assigned_to: secondaryManagerId,
-            task_type: task.task_type,
-            title: task.title,
-            description: task.description,
+            task_type: 'marcar_call_1',
+            title: `Marcar Call 1: ${client?.name || 'Cliente'}`,
+            description: 'Agendar a primeira call com o cliente para alinhamento inicial.',
             status: 'pending',
-            due_date: task.due_date,
-            milestone: task.milestone,
-          }));
-
-          // Only insert tasks that don't already exist for secondary
-          for (const dup of duplicates) {
-            const { data: existing } = await supabase
-              .from('onboarding_tasks')
-              .select('id')
-              .eq('client_id', dup.client_id)
-              .eq('task_type', dup.task_type)
-              .eq('assigned_to', secondaryManagerId)
-              .maybeSingle();
-
-            if (!existing) {
-              await supabase.from('onboarding_tasks').insert(dup);
-            }
-          }
+            due_date: dueDate.toISOString(),
+            milestone: 1,
+          });
         }
       }
 
