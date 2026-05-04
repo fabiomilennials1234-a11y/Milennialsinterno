@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { usePageAccess } from '@/hooks/usePageAccess';
+import { useDataScope } from '@/hooks/useDataScope';
 import { useTargetAdsManager } from '@/contexts/AdsManagerContext';
 import { toast } from 'sonner';
 import { useEffect } from 'react';
@@ -31,18 +31,17 @@ export interface OnboardingTask {
 
 // Fetch all onboarding tasks for the current user (or target user)
 export function useOnboardingTasks() {
-  const { user, isAdminUser, isCEO } = useAuth();
+  const { user } = useAuth();
   const { targetUserId } = useTargetAdsManager();
-  const { data: pageAccess = [] } = usePageAccess();
+  const { seesAll: pageSeesAll, isReady, scopeKey } = useDataScope('sucesso-cliente');
   const queryClient = useQueryClient();
 
   const effectiveUserId = targetUserId || user?.id;
   // page_grant 'sucesso-cliente' libera visão geral; targetUserId força filtro.
-  const seesAll =
-    !targetUserId && (isAdminUser || isCEO || pageAccess.includes('sucesso-cliente'));
+  const seesAll = !targetUserId && pageSeesAll;
 
   const query = useQuery({
-    queryKey: ['onboarding-tasks', effectiveUserId],
+    queryKey: ['onboarding-tasks', effectiveUserId, scopeKey],
     queryFn: async (): Promise<OnboardingTask[]> => {
       let queryBuilder = supabase
         .from('onboarding_tasks')
@@ -58,7 +57,7 @@ export function useOnboardingTasks() {
       if (error) throw error;
       return (data || []) as OnboardingTask[];
     },
-    enabled: !!effectiveUserId,
+    enabled: isReady && !!effectiveUserId,
   });
 
   // Real-time subscription
