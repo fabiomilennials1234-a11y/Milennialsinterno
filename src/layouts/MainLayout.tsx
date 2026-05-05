@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import AppSidebar from '@/components/layout/AppSidebar';
 import AppHeader from '@/components/layout/AppHeader';
-import ChurnNotificationModal from '@/components/ChurnNotificationModal';
+// ChurnNotificationModal removed — churn alerts now appear in Justificativas page
 import { useDesignCompletionToasts } from '@/hooks/useDesignCompletionNotifications';
 import { useVideoCompletionToasts } from '@/hooks/useVideoCompletionNotifications';
 import { useDevCompletionToasts } from '@/hooks/useDevsCompletionNotifications';
@@ -49,8 +49,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
         </main>
       </div>
 
-      {/* Churn Notification Modal - appears globally */}
-      <ChurnNotificationModal />
+      {/* Churn alerts moved to /justificativas page */}
     </div>
   );
 }

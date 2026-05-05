@@ -2,9 +2,21 @@ import { NavLink } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useJustificativasCount } from '@/hooks/useJustificativas';
+import { useChurnNotifications } from '@/hooks/useChurnNotifications';
+import { useAuth } from '@/contexts/AuthContext';
+
+const CHURN_BADGE_ROLES = ['ceo', 'sucesso_cliente'];
 
 export default function SidebarBadge() {
-  const { data: count = 0 } = useJustificativasCount();
+  const { user } = useAuth();
+  const { data: justifCount = 0 } = useJustificativasCount();
+
+  // Churn count only for CEO + sucesso_cliente
+  const showChurn = !!user?.role && CHURN_BADGE_ROLES.includes(user.role);
+  const { data: churnNotifs = [] } = useChurnNotifications();
+  const churnCount = showChurn ? churnNotifs.length : 0;
+
+  const count = justifCount + churnCount;
 
   if (!count || count <= 0) return null;
 

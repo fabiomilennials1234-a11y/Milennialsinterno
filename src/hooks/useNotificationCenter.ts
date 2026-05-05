@@ -60,8 +60,8 @@ const NOTIFICATION_META: Record<string, { icon: LucideIcon; color: string }> = {
   system: { icon: Bell, color: '#F97316' },
 };
 
-// Roles that receive churn notifications
-const CHURN_NOTIFICATION_ROLES = ['ceo', 'gestor_ads', 'gestor_projetos', 'sucesso_cliente', 'financeiro', 'consultor_comercial'];
+// Roles that receive churn notifications (restricted to CEO + Sucesso do Cliente)
+const CHURN_NOTIFICATION_ROLES = ['ceo', 'sucesso_cliente'];
 
 export function useNotificationCenter() {
   const { user } = useAuth();

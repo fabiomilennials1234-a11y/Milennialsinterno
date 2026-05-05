@@ -11,8 +11,8 @@ export interface ChurnNotification {
   notification_date: string;
 }
 
-// Roles that should receive churn notifications
-const CHURN_NOTIFICATION_ROLES = ['ceo', 'gestor_ads', 'gestor_projetos', 'sucesso_cliente', 'financeiro', 'consultor_comercial'];
+// Roles that should receive churn notifications (restricted to CEO + Sucesso do Cliente)
+const CHURN_NOTIFICATION_ROLES = ['ceo', 'sucesso_cliente'];
 
 // Roles that should create churn analysis tasks
 const CHURN_TASK_ROLES = ['gestor_ads', 'gestor_projetos', 'sucesso_cliente'];
