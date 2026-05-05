@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { toError } from '@/lib/supabaseErrors';
 
 type RpcError = { message: string };
 
@@ -22,7 +23,7 @@ export async function upsertKanbanBriefing<T>(
     _payload: payload,
   });
 
-  if (error) throw error;
+  if (error) throw toError(error);
   if (!data) throw new Error('RPC upsert_kanban_briefing não retornou briefing');
   return data;
 }

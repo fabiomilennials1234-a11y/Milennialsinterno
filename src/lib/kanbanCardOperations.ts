@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { KanbanCard } from '@/hooks/useKanban';
+import { toError } from '@/lib/supabaseErrors';
 
 type RpcError = { message: string };
 type RpcResponse<T> = Promise<{ data: T | null; error: RpcError | null }>;
@@ -41,7 +42,7 @@ export async function createKanbanCard(input: CreateKanbanCardInput): Promise<Ka
     _creatives_quantity: input.creativesQuantity ?? null,
   });
 
-  if (error) throw error;
+  if (error) throw toError(error);
   if (!data) throw new Error('RPC kanban_create_card não retornou card');
   return data;
 }
@@ -59,7 +60,7 @@ export async function moveKanbanCard(input: {
     _destination_status: input.destinationStatus ?? null,
   });
 
-  if (error) throw error;
+  if (error) throw toError(error);
   if (!data) throw new Error('RPC kanban_move_card não retornou card');
   return data;
 }
@@ -69,7 +70,7 @@ export async function archiveKanbanCard(cardId: string): Promise<KanbanCard> {
     _card_id: cardId,
   });
 
-  if (error) throw error;
+  if (error) throw toError(error);
   if (!data) throw new Error('RPC kanban_archive_card não retornou card');
   return data;
 }
@@ -79,6 +80,6 @@ export async function deleteKanbanCard(cardId: string): Promise<string> {
     _card_id: cardId,
   });
 
-  if (error) throw error;
+  if (error) throw toError(error);
   return data ?? cardId;
 }

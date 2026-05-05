@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { toError } from '@/lib/supabaseErrors';
 
 type RpcError = { message: string };
 
@@ -42,6 +43,6 @@ export async function fetchKanbanActionPermissions(boardId: string): Promise<Kan
     { _board_id: boardId },
   );
 
-  if (error) throw error;
+  if (error) throw toError(error);
   return normalizeKanbanActionPermissions(data);
 }

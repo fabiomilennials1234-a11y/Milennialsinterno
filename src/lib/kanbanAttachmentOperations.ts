@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { CardAttachment } from '@/hooks/useCardAttachments';
+import { toError } from '@/lib/supabaseErrors';
 
 type RpcError = { message: string };
 
@@ -24,7 +25,7 @@ export async function createKanbanCardAttachment(input: {
     _file_size: input.fileSize ?? null,
   });
 
-  if (error) throw error;
+  if (error) throw toError(error);
   if (!data) throw new Error('RPC create_kanban_card_attachment não retornou anexo');
   return data;
 }
@@ -34,7 +35,7 @@ export async function deleteKanbanCardAttachment(attachmentId: string): Promise<
     _attachment_id: attachmentId,
   });
 
-  if (error) throw error;
+  if (error) throw toError(error);
   if (!data) throw new Error('RPC delete_kanban_card_attachment não retornou anexo');
   return data;
 }

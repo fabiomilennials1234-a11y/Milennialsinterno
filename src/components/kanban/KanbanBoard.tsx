@@ -171,8 +171,13 @@ function StandardKanbanBoard({ boardSlug }: KanbanBoardProps) {
           boardId: board.id,
         });
       }
-    } catch {
-      toast.error('Erro ao mover card');
+    } catch (err) {
+      const msg = err instanceof Error
+        ? err.message
+        : (typeof err === 'object' && err !== null && 'message' in err)
+          ? String((err as { message: unknown }).message)
+          : String(err);
+      toast.error('Erro ao mover card', { description: msg });
     }
   }, [canMove, board, moveCard, isSpecialBoard]);
 
@@ -208,8 +213,13 @@ function StandardKanbanBoard({ boardSlug }: KanbanBoardProps) {
       setIsCreateModalOpen(false);
       setSelectedColumnId(null);
       toast.success(isSpecialBoard ? 'Demanda criada!' : 'Tarefa criada!');
-    } catch {
-      toast.error(isSpecialBoard ? 'Erro ao criar demanda' : 'Erro ao criar tarefa');
+    } catch (err) {
+      const msg = err instanceof Error
+        ? err.message
+        : (typeof err === 'object' && err !== null && 'message' in err)
+          ? String((err as { message: unknown }).message)
+          : String(err);
+      toast.error(isSpecialBoard ? 'Erro ao criar demanda' : 'Erro ao criar tarefa', { description: msg });
     }
   };
 
