@@ -44,6 +44,7 @@ import {
 import AdsCardDetailModal from './AdsCardDetailModal';
 import AdsCardDescriptionPreview from './AdsCardDescriptionPreview';
 import JustificationModal from '@/components/shared/JustificationModal';
+import { Tag } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Props {
@@ -732,7 +733,21 @@ export default function AdsTarefasSection({ type, compact }: Props) {
                                   )}
                                   <p className="text-sm font-medium text-foreground">{task.title}</p>
                                   <AdsCardDescriptionPreview text={task.description} />
-                                  
+
+                                  {task.tags && task.tags.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mt-2">
+                                      {task.tags.map((tag, i) => (
+                                        <span
+                                          key={i}
+                                          className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-primary/8 text-primary border border-primary/15"
+                                        >
+                                          <Tag size={9} className="shrink-0 opacity-60" />
+                                          {tag}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+
                                   {task.due_date && (
                                     <div className={cn(
                                       "flex items-center gap-1.5 mt-3 text-xs",
