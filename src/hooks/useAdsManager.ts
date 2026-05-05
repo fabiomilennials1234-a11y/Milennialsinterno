@@ -520,8 +520,9 @@ export function useCreateTask() {
       queryClient.invalidateQueries({ queryKey: ['ads-tasks', variables.task_type] });
       toast.success('Tarefa criada!');
     },
-    onError: () => {
-      toast.error('Erro ao criar tarefa');
+    onError: (error: Error) => {
+      console.error('[useCreateTask] Error:', error);
+      toast.error('Erro ao criar tarefa', { description: error.message });
     },
   });
 }
