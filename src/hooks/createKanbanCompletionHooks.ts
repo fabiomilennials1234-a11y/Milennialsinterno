@@ -81,7 +81,7 @@ export function createKanbanCompletionHooks(config: KanbanCompletionConfig) {
         return (data || []) as CompletionNotification[];
       },
       enabled: !!user?.id,
-      refetchInterval: 10_000,
+      refetchInterval: 120_000,
     });
   }
 

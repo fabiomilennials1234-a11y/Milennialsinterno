@@ -86,7 +86,6 @@ export function useNotificationCenter() {
       return data || [];
     },
     enabled: !!user?.id,
-    refetchInterval: 10000,
   });
 
   const { data: videoNotifs = [] } = useQuery({
@@ -103,7 +102,6 @@ export function useNotificationCenter() {
       return data || [];
     },
     enabled: !!user?.id,
-    refetchInterval: 10000,
   });
 
   const { data: devsNotifs = [] } = useQuery({
@@ -120,7 +118,6 @@ export function useNotificationCenter() {
       return data || [];
     },
     enabled: !!user?.id,
-    refetchInterval: 10000,
   });
 
   const { data: produtoraNotifs = [] } = useQuery({
@@ -195,7 +192,7 @@ export function useNotificationCenter() {
       return (notifications || []).filter((n: any) => !dismissedIds.has(n.id));
     },
     enabled: !!user?.id && CHURN_NOTIFICATION_ROLES.includes(user.role || ''),
-    refetchInterval: 30000,
+    refetchInterval: 300_000,
   });
 
   // --- Unify all notifications ---

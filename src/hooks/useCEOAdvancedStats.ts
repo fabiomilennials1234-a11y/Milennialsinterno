@@ -330,7 +330,7 @@ export function useCEOAdvancedStats() {
       if (error) throw error;
       return normalizeStats(data);
     },
-    refetchInterval: 60000,
-    staleTime: 30000,
+    refetchInterval: 300_000,
+    staleTime: 60_000,
   });
 }

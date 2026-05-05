@@ -114,8 +114,8 @@ export function useCheckOverdueAdsTasks() {
     },
     enabled: !!user?.id && DELAY_NOTIFICATION_ROLES.includes(user.role || ''),
     refetchOnWindowFocus: true,
-    refetchInterval: 60000, // Verificar a cada minuto
-    staleTime: 30000, // Considerar stale após 30 segundos
+    refetchInterval: 300_000,
+    staleTime: 60_000,
   });
 }
 
@@ -172,7 +172,7 @@ export function useAdsTaskDelayNotifications() {
     },
     enabled: !!user?.id && DELAY_NOTIFICATION_ROLES.includes(user.role || ''),
     refetchOnWindowFocus: true,
-    refetchInterval: 30000,
+    refetchInterval: 300_000,
   });
 }
 

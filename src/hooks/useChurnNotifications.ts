@@ -48,7 +48,7 @@ export function useChurnNotifications() {
     },
     enabled: !!user?.id && CHURN_NOTIFICATION_ROLES.includes(user.role || ''),
     refetchOnWindowFocus: true,
-    refetchInterval: 30000, // Check every 30 seconds
+    refetchInterval: 300_000,
   });
 }
 

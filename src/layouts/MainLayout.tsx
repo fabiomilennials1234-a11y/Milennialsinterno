@@ -11,7 +11,6 @@ import { useAdsNewClientNotifications } from '@/hooks/useAdsNewClientNotificatio
 import { useAssignedClientsRealtime } from '@/hooks/useAssignedClientsRealtime';
 import { useSidebarRealtime } from '@/hooks/useSidebarRealtime';
 import { useTrainingReminderToasts } from '@/hooks/useTrainingReminderToasts';
-import { useGlobalRealtime } from '@/hooks/useGlobalRealtime';
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -36,9 +35,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
   useSidebarRealtime();
   // Show training reminder toasts (push visual na tela)
   useTrainingReminderToasts();
-  // Realtime universal: qualquer mudança em qualquer tabela invalida queries
-  // ativas. Toda página vira realtime sem precisar montar listener por hook.
-  useGlobalRealtime();
   return (
     <div className="h-screen max-h-screen flex bg-background overflow-hidden">
       <AppSidebar />

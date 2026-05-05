@@ -23,11 +23,10 @@ export function useOverdueInvoices() {
         .eq('invoice_status', 'atrasada');
 
       if (error) throw error;
-      
+
       return (data || []).map(item => item.client_id);
     },
-    staleTime: 10000, // 10 seconds
-    refetchInterval: 30000, // Refetch every 30 seconds
+    staleTime: 10_000,
   });
 
   // Subscribe to realtime changes

@@ -48,7 +48,6 @@ export function useSystemNotifications() {
       return (data || []) as SystemNotification[];
     },
     enabled: !!user?.id,
-    refetchInterval: 30000,
   });
 
   // Real-time subscription
@@ -77,38 +76,4 @@ export function useSystemNotifications() {
   }, [user?.id, queryClient]);
 
   return query;
-}
-
-export function useMarkSystemNotificationRead() {
-  const queryClient = useQueryClient();
-
-  return async (notificationId: string) => {
-    const { error } = await supabase
-      .from('system_notifications')
-      .update({ read: true, read_at: new Date().toISOString() })
-      .eq('id', notificationId);
-
-    if (!error) {
-      queryClient.invalidateQueries({ queryKey: ['system-notifications'] });
-    }
-  };
-}
-
-export function useMarkAllSystemNotificationsRead() {
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
-
-  return async () => {
-    if (!user?.id) return;
-
-    const { error } = await supabase
-      .from('system_notifications')
-      .update({ read: true, read_at: new Date().toISOString() })
-      .eq('recipient_id', user.id)
-      .or('read.is.null,read.eq.false');
-
-    if (!error) {
-      queryClient.invalidateQueries({ queryKey: ['system-notifications'] });
-    }
-  };
 }

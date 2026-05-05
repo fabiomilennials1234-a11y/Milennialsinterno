@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, Ship, Anchor, Flag, Compass, Crown, X } from 'lucide-react';
 
-// Import marco images
-import marco1Img from '@/assets/marcos/marco-1.png';
-import marco2Img from '@/assets/marcos/marco-2.png';
-import marco3Img from '@/assets/marcos/marco-3.png';
-import marco4Img from '@/assets/marcos/marco-4.png';
-import marco5Img from '@/assets/marcos/marco-5.png';
+// Import marco images (WebP for ~90% size reduction)
+import marco1Img from '@/assets/marcos/marco-1.webp';
+import marco2Img from '@/assets/marcos/marco-2.webp';
+import marco3Img from '@/assets/marcos/marco-3.webp';
+import marco4Img from '@/assets/marcos/marco-4.webp';
+import marco5Img from '@/assets/marcos/marco-5.webp';
 
 // Millennials B2B Colors
 const COLORS = {

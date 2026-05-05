@@ -132,7 +132,7 @@ export function createKanbanDelayHooks(config: KanbanDelayConfig) {
         return overdueCards.filter(card => !justifiedCardIds.has(card.id));
       },
       enabled: !!user?.id,
-      refetchInterval: 30_000,
+      refetchInterval: 300_000,
       initialData: [],
     });
   }
@@ -161,7 +161,7 @@ export function createKanbanDelayHooks(config: KanbanDelayConfig) {
         return ((data || []) as DelayNotificationRow[]).filter(n => !dismissedIds.has(n.id));
       },
       enabled: !!user?.id,
-      refetchInterval: 30_000,
+      refetchInterval: 300_000,
     });
   }
 

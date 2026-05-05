@@ -223,8 +223,8 @@ export function useCheckOverdueTasks() {
     },
     enabled: !!user?.id,
     refetchOnWindowFocus: true,
-    refetchInterval: 60000,
-    staleTime: 30000,
+    refetchInterval: 300_000,
+    staleTime: 60_000,
   });
 }
 
@@ -405,7 +405,7 @@ export function useTaskDelayNotifications() {
     },
     enabled: !!user?.id,
     refetchOnWindowFocus: true,
-    refetchInterval: 30000,
+    refetchInterval: 300_000,
   });
 }
 

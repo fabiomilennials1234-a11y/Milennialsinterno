@@ -168,7 +168,7 @@ export function useOutboundAssignedClients() {
     },
     enabled: !!effectiveUserId,
     staleTime: 30_000,
-    refetchInterval: 10_000,
+    refetchInterval: 120_000,
   });
 }
 

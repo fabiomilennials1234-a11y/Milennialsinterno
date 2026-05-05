@@ -53,8 +53,8 @@ export interface TeamItem {
 
 const COMMON_QUERY_OPTS = {
   refetchOnWindowFocus: true,
-  refetchInterval: 30_000,
-  staleTime: 15_000,
+  refetchInterval: 300_000,
+  staleTime: 60_000,
 };
 
 function invalidateAll(qc: ReturnType<typeof useQueryClient>) {
