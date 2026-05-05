@@ -146,100 +146,9 @@ const ADVANCING_TASK_DEFINITIONS = {
   },
 };
 
-// Tasks to create after "Realizar call 1" is completed (only 1 task)
-const POST_CALL_1_TASKS = [
-  {
-    taskType: 'enviar_estrategia',
-    titleTemplate: 'Enviar estratégia PRO + do(a) {clientName}',
-    description: 'Desenvolver e enviar a estratégia de marketing personalizada para o cliente.',
-    dueDays: 3,
-    milestone: 2,
-  },
-];
-
-// Tasks to create after "Enviar estratégia" is completed (4 parallel tasks)
-// IMPORTANT: Only brifar_criativos advances the client, the others are auxiliary
-const POST_ESTRATEGIA_TASKS = [
-  {
-    taskType: 'anexar_link_consultoria',
-    titleTemplate: 'Anexar link da consultoria do(a) {clientName}',
-    description: 'Anexar no grupo o link da consultoria comercial.',
-    dueDays: 2,
-    milestone: 3,
-  },
-  {
-    taskType: 'certificar_consultoria',
-    titleTemplate: 'Certificar acompanhamento comercial do(a) {clientName}',
-    description: 'Certificar que a consultoria comercial já foi marcada, se não, enviar link da consultoria.',
-    dueDays: 2,
-    milestone: 3,
-  },
-  {
-    taskType: 'enviar_link_drive',
-    titleTemplate: 'Enviar e anexar no grupo o link do drive para {clientName}',
-    description: 'Enviar e anexar no grupo o link do drive para subir fotos e identidade visual.',
-    dueDays: 2,
-    milestone: 3,
-  },
-  {
-    taskType: 'brifar_criativos',
-    titleTemplate: 'Brifar criativos do(a) {clientName}',
-    description: 'Criar o briefing dos criativos para o cliente.',
-    dueDays: 3,
-    milestone: 3,
-  },
-];
-
-// Tasks to create after "Brifar criativos" is completed (2 tasks)
-const POST_BRIFAR_CRIATIVOS_TASKS = [
-  {
-    taskType: 'brifar_otimizacoes',
-    titleTemplate: 'Brifar otimizações pendentes do(a) {clientName}',
-    description: 'Elencar e brifar as otimizações pendentes para o cliente.',
-    dueDays: 3,
-    milestone: 4,
-  },
-  {
-    taskType: 'avisar_prazo_criativos',
-    titleTemplate: 'Avisar o(a) {clientName} o prazo de entrega dos criativos',
-    description: 'Informar ao cliente a data prevista para entrega dos criativos.',
-    dueDays: 1,
-    milestone: 4,
-  },
-];
-
-// Tasks to create after "Brifar otimizações" is completed (1 task)
-const POST_BRIFAR_OTIMIZACOES_TASKS = [
-  {
-    taskType: 'configurar_conta_anuncios',
-    titleTemplate: 'Configurar conta de anúncios do(a) {clientName}',
-    description: 'Configurar a conta de anúncios para o cliente.',
-    dueDays: 2,
-    milestone: 5,
-  },
-];
-
-// Tasks to create after "Configurar conta de anúncios" is completed (1 task)
-const POST_CONFIGURAR_CONTA_TASKS = [
-  {
-    taskType: 'certificar_consultoria_realizada',
-    titleTemplate: 'Confirmar se toda a produção está pronta {clientName}',
-    description: 'Verificar se a consultoria comercial do cliente já foi realizada.',
-    dueDays: 2,
-    milestone: 5,
-  },
-];
-
-// Tasks to create after "Certificar consultoria" is completed (1 task)
-const POST_CERTIFICAR_CONSULTORIA_TASKS = [
-  {
-    taskType: 'publicar_campanha',
-    titleTemplate: 'Publicar Campanha do(a) {clientName}',
-    description: 'Publicar a campanha de anúncios do cliente.',
-    dueDays: 3,
-    milestone: 5,
-  },
-];
+// POST_*_TASKS arrays removed — DB triggers now handle all task creation
+// via advance_onboarding_on_task_completion + create_ads_task_for_onboarding_task.
+// See migration 20260122175056 and 20260218110000 for the trigger definitions.
 
 // Create the initial onboarding task for a new client
 export function useCreateInitialOnboardingTask() {
@@ -322,7 +231,21 @@ export function useCreateInitialOnboardingTask() {
   });
 }
 
-// Complete onboarding task and trigger automation
+// ---------------------------------------------------------------------------
+// Complete onboarding task — DB triggers handle ALL automation
+//
+// Architecture (post-race-condition fix):
+//   Frontend ONLY marks the task as done + collects justification (UI concern).
+//   DB triggers do everything else atomically:
+//     - advance_onboarding_on_task_completion  → creates next onboarding_task,
+//       updates client_onboarding, creates auxiliary tasks, handles publicar_campanha
+//     - advance_client_onboarding_stage        → moves kanban cards, updates milestone
+//     - create_ads_task_for_onboarding_task     → creates visible ads_task for new onboarding_task
+//     - handle_publicar_campanha_complete       → creates client_daily_tracking record
+//
+// This eliminates the race condition where frontend and triggers competed
+// to create next tasks, sometimes resulting in missing ads_tasks.
+// ---------------------------------------------------------------------------
 export function useCompleteOnboardingTaskWithAutomation() {
   const { user } = useAuth();
   const { targetUserId } = useTargetAdsManager();
@@ -340,21 +263,69 @@ export function useCompleteOnboardingTaskWithAutomation() {
   }
 
   return useMutation({
-    mutationFn: async ({ 
-      taskId, 
-      taskType, 
-      clientId, 
-      clientName 
-    }: { 
-      taskId: string; 
-      taskType: string; 
-      clientId: string; 
+    mutationFn: async ({
+      taskId,
+      taskType,
+      clientId,
+      clientName
+    }: {
+      taskId: string;
+      taskType: string;
+      clientId: string;
       clientName: string;
     }) => {
-      // 1. Mark current task as done
+      // Check if this is an ADVANCING task (one that moves the client forward)
+      const taskDef = ADVANCING_TASK_DEFINITIONS[taskType as keyof typeof ADVANCING_TASK_DEFINITIONS];
+      const isAdvancing = !!taskDef;
+
+      // J8: Require justification BEFORE marking done (UI blocking modal)
+      // Only for advancing tasks completed by the primary manager
+      if (isAdvancing) {
+        const { data: clientForCheck } = await supabase
+          .from('clients')
+          .select('assigned_ads_manager')
+          .eq('id', clientId)
+          .single();
+
+        const isSecondaryCompletion = clientForCheck?.assigned_ads_manager !== effectiveUserId;
+
+        if (!isSecondaryCompletion) {
+          await requireJustification({
+            title: 'Justificativa: Milestone Concluído',
+            subtitle: `Marco ${taskDef.milestone} — ${clientName}`,
+            message: `Registre o que foi entregue neste milestone (ex: "site ao ar", "criativos aprovados", "conta configurada").`,
+            taskId: taskId,
+            taskTable: 'onboarding_milestone_done',
+            taskTitle: `Milestone ${taskDef.milestone} concluído: ${clientName} (${taskType})`,
+          });
+
+          // J10: Detect milestone skip (if jumping more than 1 milestone)
+          const { data: currentOnboarding } = await supabase
+            .from('client_onboarding')
+            .select('current_milestone')
+            .eq('client_id', clientId)
+            .maybeSingle();
+
+          if (currentOnboarding && taskDef.nextMilestone > (currentOnboarding.current_milestone || 0) + 1) {
+            await requireJustification({
+              title: 'Justificativa: Pular Milestone',
+              subtitle: `Pulando do Marco ${currentOnboarding.current_milestone} para o Marco ${taskDef.nextMilestone}`,
+              message: `Você está avançando o cliente "${clientName}" mais de um milestone de uma vez. Explique o motivo.`,
+              taskId: `skip_${taskId}`,
+              taskTable: 'onboarding_milestone_skip',
+              taskTitle: `Milestone skip: ${clientName} (Marco ${currentOnboarding.current_milestone} → ${taskDef.nextMilestone})`,
+            });
+          }
+        }
+      }
+
+      // Mark task as done — DB triggers handle ALL automation from here:
+      //   advance_onboarding_on_task_completion → next task + client_onboarding + client status
+      //   advance_client_onboarding_stage → kanban cards
+      //   create_ads_task_for_onboarding_task → ads_task for the new onboarding_task
       const { error: updateError } = await supabase
         .from('onboarding_tasks')
-        .update({ 
+        .update({
           status: 'done',
           completed_at: new Date().toISOString(),
         })
@@ -362,370 +333,39 @@ export function useCompleteOnboardingTaskWithAutomation() {
 
       if (updateError) throw updateError;
 
-      // 2. Check if this is an ADVANCING task (one that moves the client forward)
-      const taskDef = ADVANCING_TASK_DEFINITIONS[taskType as keyof typeof ADVANCING_TASK_DEFINITIONS];
-
-      // If not an advancing task, just complete it without moving the client
-      if (!taskDef) {
+      if (!isAdvancing) {
         return { taskCompleted: true, clientMoved: false, tasksCreated: 0, isAuxiliaryTask: true };
       }
 
-      // Check if this is a secondary manager completing their independent task
-      // Secondary managers only create next tasks — no client status/onboarding changes
-      const { data: clientForCheck } = await supabase
-        .from('clients')
-        .select('assigned_ads_manager')
-        .eq('id', clientId)
-        .single();
-
-      const isSecondaryCompletion = clientForCheck?.assigned_ads_manager !== effectiveUserId;
-
-      if (isSecondaryCompletion) {
-        // Only create next tasks, skip status/milestone/justification updates
-        let tasksCreated = 0;
-        if (taskDef.createMultipleTasks) {
-          let tasksToCreate: typeof POST_CALL_1_TASKS = [];
-          if (taskType === 'realizar_call_1') tasksToCreate = POST_CALL_1_TASKS;
-          else if (taskType === 'enviar_estrategia') tasksToCreate = POST_ESTRATEGIA_TASKS;
-          else if (taskType === 'brifar_criativos') tasksToCreate = POST_BRIFAR_CRIATIVOS_TASKS;
-          else if (taskType === 'brifar_otimizacoes') tasksToCreate = POST_BRIFAR_OTIMIZACOES_TASKS;
-          else if (taskType === 'configurar_conta_anuncios') tasksToCreate = POST_CONFIGURAR_CONTA_TASKS;
-          else if (taskType === 'certificar_consultoria_realizada') tasksToCreate = POST_CERTIFICAR_CONSULTORIA_TASKS;
-
-          for (const taskTemplate of tasksToCreate) {
-            const { data: existing } = await supabase
-              .from('onboarding_tasks')
-              .select('id')
-              .eq('client_id', clientId)
-              .eq('task_type', taskTemplate.taskType)
-              .eq('assigned_to', effectiveUserId)
-              .maybeSingle();
-
-            if (!existing) {
-              const dueDate = addDays(new Date(), taskTemplate.dueDays);
-              await supabase.from('onboarding_tasks').insert({
-                client_id: clientId,
-                assigned_to: effectiveUserId,
-                task_type: taskTemplate.taskType,
-                title: taskTemplate.titleTemplate.replace('{clientName}', clientName),
-                description: taskTemplate.description,
-                status: 'pending',
-                due_date: dueDate.toISOString(),
-                milestone: taskTemplate.milestone,
-              });
-              tasksCreated++;
-            }
-          }
-        } else if (taskDef.nextTask) {
-          const nextTaskDef = ADVANCING_TASK_DEFINITIONS[taskDef.nextTask as keyof typeof ADVANCING_TASK_DEFINITIONS];
-          if (nextTaskDef) {
-            const { data: existing } = await supabase
-              .from('onboarding_tasks')
-              .select('id')
-              .eq('client_id', clientId)
-              .eq('task_type', taskDef.nextTask)
-              .eq('assigned_to', effectiveUserId)
-              .maybeSingle();
-
-            if (!existing) {
-              const dueDate = addDays(new Date(), nextTaskDef.dueDays);
-              await supabase.from('onboarding_tasks').insert({
-                client_id: clientId,
-                assigned_to: effectiveUserId,
-                task_type: taskDef.nextTask,
-                title: nextTaskDef.title,
-                description: `${nextTaskDef.description} Cliente: ${clientName}.`,
-                status: 'pending',
-                due_date: dueDate.toISOString(),
-                milestone: nextTaskDef.milestone,
-              });
-              tasksCreated++;
-            }
-          }
-        }
-        return { taskCompleted: true, clientMoved: false, tasksCreated, nextStep: taskDef.nextStep, nextMilestone: taskDef.nextMilestone };
-      }
-
-      // J8: Require justification when completing an advancing milestone task
-      await requireJustification({
-        title: 'Justificativa: Milestone Concluído',
-        subtitle: `Marco ${taskDef.milestone} — ${clientName}`,
-        message: `Registre o que foi entregue neste milestone (ex: "site ao ar", "criativos aprovados", "conta configurada").`,
-        taskId: taskId,
-        taskTable: 'onboarding_milestone_done',
-        taskTitle: `Milestone ${taskDef.milestone} concluído: ${clientName} (${taskType})`,
-      });
-
-      // J10: Detect milestone skip (if jumping more than 1 milestone)
-      const { data: currentOnboarding } = await supabase
-        .from('client_onboarding')
-        .select('current_milestone')
-        .eq('client_id', clientId)
-        .maybeSingle();
-
-      if (currentOnboarding && taskDef.nextMilestone > (currentOnboarding.current_milestone || 0) + 1) {
-        await requireJustification({
-          title: 'Justificativa: Pular Milestone',
-          subtitle: `Pulando do Marco ${currentOnboarding.current_milestone} para o Marco ${taskDef.nextMilestone}`,
-          message: `Você está avançando o cliente "${clientName}" mais de um milestone de uma vez. Explique o motivo.`,
-          taskId: `skip_${taskId}`,
-          taskTable: 'onboarding_milestone_skip',
-          taskTitle: `Milestone skip: ${clientName} (Marco ${currentOnboarding.current_milestone} → ${taskDef.nextMilestone})`,
-        });
-      }
-
-      // 3. Move client to next step and milestone in onboarding
-      const { data: existingOnboarding } = await supabase
-        .from('client_onboarding')
-        .select('*')
-        .eq('client_id', clientId)
-        .maybeSingle();
-
-      const milestoneStartedField = `milestone_${taskDef.nextMilestone}_started_at`;
-
-      if (existingOnboarding) {
-        const updateData: any = {
-          current_step: taskDef.nextStep,
-          current_milestone: taskDef.nextMilestone,
-          updated_at: new Date().toISOString(),
-        };
-        
-        // Set milestone start date if moving to a new milestone
-        if (taskDef.nextMilestone !== existingOnboarding.current_milestone) {
-          updateData[milestoneStartedField] = new Date().toISOString();
-        }
-
-        await supabase
-          .from('client_onboarding')
-          .update(updateData)
-          .eq('client_id', clientId);
-      } else {
-        // Create onboarding record if it doesn't exist
-        await supabase
-          .from('client_onboarding')
-          .insert({
-            client_id: clientId,
-            current_milestone: taskDef.nextMilestone,
-            current_step: taskDef.nextStep,
-            milestone_1_started_at: new Date().toISOString(),
-          });
-      }
-
-      // 4. Handle client status updates
-      const { data: client } = await supabase
-        .from('clients')
-        .select('status, assigned_ads_manager')
-        .eq('id', clientId)
-        .single();
-
-      // Check if this task completes onboarding
       const isOnboardingComplete = (taskDef as any).isOnboardingComplete === true;
 
-      if (isOnboardingComplete) {
-        // Onboarding complete - move to acompanhamento
-        const currentDayOfWeek = getDay(new Date());
-        const currentDayName = DAY_OF_WEEK_MAP[currentDayOfWeek];
-
-        // Update client status to active
-        await supabase
-          .from('clients')
-          .update({ 
-            status: 'active',
-            campaign_published_at: new Date().toISOString(),
-          })
-          .eq('id', clientId);
-
-        // Mark onboarding as completed
-        await supabase
-          .from('client_onboarding')
-          .update({
-            completed_at: new Date().toISOString(),
-            current_step: 'acompanhamento',
-            updated_at: new Date().toISOString(),
-          })
-          .eq('client_id', clientId);
-
-        // Create daily tracking record with current day of week
-        // Use client's assigned_ads_manager or effectiveUserId
-        const trackingManagerId = client?.assigned_ads_manager || effectiveUserId;
-        await supabase
-          .from('client_daily_tracking')
-          .upsert({
-            client_id: clientId,
-            ads_manager_id: trackingManagerId,
-            current_day: currentDayName,
-            last_moved_at: new Date().toISOString(),
-            is_delayed: false,
-          });
-
-        // N9: Notify CEO + Comercial that onboarding is 100% complete
-        const { data: notifRecipients } = await supabase
-          .from('user_roles')
-          .select('user_id, role')
-          .in('role', ['ceo', 'consultor_comercial']);
-
-        for (const recipient of notifRecipients || []) {
-          await supabase.from('system_notifications').insert({
-            recipient_id: recipient.user_id,
-            recipient_role: recipient.role,
-            notification_type: 'onboarding_completed',
-            title: '🎉 Onboarding Concluído!',
-            message: `O onboarding do cliente "${clientName}" foi 100% concluído. O cliente está em Acompanhamento.`,
-            client_id: clientId,
-            priority: 'medium',
-            metadata: { completed_by: effectiveUserId, client_name: clientName },
-          } as any);
-        }
-
-        return {
-          taskCompleted: true,
-          clientMoved: true,
-          tasksCreated: 0,
-          nextStep: 'acompanhamento',
-          nextMilestone: 6,
-          onboardingCompleted: true,
-          dayOfWeek: currentDayName,
-        };
-      } else if (client?.status === 'new_client') {
-        await supabase
-          .from('clients')
-          .update({ 
-            status: 'onboarding',
-            onboarding_started_at: new Date().toISOString(),
-          })
-          .eq('id', clientId);
-      }
-
-      // 5. Create tasks based on task definition
-      let tasksCreated = 0;
-      
-      // Determine which task list to use based on task type
-      if (taskDef.createMultipleTasks) {
-        let tasksToCreate: typeof POST_CALL_1_TASKS = [];
-        
-        if (taskType === 'realizar_call_1') {
-          tasksToCreate = POST_CALL_1_TASKS;
-        } else if (taskType === 'enviar_estrategia') {
-          tasksToCreate = POST_ESTRATEGIA_TASKS;
-        } else if (taskType === 'brifar_criativos') {
-          tasksToCreate = POST_BRIFAR_CRIATIVOS_TASKS;
-        } else if (taskType === 'brifar_otimizacoes') {
-          tasksToCreate = POST_BRIFAR_OTIMIZACOES_TASKS;
-        } else if (taskType === 'configurar_conta_anuncios') {
-          tasksToCreate = POST_CONFIGURAR_CONTA_TASKS;
-        } else if (taskType === 'certificar_consultoria_realizada') {
-          tasksToCreate = POST_CERTIFICAR_CONSULTORIA_TASKS;
-        }
-        
-        for (const taskTemplate of tasksToCreate) {
-          // Check if task already exists
-          const { data: existingTask } = await supabase
-            .from('onboarding_tasks')
-            .select('id')
-            .eq('client_id', clientId)
-            .eq('task_type', taskTemplate.taskType)
-            .maybeSingle();
-
-          if (!existingTask) {
-            const dueDate = addDays(new Date(), taskTemplate.dueDays);
-            const title = taskTemplate.titleTemplate.replace('{clientName}', clientName);
-            // Use client's assigned_ads_manager or effectiveUserId
-            const assignedTo = client?.assigned_ads_manager || effectiveUserId;
-
-            await supabase
-              .from('onboarding_tasks')
-              .insert({
-                client_id: clientId,
-                assigned_to: assignedTo,
-                task_type: taskTemplate.taskType,
-                title: title,
-                description: taskTemplate.description,
-                status: 'pending',
-                due_date: dueDate.toISOString(),
-                milestone: taskTemplate.milestone,
-              });
-
-            await duplicateTaskForSecondaryManager(clientId, {
-              task_type: taskTemplate.taskType,
-              title,
-              description: taskTemplate.description,
-              status: 'pending',
-              due_date: dueDate.toISOString(),
-              milestone: taskTemplate.milestone,
-            });
-
-            tasksCreated++;
-          }
-        }
-      } else if (taskDef.nextTask) {
-        // Single next task creation
-        const nextTaskDef = ADVANCING_TASK_DEFINITIONS[taskDef.nextTask as keyof typeof ADVANCING_TASK_DEFINITIONS];
-        
-        if (nextTaskDef) {
-          const { data: existingNextTask } = await supabase
-            .from('onboarding_tasks')
-            .select('id')
-            .eq('client_id', clientId)
-            .eq('task_type', taskDef.nextTask)
-            .maybeSingle();
-
-          if (!existingNextTask) {
-            const dueDate = addDays(new Date(), nextTaskDef.dueDays);
-            // Use client's assigned_ads_manager or effectiveUserId
-            const assignedTo = client?.assigned_ads_manager || effectiveUserId;
-
-            await supabase
-              .from('onboarding_tasks')
-              .insert({
-                client_id: clientId,
-                assigned_to: assignedTo,
-                task_type: taskDef.nextTask,
-                title: nextTaskDef.title,
-                description: `${nextTaskDef.description} Cliente: ${clientName}.`,
-                status: 'pending',
-                due_date: dueDate.toISOString(),
-                milestone: nextTaskDef.milestone,
-              });
-
-            await duplicateTaskForSecondaryManager(clientId, {
-              task_type: taskDef.nextTask,
-              title: nextTaskDef.title,
-              description: `${nextTaskDef.description} Cliente: ${clientName}.`,
-              status: 'pending',
-              due_date: dueDate.toISOString(),
-              milestone: nextTaskDef.milestone,
-            });
-
-            tasksCreated++;
-          }
-        }
-      }
-
-      return { 
-        taskCompleted: true, 
-        clientMoved: true, 
-        tasksCreated,
+      return {
+        taskCompleted: true,
+        clientMoved: true,
+        tasksCreated: 0, // DB triggers create tasks now
         nextStep: taskDef.nextStep,
         nextMilestone: taskDef.nextMilestone,
+        onboardingCompleted: isOnboardingComplete,
+        dayOfWeek: isOnboardingComplete ? DAY_OF_WEEK_MAP[getDay(new Date())] : undefined,
       };
     },
     // Optimistic update - immediately show task as done
     onMutate: async ({ taskId }) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['onboarding-tasks'] });
-      
+
       // Snapshot the previous value - use effectiveUserId for proper cache key
       const previousTasks = queryClient.getQueryData<OnboardingTaskData[]>(['onboarding-tasks', effectiveUserId]);
-      
+
       // Optimistically update to the new value
       if (previousTasks) {
-        queryClient.setQueryData<OnboardingTaskData[]>(['onboarding-tasks', effectiveUserId], 
-          previousTasks.map(task => 
+        queryClient.setQueryData<OnboardingTaskData[]>(['onboarding-tasks', effectiveUserId],
+          previousTasks.map(task =>
             task.id === taskId ? { ...task, status: 'done' } : task
           )
         );
       }
-      
+
       return { previousTasks };
     },
     onError: (error, variables, context) => {
@@ -737,33 +377,25 @@ export function useCompleteOnboardingTaskWithAutomation() {
       toast.error('Erro ao concluir tarefa');
     },
     onSuccess: (result) => {
-      // Fire confetti for completion
-      if (result.taskCompleted && !result.isAuxiliaryTask) {
-        // Confetti will be triggered
-      }
-      
       if (result.taskCompleted) {
         if ((result as any).isAuxiliaryTask) {
-          toast.success('✅ Tarefa concluída!');
+          toast.success('Tarefa concluída!');
         } else if ((result as any).onboardingCompleted) {
           const dayName = (result as any).dayOfWeek || 'hoje';
-          toast.success(`🎉 Onboarding concluído! Cliente movido para Acompanhamento - ${dayName.charAt(0).toUpperCase() + dayName.slice(1)}.`);
-        } else if (result.tasksCreated > 1) {
-          toast.success(`🎉 Tarefa concluída! Cliente movido para Marco ${result.nextMilestone} e ${result.tasksCreated} novas tarefas criadas.`);
-        } else if (result.tasksCreated === 1) {
-          toast.success(`🎉 Tarefa concluída! Cliente movido e nova tarefa criada.`);
+          toast.success(`Onboarding concluído! Cliente movido para Acompanhamento - ${dayName.charAt(0).toUpperCase() + dayName.slice(1)}.`);
         } else {
-          toast.success('🎉 Tarefa concluída! Cliente avançou no onboarding.');
+          toast.success(`Tarefa concluída! Cliente avançou para Marco ${result.nextMilestone}.`);
         }
       }
     },
     onSettled: () => {
-      // Sync with server after mutation settles
+      // Sync with server after mutation settles — DB triggers may have changed multiple tables
       queryClient.invalidateQueries({ queryKey: ['onboarding-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['client-onboarding'] });
       queryClient.invalidateQueries({ queryKey: ['assigned-clients'] });
       queryClient.invalidateQueries({ queryKey: ['cards'] });
       queryClient.invalidateQueries({ queryKey: ['client-tracking'] });
+      queryClient.invalidateQueries({ queryKey: ['ads-tasks'] });
     },
   });
 }
