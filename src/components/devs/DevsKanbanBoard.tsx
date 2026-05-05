@@ -25,7 +25,7 @@ export default function DevsKanbanBoard() {
   return (
     <SpecializedKanbanBoard
       config={{
-        boardSlugLike: '%dev%',
+        boardSlugLike: 'devs',
         boardQueryKeyPrefix: 'dev',
         cardType: 'dev',
         fallbackStatus: 'a_fazer',

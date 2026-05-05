@@ -18,7 +18,7 @@ export default function VideoKanbanBoard() {
   return (
     <SpecializedKanbanBoard
       config={{
-        boardSlugLike: '%video%',
+        boardSlugLike: 'editor-video',
         boardQueryKeyPrefix: 'video',
         cardType: 'video',
         fallbackStatus: 'a_fazer',

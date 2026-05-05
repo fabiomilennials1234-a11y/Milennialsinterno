@@ -70,7 +70,7 @@ function makeConfig(
   delayedData: unknown[] | undefined
 ): SpecializedBoardConfig {
   return {
-    boardSlugLike: '%design%',
+    boardSlugLike: 'design',
     boardQueryKeyPrefix: 'design-test',
     cardType: 'design',
     fallbackStatus: 'a_fazer',

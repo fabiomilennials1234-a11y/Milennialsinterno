@@ -33,7 +33,7 @@ export default function DesignKanbanBoard() {
   return (
     <SpecializedKanbanBoard
       config={{
-        boardSlugLike: '%design%',
+        boardSlugLike: 'design',
         boardQueryKeyPrefix: 'design',
         cardType: 'design',
         fallbackStatus: 'a_fazer',

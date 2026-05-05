@@ -76,7 +76,7 @@ export type CardCreatorsMap = Record<string, { user_id: string; name: string } |
 
 export interface SpecializedBoardConfig {
   // Identidade
-  boardSlugLike: string;                 // padrão `ilike` para achar o board (ex: '%dev%' ou slug direto)
+  boardSlugLike: string;                 // slug exato ('devs') ou padrão ilike ('%dev%') — prefira exato
   boardQueryKeyPrefix: string;           // ex: 'dev' — usado nas query keys
   cardType: string;                      // valor do kanban_cards.card_type
   fallbackStatus: string;                // status usado quando card não tem ou é inválido
@@ -229,12 +229,16 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
   const { data: board, isLoading: isBoardLoading } = useQuery({
     queryKey: [`${config.boardQueryKeyPrefix}-board`],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Exact slug (no '%') uses eq; wildcard pattern uses ilike.
+      // Prefer exact slugs to avoid ambiguous matches with squad-level boards.
+      const isExact = !config.boardSlugLike.includes('%');
+      let query = supabase
         .from('kanban_boards')
-        .select('*')
-        .ilike('slug', config.boardSlugLike)
-        .limit(1)
-        .maybeSingle();
+        .select('*');
+      query = isExact
+        ? query.eq('slug', config.boardSlugLike)
+        : query.ilike('slug', config.boardSlugLike);
+      const { data, error } = await query.limit(1).maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -571,9 +575,13 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
       setSelectedColumnId(null);
       setIsCreating(false);
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error('Error creating card:', error);
-      const msg = error instanceof Error ? error.message : String(error);
+      const msg = error instanceof Error
+        ? error.message
+        : (typeof error === 'object' && error !== null && 'message' in error)
+          ? String((error as { message: unknown }).message)
+          : String(error);
       toast.error('Erro ao criar demanda', { description: msg });
       setIsCreating(false);
     },

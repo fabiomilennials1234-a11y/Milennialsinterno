@@ -18,7 +18,7 @@ export default function ProdutoraKanbanBoard() {
   return (
     <SpecializedKanbanBoard
       config={{
-        boardSlugLike: '%produtora%',
+        boardSlugLike: 'produtora',
         boardQueryKeyPrefix: 'produtora',
         cardType: 'produtora',
         fallbackStatus: 'a_gravar',
