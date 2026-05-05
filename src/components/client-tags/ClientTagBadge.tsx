@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
 import { useCountdown } from '@/hooks/useCountdown';
+import { Clock, Hourglass, Tag } from 'lucide-react';
 
 export interface ClientTagBadgeProps {
   name: string;
@@ -7,31 +8,18 @@ export interface ClientTagBadgeProps {
   expiredAt?: string | null;
   dismissedAt?: string | null;
   size?: 'sm' | 'md' | 'lg';
-  /** Quando true, renderiza tags dismissed em estado tachado (default: false → null). */
   showHistory?: boolean;
   className?: string;
 }
 
-const SIZE_CLASS: Record<NonNullable<ClientTagBadgeProps['size']>, string> = {
-  sm: 'text-[10.5px] px-2 py-0.5',
-  md: 'text-[11px] px-2.5 py-1',
-  lg: 'text-xs px-3 py-1.5',
+const SIZE_CLASS: Record<NonNullable<ClientTagBadgeProps['size']>, { pill: string; icon: number }> = {
+  sm: { pill: 'text-[10px] px-2 py-0.5 gap-1.5', icon: 10 },
+  md: { pill: 'text-[11px] px-2.5 py-1 gap-1.5', icon: 12 },
+  lg: { pill: 'text-xs px-3 py-1.5 gap-2', icon: 13 },
 };
 
-const BASE = 'inline-flex items-center gap-1.5 rounded-md leading-[1.4] font-medium uppercase tracking-wide';
+const BASE = 'inline-flex items-center rounded-full leading-[1.35] font-semibold uppercase tracking-wider select-none transition-colors duration-150';
 
-/**
- * Pill achatado para etiquetas de processo do cliente. Estados A-F:
- *  A — sem cronômetro (neutro)
- *  B — >3d restantes (calmo, success no timer)
- *  C — ≤3d e >24h (warning)
- *  D — ≤24h (danger pré-vencimento, dot pulsante)
- *  E — expirada (border-2 danger, label "EXPIRADA · Xd")
- *  F — dismissed (somente com showHistory; tracejado, line-through)
- *
- * Diferenciado visualmente do `ClientLabelBadge` (classificação CS) por intenção:
- * "metadado de processo", neutro por default. Usa `useCountdown` quando aplicável.
- */
 export default function ClientTagBadge({
   name,
   expiresAt,
@@ -41,29 +29,23 @@ export default function ClientTagBadge({
   showHistory = false,
   className,
 }: ClientTagBadgeProps) {
-  // F — dismissed: oculto por padrão; só renderiza se showHistory.
+  const s = SIZE_CLASS[size];
+
   if (dismissedAt) {
     if (!showHistory) return null;
     return (
       <span
         role="status"
         aria-label={`Etiqueta dispensada: ${name}`}
-        className={cn(
-          BASE,
-          SIZE_CLASS[size],
-          'bg-transparent border border-dashed border-border/40 text-muted-foreground/40 line-through',
-          className,
-        )}
+        className={cn(BASE, s.pill, 'bg-transparent border border-dashed border-border/30 text-muted-foreground/35 line-through', className)}
       >
-        <span aria-hidden className="w-1 h-1 rounded-full bg-muted-foreground/30" />
+        <Tag size={s.icon} className="opacity-40 shrink-0" />
         {name}
       </span>
     );
   }
 
-  // E — expirada: prioridade sobre cronômetro vivo.
   if (expiredAt) {
-    // Calcula dias decorridos via expiredAt directly (sem hook — não muda).
     const diff = Date.now() - new Date(expiredAt).getTime();
     const expiredDays = Number.isFinite(diff) ? Math.max(0, Math.floor(diff / (24 * 60 * 60 * 1000))) : 0;
     return (
@@ -71,82 +53,80 @@ export default function ClientTagBadge({
         role="alert"
         aria-label={`Etiqueta expirada há ${expiredDays} dias: ${name}`}
         className={cn(
-          BASE,
-          SIZE_CLASS[size],
-          'bg-danger/15 border-2 border-danger/50 text-danger animate-in fade-in slide-in-from-top-1 duration-200 ease-out',
+          BASE, s.pill,
+          'bg-danger/10 border border-danger/30 text-danger shadow-[0_0_8px_rgba(239,68,68,0.15)]',
+          'animate-in fade-in slide-in-from-top-1 duration-200 ease-out',
           className,
         )}
       >
-        <span
-          aria-hidden
-          className="w-1.5 h-1.5 rounded-full bg-danger animate-pulse motion-reduce:animate-none"
-        />
-        EXPIRADA · {expiredDays}d
-        <span className="opacity-70">· {name}</span>
+        <span aria-hidden className="relative flex shrink-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-danger" />
+          <span className="absolute inset-0 w-1.5 h-1.5 rounded-full bg-danger animate-ping opacity-50" />
+        </span>
+        <span className="opacity-70">{name}</span>
+        <span className="font-mono tabular-nums normal-case tracking-normal">
+          {expiredDays}d atrás
+        </span>
       </span>
     );
   }
 
-  // Caminho com cronômetro vivo (B/C/D) ou neutro (A).
-  return <LiveBadge name={name} expiresAt={expiresAt ?? null} size={size} className={className} />;
+  return <LiveBadge name={name} expiresAt={expiresAt ?? null} size={size} sizeClass={s} className={className} />;
 }
 
 function LiveBadge({
   name,
   expiresAt,
   size,
+  sizeClass: s,
   className,
 }: {
   name: string;
   expiresAt: string | null;
   size: NonNullable<ClientTagBadgeProps['size']>;
+  sizeClass: (typeof SIZE_CLASS)[keyof typeof SIZE_CLASS];
   className?: string;
 }) {
   const { remaining, severity, isExpired } = useCountdown(expiresAt);
 
-  // Defesa: se cronômetro virou enquanto montado (sem expiredAt vindo do DB ainda).
   if (expiresAt && isExpired) {
     return (
       <span
         role="alert"
         aria-label={`Etiqueta acabou de expirar: ${name}`}
         className={cn(
-          BASE,
-          SIZE_CLASS[size],
-          'bg-danger/15 border-2 border-danger/50 text-danger',
+          BASE, s.pill,
+          'bg-danger/10 border border-danger/30 text-danger shadow-[0_0_8px_rgba(239,68,68,0.15)]',
           className,
         )}
       >
-        <span
-          aria-hidden
-          className="w-1.5 h-1.5 rounded-full bg-danger animate-pulse motion-reduce:animate-none"
-        />
-        EXPIRADA · 0d
-        <span className="opacity-70">· {name}</span>
+        <span aria-hidden className="relative flex shrink-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-danger" />
+          <span className="absolute inset-0 w-1.5 h-1.5 rounded-full bg-danger animate-ping opacity-50" />
+        </span>
+        <span className="opacity-70">{name}</span>
+        <span className="font-mono tabular-nums normal-case tracking-normal">0d</span>
       </span>
     );
   }
 
-  // A — sem cronômetro
   if (!expiresAt) {
     return (
       <span
         role="status"
         aria-label={`Etiqueta: ${name}`}
         className={cn(
-          BASE,
-          SIZE_CLASS[size],
-          'bg-muted/40 text-muted-foreground border border-border/60',
+          BASE, s.pill,
+          'bg-amber-500/8 border border-amber-500/20 text-amber-400',
           className,
         )}
       >
-        <span aria-hidden className="w-1 h-1 rounded-full bg-muted-foreground/50" />
+        <Hourglass size={s.icon} className="shrink-0 opacity-60" />
         {name}
       </span>
     );
   }
 
-  // B/C/D
   const isDanger = severity === 'danger';
   const isWarning = severity === 'warning';
 
@@ -155,32 +135,28 @@ function LiveBadge({
       role="status"
       aria-label={`Etiqueta ${name}, ${remaining} restantes`}
       className={cn(
-        BASE,
-        SIZE_CLASS[size],
-        isDanger && 'bg-danger/10 border border-danger/40 text-danger',
-        isWarning && 'bg-warning/10 border border-warning/30 text-warning',
-        !isDanger && !isWarning && 'bg-muted/40 text-muted-foreground border border-border/60',
+        BASE, s.pill,
+        isDanger && 'bg-danger/10 border border-danger/30 text-danger shadow-[0_0_6px_rgba(239,68,68,0.1)]',
+        isWarning && 'bg-warning/8 border border-warning/25 text-warning',
+        !isDanger && !isWarning && 'bg-emerald-500/8 border border-emerald-500/20 text-emerald-400',
         className,
       )}
     >
-      <span
-        aria-hidden
-        className={cn(
-          'w-1 h-1 rounded-full',
-          isDanger
-            ? 'w-1.5 h-1.5 bg-danger animate-pulse motion-reduce:animate-none'
-            : isWarning
-              ? 'bg-warning'
-              : 'bg-muted-foreground/50',
-        )}
-      />
+      {isDanger ? (
+        <span aria-hidden className="relative flex shrink-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-danger" />
+          <span className="absolute inset-0 w-1.5 h-1.5 rounded-full bg-danger animate-ping opacity-50" />
+        </span>
+      ) : (
+        <Clock size={s.icon} className={cn('shrink-0 opacity-60', isWarning ? 'text-warning' : 'text-emerald-400')} />
+      )}
       {name}
       <span
         className={cn(
-          'font-mono tabular-nums normal-case tracking-normal',
+          'font-mono tabular-nums normal-case tracking-normal font-bold',
           isDanger && 'text-danger',
           isWarning && 'text-warning',
-          !isDanger && !isWarning && 'text-success/90',
+          !isDanger && !isWarning && 'text-emerald-400',
         )}
       >
         {remaining}
