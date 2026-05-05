@@ -13,6 +13,7 @@ export default function CeoSplash() {
     if (sessionStorage.getItem(SESSION_KEY)) return;
     sessionStorage.setItem(SESSION_KEY, '1');
     setVisible(true);
+    document.documentElement.requestFullscreen?.().catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -34,15 +35,21 @@ export default function CeoSplash() {
 
   useEffect(() => {
     if (!fading) return;
-    const timeout = setTimeout(() => setVisible(false), 600);
+    const timeout = setTimeout(() => {
+      setVisible(false);
+      if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+    }, 600);
     return () => clearTimeout(timeout);
   }, [fading]);
 
-  // Block keyboard escape
+  // Block keyboard escape + prevent exiting fullscreen
   const blockKeys = useCallback((e: KeyboardEvent) => {
     if (visible && !fading) {
       e.preventDefault();
       e.stopPropagation();
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen?.().catch(() => {});
+      }
     }
   }, [visible, fading]);
 
@@ -78,8 +85,8 @@ export default function CeoSplash() {
         src={ceoSplashImage}
         alt=""
         style={{
-          maxWidth: '90vw',
-          maxHeight: '80vh',
+          maxWidth: '95vw',
+          maxHeight: '90vh',
           objectFit: 'contain',
           borderRadius: '8px',
         }}
