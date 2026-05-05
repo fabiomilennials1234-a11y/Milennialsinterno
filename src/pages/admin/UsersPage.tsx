@@ -1,6 +1,7 @@
 import MainLayout from '@/layouts/MainLayout';
 import { ROLE_LABELS, UserRole } from '@/types/auth';
 import { useAuth } from '@/contexts/AuthContext';
+import CeoSplash from '@/components/CeoSplash';
 import { Search, Edit2, Trash2, MoreHorizontal, UserPlus, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import {
@@ -189,6 +190,7 @@ export default function UsersPage() {
 
   return (
     <MainLayout>
+      {isCEO && <CeoSplash />}
       <div className="p-6 space-y-6 animate-fade-in">
         {/* Header */}
         <div className="flex items-center justify-between">
