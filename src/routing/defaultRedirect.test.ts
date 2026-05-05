@@ -25,7 +25,7 @@ const TAB_PRIORITY_SNAPSHOT = [
   { id: "consultor_mktplace", path: "/consultor-mktplace" },
   { id: "gestor_ads", path: "/gestor-ads" },
   { id: "outbound", path: "/millennials-outbound" },
-  { id: "sucesso_cliente", path: "/kanban/sucesso" },
+  { id: "sucesso_cliente", path: "/sucesso-cliente" },
   { id: "financeiro", path: "/financeiro" },
 ];
 
@@ -65,8 +65,8 @@ describe("DefaultRedirect: role → path mapping", () => {
     expect(defaultPathForRole("outbound")).not.toBe("/kanban/design");
   });
 
-  it("sucesso_cliente redireciona para /kanban/sucesso", () => {
-    expect(defaultPathForRole("sucesso_cliente")).toBe("/kanban/sucesso");
+  it("sucesso_cliente redireciona para /sucesso-cliente", () => {
+    expect(defaultPathForRole("sucesso_cliente")).toBe("/sucesso-cliente");
   });
 
   it("sucesso_cliente NÃO cai em /kanban/design (regressão do bug de match por BOARD_VISIBILITY)", () => {

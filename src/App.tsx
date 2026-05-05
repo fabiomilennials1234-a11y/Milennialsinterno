@@ -202,7 +202,7 @@ function DefaultRedirect() {
     { id: 'consultor_mktplace', path: '/consultor-mktplace' },
     { id: 'gestor_ads', path: '/gestor-ads' },
     { id: 'outbound', path: '/millennials-outbound' },
-    { id: 'sucesso_cliente', path: '/kanban/sucesso' },
+    { id: 'sucesso_cliente', path: '/sucesso-cliente' },
     { id: 'financeiro', path: '/financeiro' },
   ];
 
