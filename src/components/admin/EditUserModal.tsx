@@ -142,7 +142,7 @@ export default function EditUserModal({ isOpen, user, onClose, onSubmit, isLoadi
 
   const selectedGroup = groups.find(g => g.id === formData.group_id);
 
-  const mtechByRole = formData.role === 'ceo' || formData.role === 'cto' || formData.role === 'devs';
+  const mtechByRole = formData.role === 'ceo' || formData.role === 'cto';
   const effectiveMtechAccess = mtechByRole || formData.can_access_mtech;
 
   const handleSubmit = (e: React.FormEvent) => {
