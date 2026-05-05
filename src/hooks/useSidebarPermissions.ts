@@ -314,12 +314,31 @@ export function useSidebarPermissions() {
   };
 
   // Roles dos coringas (usuários no grupo mas não em squad)
-  // Exclui consultor_comercial pois pertence ao Paddock, não ao Growth
+  // Exclui consultor_comercial pois pertence ao Paddock, não ao Growth.
+  // Também exclui roles que já aparecem em algum squad do mesmo grupo,
+  // evitando duplicação visual na sidebar (ex: Design em CORINGAS + squads).
   const getCoringaRoles = (groupId: string): UserRole[] => {
     const coringaUsers = allUsers.filter(u => u.group_id === groupId && u.is_coringa && !u.squad_id);
     const roles = [...new Set(coringaUsers.map(u => u.role))];
     if (!user?.role) return [];
-    return roles.filter(role => role !== 'consultor_comercial' && canViewRole(user.role, role));
+
+    // Roles already represented in squads within this group
+    const group = groups.find(g => g.id === groupId);
+    const squadRolesInGroup = new Set<UserRole>();
+    if (group) {
+      for (const squad of group.squads) {
+        const squadUsers = allUsers.filter(u => u.squad_id === squad.id);
+        for (const u of squadUsers) {
+          squadRolesInGroup.add(u.role);
+        }
+      }
+    }
+
+    return roles.filter(role =>
+      role !== 'consultor_comercial'
+      && canViewRole(user.role, role)
+      && !squadRolesInGroup.has(role)
+    );
   };
 
   // Retorna o path correto para um cargo
