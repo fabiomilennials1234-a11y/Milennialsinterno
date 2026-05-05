@@ -298,7 +298,7 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
                   <p className="text-sm text-muted-foreground">{clientInfo.razao_social}</p>
                 )}
               </div>
-              <ClientLabelBadge label={(clientInfo as any)?.client_label as ClientLabel} size="sm" />
+              <ClientLabelBadge label={clientInfo?.client_label as ClientLabel} size="sm" />
               <ClientTierBadge clientId={clientId} />
               {mktplaceId && responsibleNames[mktplaceId] && (
                 <Badge
@@ -315,7 +315,7 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
               {canSetClientLabel && (
                 <ClientLabelSelector
                   clientId={clientId}
-                  currentLabel={((clientInfo as any)?.client_label ?? null) as ClientLabel}
+                  currentLabel={(clientInfo?.client_label ?? null) as ClientLabel}
                 />
               )}
 

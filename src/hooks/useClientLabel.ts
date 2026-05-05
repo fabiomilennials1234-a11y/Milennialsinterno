@@ -93,7 +93,10 @@ export function useUpdateClientLabel() {
       const wasReset = shouldResetClassification(label);
       return { classification, wasReset, requiresActionPlan, autoCompletedPlans };
     },
-    onSuccess: (result) => {
+    onSuccess: (result, variables) => {
+      // Invalidate the specific client-info query so ClientViewModal reflects the change
+      queryClient.invalidateQueries({ queryKey: ['client-info', variables.clientId] });
+
       // Invalidate all queries that might contain client data
       queryClient.invalidateQueries({ queryKey: ['cs-clients-by-manager'] });
       queryClient.invalidateQueries({ queryKey: ['sucesso-clients'] });
