@@ -19,7 +19,7 @@ interface CreateDesignCardModalProps {
   onSubmit: (data: {
     title: string;
     description?: string;
-    priority?: 'normal' | 'urgent';
+    priority?: 'medium' | 'urgent';
     due_date?: string;
     column_id?: string;
     status?: string;
@@ -48,7 +48,7 @@ export default function CreateDesignCardModal({
   const [formData, setFormData] = useState({
     title: '',
     column_id: '',
-    priority: 'normal' as 'normal' | 'urgent',
+    priority: 'medium' as 'medium' | 'urgent',
     due_date: undefined as Date | undefined,
     client_id: null as string | null,
     creatives_quantity: 1,
@@ -139,7 +139,7 @@ export default function CreateDesignCardModal({
     setFormData({
       title: '',
       column_id: designerColumns[0]?.id || '',
-      priority: 'normal',
+      priority: 'medium',
       due_date: undefined,
       client_id: null,
       creatives_quantity: 1,
@@ -159,7 +159,7 @@ export default function CreateDesignCardModal({
     setFormData({
       title: '',
       column_id: designerColumns[0]?.id || '',
-      priority: 'normal',
+      priority: 'medium',
       due_date: undefined,
       client_id: null,
       creatives_quantity: 1,
@@ -299,11 +299,11 @@ export default function CreateDesignCardModal({
             <div className="flex gap-3">
               <button
                 type="button"
-                onClick={() => setFormData(prev => ({ ...prev, priority: 'normal' }))}
+                onClick={() => setFormData(prev => ({ ...prev, priority: 'medium' }))}
                 disabled={isLoading}
                 className={cn(
                   "flex-1 py-3 px-4 rounded-xl border text-sm font-semibold transition-all",
-                  formData.priority === 'normal'
+                  formData.priority === 'medium'
                     ? "border-info bg-info/10 text-info"
                     : "border-border bg-muted/30 text-muted-foreground hover:bg-muted"
                 )}

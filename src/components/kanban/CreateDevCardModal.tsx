@@ -31,7 +31,7 @@ export default function CreateDevCardModal({
     title: '',
     description: '',
     column_id: '',
-    priority: 'normal' as 'normal' | 'urgent',
+    priority: 'medium' as 'medium' | 'urgent',
     due_date: '',
     status: 'a_fazer',
     materials_url: '',
@@ -53,7 +53,7 @@ export default function CreateDevCardModal({
       title: '',
       description: '',
       column_id: '',
-      priority: 'normal',
+      priority: 'medium',
       due_date: '',
       status: 'a_fazer',
       materials_url: '',
@@ -127,7 +127,7 @@ export default function CreateDevCardModal({
   if (!isOpen) return null;
 
   const priorityOptions = [
-    { value: 'normal', label: 'Normal', color: 'bg-info/20 text-info' },
+    { value: 'medium', label: 'Normal', color: 'bg-info/20 text-info' },
     { value: 'urgent', label: '🔥 Urgente', color: 'bg-danger/20 text-danger' },
   ];
 

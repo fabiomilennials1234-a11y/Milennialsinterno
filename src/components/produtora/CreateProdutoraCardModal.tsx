@@ -21,7 +21,7 @@ export default function CreateProdutoraCardModal({
   const [formData, setFormData] = useState({
     title: '',
     column_id: '',
-    priority: 'normal' as 'normal' | 'urgent',
+    priority: 'medium' as 'medium' | 'urgent',
     due_date: '',
     status: 'a_gravar',
     briefing: {
@@ -39,7 +39,7 @@ export default function CreateProdutoraCardModal({
     setFormData({
       title: '',
       column_id: '',
-      priority: 'normal',
+      priority: 'medium',
       due_date: '',
       status: 'a_gravar',
       briefing: {
@@ -53,7 +53,7 @@ export default function CreateProdutoraCardModal({
   if (!isOpen) return null;
 
   const priorityOptions = [
-    { value: 'normal', label: 'Normal', color: 'bg-info/20 text-info' },
+    { value: 'medium', label: 'Normal', color: 'bg-info/20 text-info' },
     { value: 'urgent', label: 'Urgente', color: 'bg-danger/20 text-danger' },
   ];
 

@@ -478,7 +478,7 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
 
       const priority = config.mapPriority
         ? config.mapPriority(data.priority)
-        : (data.priority || 'normal');
+        : (data.priority || 'medium');
 
       const clientId = typeof data.client_id === 'string' ? data.client_id : null;
       const creativesQuantity = typeof data.creatives_quantity === 'number' && clientId

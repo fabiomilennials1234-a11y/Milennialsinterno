@@ -11,7 +11,7 @@ export interface CardAttachmentInput {
 export interface BaseCardInput {
   title: string;
   description?: string;
-  priority?: 'normal' | 'urgent';
+  priority?: 'low' | 'medium' | 'high' | 'urgent';
   due_date?: string;
   column_id?: string;
   status?: string;
