@@ -272,7 +272,7 @@ export default function CreateUserModal({ isOpen, onClose, onSubmit, isLoading }
   const assignmentType = formData.role ? getRoleAssignmentType(formData.role as UserRole) : null;
   const isCoringa = formData.role ? isCoringaRole(formData.role as UserRole) : false;
   const selectedGroup = groups.find(g => g.id === formData.group_id);
-  const mtechByRole = formData.role === 'ceo' || formData.role === 'cto' || formData.role === 'devs';
+  const mtechByRole = formData.role === 'ceo' || formData.role === 'cto';
   const effectiveMtechAccess = mtechByRole || formData.can_access_mtech;
 
   const selectedCustomRole = useMemo(() => {

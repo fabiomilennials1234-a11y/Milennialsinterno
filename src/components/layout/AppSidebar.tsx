@@ -350,7 +350,7 @@ export default function AppSidebar() {
         )}
 
         {/* ========== MILENNIALS TECH ========== */}
-        {(isExecutive(user?.role) || user?.role === 'devs' || user?.can_access_mtech) && (
+        {(isExecutive(user?.role) || user?.can_access_mtech) && (
           <div className="space-y-1.5 pb-5">
             {!isCollapsed && (
               <div className="sidebar-section-label"><span>Engineering</span></div>

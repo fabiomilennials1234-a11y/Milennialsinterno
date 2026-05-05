@@ -114,7 +114,7 @@ function MilennialsTechRoute({ children }: { children: React.ReactNode }) {
 
   if (isLoading) return <AppBootSkeleton />;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (!(isExecutive(user?.role) || user?.role === 'devs' || user?.can_access_mtech)) {
+  if (!(isExecutive(user?.role) || user?.can_access_mtech)) {
     return <Navigate to="/" replace />;
   }
   return <>{children}</>;
