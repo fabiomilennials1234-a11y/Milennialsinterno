@@ -14,6 +14,8 @@ import {
   CRM_PRODUTOS_VALIDOS,
   CRM_PRODUTO_LABEL,
   CRM_PRODUTO_COLOR,
+  CRM_PRODUCT_HIERARCHY,
+  getHighestProduct,
   useCreateCrmConfiguracoes,
   type CrmProduto,
 } from '@/hooks/useCrmKanban';
@@ -195,7 +197,9 @@ export default function CrmTarefaFormModal({
   const createConfigs = useCreateCrmConfiguracoes();
   const { data: allClients = [], isLoading: isLoadingClients } = useAllActiveClients();
 
-  const [selected, setSelected] = useState<CrmProduto[]>(availableProdutos);
+  // Hierarquia: Copilot > Automation > V8. Pré-seleciona apenas o mais alto.
+  const highestProduct = availableProdutos.length > 0 ? getHighestProduct(availableProdutos) : null;
+  const [selected, setSelected] = useState<CrmProduto[]>(highestProduct ? [highestProduct] : []);
   const [currentClient, setCurrentClient] = useState<{ id: string; name: string }>(() => ({
     id: clientId,
     name: clientName,
@@ -240,31 +244,34 @@ export default function CrmTarefaFormModal({
       return;
     }
 
-    // Validação por produto selecionado
-    if (selected.includes('v8')) {
+    // Hierarquia: apenas o produto mais alto é configurado
+    const finalProduto = getHighestProduct(selected);
+
+    // Validação apenas do produto selecionado
+    if (finalProduto === 'v8') {
       const err = validateV8(v8Data, 'V8');
       if (err) { toast.error(err); return; }
     }
-    if (selected.includes('automation')) {
+    if (finalProduto === 'automation') {
       const err = validateAutomation(autoData);
       if (err) { toast.error(err); return; }
     }
-    if (selected.includes('copilot')) {
+    if (finalProduto === 'copilot') {
       const err = validateCopilot(copilotData);
       if (err) { toast.error(err); return; }
     }
 
     const formDataByProduto: Partial<Record<CrmProduto, Record<string, unknown>>> = {};
-    if (selected.includes('v8')) formDataByProduto.v8 = v8Data as unknown as Record<string, unknown>;
-    if (selected.includes('automation')) formDataByProduto.automation = autoData as unknown as Record<string, unknown>;
-    if (selected.includes('copilot')) formDataByProduto.copilot = copilotData as unknown as Record<string, unknown>;
+    if (finalProduto === 'v8') formDataByProduto.v8 = v8Data as unknown as Record<string, unknown>;
+    if (finalProduto === 'automation') formDataByProduto.automation = autoData as unknown as Record<string, unknown>;
+    if (finalProduto === 'copilot') formDataByProduto.copilot = copilotData as unknown as Record<string, unknown>;
 
     try {
       await createConfigs.mutateAsync({
         clientId: currentClient.id,
         clientName: currentClient.name,
         gestorId,
-        produtos: selected,
+        produtos: [finalProduto],
         formDataByProduto,
       });
       onSuccess?.();
@@ -314,33 +321,51 @@ export default function CrmTarefaFormModal({
 
           {/* Seleção de produtos */}
           <div className="space-y-2">
-            <Label className="text-sm font-semibold">Quais produtos deseja configurar?</Label>
-            <p className="text-xs text-muted-foreground">
-              Cliente contratou: {availableProdutos.length > 0 ? availableProdutos.map(p => CRM_PRODUTO_LABEL[p]).join(', ') : 'nenhum'}.
-              Você pode gerar tarefas para um, dois ou todos os três.
-            </p>
+            <Label className="text-sm font-semibold">Produto a configurar</Label>
+            {availableProdutos.length > 1 && highestProduct ? (
+              <p className="text-xs text-muted-foreground">
+                Cliente contratou {availableProdutos.map(p => CRM_PRODUTO_LABEL[p]).join(', ')}.
+                Apenas <strong>{CRM_PRODUTO_LABEL[highestProduct]}</strong> sera configurado — seus steps ja incluem os de produtos inferiores.
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Cliente contratou: {availableProdutos.length > 0 ? availableProdutos.map(p => CRM_PRODUTO_LABEL[p]).join(', ') : 'nenhum'}.
+              </p>
+            )}
             <div className="grid grid-cols-3 gap-2">
               {CRM_PRODUTOS_VALIDOS.map(p => {
-                const checked = selected.includes(p);
+                const isHighest = p === highestProduct;
                 const available = availableProdutos.includes(p);
+                const isLowerThanHighest = available && !isHighest && highestProduct != null && CRM_PRODUCT_HIERARCHY[p] < CRM_PRODUCT_HIERARCHY[highestProduct];
+                const checked = selected.includes(p);
                 return (
-                  <label
-                    key={p}
-                    className={`flex items-center justify-center gap-2 p-3 rounded-lg border cursor-pointer transition-colors text-sm font-medium ${
-                      !available
-                        ? 'opacity-40 cursor-not-allowed bg-muted/20'
-                        : checked
-                          ? 'bg-primary/10 border-primary text-primary'
-                          : 'bg-background border-border hover:border-primary/50'
-                    }`}
-                  >
-                    <Checkbox
-                      checked={checked}
-                      disabled={!available}
-                      onCheckedChange={(c) => available && toggleProduto(p, !!c)}
-                    />
-                    {CRM_PRODUTO_LABEL[p]}
-                  </label>
+                  <div key={p} className="relative">
+                    <label
+                      className={`flex items-center justify-center gap-2 p-3 rounded-lg border transition-colors text-sm font-medium ${
+                        !available
+                          ? 'opacity-40 cursor-not-allowed bg-muted/20'
+                          : isLowerThanHighest
+                            ? 'opacity-50 cursor-not-allowed bg-muted/10 border-border'
+                            : checked
+                              ? 'bg-primary/10 border-primary text-primary cursor-default'
+                              : 'bg-background border-border hover:border-primary/50 cursor-pointer'
+                      }`}
+                    >
+                      <Checkbox
+                        checked={isHighest || checked}
+                        disabled={!available || isLowerThanHighest || isHighest}
+                        onCheckedChange={(c) => {
+                          if (available && !isLowerThanHighest && !isHighest) toggleProduto(p, !!c);
+                        }}
+                      />
+                      {CRM_PRODUTO_LABEL[p]}
+                    </label>
+                    {isLowerThanHighest && (
+                      <p className="text-[10px] text-muted-foreground text-center mt-0.5">
+                        Incluso no {CRM_PRODUTO_LABEL[highestProduct!]}
+                      </p>
+                    )}
+                  </div>
                 );
               })}
             </div>

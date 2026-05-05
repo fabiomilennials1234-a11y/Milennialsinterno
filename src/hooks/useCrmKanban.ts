@@ -42,6 +42,30 @@ export const CRM_PRODUTO_COLOR: Record<CrmProduto, string> = {
 
 export const CRM_PRODUTOS_VALIDOS: readonly CrmProduto[] = ['v8', 'automation', 'copilot'] as const;
 
+// ================= HIERARQUIA DE PRODUTOS =================
+// Copilot > Automation > V8. Produto mais alto subsume os inferiores
+// (state-machines de Automation/Copilot já incluem os steps do V8).
+// Quando cliente tem múltiplos produtos, cria config APENAS para o mais alto.
+
+export const CRM_PRODUCT_HIERARCHY: Record<CrmProduto, number> = {
+  v8: 1,
+  automation: 2,
+  copilot: 3,
+};
+
+/**
+ * Retorna o produto mais alto na hierarquia dentre os informados.
+ * Copilot > Automation > V8.
+ *
+ * @throws se o array estiver vazio
+ */
+export function getHighestProduct(products: CrmProduto[]): CrmProduto {
+  if (products.length === 0) throw new Error('Nenhum produto informado');
+  return products.reduce((highest, current) =>
+    CRM_PRODUCT_HIERARCHY[current] > CRM_PRODUCT_HIERARCHY[highest] ? current : highest
+  );
+}
+
 /**
  * Prazo máximo (em dias) para concluir TODA a configuração do produto,
  * contando a partir de `crm_configuracoes.created_at`. Todas as tarefas
@@ -660,9 +684,14 @@ export function useCreateCrmConfiguracoes() {
       if (!produtos.length) throw new Error('Selecione ao menos um produto');
       if (!user?.id) throw new Error('Usuário não autenticado');
 
+      // Safety net: hierarquia Copilot > Automation > V8.
+      // Mesmo que o frontend envie múltiplos, cria config apenas para o mais alto.
+      const highest = getHighestProduct(produtos);
+      const filteredProdutos: CrmProduto[] = [highest];
+
       const created: { produto: CrmProduto; configExisted: boolean; taskCreated: boolean; error?: string }[] = [];
 
-      for (const produto of produtos) {
+      for (const produto of filteredProdutos) {
         try {
           // 1. Config já existe? (UNIQUE client_id+produto garante no máx 1)
           const { data: existingCfg } = await (supabase as any)

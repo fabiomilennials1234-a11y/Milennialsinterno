@@ -5,7 +5,7 @@ import { Wand2, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import CrmTarefaFormModal from './CrmTarefaFormModal';
-import { CRM_PRODUTO_LABEL, CRM_PRODUTO_COLOR, CRM_STEP_LABEL, type CrmProduto, getTorqueCrmProducts } from '@/hooks/useCrmKanban';
+import { CRM_PRODUTO_LABEL, CRM_PRODUTO_COLOR, CRM_STEP_LABEL, type CrmProduto, getTorqueCrmProducts, getHighestProduct } from '@/hooks/useCrmKanban';
 
 interface Props {
   clientId: string;
@@ -109,44 +109,62 @@ export default function CrmGerarTarefaSection({ clientId, clientName }: Props) {
       </div>
 
       {/* Status das configurações existentes */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-        {torqueProducts.map((produto: CrmProduto) => {
-          const cfg = configsByProduto.get(produto);
-          const label = CRM_PRODUTO_LABEL[produto];
-          const color = CRM_PRODUTO_COLOR[produto];
+      {(() => {
+        const highest = torqueProducts.length > 0 ? getHighestProduct(torqueProducts) : null;
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+            {torqueProducts.map((produto: CrmProduto) => {
+              const cfg = configsByProduto.get(produto);
+              const label = CRM_PRODUTO_LABEL[produto];
+              const color = CRM_PRODUTO_COLOR[produto];
+              const isLower = highest != null && produto !== highest;
 
-          if (!cfg) {
-            return (
-              <div key={produto} className="rounded-lg border border-dashed border-border bg-background p-2.5">
-                <Badge className={`${color} border`}>{label}</Badge>
-                <p className="text-[11px] text-muted-foreground mt-1.5">Nenhuma configuração criada ainda</p>
-              </div>
-            );
-          }
+              // Produto inferior na hierarquia — mostrar como incluso
+              if (isLower) {
+                return (
+                  <div key={produto} className="rounded-lg border border-dashed border-border bg-muted/10 p-2.5 opacity-60">
+                    <Badge className={`${color} border`}>{label}</Badge>
+                    <p className="text-[10px] text-muted-foreground mt-1.5">
+                      Incluso no {CRM_PRODUTO_LABEL[highest!]}
+                    </p>
+                  </div>
+                );
+              }
 
-          if (cfg.is_finalizado) {
-            return (
-              <div key={produto} className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-2.5">
-                <div className="flex items-center gap-1.5">
+              if (!cfg) {
+                return (
+                  <div key={produto} className="rounded-lg border border-dashed border-border bg-background p-2.5">
+                    <Badge className={`${color} border`}>{label}</Badge>
+                    <p className="text-[11px] text-muted-foreground mt-1.5">Nenhuma configuração criada ainda</p>
+                  </div>
+                );
+              }
+
+              if (cfg.is_finalizado) {
+                return (
+                  <div key={produto} className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-2.5">
+                    <div className="flex items-center gap-1.5">
+                      <Badge className={`${color} border`}>{label}</Badge>
+                      <CheckCircle2 size={14} className="text-emerald-600" />
+                    </div>
+                    <p className="text-[11px] text-emerald-700 mt-1.5 font-semibold">Finalizado</p>
+                  </div>
+                );
+              }
+
+              return (
+                <div key={produto} className="rounded-lg border border-border bg-background p-2.5">
                   <Badge className={`${color} border`}>{label}</Badge>
-                  <CheckCircle2 size={14} className="text-emerald-600" />
+                  <p className="text-[11px] text-muted-foreground mt-1.5 flex items-center gap-1">
+                    <Clock size={10} />
+                    {CRM_STEP_LABEL[cfg.current_step] || cfg.current_step}
+                  </p>
                 </div>
-                <p className="text-[11px] text-emerald-700 mt-1.5 font-semibold">Finalizado</p>
-              </div>
-            );
-          }
-
-          return (
-            <div key={produto} className="rounded-lg border border-border bg-background p-2.5">
-              <Badge className={`${color} border`}>{label}</Badge>
-              <p className="text-[11px] text-muted-foreground mt-1.5 flex items-center gap-1">
-                <Clock size={10} />
-                {CRM_STEP_LABEL[cfg.current_step] || cfg.current_step}
-              </p>
-            </div>
-          );
-        })}
-      </div>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       <CrmTarefaFormModal
         isOpen={modalOpen}
