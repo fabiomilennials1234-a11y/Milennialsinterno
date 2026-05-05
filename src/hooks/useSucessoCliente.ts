@@ -60,25 +60,20 @@ export function useAdsManagers() {
   return useQuery({
     queryKey: ['ads-managers'],
     queryFn: async (): Promise<AdsManager[]> => {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('user_id')
-        .eq('role', 'gestor_ads');
+      const { data, error } = await supabase.rpc('list_users_by_role_for_page', {
+        _role: 'gestor_ads',
+        _page_slug: 'sucesso-cliente',
+      });
 
-      if (error) throw error;
-      if (!data || data.length === 0) return [];
+      if (error) {
+        if (error.code === '42501') {
+          console.warn('[useAdsManagers] RPC grant denied — returning empty', error.message);
+          return [];
+        }
+        throw error;
+      }
 
-      const userIds = data.map(r => r.user_id);
-      
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('user_id, name')
-        .in('user_id', userIds)
-        .order('name');
-
-      if (profilesError) throw profilesError;
-      
-      return (profiles || []).map(p => ({
+      return (data || []).map(p => ({
         user_id: p.user_id,
         name: p.name,
       }));
