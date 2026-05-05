@@ -7,7 +7,7 @@ export default function MktplaceDashboardPage() {
   const { isCEO, isAdminUser } = useAuth();
 
   if (!isCEO && !isAdminUser) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return (

@@ -104,7 +104,7 @@ function ExecutiveRoute({ children }: { children: React.ReactNode }) {
 
   if (isLoading) return <AppBootSkeleton />;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (!isExecutive(user?.role)) return <Navigate to="/dashboard" replace />;
+  if (!isExecutive(user?.role)) return <Navigate to="/" replace />;
 
   return <>{children}</>;
 }
@@ -115,7 +115,7 @@ function MilennialsTechRoute({ children }: { children: React.ReactNode }) {
   if (isLoading) return <AppBootSkeleton />;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (!(isExecutive(user?.role) || user?.role === 'devs' || user?.can_access_mtech)) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/" replace />;
   }
   return <>{children}</>;
 }
@@ -149,7 +149,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   // Espera hidratação antes de decidir — evita piscar o login quando há
   // sessão persistida no localStorage.
   if (isLoading) return <AppBootSkeleton />;
-  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+  if (isAuthenticated) return <Navigate to="/" replace />;
 
   return <>{children}</>;
 }

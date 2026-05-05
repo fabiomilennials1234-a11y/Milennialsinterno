@@ -79,7 +79,7 @@ export default function MillennialsGrowthDashPage() {
 
   // Acesso para CEO e Gestor de Projetos
   if (!isCEO && !isAdminUser) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/" replace />;
   }
 
   if (isLoading || !stats) {

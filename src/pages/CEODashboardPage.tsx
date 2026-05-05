@@ -231,7 +231,7 @@ export default function CEODashboardPage() {
   const { data: indicadores, isLoading } = useCEOIndicadores(selectedMonth);
 
   if (!isCEO) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/" replace />;
   }
 
   if (isLoading || !indicadores) {
