@@ -2,17 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import ceoSplashImage from '@/assets/ceo-splash.jpeg';
 
 const SPLASH_DURATION = 10;
-const SESSION_KEY = 'ceo-splash-shown';
 
 export default function CeoSplash() {
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(true);
   const [countdown, setCountdown] = useState(SPLASH_DURATION);
   const [fading, setFading] = useState(false);
 
   useEffect(() => {
-    if (sessionStorage.getItem(SESSION_KEY)) return;
-    sessionStorage.setItem(SESSION_KEY, '1');
-    setVisible(true);
     document.documentElement.requestFullscreen?.().catch(() => {});
   }, []);
 
