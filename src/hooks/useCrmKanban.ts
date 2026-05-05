@@ -660,94 +660,106 @@ export function useCreateCrmConfiguracoes() {
       if (!produtos.length) throw new Error('Selecione ao menos um produto');
       if (!user?.id) throw new Error('Usuário não autenticado');
 
-      const created: { produto: CrmProduto; configExisted: boolean; taskCreated: boolean }[] = [];
+      const created: { produto: CrmProduto; configExisted: boolean; taskCreated: boolean; error?: string }[] = [];
 
       for (const produto of produtos) {
-        // 1. Config já existe? (UNIQUE client_id+produto garante no máx 1)
-        const { data: existingCfg } = await (supabase as any)
-          .from('crm_configuracoes')
-          .select('id, current_step, created_at')
-          .eq('client_id', clientId)
-          .eq('produto', produto)
-          .limit(1);
-
-        let configId: string;
-        let currentStep: string;
-        let configCreatedAt: string;
-        let configExisted = false;
-
-        if (existingCfg && existingCfg.length > 0) {
-          // Já existe — reusa
-          configId = existingCfg[0].id;
-          currentStep = existingCfg[0].current_step;
-          configCreatedAt = existingCfg[0].created_at;
-          configExisted = true;
-        } else {
-          // Cria nova
-          const initialStep = CRM_STEPS_BY_PRODUTO[produto][0];
-          const formData = formDataByProduto[produto] || {};
-
-          const { data: inserted, error: insertErr } = await (supabase as any)
+        try {
+          // 1. Config já existe? (UNIQUE client_id+produto garante no máx 1)
+          const { data: existingCfg } = await (supabase as any)
             .from('crm_configuracoes')
-            .insert({
-              client_id: clientId,
-              gestor_id: gestorId,
-              produto,
-              current_step: initialStep,
-              is_finalizado: false,
-              form_data: formData,
-              // Q1=C: criador define o "treinador comercial responsável" (via fallback
-              // na RPC check_crm_configs_delayed). Lock-on-create por trigger.
-              created_by: user.id,
-            })
-            .select('id, created_at')
-            .single();
-          if (insertErr) throw insertErr;
-
-          configId = inserted.id;
-          currentStep = initialStep;
-          configCreatedAt = inserted.created_at;
-        }
-
-        // 2. Garante que exista UMA tarefa ativa para o step atual desta
-        // configuração. Independente do config já existir ou não: se não
-        // houver tarefa ativa (todo/doing), cria. Isso impede o cenário
-        // "3 cards mas só 1 tarefa" quando o usuário reabre o form.
-        const expectedTitle = CRM_TASK_TITLE[produto]?.[currentStep]?.(clientName);
-        if (expectedTitle) {
-          const { data: existingTask } = await (supabase as any)
-            .from('department_tasks')
-            .select('id')
-            .eq('related_client_id', clientId)
-            .eq('department', 'gestor_crm')
-            .eq('description', `crm-config:${produto}`)
-            .in('status', ['todo', 'doing'])
-            .eq('archived', false)
+            .select('id, current_step, created_at')
+            .eq('client_id', clientId)
+            .eq('produto', produto)
             .limit(1);
 
-          let taskCreated = false;
-          if (!existingTask || existingTask.length === 0) {
-            const dueDate = getConfigDueDate(configCreatedAt, produto);
-            const ownerId = await resolveTaskOwner(clientId, 'assigned_crm', user.id);
-            const { error: taskErr } = await supabase.from('department_tasks').insert({
-              user_id: ownerId,
-              title: expectedTitle,
-              description: `crm-config:${produto}`,
-              task_type: 'daily',
-              status: 'todo',
-              priority: 'high',
-              department: 'gestor_crm',
-              related_client_id: clientId,
-              due_date: dueDate,
-            } as any);
-            if (taskErr) throw taskErr;
-            taskCreated = true;
+          let configId: string;
+          let currentStep: string;
+          let configCreatedAt: string;
+          let configExisted = false;
+
+          if (existingCfg && existingCfg.length > 0) {
+            // Já existe — reusa
+            configId = existingCfg[0].id;
+            currentStep = existingCfg[0].current_step;
+            configCreatedAt = existingCfg[0].created_at;
+            configExisted = true;
+          } else {
+            // Cria nova
+            const initialStep = CRM_STEPS_BY_PRODUTO[produto][0];
+            const formData = formDataByProduto[produto] || {};
+
+            const { data: inserted, error: insertErr } = await (supabase as any)
+              .from('crm_configuracoes')
+              .insert({
+                client_id: clientId,
+                gestor_id: gestorId,
+                produto,
+                current_step: initialStep,
+                is_finalizado: false,
+                form_data: formData,
+                created_by: user.id,
+              })
+              .select('id, created_at')
+              .single();
+            if (insertErr) throw insertErr;
+
+            configId = inserted.id;
+            currentStep = initialStep;
+            configCreatedAt = inserted.created_at;
           }
 
-          created.push({ produto, configExisted, taskCreated });
-        } else {
-          created.push({ produto, configExisted, taskCreated: false });
+          // 2. Garante que exista UMA tarefa ativa para o step atual desta
+          // configuração. Independente do config já existir ou não: se não
+          // houver tarefa ativa (todo/doing), cria. Isso impede o cenário
+          // "3 cards mas só 1 tarefa" quando o usuário reabre o form.
+          const expectedTitle = CRM_TASK_TITLE[produto]?.[currentStep]?.(clientName);
+          if (expectedTitle) {
+            const { data: existingTask } = await (supabase as any)
+              .from('department_tasks')
+              .select('id')
+              .eq('related_client_id', clientId)
+              .eq('department', 'gestor_crm')
+              .eq('description', `crm-config:${produto}`)
+              .in('status', ['todo', 'doing'])
+              .eq('archived', false)
+              .limit(1);
+
+            let taskCreated = false;
+            if (!existingTask || existingTask.length === 0) {
+              const dueDate = getConfigDueDate(configCreatedAt, produto);
+              const ownerId = await resolveTaskOwner(clientId, 'assigned_crm', user.id);
+              const { error: taskErr } = await supabase.from('department_tasks').insert({
+                user_id: ownerId,
+                title: expectedTitle,
+                description: `crm-config:${produto}`,
+                task_type: 'daily',
+                status: 'todo',
+                priority: 'high',
+                department: 'gestor_crm',
+                related_client_id: clientId,
+                due_date: dueDate,
+              } as any);
+              if (taskErr) throw taskErr;
+              taskCreated = true;
+            }
+
+            created.push({ produto, configExisted, taskCreated });
+          } else {
+            created.push({ produto, configExisted, taskCreated: false });
+          }
+        } catch (err: unknown) {
+          // Isola erro por produto — continua com os próximos em vez de
+          // abortar o loop inteiro e deixar configs órfãs sem task.
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error(`[CRM] Erro ao processar produto ${produto}:`, msg);
+          created.push({ produto, configExisted: false, taskCreated: false, error: msg });
         }
+      }
+
+      // Se TODOS falharam, propaga pra onError do mutation
+      const allFailed = created.length > 0 && created.every(r => !!r.error);
+      if (allFailed) {
+        throw new Error(created.map(r => `[${CRM_PRODUTO_LABEL[r.produto]}] ${r.error}`).join('; '));
       }
 
       return created;
@@ -755,8 +767,17 @@ export function useCreateCrmConfiguracoes() {
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['crm-configuracoes'] });
       queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
-      const novos = result.filter(r => !r.configExisted || r.taskCreated).length;
-      if (novos > 0) {
+
+      const errors = result.filter(r => !!r.error);
+      const novos = result.filter(r => !r.error && (!r.configExisted || r.taskCreated)).length;
+
+      if (errors.length > 0) {
+        // Sucesso parcial — mostra quais falharam
+        const failedNames = errors.map(r => CRM_PRODUTO_LABEL[r.produto]).join(', ');
+        toast.warning(`${novos} configuração(ões) criada(s), mas falhou para: ${failedNames}`, {
+          description: errors[0].error,
+        });
+      } else if (novos > 0) {
         toast.success(`${novos} configuração(ões) de CRM criada(s)`);
       } else {
         toast.info('Configurações já existiam — nada foi duplicado');

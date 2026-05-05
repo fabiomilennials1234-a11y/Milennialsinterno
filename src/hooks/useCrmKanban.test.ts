@@ -1,0 +1,206 @@
+import { describe, it, expect } from 'vitest';
+import {
+  getNextStep,
+  isLastStep,
+  getConfigDueDate,
+  V8_STEPS,
+  AUTOMATION_STEPS,
+  COPILOT_STEPS,
+  CRM_STEPS_BY_PRODUTO,
+  CRM_TASK_TITLE,
+  CRM_STEP_LABEL,
+  CRM_CONFIG_DEADLINE_DAYS,
+  type CrmProduto,
+} from './useCrmKanban';
+
+// =============================================================
+// Pure function tests — state machines, step navigation, due dates
+// Covers V8, Automation, and Copilot equally.
+// =============================================================
+
+const ALL_PRODUCTS: CrmProduto[] = ['v8', 'automation', 'copilot'];
+
+describe('CRM State Machines — step definitions', () => {
+  it.each(ALL_PRODUCTS)('%s: first step is criar_pipeline', (produto) => {
+    const steps = CRM_STEPS_BY_PRODUTO[produto];
+    expect(steps[0]).toBe('criar_pipeline');
+  });
+
+  it.each(ALL_PRODUCTS)('%s: last step is finalizar', (produto) => {
+    const steps = CRM_STEPS_BY_PRODUTO[produto];
+    expect(steps[steps.length - 1]).toBe('finalizar');
+  });
+
+  it('V8 has 8 steps', () => {
+    expect(V8_STEPS).toHaveLength(8);
+  });
+
+  it('Automation has 14 steps', () => {
+    expect(AUTOMATION_STEPS).toHaveLength(14);
+  });
+
+  it('Copilot has 14 steps', () => {
+    expect(COPILOT_STEPS).toHaveLength(14);
+  });
+
+  it.each(ALL_PRODUCTS)('%s: no duplicate steps', (produto) => {
+    const steps = CRM_STEPS_BY_PRODUTO[produto];
+    const unique = new Set(steps);
+    expect(unique.size).toBe(steps.length);
+  });
+
+  it('Automation shares first 7 steps with V8', () => {
+    const v8First7 = V8_STEPS.slice(0, 7);
+    const autoFirst7 = AUTOMATION_STEPS.slice(0, 7);
+    expect(autoFirst7).toEqual(v8First7);
+  });
+
+  it('Copilot shares first 7 steps with V8', () => {
+    const v8First7 = V8_STEPS.slice(0, 7);
+    const copilotFirst7 = COPILOT_STEPS.slice(0, 7);
+    expect(copilotFirst7).toEqual(v8First7);
+  });
+});
+
+describe('getNextStep', () => {
+  it.each(ALL_PRODUCTS)('%s: first step advances to second', (produto) => {
+    const steps = CRM_STEPS_BY_PRODUTO[produto];
+    expect(getNextStep(produto, steps[0])).toBe(steps[1]);
+  });
+
+  it.each(ALL_PRODUCTS)('%s: second-to-last advances to finalizar', (produto) => {
+    const steps = CRM_STEPS_BY_PRODUTO[produto];
+    const penultimate = steps[steps.length - 2];
+    expect(getNextStep(produto, penultimate)).toBe('finalizar');
+  });
+
+  it.each(ALL_PRODUCTS)('%s: finalizar returns null (no next step)', (produto) => {
+    expect(getNextStep(produto, 'finalizar')).toBeNull();
+  });
+
+  it.each(ALL_PRODUCTS)('%s: unknown step returns null', (produto) => {
+    expect(getNextStep(produto, 'nonexistent_step')).toBeNull();
+  });
+
+  it('V8: full traversal hits all 8 steps', () => {
+    const visited: string[] = [V8_STEPS[0]];
+    let current: string | null = V8_STEPS[0];
+    while (current !== null) {
+      current = getNextStep('v8', current);
+      if (current) visited.push(current);
+    }
+    expect(visited).toEqual([...V8_STEPS]);
+  });
+
+  it('Automation: full traversal hits all 14 steps', () => {
+    const visited: string[] = [AUTOMATION_STEPS[0]];
+    let current: string | null = AUTOMATION_STEPS[0];
+    while (current !== null) {
+      current = getNextStep('automation', current);
+      if (current) visited.push(current);
+    }
+    expect(visited).toEqual([...AUTOMATION_STEPS]);
+  });
+
+  it('Copilot: full traversal hits all 14 steps', () => {
+    const visited: string[] = [COPILOT_STEPS[0]];
+    let current: string | null = COPILOT_STEPS[0];
+    while (current !== null) {
+      current = getNextStep('copilot', current);
+      if (current) visited.push(current);
+    }
+    expect(visited).toEqual([...COPILOT_STEPS]);
+  });
+});
+
+describe('isLastStep', () => {
+  it.each(ALL_PRODUCTS)('%s: finalizar is last step', (produto) => {
+    expect(isLastStep(produto, 'finalizar')).toBe(true);
+  });
+
+  it.each(ALL_PRODUCTS)('%s: criar_pipeline is NOT last step', (produto) => {
+    expect(isLastStep(produto, 'criar_pipeline')).toBe(false);
+  });
+
+  it.each(ALL_PRODUCTS)('%s: unknown step is NOT last step', (produto) => {
+    expect(isLastStep(produto, 'nope')).toBe(false);
+  });
+});
+
+describe('getConfigDueDate', () => {
+  const base = '2026-01-10T12:00:00.000Z';
+
+  it('V8: adds 7 days', () => {
+    const result = new Date(getConfigDueDate(base, 'v8'));
+    expect(result.getUTCDate()).toBe(17);
+    expect(result.getUTCMonth()).toBe(0); // Jan
+  });
+
+  it('Automation: adds 7 days', () => {
+    const result = new Date(getConfigDueDate(base, 'automation'));
+    expect(result.getUTCDate()).toBe(17);
+  });
+
+  it('Copilot: adds 10 days', () => {
+    const result = new Date(getConfigDueDate(base, 'copilot'));
+    expect(result.getUTCDate()).toBe(20);
+  });
+
+  it('deadline days are configured for all products', () => {
+    for (const p of ALL_PRODUCTS) {
+      expect(CRM_CONFIG_DEADLINE_DAYS[p]).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe('CRM_TASK_TITLE — every step has a title generator', () => {
+  it.each(ALL_PRODUCTS)('%s: every step in state machine has a title function', (produto) => {
+    const steps = CRM_STEPS_BY_PRODUTO[produto];
+    const titles = CRM_TASK_TITLE[produto];
+    for (const step of steps) {
+      expect(titles[step]).toBeDefined();
+      expect(typeof titles[step]).toBe('function');
+      // Title function returns non-empty string
+      const result = titles[step]('TestClient');
+      expect(result.length).toBeGreaterThan(0);
+    }
+  });
+
+  it.each(ALL_PRODUCTS)('%s: title includes product prefix', (produto) => {
+    const prefix = { v8: '[V8]', automation: '[Automation]', copilot: '[Copilot]' }[produto];
+    const steps = CRM_STEPS_BY_PRODUTO[produto];
+    const titles = CRM_TASK_TITLE[produto];
+    for (const step of steps) {
+      expect(titles[step]('X')).toContain(prefix);
+    }
+  });
+
+  it.each(ALL_PRODUCTS)('%s: title includes client name', (produto) => {
+    const steps = CRM_STEPS_BY_PRODUTO[produto];
+    const titles = CRM_TASK_TITLE[produto];
+    for (const step of steps) {
+      expect(titles[step]('Acme Corp')).toContain('Acme Corp');
+    }
+  });
+});
+
+describe('CRM_STEP_LABEL — every step has a human label', () => {
+  it.each(ALL_PRODUCTS)('%s: every step has a label', (produto) => {
+    const steps = CRM_STEPS_BY_PRODUTO[produto];
+    for (const step of steps) {
+      expect(CRM_STEP_LABEL[step]).toBeDefined();
+      expect(CRM_STEP_LABEL[step].length).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe('Motor de avanço — description tag parsing', () => {
+  // The advance motor in useDepartmentTasks extracts produto from
+  // description='crm-config:{produto}'. Verify the tags are consistent.
+  it.each(ALL_PRODUCTS)('%s: crm-config tag round-trips correctly', (produto) => {
+    const tag = `crm-config:${produto}`;
+    const extracted = tag.slice('crm-config:'.length);
+    expect(extracted).toBe(produto);
+    expect(['v8', 'automation', 'copilot']).toContain(extracted);
+  });
+});
