@@ -164,13 +164,12 @@ async function createPaddockTask(
   template: TaskTemplate,
   clientName: string,
 ) {
-  // Robust duplicate check: look for ANY existing task (pending or not-done) with same type
+  // Check for ANY existing task (including done) to prevent duplicates.
   const { data: existingList } = await supabase
     .from('comercial_tasks')
     .select('id')
     .eq('related_client_id', clientId)
     .eq('auto_task_type', template.taskType)
-    .neq('status', 'done')
     .limit(1);
 
   if (existingList && existingList.length > 0) return existingList[0];

@@ -55,7 +55,6 @@ async function createPaddockTaskFromTemplate(userId: string, clientId: string, t
     .select('id')
     .eq('related_client_id', clientId)
     .eq('auto_task_type', template.taskType)
-    .neq('status', 'done')
     .limit(1);
 
   if (existingList && existingList.length > 0) return;
@@ -477,7 +476,6 @@ export function useUpdateComercialTaskStatus() {
               .select('id')
               .eq('related_client_id', clientId)
               .eq('description', confirmTag)
-              .neq('status', 'done')
               .limit(1);
 
             if (!existingConfirm || existingConfirm.length === 0) {
