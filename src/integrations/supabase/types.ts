@@ -13,31 +13,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       ads_daily_documentation: {
@@ -899,6 +874,44 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "client_call_forms_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_creative_usage: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          material_type: string
+          updated_at: string
+          used_count: number
+          year_month: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          material_type: string
+          updated_at?: string
+          used_count?: number
+          year_month: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          material_type?: string
+          updated_at?: string
+          used_count?: number
+          year_month?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_creative_usage_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
@@ -6030,6 +6043,51 @@ export type Database = {
           },
         ]
       }
+      recurring_task_templates: {
+        Row: {
+          created_at: string
+          created_by: string
+          department: string
+          description: string | null
+          id: string
+          is_active: boolean
+          priority: string
+          recurrence: string
+          target_role: Database["public"]["Enums"]["user_role"]
+          task_type: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          department: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          priority?: string
+          recurrence: string
+          target_role: Database["public"]["Enums"]["user_role"]
+          task_type?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          department?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          priority?: string
+          recurrence?: string
+          target_role?: Database["public"]["Enums"]["user_role"]
+          task_type?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       rh_atividades: {
         Row: {
           action: string
@@ -7665,6 +7723,7 @@ export type Database = {
       }
     }
     Functions: {
+      _cron_generate_recurring_tasks: { Args: never; Returns: number }
       admin_reconcile_user_page_grants: {
         Args: {
           _additional_pages?: string[]
@@ -7680,6 +7739,10 @@ export type Database = {
       assert_user_in_my_scope: {
         Args: { target_user_id: string }
         Returns: undefined
+      }
+      assign_crm_gestor: {
+        Args: { _client_id: string; _gestor_id: string }
+        Returns: Json
       }
       can_access_page_data: {
         Args: { _page_slug: string; _user_id: string }
@@ -7796,8 +7859,10 @@ export type Database = {
         Returns: undefined
       }
       generate_monthly_receivables: { Args: never; Returns: undefined }
+      generate_recurring_tasks: { Args: never; Returns: number }
       get_ceo_advanced_stats: { Args: never; Returns: Json }
       get_ceo_indicadores: { Args: { _month?: string }; Returns: Json }
+      get_ceo_stats: { Args: never; Returns: Json }
       get_ceo_stats_churn: { Args: never; Returns: Json }
       get_ceo_stats_client_labels: { Args: never; Returns: Json }
       get_ceo_stats_financial: { Args: never; Returns: Json }
@@ -7818,6 +7883,7 @@ export type Database = {
           user_role: string
         }[]
       }
+      get_dashboard_stats: { Args: never; Returns: Json }
       get_day_of_week_portuguese: { Args: never; Returns: string }
       get_financeiro_overview: { Args: never; Returns: Json }
       get_justifications_done_mine: {
@@ -7960,6 +8026,24 @@ export type Database = {
         Args: { p_payload: Json; p_target_step: string }
         Returns: Json
       }
+      increment_client_creatives: {
+        Args: { _client_id: string; _material_type: string; _quantity?: number }
+        Returns: {
+          client_id: string
+          created_at: string
+          id: string
+          material_type: string
+          updated_at: string
+          used_count: number
+          year_month: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "client_creative_usage"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_ceo: { Args: { _user_id: string }; Returns: boolean }
       is_executive: { Args: { _user_id: string }; Returns: boolean }
@@ -8007,6 +8091,7 @@ export type Database = {
           _card_type?: string
           _client_id?: string
           _column_id: string
+          _creatives_quantity?: number
           _description?: string
           _due_date?: string
           _priority?: string
@@ -8358,9 +8443,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       tech_sprint_status: ["PLANNING", "ACTIVE", "COMPLETED"],
@@ -8389,5 +8471,4 @@ export const Constants = {
     },
   },
 } as const
-A new version of Supabase CLI is available: v2.98.1 (currently installed v2.90.0)
-We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
+<claude-code-hint v="1" type="plugin" value="supabase@claude-plugins-official" />

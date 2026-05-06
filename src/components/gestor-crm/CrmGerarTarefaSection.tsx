@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Wand2, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Wand2, CheckCircle2, Clock, AlertCircle, UserPlus } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import CrmTarefaFormModal from './CrmTarefaFormModal';
 import { CRM_PRODUTO_LABEL, CRM_PRODUTO_COLOR, CRM_STEP_LABEL, type CrmProduto, getTorqueCrmProducts, getHighestProduct } from '@/hooks/useCrmKanban';
 
@@ -25,13 +27,16 @@ interface Props {
  */
 export default function CrmGerarTarefaSection({ clientId, clientName }: Props) {
   const [modalOpen, setModalOpen] = useState(false);
+  const [selectedGestor, setSelectedGestor] = useState<string>('');
+  const [assigning, setAssigning] = useState(false);
+  const queryClient = useQueryClient();
 
-  const { data: client } = useQuery({
+  const { data: client, refetch: refetchClient } = useQuery({
     queryKey: ['crm-gerar-tarefa-client', clientId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('clients')
-        .select('id, name, razao_social, contracted_products, torque_crm_products, assigned_crm')
+        .select('id, name, razao_social, contracted_products, torque_crm_products, assigned_crm, crm_status')
         .eq('id', clientId)
         .single();
       if (error) throw error;
@@ -50,6 +55,28 @@ export default function CrmGerarTarefaSection({ clientId, clientName }: Props) {
       if (error) throw error;
       return (data || []) as any[];
     },
+  });
+
+  // Fetch available CRM gestors for the selector (when client has no assigned_crm)
+  const { data: crmGestors = [] } = useQuery({
+    queryKey: ['crm-gestors-list'],
+    queryFn: async () => {
+      const { data: roles, error: rolesErr } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'gestor_crm');
+      if (rolesErr) throw rolesErr;
+      if (!roles || roles.length === 0) return [];
+
+      const ids = roles.map(r => r.user_id);
+      const { data: profiles, error: profErr } = await supabase
+        .from('profiles')
+        .select('user_id, name')
+        .in('user_id', ids);
+      if (profErr) throw profErr;
+      return (profiles || []) as { user_id: string; name: string }[];
+    },
+    staleTime: 5 * 60 * 1000,
   });
 
   if (!client) return null;
@@ -71,13 +98,71 @@ export default function CrmGerarTarefaSection({ clientId, clientName }: Props) {
     );
   }
 
+  const handleAssignGestor = async () => {
+    if (!selectedGestor) {
+      toast.error('Selecione um Gestor de CRM');
+      return;
+    }
+    setAssigning(true);
+    try {
+      const { error } = await supabase.rpc('assign_crm_gestor', {
+        _client_id: clientId,
+        _gestor_id: selectedGestor,
+      });
+      if (error) throw error;
+
+      toast.success('Gestor de CRM atribuido');
+      await refetchClient();
+      queryClient.invalidateQueries({ queryKey: ['crm-novos-clientes'] });
+      queryClient.invalidateQueries({ queryKey: ['crm-kanban-clients'] });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error('Erro ao atribuir gestor', { description: msg });
+    } finally {
+      setAssigning(false);
+    }
+  };
+
+  // No gestor assigned — show selector instead of blocking
   if (!gestorId) {
     return (
-      <div className="bg-muted/20 rounded-xl p-4 border border-border">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <AlertCircle size={16} />
-          Atribua um Gestor de CRM ao cliente para gerar tarefas.
+      <div className="bg-muted/20 rounded-xl p-4 border border-border space-y-3">
+        <div className="flex items-center gap-2">
+          <UserPlus className="w-4 h-4 text-amber-500" />
+          <h3 className="text-sm font-semibold text-foreground">Gestor de CRM</h3>
         </div>
+        <p className="text-xs text-muted-foreground">
+          Nenhum Gestor de CRM atribuido a este cliente. Selecione abaixo para gerar tarefas.
+        </p>
+        {crmGestors.length === 0 ? (
+          <p className="text-xs text-destructive">
+            Nenhum usuario com papel Gestor de CRM cadastrado no sistema.
+          </p>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Select value={selectedGestor} onValueChange={setSelectedGestor}>
+              <SelectTrigger className="w-full h-9 text-sm">
+                <SelectValue placeholder="Selecionar gestor..." />
+              </SelectTrigger>
+              <SelectContent>
+                {crmGestors.map(g => (
+                  <SelectItem key={g.user_id} value={g.user_id}>
+                    {g.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              size="sm"
+              onClick={handleAssignGestor}
+              disabled={!selectedGestor || assigning}
+              className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold gap-1.5 shrink-0"
+            >
+              <UserPlus size={14} />
+              {assigning ? 'Atribuindo...' : 'Atribuir'}
+            </Button>
+          </div>
+        )}
       </div>
     );
   }

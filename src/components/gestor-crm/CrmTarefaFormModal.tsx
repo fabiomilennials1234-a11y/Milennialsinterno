@@ -209,13 +209,22 @@ export default function CrmTarefaFormModal({
   const [copilotData, setCopilotData] = useState<CopilotFormData>(() => emptyCopilot(clientName));
   const [newPipelineItem, setNewPipelineItem] = useState<{ v8: string; auto: string }>({ v8: '', auto: '' });
 
+  // Stable key for availableProdutos to avoid re-running effect on every render
+  // (parent creates new array reference each cycle)
+  const produtosKey = availableProdutos.slice().sort().join(',');
+
   // Re-sincroniza quando o modal é reaberto pra outro cliente (props mudaram)
   useEffect(() => {
     setCurrentClient({ id: clientId, name: clientName });
     setV8Data(emptyV8(clientName));
     setAutoData(emptyAutomation(clientName));
     setCopilotData(emptyCopilot(clientName));
-  }, [clientId, clientName]);
+    // Reset product selection to match new client's highest product (defensive: bug fix for
+    // stale selection when modal is reused across clients with different product sets)
+    const newHighest = availableProdutos.length > 0 ? getHighestProduct(availableProdutos) : null;
+    setSelected(newHighest ? [newHighest] : []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- produtosKey is a stable serialization of availableProdutos
+  }, [clientId, clientName, produtosKey]);
 
   const clientOptions = useMemo(
     () =>
