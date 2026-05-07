@@ -12,7 +12,7 @@ import { useTechProjects, type TechProjectFilters } from '../hooks/useTechProjec
 import { useTechProfiles } from '../hooks/useProfiles';
 import { ProjectsKanbanView } from '../components/ProjectsKanbanView';
 import { ProjectFormModal } from '../components/ProjectFormModal';
-import { TeamMatrixView } from '../components/TeamMatrixView';
+import { TechTeamView } from '../components/TechTeamView';
 import { ProjectTasksView } from '../components/ProjectTasksView';
 import type { ProjectType, ProjectPriority } from '../lib/projectSteps';
 
@@ -187,7 +187,7 @@ export function ProjectsTab() {
         <ProjectsKanbanView projects={filteredProjects} isLoading={isLoading} />
       )}
 
-      {viewMode === 'equipe' && <TeamMatrixView />}
+      {viewMode === 'equipe' && <TechTeamView />}
 
       {viewMode === 'tarefas' && <ProjectTasksView />}
 
