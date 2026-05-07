@@ -32,6 +32,7 @@ import {
 } from '@/lib/kanbanCardOperations';
 import { upsertKanbanBriefing, type KanbanBriefingType } from '@/lib/kanbanBriefingOperations';
 import { createKanbanCardAttachment } from '@/lib/kanbanAttachmentOperations';
+import { useMultipleCardsAttachments } from '@/hooks/useCardAttachments';
 
 // ---------- Types ----------
 
@@ -161,6 +162,10 @@ export interface SpecializedBoardConfig {
 
   // Callbacks opcionais para transformar o payload antes do insert
   mapPriority?: (priority: BaseCardInput['priority']) => string;
+
+  // Thumbnails: mostra cover do primeiro anexo de imagem no card (estilo Trello).
+  // Ativo apenas no board de Design.
+  showCardThumbnails?: boolean;
 
   // Labels customizáveis
   labels?: {
@@ -335,6 +340,11 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
   // Creators map por card
   const cardIds = cards.map(c => c.id);
   const { data: cardCreators = {} } = config.useCardCreators(cardIds);
+
+  // -------- Thumbnails (batch-fetch de anexos de imagem para os cards) --------
+  const { data: cardAttachmentsMap = {} } = useMultipleCardsAttachments(
+    config.showCardThumbnails ? cardIds : []
+  );
 
   // -------- Sync colunas por pessoa --------
   const ensureColumnsMutation = useMutation({
@@ -834,6 +844,12 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
                                     {(provided, snapshot) => {
                                       const overdue = isCardOverdue(card);
                                       const hasJustification = card.justification;
+                                      // Thumbnail: first image attachment for this card
+                                      const cardCoverUrl = config.showCardThumbnails
+                                        ? (cardAttachmentsMap[card.id] ?? []).find(
+                                            a => a.file_type?.startsWith('image/')
+                                          )?.file_url ?? null
+                                        : null;
                                       return (
                                         <div
                                           ref={provided.innerRef}
@@ -841,11 +857,25 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
                                           {...provided.dragHandleProps}
                                           onClick={() => handleCardClick(card)}
                                           className={cn(
-                                            'kanban-card group p-3.5 bg-card rounded-xl border cursor-pointer',
+                                            'kanban-card group bg-card rounded-xl border cursor-pointer overflow-hidden',
+                                            !cardCoverUrl && 'p-3.5',
                                             snapshot.isDragging && 'kanban-card-dragging',
                                             overdue && !hasJustification ? 'border-danger/60' : 'border-border'
                                           )}
                                         >
+                                          {/* Cover thumbnail — first image attachment */}
+                                          {cardCoverUrl && (
+                                            <div className="aspect-video w-full overflow-hidden bg-muted/30">
+                                              <img
+                                                src={cardCoverUrl}
+                                                alt=""
+                                                loading="lazy"
+                                                className="w-full h-full object-cover"
+                                              />
+                                            </div>
+                                          )}
+                                          {/* Card content — padded when cover exists */}
+                                          <div className={cn(cardCoverUrl && 'p-3.5')}>
                                           <div className="flex items-center gap-1.5 mb-2 min-h-[16px]">
                                             {card.priority === 'urgent' && (
                                               <Flag
@@ -931,6 +961,7 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
                                               </DropdownMenu>
                                             )}
                                           </div>
+                                          </div>{/* /card content wrapper */}
                                         </div>
                                       );
                                     }}

@@ -57,6 +57,7 @@ export default function DesignKanbanBoard() {
         createModalColumnPropName: 'designerColumns',
         createSuccessMessage: 'Demanda de design criada com sucesso',
         cardDetailFlags: { isDesignBoard: true },
+        showCardThumbnails: true,
         briefing: {
           tableName: 'design_briefings',
           briefingType: 'design',
