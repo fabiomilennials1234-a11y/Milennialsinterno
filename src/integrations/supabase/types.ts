@@ -3959,6 +3959,7 @@ export type Database = {
         Row: {
           board_id: string
           color: string | null
+          cover_image_url: string | null
           created_at: string
           id: string
           position: number
@@ -3967,6 +3968,7 @@ export type Database = {
         Insert: {
           board_id: string
           color?: string | null
+          cover_image_url?: string | null
           created_at?: string
           id?: string
           position?: number
@@ -3975,6 +3977,7 @@ export type Database = {
         Update: {
           board_id?: string
           color?: string | null
+          cover_image_url?: string | null
           created_at?: string
           id?: string
           position?: number

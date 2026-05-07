@@ -2,7 +2,7 @@
 // Recebe config descrevendo o que muda por domínio e renderiza tudo.
 // Ver docs/operations/plan-consolidate-specialized-boards.md.
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,6 +10,7 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import {
   Plus, User, ChevronDown, ChevronRight, MoreHorizontal,
   Archive, Trash2, Calendar, AlertTriangle, FileText, UserCircle, Flag,
+  ImagePlus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -53,6 +54,7 @@ export interface BoardColumn {
   position: number;
   board_id: string;
   color: string | null;
+  cover_image_url: string | null;
 }
 
 export interface CreateCardModalProps {
@@ -167,6 +169,10 @@ export interface SpecializedBoardConfig {
   // Ativo apenas no board de Design.
   showCardThumbnails?: boolean;
 
+  // Column cover images: Trello-style banner at the top of each column.
+  // Only CEO/CTO can upload/change. Active only on Design board.
+  showColumnCovers?: boolean;
+
   // Labels customizáveis
   labels?: {
     noBoardMessage?: string;
@@ -199,8 +205,9 @@ function getPersonNameFromJustificationColumn(title: string): string | null {
 // ---------- Main ----------
 
 export default function SpecializedKanbanBoard({ config }: { config: SpecializedBoardConfig }) {
-  const { user } = useAuth();
+  const { user, isCEO } = useAuth();
   const queryClient = useQueryClient();
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedColumnId, setSelectedColumnId] = useState<string | null>(null);
@@ -597,6 +604,73 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
     },
   });
 
+  // -------- Column cover image upload (Design board only) --------
+
+  const uploadColumnCoverMutation = useMutation({
+    mutationFn: async ({ columnId, file }: { columnId: string; file: File }) => {
+      const safeName = sanitizeFileName(file.name);
+      const filePath = `column-covers/${columnId}/${Date.now()}_${safeName}`;
+      const { error: uploadError } = await supabase.storage
+        .from('card-attachments')
+        .upload(filePath, file, { upsert: false, contentType: file.type });
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('card-attachments')
+        .getPublicUrl(filePath);
+
+      const { error: updateError } = await supabase
+        .from('kanban_columns')
+        .update({ cover_image_url: urlData.publicUrl })
+        .eq('id', columnId);
+      if (updateError) throw updateError;
+
+      return urlData.publicUrl;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [`${config.boardQueryKeyPrefix}-columns`, board?.id],
+      });
+      toast.success('Capa da coluna atualizada');
+    },
+    onError: (error: unknown) => {
+      console.error('Cover upload error:', error);
+      toast.error('Erro ao atualizar capa da coluna');
+    },
+  });
+
+  // Ref to hold the target column id for cover upload — avoids stale closure.
+  const coverUploadColumnIdRef = useRef<string | null>(null);
+
+  const handleCoverFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      const columnId = coverUploadColumnIdRef.current;
+      if (!file || !columnId) return;
+      // Accept only images, max 5 MB
+      if (!file.type.startsWith('image/')) {
+        toast.error('Selecione um arquivo de imagem');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Imagem muito grande (máx. 5 MB)');
+        return;
+      }
+      uploadColumnCoverMutation.mutate({ columnId, file });
+      // Reset input so same file can be re-selected
+      e.target.value = '';
+    },
+    [uploadColumnCoverMutation],
+  );
+
+  const triggerCoverUpload = useCallback(
+    (columnId: string) => {
+      coverUploadColumnIdRef.current = columnId;
+      coverInputRef.current?.click();
+    },
+    [],
+  );
+
   // -------- Handlers --------
 
   const handleDragEnd = (result: DropResult) => {
@@ -799,6 +873,42 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
                     )}
                   </div>
                 </div>
+
+                {/* Column cover image — Design board only */}
+                {config.showColumnCovers && (
+                  <div className="relative group/cover shrink-0">
+                    {column.cover_image_url ? (
+                      <div className="relative">
+                        <img
+                          src={column.cover_image_url}
+                          alt=""
+                          className="w-full h-[120px] object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover/cover:opacity-100 transition-opacity" />
+                        {isCEO && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute bottom-2 right-2 h-7 w-7 bg-black/50 backdrop-blur-sm text-white/90 opacity-0 group-hover/cover:opacity-100 transition-opacity hover:bg-black/70 hover:text-white"
+                            onClick={() => triggerCoverUpload(column.id)}
+                            disabled={uploadColumnCoverMutation.isPending}
+                          >
+                            <ImagePlus size={14} />
+                          </Button>
+                        )}
+                      </div>
+                    ) : isCEO ? (
+                      <button
+                        onClick={() => triggerCoverUpload(column.id)}
+                        disabled={uploadColumnCoverMutation.isPending}
+                        className="w-full h-[60px] border-b border-dashed border-border/60 flex items-center justify-center gap-2 text-muted-foreground/40 hover:text-muted-foreground/70 hover:bg-muted/20 transition-colors"
+                      >
+                        <ImagePlus size={14} />
+                        <span className="text-[11px] font-medium">Adicionar capa</span>
+                      </button>
+                    ) : null}
+                  </div>
+                )}
 
                 <div className="flex-1 overflow-y-auto scrollbar-apple">
                   {config.statuses.map((status) => {
@@ -1024,6 +1134,17 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
           isOpen={isDelayModalOpen}
           onClose={() => setIsDelayModalOpen(false)}
           delayedCards={delayedCards}
+        />
+      )}
+
+      {/* Hidden file input for column cover uploads */}
+      {config.showColumnCovers && isCEO && (
+        <input
+          ref={coverInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleCoverFileChange}
         />
       )}
     </>

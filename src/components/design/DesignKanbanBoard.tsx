@@ -58,6 +58,7 @@ export default function DesignKanbanBoard() {
         createSuccessMessage: 'Demanda de design criada com sucesso',
         cardDetailFlags: { isDesignBoard: true },
         showCardThumbnails: true,
+        showColumnCovers: true,
         briefing: {
           tableName: 'design_briefings',
           briefingType: 'design',
