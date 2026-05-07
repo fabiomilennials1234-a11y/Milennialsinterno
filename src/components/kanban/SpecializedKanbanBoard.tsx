@@ -851,6 +851,8 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
                 key={column.id}
                 className="kanban-column w-[340px] flex-shrink-0 flex flex-col bg-card rounded-2xl border border-border overflow-hidden"
               >
+                {/* Sticky header + cover — stays fixed while cards scroll */}
+                <div className="shrink-0 sticky top-0 z-10 bg-card">
                 <div className="px-4 pt-4 pb-3">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', config.columnDotClass)} />
@@ -882,7 +884,7 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
                         <img
                           src={column.cover_image_url}
                           alt=""
-                          className="w-full h-[120px] object-cover"
+                          className="w-full h-[180px] object-cover"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover/cover:opacity-100 transition-opacity" />
                         {isCEO && (
@@ -901,7 +903,7 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
                       <button
                         onClick={() => triggerCoverUpload(column.id)}
                         disabled={uploadColumnCoverMutation.isPending}
-                        className="w-full h-[60px] border-b border-dashed border-border/60 flex items-center justify-center gap-2 text-muted-foreground/40 hover:text-muted-foreground/70 hover:bg-muted/20 transition-colors"
+                        className="w-full h-[80px] border-b border-dashed border-border/60 flex items-center justify-center gap-2 text-muted-foreground/40 hover:text-muted-foreground/70 hover:bg-muted/20 transition-colors"
                       >
                         <ImagePlus size={14} />
                         <span className="text-[11px] font-medium">Adicionar capa</span>
@@ -909,6 +911,7 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
                     ) : null}
                   </div>
                 )}
+                </div>{/* /sticky header+cover */}
 
                 <div className="flex-1 overflow-y-auto scrollbar-apple">
                   {config.statuses.map((status) => {
