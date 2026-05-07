@@ -168,6 +168,23 @@ const EXPECTATIVAS_META: Record<string, FunnelExpectativa> = {
       'Requer consistência de conteúdo para retenção',
     ],
   },
+  site_cadastro: {
+    title: 'Site -> Cadastro',
+    icon: FileText,
+    custoMedio: 'CPL médio de R$ 15-50 por lead qualificado',
+    problemasPrimeiraMoment: [
+      'Taxa de conversão da LP depende da qualidade da copy',
+      'Formulário do site pode ter carregamento lento',
+      'Leads de regiões indesejadas podem aparecer',
+      'CRM precisa estar integrado corretamente ao site',
+    ],
+    expectativasRealistas: [
+      'Primeiros 10-14 dias são de calibragem da LP e formulário',
+      'Copy da LP precisa de testes A/B para otimizar conversão',
+      'Taxa de conversão de LP esperada: 15-35%',
+      'Leads qualificados: 70-85% dos cadastrados',
+    ],
+  },
 };
 
 const EXPECTATIVAS_GOOGLE: Record<string, FunnelExpectativa> = {
@@ -273,6 +290,7 @@ interface Props {
   metaDisparoEmail?: any;
   metaGrupoVip?: any;
   metaAumentoBase?: any;
+  metaSiteCadastro?: any;
   googlePmax?: any;
   googlePesquisa?: any;
   googleDisplay?: any;
@@ -292,6 +310,7 @@ export default function StrategyExpectativaSection({
   metaDisparoEmail,
   metaGrupoVip,
   metaAumentoBase,
+  metaSiteCadastro,
   googlePmax,
   googlePesquisa,
   googleDisplay,
@@ -310,6 +329,7 @@ export default function StrategyExpectativaSection({
     if (metaDisparoEmail?.enabled) enabledFunnels.push(EXPECTATIVAS_META.disparo_email);
     if (metaGrupoVip?.enabled) enabledFunnels.push(EXPECTATIVAS_META.grupo_vip);
     if (metaAumentoBase?.enabled) enabledFunnels.push(EXPECTATIVAS_META.aumento_base);
+    if (metaSiteCadastro?.enabled) enabledFunnels.push(EXPECTATIVAS_META.site_cadastro);
   }
 
   if (googleEnabled) {

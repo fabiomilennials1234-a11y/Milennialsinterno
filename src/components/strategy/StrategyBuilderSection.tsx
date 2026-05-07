@@ -79,6 +79,7 @@ export default function StrategyBuilderSection({ clientId, clientName }: Strateg
     if (strategy.meta_disparo_email?.enabled) count++;
     if (strategy.meta_grupo_vip?.enabled) count++;
     if (strategy.meta_aumento_base?.enabled) count++;
+    if (strategy.meta_site_cadastro?.enabled) count++;
     if (strategy.google_pmax?.enabled) count++;
     if (strategy.google_pesquisa?.enabled) count++;
     if (strategy.google_display?.enabled) count++;

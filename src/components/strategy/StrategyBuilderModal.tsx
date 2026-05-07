@@ -71,6 +71,7 @@ export default function StrategyBuilderModal({
   const [metaDisparoEmail, setMetaDisparoEmail] = useState(existingStrategy?.meta_disparo_email || { enabled: false, budget: 0 });
   const [metaGrupoVip, setMetaGrupoVip] = useState(existingStrategy?.meta_grupo_vip || { enabled: false, budget: 0 });
   const [metaAumentoBase, setMetaAumentoBase] = useState(existingStrategy?.meta_aumento_base || { enabled: false, budget: 0 });
+  const [metaSiteCadastro, setMetaSiteCadastro] = useState(existingStrategy?.meta_site_cadastro || { enabled: false, budget: 0 });
 
   // Google funnels
   const [googlePmax, setGooglePmax] = useState(existingStrategy?.google_pmax || { enabled: false, budget: 0 });
@@ -137,6 +138,25 @@ export default function StrategyBuilderModal({
       }
     }
 
+    // Site -> Cadastro: campos obrigatórios quando habilitado
+    if (metaEnabled && metaSiteCadastro.enabled) {
+      if (!metaSiteCadastro.cadastro_title?.trim()) {
+        return 'Título do Cadastro é obrigatório para Site -> Cadastro';
+      }
+      if (!metaSiteCadastro.cadastro_description?.trim()) {
+        return 'Descrição do Cadastro é obrigatória para Site -> Cadastro';
+      }
+      if (!metaSiteCadastro.cadastro_questions?.trim()) {
+        return 'Perguntas do Formulário são obrigatórias para Site -> Cadastro';
+      }
+      if (!metaSiteCadastro.ty_page_lead?.trim()) {
+        return 'Página de Obrigado para Lead é obrigatória para Site -> Cadastro';
+      }
+      if (!metaSiteCadastro.ty_page_non_lead?.trim()) {
+        return 'Página de Obrigado para Não Lead é obrigatória para Site -> Cadastro';
+      }
+    }
+
     // Check if at least one funnel is active per enabled platform (include custom funnels)
     if (metaEnabled) {
       const hasBuiltInMeta =
@@ -147,7 +167,8 @@ export default function StrategyBuilderModal({
         metaCaptacaoSdr.enabled ||
         metaDisparoEmail.enabled ||
         metaGrupoVip.enabled ||
-        metaAumentoBase.enabled;
+        metaAumentoBase.enabled ||
+        metaSiteCadastro.enabled;
       const hasCustomMeta = metaTemplates.some(t => customFunnels[t.id]?.enabled);
 
       if (!hasBuiltInMeta && !hasCustomMeta) {
@@ -207,6 +228,7 @@ export default function StrategyBuilderModal({
       meta_disparo_email: metaEnabled && metaDisparoEmail.enabled ? metaDisparoEmail : null,
       meta_grupo_vip: metaEnabled && metaGrupoVip.enabled ? metaGrupoVip : null,
       meta_aumento_base: metaEnabled && metaAumentoBase.enabled ? metaAumentoBase : null,
+      meta_site_cadastro: metaEnabled && metaSiteCadastro.enabled ? metaSiteCadastro : null,
       google_pmax: googleEnabled && googlePmax.enabled ? googlePmax : null,
       google_pesquisa: googleEnabled && googlePesquisa.enabled ? googlePesquisa : null,
       google_display: googleEnabled && googleDisplay.enabled ? googleDisplay : null,
@@ -290,6 +312,8 @@ export default function StrategyBuilderModal({
                     setGrupoVip={setMetaGrupoVip}
                     aumentoBase={metaAumentoBase}
                     setAumentoBase={setMetaAumentoBase}
+                    siteCadastro={metaSiteCadastro}
+                    setSiteCadastro={setMetaSiteCadastro}
                   />
                   {metaTemplates.length > 0 && (
                     <CustomFunnelCards

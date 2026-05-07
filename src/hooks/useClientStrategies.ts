@@ -20,8 +20,10 @@ export interface MetaStrategy {
   cadastro_questions?: string;
   ty_page_lead?: string;
   ty_page_non_lead?: string;
-  // Millennials Call specific
+  // Millennials Call / Site Cadastro specific
   lp_url?: string;
+  // Site -> Cadastro specific
+  lp_copy?: string;
   // Grupo VIP specific
   welcome_message?: string;
   auto_response?: string;
@@ -66,6 +68,7 @@ export interface ClientStrategy {
   meta_disparo_email: MetaStrategy | null;
   meta_grupo_vip: MetaStrategy | null;
   meta_aumento_base: MetaStrategy | null;
+  meta_site_cadastro: MetaStrategy | null;
   google_pmax: GoogleStrategy | null;
   google_pesquisa: GoogleStrategy | null;
   google_display: GoogleStrategy | null;

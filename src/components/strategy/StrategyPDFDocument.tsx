@@ -783,6 +783,23 @@ const FUNNEL_DETAILS = {
       'Base pronta para nutrição e qualificação posterior',
     ],
   },
+  site_cadastro: {
+    title: 'Site -> Cadastro',
+    tagline: 'LP + Filtros Inteligentes para Alta Conversão',
+    description: 'O Site -> Cadastro combina o poder dos anúncios Meta com a Landing Page personalizada do cliente. O lead é direcionado para o site com copy otimizada e formulário de cadastro qualificador com CNPJ obrigatório, filtro de região e integração com CRM.',
+    example: 'Uma indústria de embalagens pode usar esta estratégia criando uma LP com copy focada em "Reduza seus custos de embalagem em 30%". O formulário pede CNPJ, volume mensal e região, e os leads qualificados caem direto no Pipedrive do time comercial.',
+    howItWorks: [
+      'Anúncios Meta direcionando para site/LP do cliente com copy personalizada de alta conversão',
+      'Formulário de cadastro com filtros inteligentes: CNPJ obrigatório e pergunta de região',
+      'Leads caem automaticamente no CRM do cliente ou CRM gratuito criado por nós',
+      'Automação de disparo de mensagem inicial para novos leads cadastrados',
+    ],
+    benefits: [
+      'Copy personalizada da LP maximiza taxa de conversão',
+      'Filtro de CNPJ elimina curiosos automaticamente',
+      'Experiência completa no site do cliente fortalece a marca',
+    ],
+  },
   google_pmax: {
     title: 'Google Performance Max',
     tagline: 'Inteligência Artificial do Google a Seu Favor',
@@ -959,6 +976,12 @@ const MetaFunnelCard = ({ funnelKey, funnel }: { funnelKey: string; funnel: Meta
             <Text style={styles.funnelDetailValue}>Configurada ✓</Text>
           </View>
         )}
+        {funnel.lp_copy && (
+          <View style={styles.funnelDetail}>
+            <Text style={styles.funnelDetailLabel}>Copy da LP</Text>
+            <Text style={styles.funnelDetailValue}>Configurada ✓</Text>
+          </View>
+        )}
       </View>
       
       <View style={styles.howItWorks}>
@@ -1123,6 +1146,7 @@ const countEnabledFunnels = (strategy: ClientStrategy) => {
   if ((strategy.meta_disparo_email as MetaStrategy)?.enabled) count++;
   if ((strategy.meta_grupo_vip as MetaStrategy)?.enabled) count++;
   if ((strategy.meta_aumento_base as MetaStrategy)?.enabled) count++;
+  if ((strategy.meta_site_cadastro as MetaStrategy)?.enabled) count++;
   if ((strategy.google_pmax as GoogleStrategy)?.enabled) count++;
   if ((strategy.google_pesquisa as GoogleStrategy)?.enabled) count++;
   if ((strategy.google_display as GoogleStrategy)?.enabled) count++;
@@ -1147,17 +1171,19 @@ const calculateTotalBudget = (strategy: ClientStrategy) => {
     total += (strategy.meta_disparo_email as MetaStrategy).budget || 0;
   if ((strategy.meta_grupo_vip as MetaStrategy)?.enabled) 
     total += (strategy.meta_grupo_vip as MetaStrategy).budget || 0;
-  if ((strategy.meta_aumento_base as MetaStrategy)?.enabled) 
+  if ((strategy.meta_aumento_base as MetaStrategy)?.enabled)
     total += (strategy.meta_aumento_base as MetaStrategy).budget || 0;
-  if ((strategy.google_pmax as GoogleStrategy)?.enabled) 
+  if ((strategy.meta_site_cadastro as MetaStrategy)?.enabled)
+    total += (strategy.meta_site_cadastro as MetaStrategy).budget || 0;
+  if ((strategy.google_pmax as GoogleStrategy)?.enabled)
     total += (strategy.google_pmax as GoogleStrategy).budget || 0;
-  if ((strategy.google_pesquisa as GoogleStrategy)?.enabled) 
+  if ((strategy.google_pesquisa as GoogleStrategy)?.enabled)
     total += (strategy.google_pesquisa as GoogleStrategy).budget || 0;
-  if ((strategy.google_display as GoogleStrategy)?.enabled) 
+  if ((strategy.google_display as GoogleStrategy)?.enabled)
     total += (strategy.google_display as GoogleStrategy).budget || 0;
-  if ((strategy.linkedin_vagas as LinkedInStrategy)?.enabled) 
+  if ((strategy.linkedin_vagas as LinkedInStrategy)?.enabled)
     total += (strategy.linkedin_vagas as LinkedInStrategy).budget || 0;
-  if ((strategy.linkedin_cadastro as LinkedInStrategy)?.enabled) 
+  if ((strategy.linkedin_cadastro as LinkedInStrategy)?.enabled)
     total += (strategy.linkedin_cadastro as LinkedInStrategy).budget || 0;
   return total;
 };
@@ -1186,8 +1212,10 @@ const calculateMetaBudget = (strategy: ClientStrategy) => {
     total += (strategy.meta_disparo_email as MetaStrategy).budget || 0;
   if ((strategy.meta_grupo_vip as MetaStrategy)?.enabled) 
     total += (strategy.meta_grupo_vip as MetaStrategy).budget || 0;
-  if ((strategy.meta_aumento_base as MetaStrategy)?.enabled) 
+  if ((strategy.meta_aumento_base as MetaStrategy)?.enabled)
     total += (strategy.meta_aumento_base as MetaStrategy).budget || 0;
+  if ((strategy.meta_site_cadastro as MetaStrategy)?.enabled)
+    total += (strategy.meta_site_cadastro as MetaStrategy).budget || 0;
   return total;
 };
 
@@ -1366,6 +1394,7 @@ export default function StrategyPDFDocument({ strategy, clientName }: StrategyPD
                 <MetaFunnelCard funnelKey="disparo_email" funnel={strategy.meta_disparo_email as MetaStrategy} />
                 <MetaFunnelCard funnelKey="grupo_vip" funnel={strategy.meta_grupo_vip as MetaStrategy} />
                 <MetaFunnelCard funnelKey="aumento_base" funnel={strategy.meta_aumento_base as MetaStrategy} />
+                <MetaFunnelCard funnelKey="site_cadastro" funnel={strategy.meta_site_cadastro as MetaStrategy} />
               </View>
             </View>
           </View>

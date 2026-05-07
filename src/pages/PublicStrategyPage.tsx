@@ -330,7 +330,49 @@ Incluímos consultoria de produção de conteúdo para otimizar a retenção dos
       'Estratégia de longo prazo para construção de audiência',
     ],
   },
-  
+  site_cadastro: {
+    title: 'Site -> Cadastro',
+    tagline: 'LP + Filtros Inteligentes',
+    icon: FileText,
+    description: 'Estratégia de cadastro via site/LP do cliente. Anúncios direcionam para o site com formulário de cadastro qualificador, incluindo copy personalizada da Landing Page.',
+    detailedDescription: `Esta estratégia combina o poder dos anúncios Meta com a Landing Page do cliente. Diferente do Millennials Cadastro (que usa formulários nativos do Facebook), aqui o lead é direcionado para o site/LP do cliente.
+
+A LP recebe copy personalizada para maximizar conversão. O formulário de cadastro funciona como filtro inteligente, com CNPJ obrigatório e perguntas anti-turista.
+
+Todos os Advantage serão desativados para controle total. Leads caem no CRM do cliente ou criamos um gratuito.`,
+    howItWorks: [
+      'Anúncios Meta direcionando para site/LP do cliente',
+      'Landing Page com copy personalizada para alta conversão',
+      'Formulário de cadastro com filtros inteligentes (CNPJ, região)',
+      'Leads caem no CRM do cliente ou CRM gratuito criado por nós',
+    ],
+    benefits: [
+      'Copy personalizada da LP maximiza conversão',
+      'Filtro de CNPJ elimina curiosos automaticamente',
+      'Integração com CRM existente ou criação gratuita',
+      'Controle total sobre a experiência do lead no site',
+    ],
+    metrics: ['CPL Médio: R$ 15-50', 'Taxa de Qualificação: 75%+', 'Conversão de LP: 15-35%'],
+    configItems: [
+      { key: 'has_crm', label: 'Cliente possui CRM', icon: Database, isBoolean: true },
+      { key: 'crm_name', label: 'Nome do CRM', icon: Database },
+      { key: 'initial_dispatch_message', label: 'Mensagem de Disparo Inicial', icon: Bot },
+      { key: 'lp_copy', label: 'Copy da LP', icon: FileText },
+      { key: 'cadastro_title', label: 'Título do Cadastro', icon: FileText },
+      { key: 'cadastro_description', label: 'Descrição do Cadastro', icon: FileText },
+      { key: 'cadastro_questions', label: 'Perguntas do Formulário', icon: FileText },
+      { key: 'ty_page_lead', label: 'Página de Obrigado (Lead)', icon: Link2, isLink: true },
+      { key: 'ty_page_non_lead', label: 'Página de Obrigado (Não Lead)', icon: Link2, isLink: true },
+      { key: 'scripts_url', label: 'Roteiros', icon: FileText, isLink: true },
+    ],
+    importantNotes: [
+      'Todos os Advantage serão desativados',
+      'Copy da LP deve ser aprovada pelo cliente antes de publicar',
+      'Automação de disparo automático para todo novo lead',
+      'Se cliente não tiver CRM, criamos um gratuito',
+    ],
+  },
+
   // ================================
   // GOOGLE FUNNELS
   // ================================
@@ -703,6 +745,7 @@ export default function PublicStrategyPage() {
       strategy.meta_disparo_email,
       strategy.meta_grupo_vip,
       strategy.meta_aumento_base,
+      strategy.meta_site_cadastro,
     ];
     const googleFunnels = [
       strategy.google_pmax,
@@ -740,6 +783,7 @@ export default function PublicStrategyPage() {
     if (strategy.meta_disparo_email?.enabled) count++;
     if (strategy.meta_grupo_vip?.enabled) count++;
     if (strategy.meta_aumento_base?.enabled) count++;
+    if (strategy.meta_site_cadastro?.enabled) count++;
     if (strategy.google_pmax?.enabled) count++;
     if (strategy.google_pesquisa?.enabled) count++;
     if (strategy.google_display?.enabled) count++;
@@ -1505,6 +1549,7 @@ export default function PublicStrategyPage() {
               {renderFunnelCard('disparo_email', strategy.meta_disparo_email, 'meta')}
               {renderFunnelCard('grupo_vip', strategy.meta_grupo_vip, 'meta')}
               {renderFunnelCard('aumento_base', strategy.meta_aumento_base, 'meta')}
+              {renderFunnelCard('site_cadastro', strategy.meta_site_cadastro, 'meta')}
               {Object.keys(customFunnels).map(tid => renderCustomFunnelCard(tid, 'meta'))}
             </div>
           </div>
@@ -1666,6 +1711,7 @@ export default function PublicStrategyPage() {
         metaDisparoEmail={strategy.meta_disparo_email}
         metaGrupoVip={strategy.meta_grupo_vip}
         metaAumentoBase={strategy.meta_aumento_base}
+        metaSiteCadastro={strategy.meta_site_cadastro}
         googlePmax={strategy.google_pmax}
         googlePesquisa={strategy.google_pesquisa}
         googleDisplay={strategy.google_display}

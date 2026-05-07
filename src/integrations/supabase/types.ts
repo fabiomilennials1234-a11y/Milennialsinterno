@@ -1421,6 +1421,7 @@ export type Database = {
           meta_millennials_cadastro: Json | null
           meta_millennials_call: Json | null
           meta_millennials_mensagem: Json | null
+          meta_site_cadastro: Json | null
           minimum_investment: number | null
           profile_bio: Json | null
           profile_destaques: Json | null
@@ -1456,6 +1457,7 @@ export type Database = {
           meta_millennials_cadastro?: Json | null
           meta_millennials_call?: Json | null
           meta_millennials_mensagem?: Json | null
+          meta_site_cadastro?: Json | null
           minimum_investment?: number | null
           profile_bio?: Json | null
           profile_destaques?: Json | null
@@ -1491,6 +1493,7 @@ export type Database = {
           meta_millennials_cadastro?: Json | null
           meta_millennials_call?: Json | null
           meta_millennials_mensagem?: Json | null
+          meta_site_cadastro?: Json | null
           minimum_investment?: number | null
           profile_bio?: Json | null
           profile_destaques?: Json | null

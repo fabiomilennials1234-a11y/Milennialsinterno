@@ -77,6 +77,8 @@ interface StrategyMetaFunnelsProps {
   setGrupoVip: (value: MetaStrategy) => void;
   aumentoBase: MetaStrategy;
   setAumentoBase: (value: MetaStrategy) => void;
+  siteCadastro: MetaStrategy;
+  setSiteCadastro: (value: MetaStrategy) => void;
 }
 
 export default function StrategyMetaFunnels({
@@ -96,6 +98,8 @@ export default function StrategyMetaFunnels({
   setGrupoVip,
   aumentoBase,
   setAumentoBase,
+  siteCadastro,
+  setSiteCadastro,
 }: StrategyMetaFunnelsProps) {
   return (
     <div className="space-y-4">
@@ -340,6 +344,164 @@ export default function StrategyMetaFunnels({
                   <Input
                     value={millennialsCadastro.ty_page_non_lead || ''}
                     onChange={(e) => setMillennialsCadastro({ ...millennialsCadastro, ty_page_non_lead: e.target.value })}
+                    placeholder="https://..."
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </FunnelCard>
+
+        {/* Site -> Cadastro */}
+        <FunnelCard
+          title="Site -> Cadastro"
+          description="Estratégia de cadastro via site/LP do cliente, com os mesmos filtros do Millennials Cadastro + copy personalizada da LP"
+          icon={<FileText className="w-5 h-5 text-white" />}
+          color="bg-gradient-to-br from-emerald-500 to-teal-600"
+          enabled={siteCadastro.enabled}
+          setEnabled={(v) => setSiteCadastro({ ...siteCadastro, enabled: v })}
+        >
+          <div className="space-y-4">
+            <div className="p-3 bg-info/10 rounded-lg text-sm text-info border border-info/20">
+              <strong>Como funciona:</strong>
+              <ul className="list-disc ml-4 mt-2 space-y-1">
+                <li>Anúncios direcionam para o site/LP do cliente</li>
+                <li>Cadastro com filtros inteligentes (CNPJ, região)</li>
+                <li>Leads caem no CRM (do cliente ou criamos um gratuito)</li>
+                <li>Copy personalizada da LP para maximizar conversão</li>
+                <li>Todos os Advantage+ serão desativados</li>
+              </ul>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <DollarSign className="w-4 h-4" />
+                  Verba Mensal (R$)
+                </Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={siteCadastro.budget || ''}
+                  onChange={(e) => setSiteCadastro({ ...siteCadastro, budget: Number(e.target.value) })}
+                  placeholder="Ex: 2000"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Cliente possui CRM?</Label>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={siteCadastro.has_crm || false}
+                    onCheckedChange={(v) => setSiteCadastro({ ...siteCadastro, has_crm: v })}
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    {siteCadastro.has_crm ? 'Sim' : 'Não (criaremos um gratuito)'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {siteCadastro.has_crm && (
+              <div className="space-y-2">
+                <Label>Qual CRM o cliente usa?</Label>
+                <Input
+                  value={siteCadastro.crm_name || ''}
+                  onChange={(e) => setSiteCadastro({ ...siteCadastro, crm_name: e.target.value })}
+                  placeholder="Ex: Pipedrive, HubSpot, RD Station..."
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label>Mensagem Inicial Automática</Label>
+              <Textarea
+                value={siteCadastro.initial_dispatch_message || ''}
+                onChange={(e) => setSiteCadastro({ ...siteCadastro, initial_dispatch_message: e.target.value })}
+                placeholder="Mensagem enviada automaticamente quando um novo lead se cadastra..."
+                className="min-h-[80px]"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <LinkIcon className="w-4 h-4" />
+                Link dos Roteiros
+                <span className="text-xs text-muted-foreground ml-auto">Máximo 4 roteiros</span>
+              </Label>
+              <Input
+                value={siteCadastro.scripts_url || ''}
+                onChange={(e) => setSiteCadastro({ ...siteCadastro, scripts_url: e.target.value })}
+                placeholder="Cole o link dos roteiros aqui..."
+              />
+            </div>
+
+            {/* Copy da LP — campo exclusivo de Site -> Cadastro */}
+            <div className="p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20 space-y-4">
+              <p className="text-sm font-semibold text-emerald-600">Copy da LP (exclusivo desta estratégia)</p>
+              <div className="space-y-2">
+                <Label>Copy da Landing Page</Label>
+                <Textarea
+                  value={siteCadastro.lp_copy || ''}
+                  onChange={(e) => setSiteCadastro({ ...siteCadastro, lp_copy: e.target.value })}
+                  placeholder="Cole aqui a copy completa da Landing Page do cliente..."
+                  className="min-h-[120px]"
+                />
+              </div>
+            </div>
+
+            {/* Campos obrigatórios do cadastro */}
+            <div className="p-3 bg-warning/10 rounded-lg border border-warning/20 space-y-4">
+              <p className="text-sm font-semibold text-warning">Configuração do Formulário de Cadastro (obrigatório)</p>
+
+              <div className="space-y-2">
+                <Label>Título do Cadastro</Label>
+                <Input
+                  value={siteCadastro.cadastro_title || ''}
+                  onChange={(e) => setSiteCadastro({ ...siteCadastro, cadastro_title: e.target.value })}
+                  placeholder="Ex: Solicite sua Cotação Gratuita"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Descrição do Cadastro</Label>
+                <Textarea
+                  value={siteCadastro.cadastro_description || ''}
+                  onChange={(e) => setSiteCadastro({ ...siteCadastro, cadastro_description: e.target.value })}
+                  placeholder="Ex: Preencha o formulário abaixo para receber uma cotação personalizada..."
+                  className="min-h-[80px]"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Perguntas do Formulário</Label>
+                <Textarea
+                  value={siteCadastro.cadastro_questions || ''}
+                  onChange={(e) => setSiteCadastro({ ...siteCadastro, cadastro_questions: e.target.value })}
+                  placeholder={"Ex:\n1. Qual seu CNPJ?\n2. Qual seu segmento de atuação?\n3. Qual o volume mensal de compras?"}
+                  className="min-h-[100px]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <LinkIcon className="w-4 h-4" />
+                    Página de Obrigado (Lead)
+                  </Label>
+                  <Input
+                    value={siteCadastro.ty_page_lead || ''}
+                    onChange={(e) => setSiteCadastro({ ...siteCadastro, ty_page_lead: e.target.value })}
+                    placeholder="https://..."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <LinkIcon className="w-4 h-4" />
+                    Página de Obrigado (Não Lead)
+                  </Label>
+                  <Input
+                    value={siteCadastro.ty_page_non_lead || ''}
+                    onChange={(e) => setSiteCadastro({ ...siteCadastro, ty_page_non_lead: e.target.value })}
                     placeholder="https://..."
                   />
                 </div>
