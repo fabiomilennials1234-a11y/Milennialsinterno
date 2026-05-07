@@ -18,7 +18,7 @@ import type { TechProjectRow } from '../hooks/useTechProjects';
 import { useUpdateTechProject } from '../hooks/useTechProjects';
 import { PROJECT_STEPS, PROJECT_STEP_LABEL, type ProjectStep } from '../lib/projectSteps';
 import { ProjectKanbanColumn } from './ProjectKanbanColumn';
-import { ProjectFormModal } from './ProjectFormModal';
+import { ProjectDetailModal } from './ProjectDetailModal';
 
 // ---------------------------------------------------------------------------
 // Column config
@@ -209,9 +209,9 @@ export function ProjectsKanbanView({ projects, isLoading }: ProjectsKanbanViewPr
         </DragDropContext>
       </div>
 
-      {/* Edit modal */}
+      {/* Detail modal (drill-down) */}
       {editingProject && (
-        <ProjectFormModal
+        <ProjectDetailModal
           open={!!editingProject}
           onOpenChange={(open) => {
             if (!open) setEditingProject(null);

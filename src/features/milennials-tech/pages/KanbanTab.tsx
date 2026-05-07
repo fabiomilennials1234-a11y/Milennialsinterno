@@ -1,9 +1,11 @@
 import { useState, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { DragDropContext, type DropResult } from '@hello-pangea/dnd';
-import { Plus } from 'lucide-react';
+import { Plus, X, FolderKanban } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTechTasks } from '../hooks/useTechTasks';
+import { useTechProjects } from '../hooks/useTechProjects';
 import { useTechTimer } from '../hooks/useTechTimer';
 import { KANBAN_COLUMNS, STATUS_LABEL_PT } from '../lib/statusLabels';
 import { canDragToColumn } from '../lib/permissions';
@@ -14,8 +16,27 @@ import type { TechTask, TechTaskStatus } from '../types';
 
 export function KanbanTab() {
   const { user } = useAuth();
-  const { data: tasks = [], isLoading } = useTechTasks();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const projectFilter = searchParams.get('project') ?? undefined;
+
+  const { data: tasks = [], isLoading } = useTechTasks(
+    projectFilter ? { projectId: projectFilter } : undefined,
+  );
+  const { data: allProjects = [] } = useTechProjects();
   const timer = useTechTimer();
+
+  // Resolve project name for filter chip
+  const filterProjectName = useMemo(() => {
+    if (!projectFilter) return null;
+    return allProjects.find((p) => p.id === projectFilter)?.name ?? 'Projeto';
+  }, [projectFilter, allProjects]);
+
+  const clearProjectFilter = useCallback(() => {
+    setSearchParams((prev) => {
+      prev.delete('project');
+      return prev;
+    });
+  }, [setSearchParams]);
 
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -117,7 +138,22 @@ export function KanbanTab() {
     <>
       {/* Toolbar */}
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-lg font-medium text-[var(--mtech-text)]">Kanban</h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-medium text-[var(--mtech-text)]">Kanban</h2>
+          {filterProjectName && (
+            <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium bg-[var(--mtech-accent-muted)] text-[var(--mtech-accent)] border border-[var(--mtech-accent)]/20">
+              <FolderKanban className="h-3 w-3" />
+              {filterProjectName}
+              <button
+                onClick={clearProjectFilter}
+                className="ml-0.5 hover:text-white transition-colors"
+                title="Limpar filtro de projeto"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          )}
+        </div>
         <Button
           size="sm"
           onClick={() => setShowCreateModal(true)}

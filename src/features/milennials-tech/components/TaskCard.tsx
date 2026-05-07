@@ -1,8 +1,9 @@
 import { motion } from 'framer-motion';
-import { Bug, Sparkles, Flame, Wrench, Lock } from 'lucide-react';
+import { Bug, Sparkles, Flame, Wrench, Lock, FolderKanban } from 'lucide-react';
 import type { TechTask, TechTaskType, TechTaskPriority } from '../types';
 import { TYPE_LABEL_FRIENDLY } from '../lib/statusLabels';
 import { useProfileMap, getInitials } from '../hooks/useProfiles';
+import { useProjectNameMap } from '../hooks/useTechProjects';
 import { TimerButton } from './TimerButton';
 import { TaskTagBadges } from './TagPicker';
 import { useTechTags, useTechTaskTags } from '../hooks/useTechTags';
@@ -39,10 +40,16 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
   const { icon: TypeIcon, color: typeColor, bg: typeBg } = TYPE_CONFIG[task.type];
   const dotColor = PRIORITY_DOT_COLOR[task.priority];
   const profileMap = useProfileMap();
+  const projectNameMap = useProjectNameMap();
   const { data: allTags = [] } = useTechTags();
   const { data: allTaskTags = [] } = useTechTaskTags();
   const { data: timeTotals = {} } = useTechTimeTotals();
   const totalTime = formatTimeTotal(timeTotals[task.id] ?? 0);
+
+  // project_id exists in DB row but not in TS types yet — suppress until types regenerated
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const projectId = (task as any).project_id as string | null;
+  const projectName = projectId ? projectNameMap[projectId] ?? null : null;
 
   const assigneeName = task.assignee_id ? profileMap[task.assignee_id] ?? null : null;
   const assigneeInitials = task.assignee_id ? (assigneeName ? getInitials(assigneeName) : '??') : null;
@@ -86,6 +93,12 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
           <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-[var(--mtech-danger)]">
             <Lock className="h-3 w-3" />
             Bloqueada
+          </span>
+        )}
+        {projectName && (
+          <span className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-semibold text-[var(--mtech-accent)] bg-[var(--mtech-accent-muted)] border border-[var(--mtech-accent)]/15 select-none truncate max-w-[120px]">
+            <FolderKanban className="h-2.5 w-2.5 flex-shrink-0" />
+            {projectName}
           </span>
         )}
         <TaskTagBadges taskId={task.id} allTags={allTags} taskTags={allTaskTags} />

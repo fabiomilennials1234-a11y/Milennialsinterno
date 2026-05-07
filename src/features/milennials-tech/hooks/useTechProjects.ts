@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -230,4 +231,21 @@ export function useDeleteTechProject() {
       toast.error('Erro ao remover projeto', { description: err.message });
     },
   });
+}
+
+// ---------------------------------------------------------------------------
+// Lookup helpers (memoised from cached project list)
+// ---------------------------------------------------------------------------
+
+/** Returns a Map<projectId, projectName> from the cached project list */
+export function useProjectNameMap(): Record<string, string> {
+  const { data } = useTechProjects();
+  return useMemo(() => {
+    if (!data) return {};
+    const map: Record<string, string> = {};
+    for (const p of data) {
+      map[p.id] = p.name;
+    }
+    return map;
+  }, [data]);
 }

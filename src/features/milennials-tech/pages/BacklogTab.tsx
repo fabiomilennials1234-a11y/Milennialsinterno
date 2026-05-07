@@ -1,11 +1,13 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Plus, Search, Inbox, Share2 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Plus, Search, Inbox, Share2, X, FolderKanban } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { isExecutive } from '@/types/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTechTasks, type TechTaskFilters } from '../hooks/useTechTasks';
+import { useTechProjects } from '../hooks/useTechProjects';
 import { BacklogTabs } from '../components/BacklogTabs';
 import { TaskRow } from '../components/TaskRow';
 import { TaskFormModal } from '../components/TaskFormModal';
@@ -16,6 +18,23 @@ const TYPE_TABS: string[] = ['BUG', 'FEATURE', 'HOTFIX', 'CHORE', 'DONE'];
 
 export function BacklogTab() {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const projectFilter = searchParams.get('project') ?? undefined;
+
+  const { data: allProjects = [] } = useTechProjects();
+
+  const filterProjectName = useMemo(() => {
+    if (!projectFilter) return null;
+    return allProjects.find((p) => p.id === projectFilter)?.name ?? 'Projeto';
+  }, [projectFilter, allProjects]);
+
+  const clearProjectFilter = useCallback(() => {
+    setSearchParams((prev) => {
+      prev.delete('project');
+      return prev;
+    });
+  }, [setSearchParams]);
+
   const [activeTab, setActiveTab] = useState<string>('BUG');
   const [search, setSearch] = useState('');
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
@@ -40,6 +59,7 @@ export function BacklogTab() {
   const filters = useMemo<TechTaskFilters>(() => {
     const f: TechTaskFilters = {};
     if (search) f.search = search;
+    if (projectFilter) f.projectId = projectFilter;
 
     if (activeTab === 'DONE') {
       // "Concluídas" tab shows completed tasks of all types
@@ -50,7 +70,7 @@ export function BacklogTab() {
       f.status = 'BACKLOG';
     }
     return f;
-  }, [activeTab, search]);
+  }, [activeTab, search, projectFilter]);
 
   const { data: tasks = [], isLoading } = useTechTasks(filters);
 
@@ -58,7 +78,22 @@ export function BacklogTab() {
     <>
       {/* Toolbar */}
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-lg font-medium text-[var(--mtech-text)]">Backlog</h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-medium text-[var(--mtech-text)]">Backlog</h2>
+          {filterProjectName && (
+            <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium bg-[var(--mtech-accent-muted)] text-[var(--mtech-accent)] border border-[var(--mtech-accent)]/20">
+              <FolderKanban className="h-3 w-3" />
+              {filterProjectName}
+              <button
+                onClick={clearProjectFilter}
+                className="ml-0.5 hover:text-white transition-colors"
+                title="Limpar filtro de projeto"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           {isExec && (
             <>

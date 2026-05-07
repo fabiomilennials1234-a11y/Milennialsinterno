@@ -22,6 +22,7 @@ export interface TechTaskFilters {
   type?: TechTaskType;
   assigneeId?: string;
   search?: string;
+  projectId?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -32,7 +33,9 @@ export function useTechTasks(filters?: TechTaskFilters) {
   return useQuery<TechTask[]>({
     queryKey: techTaskKeys.list(filters),
     queryFn: async () => {
-      let query = supabase.from('tech_tasks').select('*');
+      // project_id FK exists in DB but supabase types aren't regenerated yet
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let query = (supabase as any).from('tech_tasks').select('*');
 
       if (filters?.sprintId) {
         query = query.eq('sprint_id', filters.sprintId);
@@ -45,6 +48,9 @@ export function useTechTasks(filters?: TechTaskFilters) {
       }
       if (filters?.assigneeId) {
         query = query.eq('assignee_id', filters.assigneeId);
+      }
+      if (filters?.projectId) {
+        query = query.eq('project_id', filters.projectId);
       }
       if (filters?.search) {
         query = query.or(

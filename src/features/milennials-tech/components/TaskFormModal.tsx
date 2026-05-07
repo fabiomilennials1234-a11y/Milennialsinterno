@@ -26,6 +26,7 @@ import { taskFormSchema, type TaskFormValues } from '../schemas/task';
 import { useCreateTechTask } from '../hooks/useTechTasks';
 import { useUploadAttachments } from '../hooks/useTechAttachments';
 import { useTechProfiles } from '../hooks/useProfiles';
+import { useTechProjects } from '../hooks/useTechProjects';
 import { TYPE_LABEL_FRIENDLY, PRIORITY_LABEL_FRIENDLY } from '../lib/statusLabels';
 import type { TechTaskType, TechTaskPriority } from '../types';
 
@@ -42,6 +43,8 @@ export function TaskFormModal({ open, onOpenChange }: TaskFormModalProps) {
   const createTask = useCreateTechTask();
   const uploadAttachments = useUploadAttachments();
   const { data: profiles = [] } = useTechProfiles();
+  const { data: allProjects = [] } = useTechProjects({ status: 'active' });
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [showMore, setShowMore] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -89,7 +92,8 @@ export function TaskFormModal({ open, onOpenChange }: TaskFormModalProps) {
     const hasAssignee = !!values.assignee_id;
 
     try {
-      const task = await createTask.mutateAsync({
+      // project_id FK exists in DB but isn't in generated Supabase types yet — cast via spread
+      const taskPayload: Record<string, unknown> = {
         title: values.title,
         description: descParts.join('\n\n'),
         type: values.type,
@@ -100,7 +104,13 @@ export function TaskFormModal({ open, onOpenChange }: TaskFormModalProps) {
         acceptance_criteria: values.acceptance_criteria,
         technical_context: values.technical_context || null,
         created_by: user.id,
-      });
+      };
+      if (selectedProjectId) {
+        taskPayload.project_id = selectedProjectId;
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const task = await createTask.mutateAsync(taskPayload as any);
 
       // Upload attachments
       await uploadAttachments.mutateAsync({
@@ -112,6 +122,7 @@ export function TaskFormModal({ open, onOpenChange }: TaskFormModalProps) {
       toast.success(`Task criada com ${files.length} anexo(s)`);
       form.reset();
       setFiles([]);
+      setSelectedProjectId(null);
       setShowMore(false);
       onOpenChange(false);
     } catch {
@@ -316,8 +327,8 @@ export function TaskFormModal({ open, onOpenChange }: TaskFormModalProps) {
             {fileError && <p className={errorCls}>{fileError}</p>}
           </div>
 
-          {/* Assignee + Deadline */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Assignee + Deadline + Project */}
+          <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1">
               <Label className={labelCls}>Responsável</Label>
               <Select
@@ -345,6 +356,25 @@ export function TaskFormModal({ open, onOpenChange }: TaskFormModalProps) {
                 className={inputCls}
                 {...form.register('deadline')}
               />
+            </div>
+            <div className="space-y-1">
+              <Label className={labelCls}>Projeto</Label>
+              <Select
+                value={selectedProjectId ?? '__none__'}
+                onValueChange={(v) => setSelectedProjectId(v === '__none__' ? null : v)}
+              >
+                <SelectTrigger className={inputCls}>
+                  <SelectValue placeholder="Nenhum" />
+                </SelectTrigger>
+                <SelectContent className="bg-[var(--mtech-surface-elev)] border border-[var(--mtech-border-strong)] text-[var(--mtech-text)] shadow-xl z-50 max-h-48">
+                  <SelectItem value="__none__">Nenhum</SelectItem>
+                  {allProjects.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

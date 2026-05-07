@@ -1,7 +1,8 @@
-import { Bug, Sparkles, Flame, Wrench } from 'lucide-react';
+import { Bug, Sparkles, Flame, Wrench, FolderKanban } from 'lucide-react';
 import type { TechTask, TechTaskType } from '../types';
 import { TYPE_LABEL, STATUS_LABEL_PT, PRIORITY_LABEL } from '../lib/statusLabels';
 import { useProfileMap, getInitials } from '../hooks/useProfiles';
+import { useProjectNameMap } from '../hooks/useTechProjects';
 import { TimerButton } from './TimerButton';
 
 interface TaskRowProps {
@@ -40,7 +41,13 @@ const TYPE_BG: Record<TechTaskType, string> = {
 
 export function TaskRow({ task, onClick }: TaskRowProps) {
   const profileMap = useProfileMap();
+  const projectNameMap = useProjectNameMap();
   const TypeIcon = TYPE_ICON[task.type];
+
+  // project_id exists in DB but not in generated TS types yet — suppress until types regenerated
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const projectId = (task as any).project_id as string | null;
+  const projectName = projectId ? projectNameMap[projectId] ?? null : null;
 
   const deadlineStr = task.deadline
     ? new Date(task.deadline).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
@@ -67,6 +74,14 @@ export function TaskRow({ task, onClick }: TaskRowProps) {
         <TypeIcon className="h-3 w-3" />
         {TYPE_LABEL[task.type]}
       </span>
+
+      {/* Project badge */}
+      {projectName && (
+        <span className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-semibold text-[var(--mtech-accent)] bg-[var(--mtech-accent-muted)] border border-[var(--mtech-accent)]/15 select-none truncate max-w-[100px] flex-shrink-0">
+          <FolderKanban className="h-2.5 w-2.5 flex-shrink-0" />
+          {projectName}
+        </span>
+      )}
 
       {/* Title */}
       <span className="flex-1 truncate text-sm font-medium text-[var(--mtech-text)]">
