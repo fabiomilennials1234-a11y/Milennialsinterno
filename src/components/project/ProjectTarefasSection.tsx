@@ -53,7 +53,8 @@ const STATUSES = [
   { id: 'done', label: 'Feitas', headerClass: 'kanban-header-done', borderClass: 'card-border-green' },
 ] as const;
 
-const CAN_DELETE_ROLES = new Set(['ceo', 'cto', 'sucesso_cliente']);
+/** Roles allowed to archive or delete tasks (CEO, CTO, Sucesso do Cliente). */
+const CAN_MANAGE_TASKS_ROLES = new Set(['ceo', 'cto', 'sucesso_cliente']);
 
 // ---------------------------------------------------------------------------
 // Component
@@ -67,7 +68,7 @@ export default function ProjectTarefasSection({ projectId, type = 'daily' }: Pro
   const archiveTask = useArchiveDepartmentTask('devs');
   const deleteTask = useDeleteDepartmentTask('devs');
   const addJustification = useAddJustification('department_tasks', ['project-tasks', projectId, type]);
-  const canDeleteTasks = !!user?.role && CAN_DELETE_ROLES.has(user.role);
+  const canManageTasks = !!user?.role && CAN_MANAGE_TASKS_ROLES.has(user.role);
 
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [isAdding, setIsAdding] = useState<string | null>(null);
@@ -141,7 +142,7 @@ export default function ProjectTarefasSection({ projectId, type = 'daily' }: Pro
                   </span>
                 </div>
 
-                {hasDoneTasks && (
+                {hasDoneTasks && canManageTasks && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -276,6 +277,7 @@ export default function ProjectTarefasSection({ projectId, type = 'daily' }: Pro
                                         </DropdownMenuItem>
                                       ))}
                                       <DropdownMenuSeparator />
+                                      {canManageTasks && (
                                       <DropdownMenuItem
                                         onClick={(e) => {
                                           e.stopPropagation();
@@ -286,7 +288,8 @@ export default function ProjectTarefasSection({ projectId, type = 'daily' }: Pro
                                         <Archive size={14} className="mr-2" />
                                         Arquivar
                                       </DropdownMenuItem>
-                                      {canDeleteTasks && (
+                                      )}
+                                      {canManageTasks && (
                                         <DropdownMenuItem
                                           onClick={(e) => {
                                             e.stopPropagation();
