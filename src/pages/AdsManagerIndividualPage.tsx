@@ -166,6 +166,7 @@ export default function AdsManagerIndividualPage() {
       case 'justificativa':
         return (
           <div className="space-y-4">
+            <ClientTagDelayJustificationsSection />
             <CrmDelayJustificationsSection />
             <AdsJustificativaSection role="gestor_ads" />
           </div>
@@ -203,8 +204,6 @@ export default function AdsManagerIndividualPage() {
             Gestor de ADS ({managerName})
           </h1>
           <p className="text-caption text-muted-foreground mt-1">Central de operações individual </p>
-          {/* Etiquetas vencidas (gestor_ads/sucesso_cliente do user logado) — silencioso quando vazio. */}
-          <ClientTagDelayJustificationsSection className="mt-4" />
         </div>
 
         {/* Board Container */}

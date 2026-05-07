@@ -2,11 +2,11 @@ import { useRef, useEffect, useState } from 'react';
 import MainLayout from '@/layouts/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { AdsManagerProvider } from '@/contexts/AdsManagerContext';
-import { 
-  Calendar, 
-  FileText, 
-  CheckSquare, 
-  Users, 
+import {
+  Calendar,
+  FileText,
+  CheckSquare,
+  Users,
   AlertCircle,
   UserPlus,
   Flag,
@@ -15,9 +15,13 @@ import {
   Quote,
   ChevronLeft,
   ChevronRight,
-  UserX
+  UserX,
+  LayoutGrid,
+  ListTodo
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import DepartmentTasksTab from '@/components/department/DepartmentTasksTab';
 import AdsReunioesSection from '@/components/ads-manager/AdsReunioesSection';
 import AdsDocumentacaoSection from '@/components/ads-manager/AdsDocumentacaoSection';
 import AdsTarefasSection from '@/components/ads-manager/AdsTarefasSection';
@@ -57,6 +61,7 @@ export default function AdsManagerPage() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
+  const [activeView, setActiveView] = useState<'kanban' | 'tarefas'>('kanban');
 
   useDailyMovementDelayCheck();
   useResultsReportAutomation();
@@ -106,6 +111,7 @@ export default function AdsManagerPage() {
       case 'justificativa':
         return (
           <div className="space-y-4">
+            <ClientTagDelayJustificationsSection />
             <CrmDelayJustificationsSection />
             <AdsJustificativaSection role="gestor_ads" />
           </div>
@@ -142,11 +148,41 @@ export default function AdsManagerPage() {
           <p className="text-caption text-muted-foreground mt-1">
             Central de operações do Gestor de Ads
           </p>
-          {/* Etiquetas vencidas onde este user é responsável — silencioso quando vazio. */}
-          <ClientTagDelayJustificationsSection className="mt-4" />
+
+          {/* View toggle */}
+          <div className="flex gap-1 bg-muted/50 rounded-lg p-1 mt-4 w-fit">
+            <button
+              onClick={() => setActiveView('kanban')}
+              className={cn(
+                'flex items-center gap-2 px-3 py-1.5 text-sm rounded-md transition-all',
+                activeView === 'kanban'
+                  ? 'bg-card shadow-sm text-foreground font-medium'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <LayoutGrid size={16} />
+              Kanban
+            </button>
+            <button
+              onClick={() => setActiveView('tarefas')}
+              className={cn(
+                'flex items-center gap-2 px-3 py-1.5 text-sm rounded-md transition-all',
+                activeView === 'tarefas'
+                  ? 'bg-card shadow-sm text-foreground font-medium'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <ListTodo size={16} />
+              Tarefas
+            </button>
+          </div>
+
         </div>
 
-        {/* Board Container */}
+        {/* Board Container or Tasks Tab */}
+        {activeView === 'tarefas' ? (
+          <DepartmentTasksTab department="gestor_ads" />
+        ) : (
         <div className="flex-1 relative overflow-hidden">
           {/* Scroll Buttons - Discretos */}
           {canScrollLeft && (
@@ -233,6 +269,7 @@ export default function AdsManagerPage() {
             </div>
           </div>
         </div>
+        )}
       </div>
     </MainLayout>
     </AdsManagerProvider>

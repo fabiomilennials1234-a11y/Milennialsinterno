@@ -1,7 +1,8 @@
 import { useRef, useEffect, useState, useMemo } from 'react';
 import MainLayout from '@/layouts/MainLayout';
-import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, LayoutGrid, ListTodo, CheckSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { useAdsManagers, useCSClientsByManager, useCSPermissions, CSClient } from '@/hooks/useSucessoCliente';
 import CSManagerColumn from '@/components/sucesso-cliente/CSManagerColumn';
 import CSClassificationColumn from '@/components/sucesso-cliente/CSClassificationColumn';
@@ -16,14 +17,14 @@ import CSClientDetailModal from '@/components/sucesso-cliente/CSClientDetailModa
 import CXValidationPopup from '@/components/sucesso-cliente/CXValidationPopup';
 import CSPendenciaCXColumn from '@/components/sucesso-cliente/CSPendenciaCXColumn';
 import { useCXPendingClients } from '@/hooks/useCXValidation';
-import CrmDelayJustificationsSection from '@/components/gestor-crm/CrmDelayJustificationsSection';
-import ClientTagDelayJustificationsSection from '@/components/client-tags/ClientTagDelayJustificationsSection';
 import DepartmentTarefasSection from '@/components/department/DepartmentTarefasSection';
-import { CheckSquare } from 'lucide-react';
+import DepartmentTasksTab from '@/components/department/DepartmentTasksTab';
+
 export default function SucessoClientePage() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
+  const [activeView, setActiveView] = useState<'kanban' | 'tarefas'>('kanban');
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [selectedCSClient, setSelectedCSClient] = useState<CSClient | null>(null);
   const {
@@ -142,11 +143,6 @@ export default function SucessoClientePage() {
               <CSHeaderStats clients={clients} managers={managers} />
             </div>}
 
-          {/* Justificativas coletivas CRM em atraso (envolvendo este CS) — silencioso se vazio */}
-          <div className="mt-4 space-y-3">
-            <ClientTagDelayJustificationsSection />
-            <CrmDelayJustificationsSection />
-          </div>
         </div>
 
         {/* Loading state */}
