@@ -529,6 +529,7 @@ async function handleCreateClient(
       status: 'new_client',
       comercial_status: 'novo',
       comercial_entered_at: new Date().toISOString(),
+      cx_validation_status: 'aguardando_validacao',
     })
     .select('id')
     .single()
@@ -563,6 +564,36 @@ async function handleCreateClient(
 
   const clientId = client.id
   const produtosCriados: string[] = []
+
+  // Notify CEO and sucesso_cliente about new API client
+  try {
+    const { data: recipients } = await supabaseAdmin
+      .from('user_roles')
+      .select('user_id')
+      .in('role', ['ceo', 'sucesso_cliente'])
+
+    if (recipients && recipients.length > 0) {
+      const notifications = recipients.map((r: { user_id: string }) => ({
+        recipient_id: r.user_id,
+        notification_type: 'api_new_client',
+        title: 'Novo cliente via CRM',
+        message: `Cliente "${p.nome_cliente}" foi cadastrado via integração CRM e aguarda validação.`,
+        client_id: clientId,
+        priority: 'high',
+      }))
+
+      const { error: notifError } = await supabaseAdmin
+        .from('system_notifications')
+        .insert(notifications)
+
+      if (notifError) {
+        console.error('[api-v1] Notification insert error:', notifError)
+      }
+    }
+  } catch (notifErr) {
+    // Non-blocking: notification failure should not fail the client creation
+    console.error('[api-v1] Notification error:', notifErr)
+  }
 
   // Process products (if any)
   if (p.produtos_contratados && p.produtos_contratados.length > 0 && p.valores_produtos) {
