@@ -118,6 +118,25 @@ export default function StrategyBuilderModal({
       return 'Selecione pelo menos uma plataforma';
     }
 
+    // Millennials Cadastro: campos obrigatórios quando habilitado
+    if (metaEnabled && metaMillennialsCadastro.enabled) {
+      if (!metaMillennialsCadastro.cadastro_title?.trim()) {
+        return 'Título do Cadastro é obrigatório para Millennials Cadastro';
+      }
+      if (!metaMillennialsCadastro.cadastro_description?.trim()) {
+        return 'Descrição do Cadastro é obrigatória para Millennials Cadastro';
+      }
+      if (!metaMillennialsCadastro.cadastro_questions?.trim()) {
+        return 'Perguntas do Formulário são obrigatórias para Millennials Cadastro';
+      }
+      if (!metaMillennialsCadastro.ty_page_lead?.trim()) {
+        return 'Página de Obrigado para Lead é obrigatória para Millennials Cadastro';
+      }
+      if (!metaMillennialsCadastro.ty_page_non_lead?.trim()) {
+        return 'Página de Obrigado para Não Lead é obrigatória para Millennials Cadastro';
+      }
+    }
+
     // Check if at least one funnel is active per enabled platform (include custom funnels)
     if (metaEnabled) {
       const hasBuiltInMeta =

@@ -286,6 +286,65 @@ export default function StrategyMetaFunnels({
                 placeholder="Cole o link dos roteiros aqui..."
               />
             </div>
+
+            {/* Campos obrigatórios do cadastro */}
+            <div className="p-3 bg-warning/10 rounded-lg border border-warning/20 space-y-4">
+              <p className="text-sm font-semibold text-warning">Configuração do Formulário de Cadastro (obrigatório)</p>
+
+              <div className="space-y-2">
+                <Label>Título do Cadastro</Label>
+                <Input
+                  value={millennialsCadastro.cadastro_title || ''}
+                  onChange={(e) => setMillennialsCadastro({ ...millennialsCadastro, cadastro_title: e.target.value })}
+                  placeholder="Ex: Solicite sua Cotação Gratuita"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Descrição do Cadastro</Label>
+                <Textarea
+                  value={millennialsCadastro.cadastro_description || ''}
+                  onChange={(e) => setMillennialsCadastro({ ...millennialsCadastro, cadastro_description: e.target.value })}
+                  placeholder="Ex: Preencha o formulário abaixo para receber uma cotação personalizada..."
+                  className="min-h-[80px]"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Perguntas do Formulário</Label>
+                <Textarea
+                  value={millennialsCadastro.cadastro_questions || ''}
+                  onChange={(e) => setMillennialsCadastro({ ...millennialsCadastro, cadastro_questions: e.target.value })}
+                  placeholder={"Ex:\n1. Qual seu CNPJ?\n2. Qual seu segmento de atuação?\n3. Qual o volume mensal de compras?"}
+                  className="min-h-[100px]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <LinkIcon className="w-4 h-4" />
+                    Página de Obrigado (Lead)
+                  </Label>
+                  <Input
+                    value={millennialsCadastro.ty_page_lead || ''}
+                    onChange={(e) => setMillennialsCadastro({ ...millennialsCadastro, ty_page_lead: e.target.value })}
+                    placeholder="https://..."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <LinkIcon className="w-4 h-4" />
+                    Página de Obrigado (Não Lead)
+                  </Label>
+                  <Input
+                    value={millennialsCadastro.ty_page_non_lead || ''}
+                    onChange={(e) => setMillennialsCadastro({ ...millennialsCadastro, ty_page_non_lead: e.target.value })}
+                    placeholder="https://..."
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </FunnelCard>
 

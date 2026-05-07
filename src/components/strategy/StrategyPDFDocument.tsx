@@ -923,6 +923,36 @@ const MetaFunnelCard = ({ funnelKey, funnel }: { funnelKey: string; funnel: Meta
             <Text style={styles.funnelDetailValue}>{funnel.crm_name}</Text>
           </View>
         )}
+        {funnel.cadastro_title && (
+          <View style={styles.funnelDetail}>
+            <Text style={styles.funnelDetailLabel}>Título do Cadastro</Text>
+            <Text style={styles.funnelDetailValue}>{funnel.cadastro_title}</Text>
+          </View>
+        )}
+        {funnel.cadastro_description && (
+          <View style={styles.funnelDetail}>
+            <Text style={styles.funnelDetailLabel}>Descrição do Cadastro</Text>
+            <Text style={styles.funnelDetailValue}>{funnel.cadastro_description}</Text>
+          </View>
+        )}
+        {funnel.cadastro_questions && (
+          <View style={styles.funnelDetail}>
+            <Text style={styles.funnelDetailLabel}>Perguntas do Formulário</Text>
+            <Text style={styles.funnelDetailValue}>Configuradas ✓</Text>
+          </View>
+        )}
+        {funnel.ty_page_lead && (
+          <View style={styles.funnelDetail}>
+            <Text style={styles.funnelDetailLabel}>Pág. Obrigado (Lead)</Text>
+            <Text style={styles.funnelDetailValue}>Configurada ✓</Text>
+          </View>
+        )}
+        {funnel.ty_page_non_lead && (
+          <View style={styles.funnelDetail}>
+            <Text style={styles.funnelDetailLabel}>Pág. Obrigado (Não Lead)</Text>
+            <Text style={styles.funnelDetailValue}>Configurada ✓</Text>
+          </View>
+        )}
         {funnel.lp_url && (
           <View style={styles.funnelDetail}>
             <Text style={styles.funnelDetailLabel}>Landing Page</Text>

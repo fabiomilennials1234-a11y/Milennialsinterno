@@ -15,6 +15,11 @@ export interface MetaStrategy {
   has_crm?: boolean;
   crm_name?: string;
   initial_dispatch_message?: string;
+  cadastro_title?: string;
+  cadastro_description?: string;
+  cadastro_questions?: string;
+  ty_page_lead?: string;
+  ty_page_non_lead?: string;
   // Millennials Call specific
   lp_url?: string;
   // Grupo VIP specific
