@@ -1,4 +1,3 @@
-Initialising login role...
 export type Json =
   | string
   | number
@@ -2729,6 +2728,7 @@ export type Database = {
           justification_at: string | null
           priority: string | null
           related_client_id: string | null
+          related_project_id: string | null
           status: string
           task_type: string
           title: string
@@ -2747,6 +2747,7 @@ export type Database = {
           justification_at?: string | null
           priority?: string | null
           related_client_id?: string | null
+          related_project_id?: string | null
           status?: string
           task_type?: string
           title: string
@@ -2765,6 +2766,7 @@ export type Database = {
           justification_at?: string | null
           priority?: string | null
           related_client_id?: string | null
+          related_project_id?: string | null
           status?: string
           task_type?: string
           title?: string
@@ -2777,6 +2779,13 @@ export type Database = {
             columns: ["related_client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "department_tasks_related_project_id_fkey"
+            columns: ["related_project_id"]
+            isOneToOne: false
+            referencedRelation: "tech_projects"
             referencedColumns: ["id"]
           },
         ]
@@ -6792,6 +6801,155 @@ export type Database = {
         }
         Relationships: []
       }
+      tech_project_members: {
+        Row: {
+          added_at: string
+          allocated_hours_week: number
+          project_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          allocated_hours_week?: number
+          project_id: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          allocated_hours_week?: number
+          project_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tech_project_members_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "tech_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tech_project_members_user_id_profiles_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      tech_project_tracking: {
+        Row: {
+          created_at: string
+          current_day: string
+          id: string
+          is_delayed: boolean
+          last_moved_at: string
+          lead_id: string
+          project_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_day: string
+          id?: string
+          is_delayed?: boolean
+          last_moved_at?: string
+          lead_id: string
+          project_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_day?: string
+          id?: string
+          is_delayed?: boolean
+          last_moved_at?: string
+          lead_id?: string
+          project_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tech_project_tracking_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "tech_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tech_projects: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          created_by: string
+          current_step: string
+          deadline: string | null
+          description: string | null
+          estimated_hours: number | null
+          id: string
+          lead_id: string | null
+          name: string
+          priority: string
+          start_date: string | null
+          status: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          created_by: string
+          current_step?: string
+          deadline?: string | null
+          description?: string | null
+          estimated_hours?: number | null
+          id?: string
+          lead_id?: string | null
+          name: string
+          priority?: string
+          start_date?: string | null
+          status?: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          created_by?: string
+          current_step?: string
+          deadline?: string | null
+          description?: string | null
+          estimated_hours?: number | null
+          id?: string
+          lead_id?: string | null
+          name?: string
+          priority?: string
+          start_date?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tech_projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tech_projects_lead_id_profiles_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       tech_sprints: {
         Row: {
           created_at: string
@@ -6993,6 +7151,7 @@ export type Database = {
           id: string
           is_blocked: boolean
           priority: Database["public"]["Enums"]["tech_task_priority"]
+          project_id: string | null
           sprint_id: string | null
           status: Database["public"]["Enums"]["tech_task_status"]
           technical_context: string | null
@@ -7014,6 +7173,7 @@ export type Database = {
           id?: string
           is_blocked?: boolean
           priority: Database["public"]["Enums"]["tech_task_priority"]
+          project_id?: string | null
           sprint_id?: string | null
           status?: Database["public"]["Enums"]["tech_task_status"]
           technical_context?: string | null
@@ -7035,6 +7195,7 @@ export type Database = {
           id?: string
           is_blocked?: boolean
           priority?: Database["public"]["Enums"]["tech_task_priority"]
+          project_id?: string | null
           sprint_id?: string | null
           status?: Database["public"]["Enums"]["tech_task_status"]
           technical_context?: string | null
@@ -7043,6 +7204,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "tech_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "tech_projects"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tech_tasks_sprint_id_fkey"
             columns: ["sprint_id"]
@@ -7726,6 +7894,8 @@ export type Database = {
       }
     }
     Functions: {
+      _cron_check_project_delays: { Args: never; Returns: number }
+      _cron_generate_crm_stalled_tasks: { Args: never; Returns: number }
       _cron_generate_recurring_tasks: { Args: never; Returns: number }
       admin_reconcile_user_page_grants: {
         Args: {
@@ -7735,6 +7905,15 @@ export type Database = {
           _reason?: string
           _role: string
           _user_id: string
+        }
+        Returns: Json
+      }
+      approve_client: {
+        Args: {
+          p_assignments?: Json
+          p_client_id: string
+          p_contracted_products?: string[]
+          p_monthly_value?: number
         }
         Returns: Json
       }
@@ -8211,6 +8390,10 @@ export type Database = {
         }
         Returns: Json
       }
+      reject_client: {
+        Args: { p_client_id: string; p_rejection_reason?: string }
+        Returns: Json
+      }
       request_justification_revision: {
         Args: { p_comment: string; p_justification_id: string }
         Returns: undefined
@@ -8474,4 +8657,3 @@ export const Constants = {
     },
   },
 } as const
-<claude-code-hint v="1" type="plugin" value="supabase@claude-plugins-official" />

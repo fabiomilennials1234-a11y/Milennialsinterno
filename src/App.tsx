@@ -22,6 +22,7 @@ import MainLayout from "@/layouts/MainLayout";
 import LoginPage from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
 
+const ClientAreaPage = lazy(() => import("./pages/ClientAreaPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const CEODashboardPage = lazy(() => import("./pages/CEODashboardPage"));
 const MillennialsGrowthDashPage = lazy(() => import("./pages/MillennialsGrowthDashPage"));
@@ -246,6 +247,13 @@ function AppRoutes() {
         </AdminRoute>
       } />
       
+      {/* Client Area - Admin only (CEO, CTO, Gestor de Projetos) */}
+      <Route path="/clientes-area" element={
+        <AdminRoute>
+          <ClientAreaPage />
+        </AdminRoute>
+      } />
+
       {/* Outbound Dashboard - dedicated */}
       <Route path="/outbound-dashboard" element={
         <PageAccessRoute pageSlug="outbound" fallbackRoles={getRouteGuardRoles('/outbound-dashboard')}>

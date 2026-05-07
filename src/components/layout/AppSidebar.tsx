@@ -346,6 +346,12 @@ export default function AppSidebar() {
                 {!isCollapsed && <span>TV Dashboard</span>}
               </NavLink>
             </NavTooltip>
+            <NavTooltip label="Clientes">
+              <NavLink to="/clientes-area" className={({ isActive }) => cn("sidebar-item", isActive && "active")}>
+                <Users size={20} />
+                {!isCollapsed && <span>Clientes</span>}
+              </NavLink>
+            </NavTooltip>
           </div>
         )}
 
@@ -370,6 +376,12 @@ export default function AppSidebar() {
             {!isCollapsed && (
               <div className="sidebar-section-label"><span>Management</span></div>
             )}
+            <NavTooltip label="Clientes">
+              <NavLink to="/clientes-area" className={({ isActive }) => cn("sidebar-item", isActive && "active")}>
+                <Users size={20} />
+                {!isCollapsed && <span>Clientes</span>}
+              </NavLink>
+            </NavTooltip>
             <NavTooltip label="Cadastrar Cliente">
               <NavLink to="/kanban/cadastro-novos-clientes" className={({ isActive }) => cn("sidebar-item", isActive && "active")}>
                 <UserPlus size={20} />
