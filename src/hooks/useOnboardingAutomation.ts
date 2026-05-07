@@ -400,13 +400,13 @@ export function useCompleteOnboardingTaskWithAutomation() {
   });
 }
 
-// Fallback hook: ensures initial task + onboarding record exist when the kanban is viewed.
-// The primary creation happens in useCreateClient (useClientRegistration.ts).
-// This hook only fills gaps for clients that were created before the automation was added,
-// or if the primary creation failed for any reason (e.g. RLS, network).
+// Fallback hook: ensures client_onboarding record exists when the kanban is viewed.
+// The primary creation happens in create_client_with_automations RPC + DB triggers.
+// This hook ONLY backfills client_onboarding records for clients created before
+// triggers existed. It does NOT create onboarding_tasks — DB triggers handle that
+// (create_initial_onboarding_task on INSERT, handle_ads_manager_assignment on UPDATE).
 export function useAutoCreateTaskForNewClients(clients: any[]) {
   const { user } = useAuth();
-  const { targetUserId } = useTargetAdsManager();
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -421,40 +421,7 @@ export function useAutoCreateTaskForNewClients(clients: any[]) {
       for (const client of newClients) {
         if (cancelled) break;
 
-        // 1. Ensure onboarding_tasks "marcar_call_1" exists for THIS user
-        // Use effectiveUserId (the viewing manager) not client.assigned_ads_manager
-        // because secondary managers see clients with overridden status
-        const assignedTo = targetUserId || user.id;
-        const { data: existingTask } = await supabase
-          .from('onboarding_tasks')
-          .select('id')
-          .eq('client_id', client.id)
-          .eq('task_type', 'marcar_call_1')
-          .eq('assigned_to', assignedTo)
-          .maybeSingle();
-
-        if (!existingTask && !cancelled) {
-          const dueDate = addDays(new Date(), 1);
-
-          const { error } = await supabase
-            .from('onboarding_tasks')
-            .insert({
-              client_id: client.id,
-              assigned_to: assignedTo,
-              task_type: 'marcar_call_1',
-              title: `Marcar Call 1: ${client.name}`,
-              description: `Agendar a primeira call com o cliente para alinhamento inicial. Cliente: ${client.name}.`,
-              status: 'pending',
-              due_date: dueDate.toISOString(),
-              milestone: 1,
-            });
-
-          if (error) {
-            console.error('[useAutoCreateTaskForNewClients] Erro ao criar tarefa:', error);
-          }
-        }
-
-        // 2. Ensure client_onboarding record exists
+        // Ensure client_onboarding record exists (lightweight backfill)
         const { data: existingOnboarding } = await supabase
           .from('client_onboarding')
           .select('id')
@@ -478,11 +445,10 @@ export function useAutoCreateTaskForNewClients(clients: any[]) {
       }
 
       if (!cancelled) {
-        queryClient.invalidateQueries({ queryKey: ['onboarding-tasks'] });
         queryClient.invalidateQueries({ queryKey: ['client-onboarding'] });
       }
     })();
 
     return () => { cancelled = true; };
-  }, [clients, user, targetUserId, queryClient]);
+  }, [clients, user, queryClient]);
 }
