@@ -20,7 +20,9 @@ import {
   AlertTriangle,
   FolderKanban,
   ChevronDown,
+  Settings,
 } from 'lucide-react';
+import { ProjectTaskTemplatesModal } from './ProjectTaskTemplatesModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -409,12 +411,31 @@ function KanbanSection({ title, type, tasks, isLoading }: KanbanSectionProps) {
 // Main component
 // ---------------------------------------------------------------------------
 
+const CAN_CONFIGURE_ROLES = new Set(['ceo', 'cto']);
+
 export function ProjectTasksView() {
+  const { user } = useAuth();
   const { data: dailyTasks = [], isLoading: dailyLoading } = useAllProjectTasks('daily');
   const { data: weeklyTasks = [], isLoading: weeklyLoading } = useAllProjectTasks('weekly');
+  const [showTemplatesModal, setShowTemplatesModal] = useState(false);
+
+  const canConfigure = !!user?.role && CAN_CONFIGURE_ROLES.has(user.role);
 
   return (
     <div className="space-y-10">
+      {/* Header with config button */}
+      {canConfigure && (
+        <div className="flex items-center justify-end">
+          <button
+            onClick={() => setShowTemplatesModal(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-[var(--mtech-border)] text-[11px] font-medium text-[var(--mtech-text-subtle)] hover:text-[var(--mtech-text)] hover:border-[var(--mtech-border-strong)] transition-colors"
+          >
+            <Settings className="h-3.5 w-3.5" />
+            Configurar templates
+          </button>
+        </div>
+      )}
+
       <KanbanSection
         title="Tarefas Diarias"
         type="daily"
@@ -428,6 +449,13 @@ export function ProjectTasksView() {
         tasks={weeklyTasks}
         isLoading={weeklyLoading}
       />
+
+      {canConfigure && (
+        <ProjectTaskTemplatesModal
+          open={showTemplatesModal}
+          onOpenChange={setShowTemplatesModal}
+        />
+      )}
     </div>
   );
 }

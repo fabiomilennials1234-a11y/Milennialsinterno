@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import {
   useDepartmentTasks,
+  useArchivedDepartmentTasks,
   useCreateDepartmentTask,
   useUpdateDepartmentTaskStatus,
   useArchiveDepartmentTask,
+  useUnarchiveDepartmentTask,
   useDeleteDepartmentTask,
   DepartmentTask
 } from '@/hooks/useDepartmentTasks';
 import { useAddJustification } from '@/hooks/useTaskJustification';
 import { useAuth } from '@/contexts/AuthContext';
-import { Plus, MoreHorizontal, Calendar, Trash2, Archive, AlertTriangle, User } from 'lucide-react';
+import { Plus, MoreHorizontal, Calendar, Trash2, Archive, ArchiveRestore, Eye, AlertTriangle, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -40,6 +42,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import JustificationModal from '@/components/shared/JustificationModal';
 
 interface Props {
@@ -58,16 +66,19 @@ const CAN_MANAGE_TASKS_ROLES = new Set(['ceo', 'cto', 'sucesso_cliente']);
 
 export default function DepartmentTarefasSection({ department, type = 'daily' }: Props) {
   const { data: tasks = [], isLoading } = useDepartmentTasks(department, type);
+  const { data: archivedTasks = [] } = useArchivedDepartmentTasks(department, type);
   const { user } = useAuth();
   const createTask = useCreateDepartmentTask(department);
   const updateStatus = useUpdateDepartmentTaskStatus(department);
   const archiveTask = useArchiveDepartmentTask(department);
+  const unarchiveTask = useUnarchiveDepartmentTask(department);
   const deleteTask = useDeleteDepartmentTask(department);
   const addJustification = useAddJustification('department_tasks', ['department-tasks', department, type]);
   const canManageTasks = !!user?.role && CAN_MANAGE_TASKS_ROLES.has(user.role);
-  
+
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [isAdding, setIsAdding] = useState<string | null>(null);
+  const [showArchivedModal, setShowArchivedModal] = useState(false);
   const [justificationModal, setJustificationModal] = useState<{ open: boolean; task?: DepartmentTask }>({ open: false });
   const [financeiroConfirm, setFinanceiroConfirm] = useState<{ open: boolean; task?: DepartmentTask }>({ open: false });
 
@@ -141,6 +152,22 @@ export default function DepartmentTarefasSection({ department, type = 'daily' }:
   }
 
   return (
+    <>
+      {/* Button to view archived tasks */}
+      {canManageTasks && archivedTasks.length > 0 && (
+        <div className="mb-4">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 text-xs"
+            onClick={() => setShowArchivedModal(true)}
+          >
+            <Eye size={14} />
+            Ver Arquivadas ({archivedTasks.length})
+          </Button>
+        </div>
+      )}
+
     <DragDropContext onDragEnd={handleDragEnd}>
       <div className="space-y-6">
         {STATUSES.map(status => {

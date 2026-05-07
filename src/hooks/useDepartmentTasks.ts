@@ -695,6 +695,65 @@ export function useArchiveDepartmentTask(department: string) {
   });
 }
 
+export function useArchivedDepartmentTasks(department: string, type: 'daily' | 'weekly' = 'daily') {
+  const { user } = useAuth();
+  const slug = DEPARTMENT_TO_PAGE_SLUG[department];
+  const { seesAll, isReady, scopeKey } = useDataScope(slug);
+
+  return useQuery({
+    queryKey: ['archived-department-tasks', user?.id, department, type, scopeKey],
+    queryFn: async () => {
+      let query = supabase
+        .from('department_tasks')
+        .select('*, clients:related_client_id(name, razao_social)')
+        .eq('department', department)
+        .eq('task_type', type)
+        .eq('archived', true)
+        .order('archived_at', { ascending: false });
+
+      if (!seesAll) {
+        query = query.eq('user_id', user?.id);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data || []) as DepartmentTask[];
+    },
+    enabled: isReady && !!user?.id,
+  });
+}
+
+export function useUnarchiveDepartmentTask(department: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (taskId: string) => {
+      const { data: rows, error } = await supabase
+        .from('department_tasks')
+        .update({
+          archived: false,
+          archived_at: null,
+        } as any)
+        .eq('id', taskId)
+        .select('id');
+
+      if (error) throw error;
+      if (!rows || rows.length === 0) {
+        throw new Error('Sem permissão para desarquivar esta tarefa');
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['archived-department-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['project-tasks'] });
+      toast.success('Tarefa desarquivada!');
+    },
+    onError: (error: any) => {
+      toast.error('Erro ao desarquivar tarefa', { description: error.message });
+    },
+  });
+}
+
 export function useDeleteDepartmentTask(department: string) {
   const queryClient = useQueryClient();
 
