@@ -51,7 +51,6 @@ import {
 } from '../lib/projectSteps';
 import { STATUS_LABEL_PT, TYPE_LABEL_FRIENDLY } from '../lib/statusLabels';
 import type { TechTask, TechTaskType, TechTaskPriority } from '../types';
-import ProjectTarefasSection from '@/components/project/ProjectTarefasSection';
 
 // ---------------------------------------------------------------------------
 // Styles (reuse mtech patterns)
@@ -450,17 +449,6 @@ export function ProjectDetailModal({ project, open, onOpenChange }: ProjectDetai
               )}
             </div>
 
-            {/* Department tasks: Daily */}
-            <div>
-              <h3 className={sectionTitleCls + ' mb-3'}>Tarefas Diarias</h3>
-              <ProjectTarefasSection projectId={project.id} type="daily" />
-            </div>
-
-            {/* Department tasks: Weekly */}
-            <div>
-              <h3 className={sectionTitleCls + ' mb-3'}>Tarefas Semanais</h3>
-              <ProjectTarefasSection projectId={project.id} type="weekly" />
-            </div>
           </div>
 
           {/* -------- RIGHT: Members -------- */}

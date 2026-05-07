@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Kanban, Users, Filter } from 'lucide-react';
+import { Plus, Kanban, Users, Filter, ListChecks } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -13,6 +13,7 @@ import { useTechProfiles } from '../hooks/useProfiles';
 import { ProjectsKanbanView } from '../components/ProjectsKanbanView';
 import { ProjectFormModal } from '../components/ProjectFormModal';
 import { TeamMatrixView } from '../components/TeamMatrixView';
+import { ProjectTasksView } from '../components/ProjectTasksView';
 import type { ProjectType, ProjectPriority } from '../lib/projectSteps';
 
 // ---------------------------------------------------------------------------
@@ -30,7 +31,7 @@ const selectContentCls =
 
 export function ProjectsTab() {
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [viewMode, setViewMode] = useState<'kanban' | 'equipe'>('kanban');
+  const [viewMode, setViewMode] = useState<'kanban' | 'equipe' | 'tarefas'>('kanban');
   const [hideCompleted, setHideCompleted] = useState(true);
 
   // Filters
@@ -88,6 +89,17 @@ export function ProjectsTab() {
             >
               <Users className="h-3 w-3" />
               Equipe
+            </button>
+            <button
+              onClick={() => setViewMode('tarefas')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                viewMode === 'tarefas'
+                  ? 'bg-[var(--mtech-surface-elev)] text-[var(--mtech-text)]'
+                  : 'text-[var(--mtech-text-subtle)] hover:text-[var(--mtech-text-muted)]'
+              }`}
+            >
+              <ListChecks className="h-3 w-3" />
+              Tarefas
             </button>
           </div>
 
@@ -176,6 +188,8 @@ export function ProjectsTab() {
       )}
 
       {viewMode === 'equipe' && <TeamMatrixView />}
+
+      {viewMode === 'tarefas' && <ProjectTasksView />}
 
       {/* Create modal */}
       <ProjectFormModal
