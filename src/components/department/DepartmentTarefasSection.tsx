@@ -449,5 +449,58 @@ export default function DepartmentTarefasSection({ department, type = 'daily' }:
         </AlertDialogContent>
       </AlertDialog>
     </DragDropContext>
+
+      {/* Archived Tasks Modal */}
+      <Dialog open={showArchivedModal} onOpenChange={setShowArchivedModal}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Archive size={18} />
+              Tarefas Arquivadas
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 mt-4">
+            {archivedTasks.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">
+                Nenhuma tarefa arquivada
+              </p>
+            ) : (
+              archivedTasks.map(task => (
+                <div
+                  key={task.id}
+                  className="p-4 bg-muted/30 rounded-xl border border-subtle"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground">{task.title}</p>
+                      {task.clients && (
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Cliente: {task.clients.razao_social || task.clients.name}
+                        </p>
+                      )}
+                      {task.archived_at && (
+                        <p className="text-[10px] text-muted-foreground mt-2">
+                          Arquivada em: {format(new Date(task.archived_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5 text-xs shrink-0"
+                      onClick={() => unarchiveTask.mutate(task.id)}
+                      disabled={unarchiveTask.isPending}
+                    >
+                      <ArchiveRestore size={14} />
+                      Desarquivar
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
