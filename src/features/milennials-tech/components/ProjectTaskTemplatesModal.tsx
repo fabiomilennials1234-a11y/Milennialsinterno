@@ -58,17 +58,20 @@ function CreateTemplateForm({ onClose }: { onClose: () => void }) {
   const createMutation = useCreateProjectTaskTemplate();
   const [title, setTitle] = useState('');
   const [step, setStep] = useState('__none__');
-  const [taskType, setTaskType] = useState<'daily' | 'weekly'>('daily');
+  const [taskType, setTaskType] = useState<'daily' | 'weekly' | 'step'>('daily');
   const [isProjectScoped, setIsProjectScoped] = useState(true);
+
+  const stepRequired = taskType === 'step' && step === '__none__';
 
   const handleSubmit = async () => {
     if (!title.trim()) return;
+    if (taskType === 'step' && step === '__none__') return;
 
     const input: CreateTemplateInput = {
       title: title.trim(),
       step: step === '__none__' ? null : step,
       task_type: taskType,
-      is_project_scoped: step === '__none__' ? false : isProjectScoped,
+      is_project_scoped: taskType === 'step' ? true : (step === '__none__' ? false : isProjectScoped),
     };
 
     await createMutation.mutateAsync(input);
@@ -116,19 +119,26 @@ function CreateTemplateForm({ onClose }: { onClose: () => void }) {
 
         <div className="space-y-1">
           <Label className={labelCls}>Tipo</Label>
-          <Select value={taskType} onValueChange={(v) => setTaskType(v as 'daily' | 'weekly')}>
+          <Select value={taskType} onValueChange={(v) => setTaskType(v as 'daily' | 'weekly' | 'step')}>
             <SelectTrigger className={`${inputCls} h-8 text-xs`}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent className={selectContentCls}>
               <SelectItem value="daily">Diaria</SelectItem>
               <SelectItem value="weekly">Semanal</SelectItem>
+              <SelectItem value="step">Por Etapa</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
-      {step !== '__none__' && (
+      {stepRequired && (
+        <p className="text-[10px] text-[var(--mtech-danger)] font-medium">
+          Selecione uma etapa — templates por etapa exigem etapa vinculada.
+        </p>
+      )}
+
+      {step !== '__none__' && taskType !== 'step' && (
         <div className="flex items-center gap-2">
           <Switch
             checked={isProjectScoped}
@@ -143,11 +153,17 @@ function CreateTemplateForm({ onClose }: { onClose: () => void }) {
         </div>
       )}
 
+      {taskType === 'step' && step !== '__none__' && (
+        <p className="text-[10px] text-[var(--mtech-text-subtle)]">
+          Tarefa sera criada automaticamente quando um projeto entrar nesta etapa. Sempre bloqueante.
+        </p>
+      )}
+
       <div className="flex items-center gap-2 pt-1">
         <Button
           size="sm"
           onClick={handleSubmit}
-          disabled={createMutation.isPending || !title.trim()}
+          disabled={createMutation.isPending || !title.trim() || stepRequired}
           className="bg-[var(--mtech-accent)] text-black font-semibold hover:brightness-110 h-7 px-4 text-[11px]"
         >
           {createMutation.isPending ? 'Criando...' : 'Criar'}
@@ -279,10 +295,12 @@ function TemplateRow({ template }: TemplateRowProps) {
             badgeCls,
             template.task_type === 'daily'
               ? 'bg-blue-500/10 text-blue-400'
-              : 'bg-purple-500/10 text-purple-400',
+              : template.task_type === 'weekly'
+                ? 'bg-purple-500/10 text-purple-400'
+                : 'bg-amber-500/10 text-amber-400',
           )}
         >
-          {template.task_type === 'daily' ? 'Diaria' : 'Semanal'}
+          {template.task_type === 'daily' ? 'Diaria' : template.task_type === 'weekly' ? 'Semanal' : 'Por Etapa'}
         </span>
         {template.step && (
           <span
@@ -325,6 +343,7 @@ export function ProjectTaskTemplatesModal({ open, onOpenChange }: ProjectTaskTem
 
   const dailyTemplates = templates.filter((t) => t.task_type === 'daily');
   const weeklyTemplates = templates.filter((t) => t.task_type === 'weekly');
+  const stepTemplates = templates.filter((t) => t.task_type === 'step');
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -387,6 +406,18 @@ export function ProjectTaskTemplatesModal({ open, onOpenChange }: ProjectTaskTem
                 Tarefas Semanais ({weeklyTemplates.length})
               </p>
               {weeklyTemplates.map((t) => (
+                <TemplateRow key={t.id} template={t} />
+              ))}
+            </div>
+          )}
+
+          {/* Step templates */}
+          {stepTemplates.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-[var(--mtech-text-muted)] uppercase tracking-wide">
+                Por Etapa ({stepTemplates.length})
+              </p>
+              {stepTemplates.map((t) => (
                 <TemplateRow key={t.id} template={t} />
               ))}
             </div>

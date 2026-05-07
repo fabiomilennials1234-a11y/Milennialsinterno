@@ -38,7 +38,7 @@ export interface DepartmentTask {
   user_id: string;
   title: string;
   description: string | null;
-  task_type: 'daily' | 'weekly';
+  task_type: 'daily' | 'weekly' | 'step';
   status: 'todo' | 'doing' | 'done';
   priority: string | null;
   due_date: string | null;

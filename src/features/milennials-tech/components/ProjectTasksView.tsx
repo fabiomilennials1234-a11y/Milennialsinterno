@@ -91,7 +91,7 @@ const sectionTitleCls =
 
 interface KanbanSectionProps {
   title: string;
-  type: 'daily' | 'weekly';
+  type: 'daily' | 'weekly' | 'step';
   tasks: ProjectTaskWithName[];
   isLoading: boolean;
 }
@@ -127,33 +127,40 @@ function KanbanSection({ title, type, tasks, isLoading }: KanbanSectionProps) {
       // Cancel in-flight refetches so they don't overwrite optimistic data
       await queryClient.cancelQueries({ queryKey: allProjectTaskKeys.all });
 
-      // Snapshot both caches for rollback
+      // Snapshot all caches for rollback
       const prevDaily = queryClient.getQueryData<ProjectTaskWithName[]>(
         allProjectTaskKeys.byType('daily'),
       );
       const prevWeekly = queryClient.getQueryData<ProjectTaskWithName[]>(
         allProjectTaskKeys.byType('weekly'),
       );
+      const prevStep = queryClient.getQueryData<ProjectTaskWithName[]>(
+        allProjectTaskKeys.byType('step'),
+      );
 
-      // Optimistically update both caches (task lives in only one, but update both is safe)
+      // Optimistically update all caches (task lives in only one, but update all is safe)
       const updateCache = (old: ProjectTaskWithName[] | undefined) =>
         old?.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t));
 
       queryClient.setQueryData(allProjectTaskKeys.byType('daily'), updateCache);
       queryClient.setQueryData(allProjectTaskKeys.byType('weekly'), updateCache);
+      queryClient.setQueryData(allProjectTaskKeys.byType('step'), updateCache);
 
-      return { prevDaily, prevWeekly };
+      return { prevDaily, prevWeekly, prevStep };
     },
     [queryClient],
   );
 
   const rollbackOptimistic = useCallback(
-    (context: { prevDaily?: ProjectTaskWithName[]; prevWeekly?: ProjectTaskWithName[] } | undefined) => {
+    (context: { prevDaily?: ProjectTaskWithName[]; prevWeekly?: ProjectTaskWithName[]; prevStep?: ProjectTaskWithName[] } | undefined) => {
       if (context?.prevDaily !== undefined) {
         queryClient.setQueryData(allProjectTaskKeys.byType('daily'), context.prevDaily);
       }
       if (context?.prevWeekly !== undefined) {
         queryClient.setQueryData(allProjectTaskKeys.byType('weekly'), context.prevWeekly);
+      }
+      if (context?.prevStep !== undefined) {
+        queryClient.setQueryData(allProjectTaskKeys.byType('step'), context.prevStep);
       }
     },
     [queryClient],
@@ -431,7 +438,7 @@ function KanbanSection({ title, type, tasks, isLoading }: KanbanSectionProps) {
                                 autoFocus
                                 className={`${inputCls} h-8 text-sm`}
                               />
-                              {type === 'daily' && (
+                              {(type === 'daily' || type === 'step') && (
                                 <Select
                                   value={newTaskProjectId}
                                   onValueChange={setNewTaskProjectId}
@@ -535,6 +542,7 @@ export function ProjectTasksView() {
   const queryClient = useQueryClient();
   const { data: dailyTasks = [], isLoading: dailyLoading } = useAllProjectTasks('daily');
   const { data: weeklyTasks = [], isLoading: weeklyLoading } = useAllProjectTasks('weekly');
+  const { data: stepTasks = [], isLoading: stepLoading } = useAllProjectTasks('step');
   const { data: projects = [] } = useTechProjects();
   const [showTemplatesModal, setShowTemplatesModal] = useState(false);
   const updateProject = useUpdateTechProject();
@@ -695,6 +703,13 @@ export function ProjectTasksView() {
         type="weekly"
         tasks={weeklyTasks}
         isLoading={weeklyLoading}
+      />
+
+      <KanbanSection
+        title="Tarefas por Etapa"
+        type="step"
+        tasks={stepTasks}
+        isLoading={stepLoading}
       />
 
       {canConfigure && (

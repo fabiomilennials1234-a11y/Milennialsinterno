@@ -11,7 +11,7 @@ export interface ProjectTaskTemplate {
   id: string;
   title: string;
   step: string | null;
-  task_type: 'daily' | 'weekly';
+  task_type: 'daily' | 'weekly' | 'step';
   is_active: boolean;
   is_project_scoped: boolean;
   created_at: string;

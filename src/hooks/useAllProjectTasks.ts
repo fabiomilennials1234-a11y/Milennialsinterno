@@ -18,7 +18,7 @@ export interface ProjectTaskWithName extends DepartmentTask {
 
 export const allProjectTaskKeys = {
   all: ['all-project-tasks'] as const,
-  byType: (type: 'daily' | 'weekly') => [...allProjectTaskKeys.all, type] as const,
+  byType: (type: 'daily' | 'weekly' | 'step') => [...allProjectTaskKeys.all, type] as const,
 };
 
 // ---------------------------------------------------------------------------
@@ -76,7 +76,7 @@ function mapToProjectTasks(
 //        or ALL devs weekly tasks (weekly — includes global ones)
 // ---------------------------------------------------------------------------
 
-export function useAllProjectTasks(type: 'daily' | 'weekly') {
+export function useAllProjectTasks(type: 'daily' | 'weekly' | 'step') {
   const { user } = useAuth();
 
   return useQuery({
@@ -91,6 +91,26 @@ export function useAllProjectTasks(type: 'daily' | 'weekly') {
           .not('related_project_id' as any, 'is', null)
           .eq('task_type', 'daily')
           .eq('archived', false)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        const rows = (data || []) as unknown as Record<string, unknown>[];
+        const projectMap = await fetchProjectNameMap(extractProjectIds(rows));
+        return mapToProjectTasks(rows, projectMap);
+      }
+
+      if (type === 'step') {
+        // Step: all devs step tasks linked to a project
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data, error } = await (supabase as any)
+          .from('department_tasks')
+          .select('*, clients:related_client_id(name, razao_social)')
+          .not('related_project_id', 'is', null)
+          .eq('task_type', 'step')
+          .eq('department', 'devs')
+          .eq('archived', false)
+          .order('project_step', { ascending: true })
           .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -130,7 +150,7 @@ export function useCreateAllProjectTask() {
   return useMutation({
     mutationFn: async (taskData: {
       title: string;
-      task_type: 'daily' | 'weekly';
+      task_type: 'daily' | 'weekly' | 'step';
       related_project_id?: string | null;
       description?: string;
       priority?: string;
