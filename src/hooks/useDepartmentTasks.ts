@@ -77,6 +77,7 @@ export function useDepartmentTasks(department: string, type: 'daily' | 'weekly' 
         .eq('department', department)
         .eq('task_type', type)
         .eq('archived', false)
+        .is('related_project_id' as any, null)
         .order('created_at', { ascending: false });
 
       if (!seesAll) {
@@ -598,6 +599,7 @@ export function useUpdateDepartmentTaskStatus(department: string) {
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['project-tasks'] });
       if (result?.crmConfigAdvanced) {
         queryClient.invalidateQueries({ queryKey: ['crm-configuracoes'] });
         queryClient.invalidateQueries({ queryKey: ['crm-configs-for-client'] });
@@ -684,6 +686,7 @@ export function useArchiveDepartmentTask(department: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['project-tasks'] });
       toast.success('Tarefa arquivada!');
     },
     onError: (error: any) => {
@@ -713,6 +716,7 @@ export function useDeleteDepartmentTask(department: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['project-tasks'] });
       toast.success('Tarefa excluída!');
     },
     onError: (error: any) => {
