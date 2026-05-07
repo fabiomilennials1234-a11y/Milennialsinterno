@@ -49,6 +49,8 @@ export default function DevsKanbanBoard() {
         createModalColumnPropName: 'devColumns',
         createSuccessMessage: 'Demanda de desenvolvimento criada com sucesso',
         cardDetailFlags: { isDevBoard: true },
+        showCardThumbnails: true,
+        showColumnCovers: true,
         attachments: {
           storageBucket: 'card-attachments',
           attachmentsTable: 'card_attachments',

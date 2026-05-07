@@ -42,6 +42,8 @@ export default function VideoKanbanBoard() {
         createModalColumnPropName: 'editorColumns',
         createSuccessMessage: 'Demanda de vídeo criada com sucesso',
         cardDetailFlags: { isVideoBoard: true },
+        showCardThumbnails: true,
+        showColumnCovers: true,
         briefing: {
           tableName: 'video_briefings',
           briefingType: 'video',
