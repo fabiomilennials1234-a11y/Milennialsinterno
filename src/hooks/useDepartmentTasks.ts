@@ -48,6 +48,8 @@ export interface DepartmentTask {
   updated_at: string;
   archived: boolean;
   archived_at: string | null;
+  // Joined client info (from related_client_id → clients)
+  clients?: { name: string; razao_social: string | null } | null;
   // Extended fields for financeiro_tasks integration
   _source?: 'department' | 'financeiro';
   _financeiroMeta?: {
@@ -71,7 +73,7 @@ export function useDepartmentTasks(department: string, type: 'daily' | 'weekly' 
       // 1. Fetch regular department tasks
       let baseQuery = supabase
         .from('department_tasks')
-        .select('*')
+        .select('*, clients:related_client_id(name, razao_social)')
         .eq('department', department)
         .eq('task_type', type)
         .eq('archived', false)

@@ -9,7 +9,7 @@ import {
 } from '@/hooks/useDepartmentTasks';
 import { useAddJustification } from '@/hooks/useTaskJustification';
 import { useAuth } from '@/contexts/AuthContext';
-import { Plus, MoreHorizontal, Calendar, Trash2, Archive, AlertTriangle } from 'lucide-react';
+import { Plus, MoreHorizontal, Calendar, Trash2, Archive, AlertTriangle, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -192,6 +192,7 @@ export default function DepartmentTarefasSection({ department, type = 'daily' }:
                       const isDone = task.status === 'done';
                       const hasJustification = !!(task as any).justification;
                       const needsJustification = isOverdue && !hasJustification;
+                      const clientName = task.clients?.razao_social || task.clients?.name || null;
 
                       return (
                         <Draggable 
@@ -221,8 +222,17 @@ export default function DepartmentTarefasSection({ department, type = 'daily' }:
                                   )}>
                                     {task.title}
                                   </p>
-                                  
-                                  {task.description && (
+
+                                  {clientName && (
+                                    <div className="flex items-center gap-1.5 mt-1">
+                                      <User size={11} className="text-muted-foreground shrink-0" />
+                                      <span className="text-xs text-muted-foreground font-medium truncate">
+                                        {clientName}
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  {task.description && !task.description.startsWith('crm-config:') && (
                                     <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                                       {task.description}
                                     </p>
