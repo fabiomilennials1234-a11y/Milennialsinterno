@@ -18,28 +18,17 @@ import {
   Calendar,
   Trash2,
   Archive,
-  AlertTriangle,
   FolderKanban,
-  ChevronDown,
   Settings,
   Shield,
-  ChevronRight,
-  CheckCircle2,
 } from 'lucide-react';
 import { ProjectTaskTemplatesModal } from './ProjectTaskTemplatesModal';
-import { useProjectStepProgress, projectStepProgressKeys } from '../hooks/useProjectStepProgress';
+import { useTechProjects } from '../hooks/useTechProjects';
 import {
-  useTechProjects,
-  useUpdateTechProject,
-  techProjectKeys,
-} from '../hooks/useTechProjects';
-import {
+  PROJECT_STEPS,
   PROJECT_STEP_LABEL,
-  getNextProjectStep,
-  isLastProjectStep,
   type ProjectStep,
 } from '../lib/projectSteps';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -110,6 +99,7 @@ function KanbanSection({ title, type, tasks, isLoading }: KanbanSectionProps) {
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskProjectId, setNewTaskProjectId] = useState<string>('__none__');
   const [newTaskIsBlocking, setNewTaskIsBlocking] = useState(true);
+  const [newTaskAdvanceToStep, setNewTaskAdvanceToStep] = useState<string | null>(null);
 
   const activeProjects = useMemo(
     () => projects.filter((p) => p.status !== 'completed'),
@@ -214,10 +204,12 @@ function KanbanSection({ title, type, tasks, isLoading }: KanbanSectionProps) {
       task_type: type,
       related_project_id: newTaskProjectId === '__none__' ? null : newTaskProjectId,
       is_blocking: newTaskIsBlocking,
+      advance_to_step: newTaskAdvanceToStep,
     });
     setNewTaskTitle('');
     setNewTaskProjectId('__none__');
     setNewTaskIsBlocking(true);
+    setNewTaskAdvanceToStep(null);
     setIsAdding(false);
   };
 
@@ -329,6 +321,15 @@ function KanbanSection({ title, type, tasks, isLoading }: KanbanSectionProps) {
                                           <FolderKanban className="h-3 w-3 text-[var(--mtech-accent)] flex-shrink-0" />
                                           <span className="text-[10px] text-[var(--mtech-accent)] font-medium truncate">
                                             {task.project_name}
+                                          </span>
+                                        </div>
+                                      )}
+
+                                      {/* Advance step badge */}
+                                      {task.advance_to_step && (
+                                        <div className="flex items-center gap-1.5 mt-1.5">
+                                          <span className="text-[10px] text-emerald-400 font-medium bg-emerald-500/10 px-1.5 py-0.5 rounded-full">
+                                            &rarr; {PROJECT_STEP_LABEL[task.advance_to_step as ProjectStep] ?? task.advance_to_step}
                                           </span>
                                         </div>
                                       )}
@@ -484,6 +485,25 @@ function KanbanSection({ title, type, tasks, isLoading }: KanbanSectionProps) {
                                   </span>
                                 </label>
                               )}
+                              {/* Advance to step — only for project-linked tasks */}
+                              {newTaskProjectId !== '__none__' && (
+                                <Select
+                                  value={newTaskAdvanceToStep ?? '__none__'}
+                                  onValueChange={(v) => setNewTaskAdvanceToStep(v === '__none__' ? null : v)}
+                                >
+                                  <SelectTrigger className={`${inputCls} h-8 text-xs`}>
+                                    <SelectValue placeholder="Ao concluir, avançar para... (opcional)" />
+                                  </SelectTrigger>
+                                  <SelectContent className={selectContentCls}>
+                                    <SelectItem value="__none__">Nenhuma etapa</SelectItem>
+                                    {PROJECT_STEPS.map((step) => (
+                                      <SelectItem key={step} value={step}>
+                                        {PROJECT_STEP_LABEL[step]}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              )}
                               <div className="flex items-center gap-1.5">
                                 <Button
                                   size="sm"
@@ -501,6 +521,7 @@ function KanbanSection({ title, type, tasks, isLoading }: KanbanSectionProps) {
                                     setNewTaskTitle('');
                                     setNewTaskProjectId('__none__');
                                     setNewTaskIsBlocking(true);
+                                    setNewTaskAdvanceToStep(null);
                                   }}
                                   className="h-7 px-2 text-[var(--mtech-text-subtle)]"
                                 >
@@ -539,59 +560,12 @@ const CAN_CONFIGURE_ROLES = new Set(['ceo', 'cto']);
 
 export function ProjectTasksView() {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const { data: dailyTasks = [], isLoading: dailyLoading } = useAllProjectTasks('daily');
   const { data: weeklyTasks = [], isLoading: weeklyLoading } = useAllProjectTasks('weekly');
   const { data: stepTasks = [], isLoading: stepLoading } = useAllProjectTasks('step');
-  const { data: projects = [] } = useTechProjects();
   const [showTemplatesModal, setShowTemplatesModal] = useState(false);
-  const updateProject = useUpdateTechProject();
 
   const canConfigure = !!user?.role && CAN_CONFIGURE_ROLES.has(user.role);
-  const canManageTasks = !!user?.role && CAN_MANAGE_TASKS_ROLES.has(user.role);
-
-  // Active projects for step progress tracking
-  const activeProjects = useMemo(
-    () =>
-      projects
-        .filter((p) => p.status === 'active' || p.status === 'planning')
-        .map((p) => ({ id: p.id, name: p.name, currentStep: p.current_step })),
-    [projects],
-  );
-
-  const { data: stepProgress = [] } = useProjectStepProgress(activeProjects);
-
-  const handleAdvanceStep = (projectId: string, currentStep: string, projectName: string) => {
-    const last = isLastProjectStep(currentStep);
-    const nextStep = getNextProjectStep(currentStep);
-
-    if (last) {
-      updateProject.mutate(
-        { id: projectId, patch: { status: 'completed' as const } },
-        {
-          onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: allProjectTaskKeys.all });
-            queryClient.invalidateQueries({ queryKey: techProjectKeys.all });
-            queryClient.invalidateQueries({ queryKey: projectStepProgressKeys.all });
-            toast.success(`Projeto "${projectName}" concluido!`);
-          },
-        },
-      );
-    } else if (nextStep) {
-      const nextLabel = PROJECT_STEP_LABEL[nextStep as ProjectStep] ?? nextStep;
-      updateProject.mutate(
-        { id: projectId, patch: { current_step: nextStep } },
-        {
-          onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: allProjectTaskKeys.all });
-            queryClient.invalidateQueries({ queryKey: techProjectKeys.all });
-            queryClient.invalidateQueries({ queryKey: projectStepProgressKeys.all });
-            toast.success(`Projeto avancou para "${nextLabel}"`);
-          },
-        },
-      );
-    }
-  };
 
   return (
     <div className="space-y-10">
@@ -605,89 +579,6 @@ export function ProjectTasksView() {
             <Settings className="h-3.5 w-3.5" />
             Configurar templates
           </button>
-        </div>
-      )}
-
-      {/* Step progress per project */}
-      {activeProjects.length > 0 && stepProgress.length > 0 && (
-        <div className="space-y-3">
-          <h3 className={sectionTitleCls}>Progresso por projeto</h3>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-            {activeProjects.map((project) => {
-              const progress = stepProgress.find((p) => p.projectId === project.id);
-              if (!progress) return null;
-
-              const pct =
-                progress.totalBlocking > 0
-                  ? Math.round((progress.doneBlocking / progress.totalBlocking) * 100)
-                  : 0;
-              const stepLabel =
-                PROJECT_STEP_LABEL[project.currentStep as ProjectStep] ?? project.currentStep;
-
-              return (
-                <div
-                  key={project.id}
-                  className="rounded-[var(--mtech-radius-md)] border border-[var(--mtech-border)] bg-[var(--mtech-surface)] p-4"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <FolderKanban className="h-3.5 w-3.5 text-[var(--mtech-accent)] flex-shrink-0" />
-                      <span className="text-sm font-medium text-[var(--mtech-text)] truncate">
-                        {project.name}
-                      </span>
-                      <span className="text-[10px] text-[var(--mtech-text-subtle)] bg-[var(--mtech-surface-elev)] px-1.5 py-0.5 rounded-full flex-shrink-0">
-                        {stepLabel}
-                      </span>
-                    </div>
-                    <span className="text-[10px] text-[var(--mtech-text-muted)] flex-shrink-0 ml-2">
-                      {progress.doneBlocking}/{progress.totalBlocking} bloqueantes
-                    </span>
-                  </div>
-
-                  {/* Progress bar */}
-                  <div className="h-1.5 w-full rounded-full bg-[var(--mtech-surface-elev)] overflow-hidden mb-3">
-                    <div
-                      className={cn(
-                        'h-full rounded-full transition-all duration-500',
-                        progress.canAdvance
-                          ? 'bg-emerald-500'
-                          : 'bg-[var(--mtech-accent)]',
-                      )}
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-
-                  {/* Advance button */}
-                  {canManageTasks && (
-                    <button
-                      disabled={!progress.canAdvance || updateProject.isPending}
-                      onClick={() =>
-                        handleAdvanceStep(project.id, project.currentStep, project.name)
-                      }
-                      className={cn(
-                        'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all w-full justify-center',
-                        progress.canAdvance
-                          ? 'bg-[var(--mtech-accent)] text-[var(--mtech-bg)] hover:bg-[var(--mtech-accent)]/90 cursor-pointer'
-                          : 'bg-[var(--mtech-surface-elev)] text-[var(--mtech-text-subtle)] cursor-not-allowed opacity-50',
-                      )}
-                    >
-                      {progress.isLastStep ? (
-                        <>
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          Concluir Projeto
-                        </>
-                      ) : (
-                        <>
-                          <ChevronRight className="h-3.5 w-3.5" />
-                          Avancar Etapa
-                        </>
-                      )}
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
         </div>
       )}
 

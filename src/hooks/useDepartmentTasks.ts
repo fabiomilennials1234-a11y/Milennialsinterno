@@ -51,6 +51,7 @@ export interface DepartmentTask {
   related_project_id?: string | null;
   project_step?: string | null;
   is_blocking?: boolean;
+  advance_to_step?: string | null;
   // Joined client info (from related_client_id → clients)
   clients?: { name: string; razao_social: string | null } | null;
   // Extended fields for financeiro_tasks integration
@@ -604,7 +605,7 @@ export function useUpdateDepartmentTaskStatus(department: string) {
       queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['project-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['all-project-tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['project-step-progress'] });
+      queryClient.invalidateQueries({ queryKey: ['tech', 'projects'] });
       if (result?.crmConfigAdvanced) {
         queryClient.invalidateQueries({ queryKey: ['crm-configuracoes'] });
         queryClient.invalidateQueries({ queryKey: ['crm-configs-for-client'] });
