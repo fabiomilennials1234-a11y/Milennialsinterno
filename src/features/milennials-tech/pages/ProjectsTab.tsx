@@ -12,6 +12,7 @@ import { useTechProjects, type TechProjectFilters } from '../hooks/useTechProjec
 import { useTechProfiles } from '../hooks/useProfiles';
 import { ProjectsKanbanView } from '../components/ProjectsKanbanView';
 import { ProjectFormModal } from '../components/ProjectFormModal';
+import { TeamMatrixView } from '../components/TeamMatrixView';
 import type { ProjectType, ProjectPriority } from '../lib/projectSteps';
 
 // ---------------------------------------------------------------------------
@@ -89,9 +90,11 @@ export function ProjectsTab() {
             </button>
             <button
               onClick={() => setViewMode('equipe')}
-              disabled
-              className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-[var(--mtech-text-subtle)] opacity-40 cursor-not-allowed"
-              title="Em breve (Fase 5)"
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                viewMode === 'equipe'
+                  ? 'bg-[var(--mtech-surface-elev)] text-[var(--mtech-text)]'
+                  : 'text-[var(--mtech-text-subtle)] hover:text-[var(--mtech-text-muted)]'
+              }`}
             >
               <Users className="h-3 w-3" />
               Equipe
@@ -182,11 +185,7 @@ export function ProjectsTab() {
         <ProjectsKanbanView projects={filteredProjects} isLoading={isLoading} />
       )}
 
-      {viewMode === 'equipe' && (
-        <div className="flex items-center justify-center h-64 text-[var(--mtech-text-subtle)] text-sm">
-          Vista por equipe disponivel na Fase 5.
-        </div>
-      )}
+      {viewMode === 'equipe' && <TeamMatrixView />}
 
       {/* Create modal */}
       <ProjectFormModal

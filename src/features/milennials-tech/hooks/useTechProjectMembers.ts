@@ -126,6 +126,54 @@ export function useRemoveProjectMember() {
   });
 }
 
+// ---------------------------------------------------------------------------
+// All members (cross-project matrix query)
+// ---------------------------------------------------------------------------
+
+export interface AllProjectMemberRow {
+  project_id: string;
+  user_id: string;
+  allocated_hours_week: number;
+  role: string;
+  user_name: string | null;
+  project_name: string | null;
+}
+
+/**
+ * Fetches ALL tech_project_members rows (no project filter).
+ * Used by TeamMatrixView to build the devs × projects matrix.
+ */
+export function useAllProjectMembers() {
+  return useQuery<AllProjectMemberRow[]>({
+    queryKey: [...techProjectMemberKeys.all, 'all'] as const,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('tech_project_members')
+        .select(`
+          project_id,
+          user_id,
+          allocated_hours_week,
+          role,
+          profile:profiles!tech_project_members_user_id_fkey(name),
+          project:tech_projects!tech_project_members_project_id_fkey(name)
+        `)
+        .order('user_id');
+
+      if (error) throw error;
+
+      return (data || []).map((row: any) => ({
+        project_id: row.project_id,
+        user_id: row.user_id,
+        allocated_hours_week: row.allocated_hours_week,
+        role: row.role,
+        user_name: row.profile?.name ?? null,
+        project_name: row.project?.name ?? null,
+      })) as AllProjectMemberRow[];
+    },
+    staleTime: 30_000,
+  });
+}
+
 export function useUpdateProjectMemberHours() {
   const qc = useQueryClient();
 
@@ -151,6 +199,7 @@ export function useUpdateProjectMemberHours() {
     },
     onSuccess: (_data: any, variables: { projectId: string }) => {
       qc.invalidateQueries({ queryKey: techProjectMemberKeys.list(variables.projectId) });
+      qc.invalidateQueries({ queryKey: [...techProjectMemberKeys.all, 'all'] });
     },
     onError: (err: Error) => {
       toast.error('Erro ao atualizar horas', { description: err.message });
