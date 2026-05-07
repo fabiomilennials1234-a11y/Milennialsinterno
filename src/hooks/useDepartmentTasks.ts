@@ -600,6 +600,7 @@ export function useUpdateDepartmentTaskStatus(department: string) {
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['project-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['all-project-tasks'] });
       if (result?.crmConfigAdvanced) {
         queryClient.invalidateQueries({ queryKey: ['crm-configuracoes'] });
         queryClient.invalidateQueries({ queryKey: ['crm-configs-for-client'] });
@@ -688,6 +689,7 @@ export function useArchiveDepartmentTask(department: string) {
       queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['archived-department-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['project-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['all-project-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['archived-project-tasks'] });
       toast.success('Tarefa arquivada!');
     },
@@ -750,6 +752,7 @@ export function useUnarchiveDepartmentTask(department: string) {
       queryClient.invalidateQueries({ queryKey: ['archived-department-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['project-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['archived-project-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['all-project-tasks'] });
       toast.success('Tarefa desarquivada!');
     },
     onError: (error: any) => {
@@ -780,6 +783,7 @@ export function useDeleteDepartmentTask(department: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['project-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['all-project-tasks'] });
       toast.success('Tarefa excluída!');
     },
     onError: (error: any) => {
