@@ -44,7 +44,7 @@ export function useTechProjectMembers(projectId: string | undefined) {
           allocated_hours_week,
           role,
           added_at,
-          profile:profiles!tech_project_members_user_id_fkey(name)
+          profile:profiles!tech_project_members_user_id_profiles_fkey(name)
         `)
         .eq('project_id', projectId)
         .order('added_at', { ascending: true });
@@ -154,7 +154,7 @@ export function useAllProjectMembers() {
           user_id,
           allocated_hours_week,
           role,
-          profile:profiles!tech_project_members_user_id_fkey(name),
+          profile:profiles!tech_project_members_user_id_profiles_fkey(name),
           project:tech_projects!tech_project_members_project_id_fkey(name)
         `)
         .order('user_id');

@@ -72,9 +72,9 @@ export function useTechProjects(filters?: TechProjectFilters) {
         .from('tech_projects')
         .select(`
           *,
-          lead:profiles!tech_projects_lead_id_fkey(name),
+          lead:profiles!tech_projects_lead_id_profiles_fkey(name),
           client:clients!tech_projects_client_id_fkey(name),
-          members_detail:tech_project_members(user_id, role, profile:profiles!tech_project_members_user_id_fkey(name)),
+          members_detail:tech_project_members(user_id, role, profile:profiles!tech_project_members_user_id_profiles_fkey(name)),
           tasks:tech_tasks!tech_tasks_project_id_fkey(id, status)
         `);
 
