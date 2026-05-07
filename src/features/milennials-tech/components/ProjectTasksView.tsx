@@ -237,14 +237,14 @@ function KanbanSection({ title, type, tasks, isLoading }: KanbanSectionProps) {
       <h3 className={sectionTitleCls + ' mb-4'}>{title}</h3>
 
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="space-y-4">
           {STATUSES.map((status) => {
             const statusTasks = getTasksByStatus(status.id);
             const hasDoneTasks = status.id === 'done' && statusTasks.length > 0;
 
             return (
-              <div key={status.id} className="min-w-0">
-                {/* Column header */}
+              <div key={status.id}>
+                {/* Row header */}
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <span className={status.headerClass}>{status.label}</span>
@@ -269,14 +269,14 @@ function KanbanSection({ title, type, tasks, isLoading }: KanbanSectionProps) {
                   )}
                 </div>
 
-                {/* Droppable column */}
+                {/* Droppable row */}
                 <Droppable droppableId={`${droppablePrefix}-${status.id}`}>
                   {(provided, snapshot) => (
                     <div
                       ref={provided.innerRef}
                       {...provided.droppableProps}
                       className={cn(
-                        'min-h-[80px] rounded-xl p-2 transition-all duration-200',
+                        'min-h-[60px] rounded-xl p-2 transition-all duration-200',
                         snapshot.isDraggingOver && 'bg-[var(--mtech-accent)]/10 ring-2 ring-[var(--mtech-accent)]/30',
                       )}
                     >
@@ -691,26 +691,29 @@ export function ProjectTasksView() {
         </div>
       )}
 
-      <KanbanSection
-        title="Tarefas Diarias"
-        type="daily"
-        tasks={dailyTasks}
-        isLoading={dailyLoading}
-      />
+      {/* 3 kanbans side by side — statuses stacked vertically inside each */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <KanbanSection
+          title="Tarefas Diarias"
+          type="daily"
+          tasks={dailyTasks}
+          isLoading={dailyLoading}
+        />
 
-      <KanbanSection
-        title="Tarefas Semanais"
-        type="weekly"
-        tasks={weeklyTasks}
-        isLoading={weeklyLoading}
-      />
+        <KanbanSection
+          title="Tarefas Semanais"
+          type="weekly"
+          tasks={weeklyTasks}
+          isLoading={weeklyLoading}
+        />
 
-      <KanbanSection
-        title="Tarefas por Etapa"
-        type="step"
-        tasks={stepTasks}
-        isLoading={stepLoading}
-      />
+        <KanbanSection
+          title="Tarefas por Etapa"
+          type="step"
+          tasks={stepTasks}
+          isLoading={stepLoading}
+        />
+      </div>
 
       {canConfigure && (
         <ProjectTaskTemplatesModal
