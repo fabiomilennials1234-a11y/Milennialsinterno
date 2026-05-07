@@ -8,6 +8,7 @@ import {
   DepartmentTask
 } from '@/hooks/useDepartmentTasks';
 import { useAddJustification } from '@/hooks/useTaskJustification';
+import { useAuth } from '@/contexts/AuthContext';
 import { Plus, MoreHorizontal, Calendar, Trash2, Archive, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -52,13 +53,17 @@ const STATUSES = [
   { id: 'done', label: 'Feitas', headerClass: 'kanban-header-done', borderClass: 'card-border-green' },
 ];
 
+const CAN_DELETE_ROLES = new Set(['ceo', 'cto', 'sucesso_cliente']);
+
 export default function DepartmentTarefasSection({ department, type = 'daily' }: Props) {
   const { data: tasks = [], isLoading } = useDepartmentTasks(department, type);
+  const { user } = useAuth();
   const createTask = useCreateDepartmentTask(department);
   const updateStatus = useUpdateDepartmentTaskStatus(department);
   const archiveTask = useArchiveDepartmentTask(department);
   const deleteTask = useDeleteDepartmentTask(department);
   const addJustification = useAddJustification('department_tasks', ['department-tasks', department, type]);
+  const canDeleteTasks = !!user?.role && CAN_DELETE_ROLES.has(user.role);
   
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [isAdding, setIsAdding] = useState<string | null>(null);
@@ -293,16 +298,18 @@ export default function DepartmentTarefasSection({ department, type = 'daily' }:
                                       <Archive size={14} className="mr-2" />
                                       Arquivar
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        deleteTask.mutate({ taskId: task.id, _source: task._source });
-                                      }}
-                                      className="text-destructive focus:text-destructive"
-                                    >
-                                      <Trash2 size={14} className="mr-2" />
-                                      Excluir
-                                    </DropdownMenuItem>
+                                    {canDeleteTasks && (
+                                      <DropdownMenuItem
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          deleteTask.mutate({ taskId: task.id, _source: task._source });
+                                        }}
+                                        className="text-destructive focus:text-destructive"
+                                      >
+                                        <Trash2 size={14} className="mr-2" />
+                                        Excluir
+                                      </DropdownMenuItem>
+                                    )}
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                               </div>
