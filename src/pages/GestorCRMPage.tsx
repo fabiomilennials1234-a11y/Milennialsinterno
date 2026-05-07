@@ -2,9 +2,12 @@ import { useRef, useEffect, useState } from 'react';
 import MainLayout from '@/layouts/MainLayout';
 import {
   UserPlus, CheckSquare, ChevronLeft, ChevronRight, Users,
-  FileText, AlertCircle, Sparkles, Settings, CheckCircle2, Wrench, GraduationCap
+  FileText, AlertCircle, Sparkles, Settings, CheckCircle2, Wrench, GraduationCap,
+  LayoutGrid, ListTodo
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import DepartmentTasksTab from '@/components/department/DepartmentTasksTab';
 import DepartmentTarefasSection from '@/components/department/DepartmentTarefasSection';
 import DepartmentJustificativaSection from '@/components/department/DepartmentJustificativaSection';
 import CrmDelayJustificationsSection from '@/components/gestor-crm/CrmDelayJustificationsSection';
@@ -38,6 +41,7 @@ export default function GestorCRMPage() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
+  const [activeView, setActiveView] = useState<'kanban' | 'tarefas'>('kanban');
 
   const checkScrollButtons = () => {
     const container = scrollContainerRef.current;
@@ -96,8 +100,40 @@ export default function GestorCRMPage() {
         <div className="px-8 py-6 border-b border-subtle shrink-0">
           <h1 className="text-display text-foreground">Gestor de CRM</h1>
           <p className="text-caption text-muted-foreground mt-1">Kanban do Torque CRM — V8, Automation e Copilot</p>
+
+          {/* View toggle */}
+          <div className="flex gap-1 bg-muted/50 rounded-lg p-1 mt-4 w-fit">
+            <button
+              onClick={() => setActiveView('kanban')}
+              className={cn(
+                'flex items-center gap-2 px-3 py-1.5 text-sm rounded-md transition-all',
+                activeView === 'kanban'
+                  ? 'bg-card shadow-sm text-foreground font-medium'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <LayoutGrid size={16} />
+              Kanban
+            </button>
+            <button
+              onClick={() => setActiveView('tarefas')}
+              className={cn(
+                'flex items-center gap-2 px-3 py-1.5 text-sm rounded-md transition-all',
+                activeView === 'tarefas'
+                  ? 'bg-card shadow-sm text-foreground font-medium'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <ListTodo size={16} />
+              Tarefas
+            </button>
+          </div>
         </div>
 
+        {/* Board Container or Tasks Tab */}
+        {activeView === 'tarefas' ? (
+          <DepartmentTasksTab department="gestor_crm" />
+        ) : (
         <div className="flex-1 relative overflow-hidden">
           {canScrollLeft && (
             <Button
@@ -144,6 +180,7 @@ export default function GestorCRMPage() {
             </div>
           </div>
         </div>
+        )}
       </div>
     </MainLayout>
   );

@@ -134,6 +134,7 @@ export function useCreateAllProjectTask() {
       related_project_id?: string | null;
       description?: string;
       priority?: string;
+      is_blocking?: boolean;
     }) => {
       if (!user?.id) throw new Error('User not authenticated');
 
@@ -148,6 +149,7 @@ export function useCreateAllProjectTask() {
           status: 'todo',
           department: 'devs',
           related_project_id: taskData.related_project_id || null,
+          is_blocking: taskData.is_blocking ?? true,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
 
@@ -157,6 +159,7 @@ export function useCreateAllProjectTask() {
       queryClient.invalidateQueries({ queryKey: allProjectTaskKeys.all });
       queryClient.invalidateQueries({ queryKey: ['project-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['project-step-progress'] });
       toast.success('Tarefa criada!');
     },
     onError: (error: Error) => {

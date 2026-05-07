@@ -126,7 +126,7 @@ export default function SucessoClientePage() {
         <div className="px-8 py-5 border-b border-subtle shrink-0">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-display text-foreground">Sucesso do Cliente  </h1>
+              <h1 className="text-display text-foreground">Sucesso do Cliente</h1>
               <p className="text-caption text-muted-foreground mt-1">
                 Central de relacionamento e sucesso dos clientes
               </p>
@@ -143,12 +143,41 @@ export default function SucessoClientePage() {
               <CSHeaderStats clients={clients} managers={managers} />
             </div>}
 
+          {/* View toggle */}
+          <div className="flex gap-1 bg-muted/50 rounded-lg p-1 mt-4 w-fit">
+            <button
+              onClick={() => setActiveView('kanban')}
+              className={cn(
+                'flex items-center gap-2 px-3 py-1.5 text-sm rounded-md transition-all',
+                activeView === 'kanban'
+                  ? 'bg-card shadow-sm text-foreground font-medium'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <LayoutGrid size={16} />
+              Kanban
+            </button>
+            <button
+              onClick={() => setActiveView('tarefas')}
+              className={cn(
+                'flex items-center gap-2 px-3 py-1.5 text-sm rounded-md transition-all',
+                activeView === 'tarefas'
+                  ? 'bg-card shadow-sm text-foreground font-medium'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <ListTodo size={16} />
+              Tarefas
+            </button>
+          </div>
         </div>
 
         {/* Loading state */}
         {isLoading ? <div className="flex-1 flex items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div> : (/* Board Container */
+          </div> : activeView === 'tarefas' ? (
+          <DepartmentTasksTab department="sucesso_cliente" />
+        ) : (/* Board Container */
       <div className="flex-1 relative overflow-hidden">
             {/* Scroll Buttons */}
             {canScrollLeft && <Button variant="ghost" size="icon" className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-card shadow-apple-hover border border-subtle hover:bg-muted" onClick={() => scroll('left')}>

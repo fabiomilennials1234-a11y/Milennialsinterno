@@ -1,10 +1,10 @@
 import { useRef, useEffect, useState } from 'react';
 import MainLayout from '@/layouts/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
-import { 
-  UserPlus, 
-  CheckSquare, 
-  Users, 
+import {
+  UserPlus,
+  CheckSquare,
+  Users,
   Gift,
   Quote,
   ChevronLeft,
@@ -13,9 +13,13 @@ import {
   FileText,
   CalendarCheck,
   AlertCircle,
-  UserX
+  UserX,
+  LayoutGrid,
+  ListTodo
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import DepartmentTasksTab from '@/components/department/DepartmentTasksTab';
 
 // Componentes do Consultor Comercial
 import ComercialNovoClienteSection from '@/components/comercial/ComercialNovoClienteSection';
@@ -56,6 +60,7 @@ export default function ConsultorComercialPage() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
+  const [activeView, setActiveView] = useState<'kanban' | 'tarefas'>('kanban');
 
   useDailyMovementDelayCheck();
 
@@ -134,9 +139,40 @@ export default function ConsultorComercialPage() {
           <p className="text-caption text-muted-foreground mt-1">
             Central de treinamento e acompanhamento comercial
           </p>
+
+          {/* View toggle */}
+          <div className="flex gap-1 bg-muted/50 rounded-lg p-1 mt-4 w-fit">
+            <button
+              onClick={() => setActiveView('kanban')}
+              className={cn(
+                'flex items-center gap-2 px-3 py-1.5 text-sm rounded-md transition-all',
+                activeView === 'kanban'
+                  ? 'bg-card shadow-sm text-foreground font-medium'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <LayoutGrid size={16} />
+              Kanban
+            </button>
+            <button
+              onClick={() => setActiveView('tarefas')}
+              className={cn(
+                'flex items-center gap-2 px-3 py-1.5 text-sm rounded-md transition-all',
+                activeView === 'tarefas'
+                  ? 'bg-card shadow-sm text-foreground font-medium'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <ListTodo size={16} />
+              Tarefas
+            </button>
+          </div>
         </div>
 
-        {/* Board Container */}
+        {/* Board Container or Tasks Tab */}
+        {activeView === 'tarefas' ? (
+          <DepartmentTasksTab department="consultor_comercial" />
+        ) : (
         <div className="flex-1 relative overflow-hidden">
           {/* Scroll Buttons */}
           {canScrollLeft && (
@@ -169,7 +205,7 @@ export default function ConsultorComercialPage() {
               {COLUMNS.map((column) => {
                 const Icon = column.icon;
                 const isFullWidth = column.fullWidth;
-                
+
                 return (
                   <div
                     key={column.id}
@@ -190,6 +226,7 @@ export default function ConsultorComercialPage() {
             </div>
           </div>
         </div>
+        )}
       </div>
 
       {/* Notificação de Movimentação Pendente - Apenas para consultor_comercial */}
