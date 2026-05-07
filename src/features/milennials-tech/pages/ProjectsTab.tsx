@@ -31,40 +31,30 @@ const selectContentCls =
 export function ProjectsTab() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [viewMode, setViewMode] = useState<'kanban' | 'equipe'>('kanban');
-  const [showOnlyActive, setShowOnlyActive] = useState(true);
+  const [hideCompleted, setHideCompleted] = useState(true);
 
   // Filters
   const [filterType, setFilterType] = useState<ProjectType | 'all'>('all');
   const [filterPriority, setFilterPriority] = useState<ProjectPriority | 'all'>('all');
   const [filterLead, setFilterLead] = useState<string | 'all'>('all');
 
-  // Build query filters
+  // Build query filters — never filter by status server-side; we do it client-side
   const queryFilters = useMemo<TechProjectFilters>(() => {
     const f: TechProjectFilters = {};
     if (filterType !== 'all') f.type = filterType;
     if (filterPriority !== 'all') f.priority = filterPriority;
     if (filterLead !== 'all') f.leadId = filterLead;
-    if (showOnlyActive) f.status = 'active';
     return f;
-  }, [filterType, filterPriority, filterLead, showOnlyActive]);
+  }, [filterType, filterPriority, filterLead]);
 
-  const { data: projects = [], isLoading } = useTechProjects(
-    // When showing all, don't filter by status
-    showOnlyActive ? queryFilters : { ...queryFilters, status: undefined },
-  );
+  const { data: projects = [], isLoading } = useTechProjects(queryFilters);
   const { data: profiles = [] } = useTechProfiles();
 
-  // Client-side filter for status when not filtering via query
+  // Client-side: hide completed when toggle is on
   const filteredProjects = useMemo(() => {
-    let filtered = projects;
-    if (!showOnlyActive) {
-      // Apply non-status filters client side when status filter is removed
-      if (filterType !== 'all') filtered = filtered.filter((p) => p.type === filterType);
-      if (filterPriority !== 'all') filtered = filtered.filter((p) => p.priority === filterPriority);
-      if (filterLead !== 'all') filtered = filtered.filter((p) => p.lead_id === filterLead);
-    }
-    return filtered;
-  }, [projects, showOnlyActive, filterType, filterPriority, filterLead]);
+    if (!hideCompleted) return projects;
+    return projects.filter((p) => p.status !== 'completed');
+  }, [projects, hideCompleted]);
 
   const hasActiveFilters = filterType !== 'all' || filterPriority !== 'all' || filterLead !== 'all';
 
@@ -101,16 +91,16 @@ export function ProjectsTab() {
             </button>
           </div>
 
-          {/* Active toggle */}
+          {/* Hide completed toggle */}
           <button
-            onClick={() => setShowOnlyActive(!showOnlyActive)}
+            onClick={() => setHideCompleted(!hideCompleted)}
             className={`px-3 py-1.5 rounded-md border text-[11px] font-medium transition-colors ${
-              showOnlyActive
+              hideCompleted
                 ? 'border-[var(--mtech-accent)]/30 bg-[var(--mtech-accent-muted)] text-[var(--mtech-accent)]'
                 : 'border-[var(--mtech-border)] text-[var(--mtech-text-subtle)] hover:text-[var(--mtech-text-muted)]'
             }`}
           >
-            {showOnlyActive ? 'So ativos' : 'Todos'}
+            {hideCompleted ? 'Esconder concluidos' : 'Todos'}
           </button>
         </div>
 

@@ -33,18 +33,19 @@ import type { TechTaskType, TechTaskPriority } from '../types';
 interface TaskFormModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultProjectId?: string;
 }
 
 const TYPE_OPTIONS = Object.entries(TYPE_LABEL_FRIENDLY) as [TechTaskType, { label: string; hint: string }][];
 const PRIORITY_OPTIONS = Object.entries(PRIORITY_LABEL_FRIENDLY) as [TechTaskPriority, { label: string; hint: string }][];
 
-export function TaskFormModal({ open, onOpenChange }: TaskFormModalProps) {
+export function TaskFormModal({ open, onOpenChange, defaultProjectId }: TaskFormModalProps) {
   const { user } = useAuth();
   const createTask = useCreateTechTask();
   const uploadAttachments = useUploadAttachments();
   const { data: profiles = [] } = useTechProfiles();
   const { data: allProjects = [] } = useTechProjects({ status: 'active' });
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(defaultProjectId ?? null);
   const [showMore, setShowMore] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -122,7 +123,7 @@ export function TaskFormModal({ open, onOpenChange }: TaskFormModalProps) {
       toast.success(`Task criada com ${files.length} anexo(s)`);
       form.reset();
       setFiles([]);
-      setSelectedProjectId(null);
+      setSelectedProjectId(defaultProjectId ?? null);
       setShowMore(false);
       onOpenChange(false);
     } catch {

@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Dialog,
   DialogContent,
@@ -28,7 +29,8 @@ import {
   FolderKanban,
 } from 'lucide-react';
 import type { TechProjectRow } from '../hooks/useTechProjects';
-import { useUpdateTechProject } from '../hooks/useTechProjects';
+import { useUpdateTechProject, techProjectKeys } from '../hooks/useTechProjects';
+import { TaskFormModal } from './TaskFormModal';
 import {
   useTechProjectMembers,
   useAddProjectMember,
@@ -93,6 +95,7 @@ interface ProjectDetailModalProps {
 
 export function ProjectDetailModal({ project, open, onOpenChange }: ProjectDetailModalProps) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const updateProject = useUpdateTechProject();
   const { data: members = [], isLoading: membersLoading } = useTechProjectMembers(project.id);
   const { data: projectTasks = [], isLoading: tasksLoading } = useTechTasks({ projectId: project.id });
@@ -100,6 +103,9 @@ export function ProjectDetailModal({ project, open, onOpenChange }: ProjectDetai
   const addMember = useAddProjectMember();
   const removeMember = useRemoveProjectMember();
   const updateMemberHours = useUpdateProjectMemberHours();
+
+  // Task form modal
+  const [showTaskForm, setShowTaskForm] = useState(false);
 
   // Inline editing states
   const [editingField, setEditingField] = useState<string | null>(null);
@@ -181,6 +187,13 @@ export function ProjectDetailModal({ project, open, onOpenChange }: ProjectDetai
     },
     [project.id, updateMemberHours],
   );
+
+  const handleTaskFormClose = useCallback((open: boolean) => {
+    setShowTaskForm(open);
+    if (!open) {
+      queryClient.invalidateQueries({ queryKey: techProjectKeys.all });
+    }
+  }, [queryClient]);
 
   const handleViewInKanban = useCallback(() => {
     onOpenChange(false);
@@ -359,15 +372,26 @@ export function ProjectDetailModal({ project, open, onOpenChange }: ProjectDetai
                 <h3 className={sectionTitleCls}>
                   Tasks ({tasksDone}/{tasksTotal})
                 </h3>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={handleViewInKanban}
-                  className="h-7 text-[11px] text-[var(--mtech-accent)] hover:text-[var(--mtech-accent)] gap-1"
-                >
-                  <FolderKanban className="h-3 w-3" />
-                  Ver no Kanban
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setShowTaskForm(true)}
+                    className="h-7 text-[11px] text-[var(--mtech-accent)] hover:text-[var(--mtech-accent)] gap-1"
+                  >
+                    <Plus className="h-3 w-3" />
+                    Nova Task
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleViewInKanban}
+                    className="h-7 text-[11px] text-[var(--mtech-accent)] hover:text-[var(--mtech-accent)] gap-1"
+                  >
+                    <FolderKanban className="h-3 w-3" />
+                    Ver no Kanban
+                  </Button>
+                </div>
               </div>
 
               {tasksLoading ? (
@@ -597,6 +621,12 @@ export function ProjectDetailModal({ project, open, onOpenChange }: ProjectDetai
           </Button>
         </div>
       </DialogContent>
+
+      <TaskFormModal
+        open={showTaskForm}
+        onOpenChange={handleTaskFormClose}
+        defaultProjectId={project.id}
+      />
     </Dialog>
   );
 }
