@@ -21,7 +21,7 @@ import {
 } from '@/hooks/useCrmKanban';
 import { useAllActiveClients } from '@/hooks/useAllActiveClients';
 
-// ========= Pipeline padrão compartilhado V8/Automation =========
+// ========= Pipeline padrão compartilhado =========
 const PIPELINE_PADRAO = [
   'Lead novo',
   'Contato 1 (Ligação)',
@@ -39,137 +39,21 @@ const PIPELINE_PADRAO = [
   'Perdido',
 ];
 
-const ORIGENS_LEADS = [
-  { value: 'meta_ads_formulario', label: 'Meta Ads (Formulário)' },
-  { value: 'meta_ads_whatsapp', label: 'Meta Ads → WhatsApp' },
-  { value: 'landing_page', label: 'Landing Page' },
-  { value: 'outro', label: 'Outro' },
-];
-
-const AUTOMACOES_DISPONIVEIS = [
-  { value: 'lead_automatico', label: 'Lead entra automático no CRM' },
-  { value: 'notificar_vendedor', label: 'Notificar vendedor' },
-  { value: 'mensagem_automatica', label: 'Mensagem automática no WhatsApp' },
-];
-
-const OBJETIVOS_IA = [
-  { value: 'qualificar', label: 'Qualificar lead e passar para o vendedor' },
-  { value: 'agendar', label: 'Agendar reunião' },
-  { value: 'vender', label: 'Vender direto no WhatsApp' },
-  { value: 'suporte', label: 'Somente suporte' },
-];
-
-// Perguntas específicas por objetivo IA (Copilot)
-const PERGUNTAS_POR_OBJETIVO: Record<string, { key: string; label: string; placeholder: string }[]> = {
-  qualificar: [
-    { key: 'criterios_qualificacao', label: 'Critérios de qualificação', placeholder: 'Ex: ter CNPJ, faturar acima de X, ser do nicho Y…' },
-  ],
-  agendar: [
-    { key: 'calendario_link', label: 'Link/ferramenta de agendamento', placeholder: 'Ex: Calendly, Cal.com, Google Agenda…' },
-  ],
-  vender: [
-    { key: 'oferta_principal', label: 'Oferta principal (o que a IA pode vender)', placeholder: 'Ex: curso X por R$ 997, assinatura mensal do plano Pro…' },
-  ],
-  suporte: [
-    { key: 'fonte_faq', label: 'Fonte de conhecimento / FAQ', placeholder: 'Link da base, PDF, Notion, etc.' },
-  ],
-};
-
 // ======================= TIPOS =======================
 
-interface V8FormData {
-  nome_cliente: string;
-  nicho: string;
-  whatsapp_principal: string;
-  responsavel_atendimento: string;
-  origem_leads: string[];
-  origem_outro_descricao: string;
-  meta_liberado: 'sim' | 'nao' | '';
-  whatsapp_disponivel: 'sim' | 'nao' | '';
+interface CrmConfigFormData {
   pipeline_tipo: 'padrao' | 'personalizado';
   pipeline_customizado: string[];
-  script_1: string;
+  scripts: string[];
+  observacoes: string;
 }
 
-interface AutomationFormData extends V8FormData {
-  script_2: string;
-  script_3: string;
-  script_5: string;
-  automacoes: string[];
-}
-
-interface CopilotFormData {
-  nome_cliente: string;
-  nicho: string;
-  produto_principal: string;
-  ticket_medio: string;
-  objetivos_ia: string[];
-  respostas_objetivos: Record<string, string>;
-}
-
-const emptyV8 = (cliente: string): V8FormData => ({
-  nome_cliente: cliente,
-  nicho: '',
-  whatsapp_principal: '',
-  responsavel_atendimento: '',
-  origem_leads: [],
-  origem_outro_descricao: '',
-  meta_liberado: '',
-  whatsapp_disponivel: '',
+const emptyFormData = (): CrmConfigFormData => ({
   pipeline_tipo: 'padrao',
   pipeline_customizado: [],
-  script_1: '',
+  scripts: [],
+  observacoes: '',
 });
-
-const emptyAutomation = (cliente: string): AutomationFormData => ({
-  ...emptyV8(cliente),
-  script_2: '',
-  script_3: '',
-  script_5: '',
-  automacoes: [],
-});
-
-const emptyCopilot = (cliente: string): CopilotFormData => ({
-  nome_cliente: cliente,
-  nicho: '',
-  produto_principal: '',
-  ticket_medio: '',
-  objetivos_ia: [],
-  respostas_objetivos: {},
-});
-
-// ======================= HELPERS =======================
-
-function validateV8(data: V8FormData, produtoLabel: string): string | null {
-  if (!data.nome_cliente.trim()) return `[${produtoLabel}] Nome do cliente é obrigatório`;
-  if (!data.nicho.trim()) return `[${produtoLabel}] Nicho é obrigatório`;
-  if (!data.whatsapp_principal.trim()) return `[${produtoLabel}] WhatsApp principal é obrigatório`;
-  if (!data.responsavel_atendimento.trim()) return `[${produtoLabel}] Responsável pelo atendimento é obrigatório`;
-  if (data.origem_leads.length === 0) return `[${produtoLabel}] Selecione ao menos uma origem dos leads`;
-  if (data.origem_leads.includes('outro') && !data.origem_outro_descricao.trim()) return `[${produtoLabel}] Descreva a outra origem`;
-  if (!data.meta_liberado) return `[${produtoLabel}] Informe se o Meta está liberado`;
-  if (!data.whatsapp_disponivel) return `[${produtoLabel}] Informe se o WhatsApp está disponível`;
-  if (!data.script_1.trim()) return `[${produtoLabel}] Script 1 é obrigatório`;
-  return null;
-}
-
-function validateAutomation(data: AutomationFormData): string | null {
-  const base = validateV8(data, 'Automation');
-  if (base) return base;
-  if (!data.script_2.trim()) return '[Automation] Script 2 — Qualificação é obrigatório';
-  if (!data.script_3.trim()) return '[Automation] Script 3 — Agendamento é obrigatório';
-  if (!data.script_5.trim()) return '[Automation] Script 5 — Reativação é obrigatório';
-  return null;
-}
-
-function validateCopilot(data: CopilotFormData): string | null {
-  if (!data.nome_cliente.trim()) return '[Copilot] Nome do cliente é obrigatório';
-  if (!data.nicho.trim()) return '[Copilot] Nicho é obrigatório';
-  if (!data.produto_principal.trim()) return '[Copilot] Produto/serviço principal é obrigatório';
-  if (!data.ticket_medio.trim()) return '[Copilot] Ticket médio é obrigatório';
-  if (data.objetivos_ia.length === 0) return '[Copilot] Selecione ao menos um objetivo da IA';
-  return null;
-}
 
 // ========== PROPS ==========
 
@@ -179,7 +63,7 @@ interface Props {
   clientId: string;
   clientName: string;
   gestorId: string;
-  availableProdutos: CrmProduto[]; // sub-produtos Torque CRM contratados pelo cliente
+  availableProdutos: CrmProduto[];
   onSuccess?: () => void;
 }
 
@@ -197,33 +81,24 @@ export default function CrmTarefaFormModal({
   const createConfigs = useCreateCrmConfiguracoes();
   const { data: allClients = [], isLoading: isLoadingClients } = useAllActiveClients();
 
-  // Hierarquia: Copilot > Automation > V8. Pré-seleciona apenas o mais alto.
   const highestProduct = availableProdutos.length > 0 ? getHighestProduct(availableProdutos) : null;
   const [selected, setSelected] = useState<CrmProduto[]>(highestProduct ? [highestProduct] : []);
   const [currentClient, setCurrentClient] = useState<{ id: string; name: string }>(() => ({
     id: clientId,
     name: clientName,
   }));
-  const [v8Data, setV8Data] = useState<V8FormData>(() => emptyV8(clientName));
-  const [autoData, setAutoData] = useState<AutomationFormData>(() => emptyAutomation(clientName));
-  const [copilotData, setCopilotData] = useState<CopilotFormData>(() => emptyCopilot(clientName));
-  const [newPipelineItem, setNewPipelineItem] = useState<{ v8: string; auto: string }>({ v8: '', auto: '' });
+  const [formData, setFormData] = useState<CrmConfigFormData>(emptyFormData);
+  const [newPipelineItem, setNewPipelineItem] = useState('');
 
-  // Stable key for availableProdutos to avoid re-running effect on every render
-  // (parent creates new array reference each cycle)
   const produtosKey = availableProdutos.slice().sort().join(',');
 
-  // Re-sincroniza quando o modal é reaberto pra outro cliente (props mudaram)
   useEffect(() => {
     setCurrentClient({ id: clientId, name: clientName });
-    setV8Data(emptyV8(clientName));
-    setAutoData(emptyAutomation(clientName));
-    setCopilotData(emptyCopilot(clientName));
-    // Reset product selection to match new client's highest product (defensive: bug fix for
-    // stale selection when modal is reused across clients with different product sets)
+    setFormData(emptyFormData());
+    setNewPipelineItem('');
     const newHighest = availableProdutos.length > 0 ? getHighestProduct(availableProdutos) : null;
     setSelected(newHighest ? [newHighest] : []);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- produtosKey is a stable serialization of availableProdutos
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId, clientName, produtosKey]);
 
   const clientOptions = useMemo(
@@ -238,9 +113,6 @@ export default function CrmTarefaFormModal({
 
   const handleClientChange = (id: string, name: string) => {
     setCurrentClient({ id, name });
-    setV8Data(d => ({ ...d, nome_cliente: name }));
-    setAutoData(d => ({ ...d, nome_cliente: name }));
-    setCopilotData(d => ({ ...d, nome_cliente: name }));
   };
 
   const handleSubmit = async () => {
@@ -253,27 +125,16 @@ export default function CrmTarefaFormModal({
       return;
     }
 
-    // Hierarquia: apenas o produto mais alto é configurado
     const finalProduto = getHighestProduct(selected);
 
-    // Validação apenas do produto selecionado
-    if (finalProduto === 'v8') {
-      const err = validateV8(v8Data, 'V8');
-      if (err) { toast.error(err); return; }
-    }
-    if (finalProduto === 'automation') {
-      const err = validateAutomation(autoData);
-      if (err) { toast.error(err); return; }
-    }
-    if (finalProduto === 'copilot') {
-      const err = validateCopilot(copilotData);
-      if (err) { toast.error(err); return; }
-    }
-
-    const formDataByProduto: Partial<Record<CrmProduto, Record<string, unknown>>> = {};
-    if (finalProduto === 'v8') formDataByProduto.v8 = v8Data as unknown as Record<string, unknown>;
-    if (finalProduto === 'automation') formDataByProduto.automation = autoData as unknown as Record<string, unknown>;
-    if (finalProduto === 'copilot') formDataByProduto.copilot = copilotData as unknown as Record<string, unknown>;
+    const formDataByProduto: Partial<Record<CrmProduto, Record<string, unknown>>> = {
+      [finalProduto]: {
+        pipeline_tipo: formData.pipeline_tipo,
+        pipeline_customizado: formData.pipeline_customizado,
+        scripts: formData.scripts.filter(s => s.trim() !== ''),
+        observacoes: formData.observacoes,
+      },
+    };
 
     try {
       await createConfigs.mutateAsync({
@@ -294,9 +155,6 @@ export default function CrmTarefaFormModal({
     setSelected(prev => (checked ? [...prev, p] : prev.filter(x => x !== p)));
   };
 
-  const toggleArrayItem = <T extends string>(list: T[], item: T, checked: boolean): T[] =>
-    checked ? [...list, item] : list.filter(i => i !== item);
-
   const saving = createConfigs.isPending;
 
   return (
@@ -310,7 +168,7 @@ export default function CrmTarefaFormModal({
         </DialogHeader>
 
         <div className="space-y-6 mt-2">
-          {/* Seleção de cliente — fonte única de verdade pra todos os blocos */}
+          {/* Seleção de cliente */}
           <div className="space-y-1.5">
             <Label className="text-sm font-semibold">Cliente *</Label>
             <ClientCombobox
@@ -380,151 +238,46 @@ export default function CrmTarefaFormModal({
             </div>
           </div>
 
-          {/* =================== BLOCO V8 =================== */}
-          {selected.includes('v8') && (
-            <div className="border rounded-xl p-4 bg-sky-500/5 border-sky-500/30 space-y-4">
+          {/* =================== FORMULÁRIO UNIFICADO =================== */}
+          {selected.length > 0 && (
+            <div className="border rounded-xl p-5 bg-muted/5 border-border/60 space-y-5">
               <div className="flex items-center gap-2">
-                <Badge className={`${CRM_PRODUTO_COLOR.v8} border`}>{CRM_PRODUTO_LABEL.v8}</Badge>
-                <span className="text-xs text-muted-foreground">Preencha os dados para gerar a configuração V8</span>
+                <Badge className={`${CRM_PRODUTO_COLOR[getHighestProduct(selected)]} border`}>
+                  {CRM_PRODUTO_LABEL[getHighestProduct(selected)]}
+                </Badge>
+                <span className="text-xs text-muted-foreground">Configuração do CRM</span>
               </div>
 
-              <ClientBasicFields
-                data={v8Data}
-                onChange={(patch) => setV8Data(d => ({ ...d, ...patch }))}
-              />
-
-              <OrigemEAcessos
-                data={v8Data}
-                onChange={(patch) => setV8Data(d => ({ ...d, ...patch }))}
-                toggleArrayItem={toggleArrayItem}
-              />
-
+              {/* 1. Pipeline */}
               <PipelineEditor
-                tipo={v8Data.pipeline_tipo}
-                custom={v8Data.pipeline_customizado}
-                newItem={newPipelineItem.v8}
-                onChangeNewItem={(v) => setNewPipelineItem(p => ({ ...p, v8: v }))}
-                onTipoChange={(t) => setV8Data(d => ({ ...d, pipeline_tipo: t }))}
-                onAddCustom={(s) => setV8Data(d => ({ ...d, pipeline_customizado: [...d.pipeline_customizado, s] }))}
-                onRemoveCustom={(i) => setV8Data(d => ({ ...d, pipeline_customizado: d.pipeline_customizado.filter((_, idx) => idx !== i) }))}
+                tipo={formData.pipeline_tipo}
+                custom={formData.pipeline_customizado}
+                newItem={newPipelineItem}
+                onChangeNewItem={setNewPipelineItem}
+                onTipoChange={(t) => setFormData(d => ({ ...d, pipeline_tipo: t }))}
+                onAddCustom={(s) => setFormData(d => ({ ...d, pipeline_customizado: [...d.pipeline_customizado, s] }))}
+                onRemoveCustom={(i) => setFormData(d => ({ ...d, pipeline_customizado: d.pipeline_customizado.filter((_, idx) => idx !== i) }))}
               />
 
+              {/* 2. Scripts */}
+              <ScriptsListEditor
+                scripts={formData.scripts}
+                onAdd={() => setFormData(d => ({ ...d, scripts: [...d.scripts, ''] }))}
+                onChange={(i, v) => setFormData(d => ({ ...d, scripts: d.scripts.map((s, idx) => idx === i ? v : s) }))}
+                onRemove={(i) => setFormData(d => ({ ...d, scripts: d.scripts.filter((_, idx) => idx !== i) }))}
+              />
+
+              {/* 3. Observações */}
               <div className="space-y-1.5">
-                <Label className="text-sm font-semibold">Script 1 — Primeiro contato *</Label>
+                <Label className="text-sm font-semibold">Observações</Label>
                 <Textarea
-                  rows={4}
-                  value={v8Data.script_1}
-                  onChange={(e) => setV8Data(d => ({ ...d, script_1: e.target.value }))}
-                  placeholder="Oi [nome], tudo bem? Sou [vendedor] da [empresa]..."
+                  rows={3}
+                  value={formData.observacoes}
+                  onChange={(e) => setFormData(d => ({ ...d, observacoes: e.target.value }))}
+                  placeholder="Observações gerais sobre a configuração do CRM..."
+                  className="resize-none"
                 />
               </div>
-            </div>
-          )}
-
-          {/* =================== BLOCO AUTOMATION =================== */}
-          {selected.includes('automation') && (
-            <div className="border rounded-xl p-4 bg-violet-500/5 border-violet-500/30 space-y-4">
-              <div className="flex items-center gap-2">
-                <Badge className={`${CRM_PRODUTO_COLOR.automation} border`}>{CRM_PRODUTO_LABEL.automation}</Badge>
-                <span className="text-xs text-muted-foreground">Inclui tudo do V8 + scripts e automações</span>
-              </div>
-
-              <ClientBasicFields
-                data={autoData}
-                onChange={(patch) => setAutoData(d => ({ ...d, ...patch }))}
-              />
-
-              <OrigemEAcessos
-                data={autoData}
-                onChange={(patch) => setAutoData(d => ({ ...d, ...patch }))}
-                toggleArrayItem={toggleArrayItem}
-              />
-
-              <PipelineEditor
-                tipo={autoData.pipeline_tipo}
-                custom={autoData.pipeline_customizado}
-                newItem={newPipelineItem.auto}
-                onChangeNewItem={(v) => setNewPipelineItem(p => ({ ...p, auto: v }))}
-                onTipoChange={(t) => setAutoData(d => ({ ...d, pipeline_tipo: t }))}
-                onAddCustom={(s) => setAutoData(d => ({ ...d, pipeline_customizado: [...d.pipeline_customizado, s] }))}
-                onRemoveCustom={(i) => setAutoData(d => ({ ...d, pipeline_customizado: d.pipeline_customizado.filter((_, idx) => idx !== i) }))}
-              />
-
-              <div className="grid grid-cols-1 gap-3">
-                <ScriptField label="Script 1 — Primeiro contato *" value={autoData.script_1} onChange={(v) => setAutoData(d => ({ ...d, script_1: v }))} />
-                <ScriptField label="Script 2 — Qualificação *" value={autoData.script_2} onChange={(v) => setAutoData(d => ({ ...d, script_2: v }))} />
-                <ScriptField label="Script 3 — Agendamento *" value={autoData.script_3} onChange={(v) => setAutoData(d => ({ ...d, script_3: v }))} />
-                <ScriptField label="Script 5 — Reativação de lead *" value={autoData.script_5} onChange={(v) => setAutoData(d => ({ ...d, script_5: v }))} />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold">Automações</Label>
-                <div className="grid grid-cols-1 gap-2">
-                  {AUTOMACOES_DISPONIVEIS.map(a => {
-                    const checked = autoData.automacoes.includes(a.value);
-                    return (
-                      <label key={a.value} className="flex items-center gap-2 p-2 rounded-lg border border-border cursor-pointer hover:bg-muted/30">
-                        <Checkbox
-                          checked={checked}
-                          onCheckedChange={(c) => setAutoData(d => ({ ...d, automacoes: toggleArrayItem(d.automacoes, a.value, !!c) }))}
-                        />
-                        <span className="text-sm">{a.label}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* =================== BLOCO COPILOT =================== */}
-          {selected.includes('copilot') && (
-            <div className="border rounded-xl p-4 bg-amber-500/5 border-amber-500/30 space-y-4">
-              <div className="flex items-center gap-2">
-                <Badge className={`${CRM_PRODUTO_COLOR.copilot} border`}>{CRM_PRODUTO_LABEL.copilot}</Badge>
-                <span className="text-xs text-muted-foreground">Configuração da IA Copilot</span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <FieldWrap label="Nicho *">
-                  <Input value={copilotData.nicho} onChange={(e) => setCopilotData(d => ({ ...d, nicho: e.target.value }))} placeholder="E-commerce, clínica..." />
-                </FieldWrap>
-                <FieldWrap label="Produto/serviço principal *">
-                  <Input value={copilotData.produto_principal} onChange={(e) => setCopilotData(d => ({ ...d, produto_principal: e.target.value }))} />
-                </FieldWrap>
-                <FieldWrap label="Ticket médio *">
-                  <Input value={copilotData.ticket_medio} onChange={(e) => setCopilotData(d => ({ ...d, ticket_medio: e.target.value }))} placeholder="R$ 1.500,00" />
-                </FieldWrap>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold">Objetivo da IA *</Label>
-                <p className="text-xs text-muted-foreground">Pode selecionar mais de um — perguntas específicas aparecem abaixo</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {OBJETIVOS_IA.map(o => {
-                    const checked = copilotData.objetivos_ia.includes(o.value);
-                    return (
-                      <label key={o.value} className="flex items-center gap-2 p-2 rounded-lg border border-border cursor-pointer hover:bg-muted/30">
-                        <Checkbox
-                          checked={checked}
-                          onCheckedChange={(c) => setCopilotData(d => {
-                            const next = toggleArrayItem(d.objetivos_ia, o.value, !!c);
-                            return { ...d, objetivos_ia: next };
-                          })}
-                        />
-                        <span className="text-sm">{o.label}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Perguntas condicionais por objetivo (dedupe automático por key) */}
-              <DynamicObjetivoQuestions
-                objetivos={copilotData.objetivos_ia}
-                respostas={copilotData.respostas_objetivos}
-                onChange={(k, v) => setCopilotData(d => ({ ...d, respostas_objetivos: { ...d.respostas_objetivos, [k]: v } }))}
-              />
             </div>
           )}
 
@@ -552,97 +305,6 @@ function FieldWrap({ label, children }: { label: string; children: React.ReactNo
   );
 }
 
-function ScriptField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  return (
-    <FieldWrap label={label}>
-      <Textarea rows={3} value={value} onChange={(e) => onChange(e.target.value)} />
-    </FieldWrap>
-  );
-}
-
-function ClientBasicFields({ data, onChange }: {
-  data: { nicho: string; whatsapp_principal: string; responsavel_atendimento: string };
-  onChange: (patch: Partial<{ nicho: string; whatsapp_principal: string; responsavel_atendimento: string }>) => void;
-}) {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-      <FieldWrap label="Nicho *">
-        <Input value={data.nicho} onChange={(e) => onChange({ nicho: e.target.value })} placeholder="Ex: E-commerce" />
-      </FieldWrap>
-      <FieldWrap label="WhatsApp principal *">
-        <Input value={data.whatsapp_principal} onChange={(e) => onChange({ whatsapp_principal: e.target.value })} placeholder="(11) 99999-9999" />
-      </FieldWrap>
-      <FieldWrap label="Responsável pelo atendimento *">
-        <Input value={data.responsavel_atendimento} onChange={(e) => onChange({ responsavel_atendimento: e.target.value })} />
-      </FieldWrap>
-    </div>
-  );
-}
-
-function OrigemEAcessos({ data, onChange, toggleArrayItem }: {
-  data: V8FormData;
-  onChange: (patch: Partial<V8FormData>) => void;
-  toggleArrayItem: <T extends string>(list: T[], item: T, checked: boolean) => T[];
-}) {
-  return (
-    <>
-      <div className="space-y-2">
-        <Label className="text-sm font-semibold">Origem dos leads *</Label>
-        <div className="grid grid-cols-2 gap-2">
-          {ORIGENS_LEADS.map(o => {
-            const checked = data.origem_leads.includes(o.value);
-            return (
-              <label key={o.value} className="flex items-center gap-2 p-2 rounded-lg border border-border cursor-pointer hover:bg-muted/30">
-                <Checkbox
-                  checked={checked}
-                  onCheckedChange={(c) => onChange({ origem_leads: toggleArrayItem(data.origem_leads, o.value, !!c) })}
-                />
-                <span className="text-sm">{o.label}</span>
-              </label>
-            );
-          })}
-        </div>
-        {data.origem_leads.includes('outro') && (
-          <Input
-            placeholder="Descreva a outra origem"
-            value={data.origem_outro_descricao}
-            onChange={(e) => onChange({ origem_outro_descricao: e.target.value })}
-          />
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <Label className="text-sm font-semibold">Meta liberado? *</Label>
-          <RadioGroup value={data.meta_liberado} onValueChange={(v) => onChange({ meta_liberado: v as 'sim' | 'nao' })} className="flex gap-4">
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="sim" id={`meta-sim-${Math.random()}`} />
-              <Label className="text-sm">Sim</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="nao" id={`meta-nao-${Math.random()}`} />
-              <Label className="text-sm">Não</Label>
-            </div>
-          </RadioGroup>
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-sm font-semibold">WhatsApp disponível? *</Label>
-          <RadioGroup value={data.whatsapp_disponivel} onValueChange={(v) => onChange({ whatsapp_disponivel: v as 'sim' | 'nao' })} className="flex gap-4">
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="sim" id={`wa-sim-${Math.random()}`} />
-              <Label className="text-sm">Sim</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="nao" id={`wa-nao-${Math.random()}`} />
-              <Label className="text-sm">Não</Label>
-            </div>
-          </RadioGroup>
-        </div>
-      </div>
-    </>
-  );
-}
-
 function PipelineEditor({ tipo, custom, newItem, onChangeNewItem, onTipoChange, onAddCustom, onRemoveCustom }: {
   tipo: 'padrao' | 'personalizado';
   custom: string[];
@@ -654,43 +316,47 @@ function PipelineEditor({ tipo, custom, newItem, onChangeNewItem, onTipoChange, 
 }) {
   return (
     <div className="space-y-2">
-      <Label className="text-sm font-semibold">Pipeline do CRM *</Label>
+      <Label className="text-sm font-semibold">Pipeline *</Label>
       <RadioGroup value={tipo} onValueChange={(v) => onTipoChange(v as 'padrao' | 'personalizado')} className="flex gap-4 mb-2">
         <div className="flex items-center gap-2">
-          <RadioGroupItem value="padrao" id={`pipe-padrao-${Math.random()}`} />
-          <Label className="text-sm">Padrão (14 etapas)</Label>
+          <RadioGroupItem value="padrao" id="pipe-padrao" />
+          <Label htmlFor="pipe-padrao" className="text-sm cursor-pointer">Padrão (14 etapas)</Label>
         </div>
         <div className="flex items-center gap-2">
-          <RadioGroupItem value="personalizado" id={`pipe-custom-${Math.random()}`} />
-          <Label className="text-sm">Personalizado (padrão + extras)</Label>
+          <RadioGroupItem value="personalizado" id="pipe-custom" />
+          <Label htmlFor="pipe-custom" className="text-sm cursor-pointer">Personalizado</Label>
         </div>
       </RadioGroup>
 
-      {/* Etapas padrão (sempre visíveis como referência) */}
-      <div className="bg-muted/30 rounded-lg p-2 flex flex-wrap gap-1.5">
-        {PIPELINE_PADRAO.map(s => (
-          <Badge key={s} variant="outline" className="text-[10px] bg-background">{s}</Badge>
-        ))}
-      </div>
+      {tipo === 'padrao' && (
+        <div className="bg-muted/30 rounded-lg p-2.5 flex flex-wrap gap-1.5">
+          {PIPELINE_PADRAO.map(s => (
+            <Badge key={s} variant="outline" className="text-[10px] bg-background">{s}</Badge>
+          ))}
+        </div>
+      )}
 
       {tipo === 'personalizado' && (
         <div className="space-y-2">
-          <Label className="text-xs text-muted-foreground">Etapas adicionais</Label>
+          <p className="text-xs text-muted-foreground">Defina as etapas do pipeline personalizado</p>
           <div className="flex gap-2">
             <Input
-              placeholder="Nome da etapa extra"
+              placeholder="Nome da etapa"
               value={newItem}
               onChange={(e) => onChangeNewItem(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && newItem.trim()) {
+                  e.preventDefault();
                   onAddCustom(newItem.trim());
                   onChangeNewItem('');
                 }
               }}
             />
             <Button
+              type="button"
               variant="outline"
               size="icon"
+              className="shrink-0"
               onClick={() => {
                 if (newItem.trim()) {
                   onAddCustom(newItem.trim());
@@ -706,7 +372,7 @@ function PipelineEditor({ tipo, custom, newItem, onChangeNewItem, onTipoChange, 
               {custom.map((s, idx) => (
                 <Badge key={`${s}-${idx}`} className="gap-1.5 bg-primary/10 text-primary border-primary/30">
                   {s}
-                  <button onClick={() => onRemoveCustom(idx)} className="hover:text-destructive">
+                  <button type="button" onClick={() => onRemoveCustom(idx)} className="hover:text-destructive transition-colors">
                     <X size={10} />
                   </button>
                 </Badge>
@@ -719,37 +385,59 @@ function PipelineEditor({ tipo, custom, newItem, onChangeNewItem, onTipoChange, 
   );
 }
 
-function DynamicObjetivoQuestions({ objetivos, respostas, onChange }: {
-  objetivos: string[];
-  respostas: Record<string, string>;
-  onChange: (key: string, value: string) => void;
+function ScriptsListEditor({ scripts, onAdd, onChange, onRemove }: {
+  scripts: string[];
+  onAdd: () => void;
+  onChange: (index: number, value: string) => void;
+  onRemove: (index: number) => void;
 }) {
-  // Dedupe por key (se dois objetivos diferentes compartilhassem pergunta)
-  const perguntas = useMemo(() => {
-    const seen = new Set<string>();
-    const out: { key: string; label: string; placeholder: string }[] = [];
-    for (const obj of objetivos) {
-      const ps = PERGUNTAS_POR_OBJETIVO[obj] || [];
-      for (const p of ps) {
-        if (!seen.has(p.key)) {
-          seen.add(p.key);
-          out.push(p);
-        }
-      }
-    }
-    return out;
-  }, [objetivos]);
-
-  if (perguntas.length === 0) return null;
-
   return (
-    <div className="space-y-3 bg-background rounded-lg p-3 border border-border">
-      <Label className="text-sm font-semibold text-primary">Perguntas específicas dos objetivos</Label>
-      {perguntas.map(p => (
-        <FieldWrap key={p.key} label={p.label}>
-          <Textarea rows={2} value={respostas[p.key] || ''} onChange={(e) => onChange(p.key, e.target.value)} placeholder={p.placeholder} />
-        </FieldWrap>
-      ))}
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <Label className="text-sm font-semibold">Scripts</Label>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs gap-1.5"
+          onClick={onAdd}
+        >
+          <Plus size={12} />
+          Adicionar script
+        </Button>
+      </div>
+
+      {scripts.length === 0 && (
+        <p className="text-xs text-muted-foreground py-2">
+          Nenhum script adicionado. Clique em "Adicionar script" para começar.
+        </p>
+      )}
+
+      <div className="space-y-3">
+        {scripts.map((script, idx) => (
+          <div key={idx} className="relative group">
+            <FieldWrap label={`Script ${idx + 1}`}>
+              <div className="relative">
+                <Textarea
+                  rows={3}
+                  value={script}
+                  onChange={(e) => onChange(idx, e.target.value)}
+                  placeholder={`Conteúdo do script ${idx + 1}...`}
+                  className="resize-none pr-8"
+                />
+                <button
+                  type="button"
+                  onClick={() => onRemove(idx)}
+                  className="absolute top-2 right-2 p-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100"
+                  title="Remover script"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            </FieldWrap>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

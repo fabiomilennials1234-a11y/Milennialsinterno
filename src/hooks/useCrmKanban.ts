@@ -93,52 +93,55 @@ export function getConfigDueDate(createdAtISO: string, produto: CrmProduto): str
 
 // Cada state-machine é uma lista ORDENADA de steps. Ao concluir a tarefa
 // associada ao step atual, o cliente avança para o próximo step e uma nova
-// tarefa é criada. Ao concluir o último step ('finalizar'), a flag
+// tarefa é criada. Ao concluir o último step ('call_pos_venda'), a flag
 // `is_finalizado` vira true e o card vai para "CRMs Finalizados".
 
 export const V8_STEPS = [
-  'criar_pipeline',
-  'conectar_whatsapp',
-  'conectar_meta',
+  'receber_briefing',
+  'estruturar_funil',
   'criar_campos',
   'cadastrar_usuarios',
   'importar_leads',
-  'testar_basico',
-  'finalizar',
+  'agendar_call_apresentacao',
+  'conectar_meta_ads',
+  'call_apresentacao_treinamento',
+  'monitorar_adocao',
+  'cobrar_feedback',
+  'aplicar_ajustes',
+  'call_pos_venda',
 ] as const;
 
 export const AUTOMATION_STEPS = [
-  'criar_pipeline',
+  'receber_briefing',
+  'estruturar_funil',
+  'mapear_fluxos_chatbot',
+  'configurar_boas_vindas',
+  'configurar_atendimento_humano',
+  'testar_fluxos',
   'conectar_whatsapp',
-  'conectar_meta',
-  'criar_campos',
-  'cadastrar_usuarios',
-  'importar_leads',
-  'testar_basico',
-  'criar_pipeline_auto',
-  'configurar_disparos',
-  'automacao_entrada_lead',
-  'automacao_followup',
-  'automacao_reativacao',
-  'testar_automacoes',
-  'finalizar',
+  'conectar_meta_ads',
+  'agendar_call_apresentacao',
+  'apresentar_funil_crm',
+  'demonstrar_chatbot',
+  'monitorar_adocao',
+  'cobrar_feedback',
+  'aplicar_ajustes',
+  'call_pos_venda',
 ] as const;
 
 export const COPILOT_STEPS = [
-  'criar_pipeline',
-  'conectar_whatsapp',
-  'conectar_meta',
-  'criar_campos',
-  'cadastrar_usuarios',
-  'importar_leads',
-  'testar_basico',
-  'marcar_call',
-  'definir_script_ia',
-  'configurar_ia',
-  'configurar_agendamentos',
-  'testar_ia',
-  'testar_agendamentos',
-  'finalizar',
+  'receber_briefing',
+  'treinar_ia',
+  'agendar_call_apresentacao',
+  'realizar_call_apresentacao',
+  'validacao_cliente',
+  'finalizar_configuracoes',
+  'solicitar_testes',
+  'cobrar_feedback',
+  'aplicar_ajustes',
+  'call_validacao_final',
+  'ativar_sistema',
+  'call_pos_venda',
 ] as const;
 
 export type V8Step = typeof V8_STEPS[number];
@@ -152,31 +155,38 @@ export const CRM_STEPS_BY_PRODUTO: Record<CrmProduto, readonly string[]> = {
   copilot: COPILOT_STEPS,
 };
 
-// Label humano por step (comum a todos os produtos que compartilhem o nome)
+// Label humano por step
 export const CRM_STEP_LABEL: Record<string, string> = {
-  criar_pipeline: 'Criar estrutura do CRM (pipeline)',
-  conectar_whatsapp: 'Conectar WhatsApp',
-  conectar_meta: 'Conectar Meta Ads',
+  // Compartilhados entre produtos
+  receber_briefing: 'Receber briefing do treinador comercial',
+  agendar_call_apresentacao: 'Agendar call de apresentação com cliente',
+  cobrar_feedback: 'Cobrar feedback do cliente',
+  aplicar_ajustes: 'Aplicar ajustes (prazo 2 dias)',
+  call_pos_venda: 'Call de pós-venda',
+  conectar_meta_ads: 'Conectar Meta Ads ao CRM',
+  monitorar_adocao: 'Monitorar adoção nos primeiros dias',
+  // V8 específicos
+  estruturar_funil: 'Estruturar etapas do funil no CRM',
   criar_campos: 'Criar campos personalizados',
-  cadastrar_usuarios: 'Cadastrar usuários',
-  importar_leads: 'Importar leads',
-  testar_basico: 'Testar funcionamento básico',
-  // V8 específico
-  finalizar: 'Finalizar CRM',
-  // Automation específico
-  criar_pipeline_auto: 'Criar pipeline de automação',
-  configurar_disparos: 'Configurar disparos WhatsApp',
-  automacao_entrada_lead: 'Automação de entrada de lead',
-  automacao_followup: 'Automação de follow-up',
-  automacao_reativacao: 'Automação de reativação',
-  testar_automacoes: 'Testar automações',
-  // Copilot específico
-  marcar_call: 'Marcar call com cliente',
-  definir_script_ia: 'Definir script e comportamento da IA',
-  configurar_ia: 'Configurar IA (Copilot)',
-  configurar_agendamentos: 'Configurar agendamentos (calendário)',
-  testar_ia: 'Testar IA conversando',
-  testar_agendamentos: 'Testar agendamentos',
+  cadastrar_usuarios: 'Cadastrar usuários da equipe',
+  importar_leads: 'Importar base de leads',
+  call_apresentacao_treinamento: 'Call de apresentação e treinamento',
+  // Copilot específicos
+  treinar_ia: 'Treinar a IA no CRM (Copilot)',
+  realizar_call_apresentacao: 'Realizar call de apresentação',
+  validacao_cliente: 'Validação do cliente',
+  finalizar_configuracoes: 'Finalizar configurações pós-aprovação',
+  solicitar_testes: 'Solicitar testes ao cliente',
+  call_validacao_final: 'Call de validação final',
+  ativar_sistema: 'Ativar sistema',
+  // Automation específicos
+  mapear_fluxos_chatbot: 'Mapear fluxos do chatbot',
+  configurar_boas_vindas: 'Configurar mensagem de boas-vindas / Follow-up',
+  configurar_atendimento_humano: 'Configurar direcionamento para atendimento humano',
+  testar_fluxos: 'Testar todos os fluxos internamente',
+  conectar_whatsapp: 'Conectar WhatsApp ao CRM',
+  apresentar_funil_crm: 'Apresentar funil e estrutura do CRM',
+  demonstrar_chatbot: 'Demonstrar fluxo completo do chatbot',
 };
 
 // Nome da tarefa gerada ao entrar em cada step (por produto).
@@ -184,47 +194,81 @@ export const CRM_STEP_LABEL: Record<string, string> = {
 // produto quando o mesmo cliente tem mais de uma configuração ativa.
 export const CRM_TASK_TITLE: Record<CrmProduto, Record<string, (name: string) => string>> = {
   v8: {
-    criar_pipeline: (n) => `[V8] Criar Pipeline CRM ${n}`,
-    conectar_whatsapp: (n) => `[V8] Configurar WhatsApp CRM ${n}`,
-    conectar_meta: (n) => `[V8] Conectar Meta Ads CRM ${n}`,
-    criar_campos: (n) => `[V8] Criar Campos CRM ${n}`,
-    cadastrar_usuarios: (n) => `[V8] Cadastrar Usuários CRM ${n}`,
-    importar_leads: (n) => `[V8] Importar Leads CRM ${n}`,
-    testar_basico: (n) => `[V8] Testar CRM Básico ${n}`,
-    finalizar: (n) => `[V8] Finalizar CRM ${n}`,
+    receber_briefing: (n) => `[V8] Receber Briefing ${n}`,
+    estruturar_funil: (n) => `[V8] Estruturar Funil CRM ${n}`,
+    criar_campos: (n) => `[V8] Criar Campos Personalizados ${n}`,
+    cadastrar_usuarios: (n) => `[V8] Cadastrar Usuários ${n}`,
+    importar_leads: (n) => `[V8] Importar Leads ${n}`,
+    agendar_call_apresentacao: (n) => `[V8] Agendar Call Apresentação ${n}`,
+    conectar_meta_ads: (n) => `[V8] Conectar Meta Ads ${n}`,
+    call_apresentacao_treinamento: (n) => `[V8] Call Apresentação e Treinamento ${n}`,
+    monitorar_adocao: (n) => `[V8] Monitorar Adoção ${n}`,
+    cobrar_feedback: (n) => `[V8] Cobrar Feedback ${n}`,
+    aplicar_ajustes: (n) => `[V8] Aplicar Ajustes ${n}`,
+    call_pos_venda: (n) => `[V8] Call Pós-Venda ${n}`,
   },
   automation: {
-    criar_pipeline: (n) => `[Automation] Criar Pipeline CRM ${n}`,
-    conectar_whatsapp: (n) => `[Automation] Configurar WhatsApp CRM ${n}`,
-    conectar_meta: (n) => `[Automation] Conectar Meta Ads CRM ${n}`,
-    criar_campos: (n) => `[Automation] Criar Campos CRM ${n}`,
-    cadastrar_usuarios: (n) => `[Automation] Cadastrar Usuários CRM ${n}`,
-    importar_leads: (n) => `[Automation] Importar Leads CRM ${n}`,
-    testar_basico: (n) => `[Automation] Testar CRM Básico ${n}`,
-    criar_pipeline_auto: (n) => `[Automation] Criar Pipeline Automação ${n}`,
-    configurar_disparos: (n) => `[Automation] Configurar Disparos WhatsApp ${n}`,
-    automacao_entrada_lead: (n) => `[Automation] Criar Automação Entrada Lead ${n}`,
-    automacao_followup: (n) => `[Automation] Criar Automação Follow-up ${n}`,
-    automacao_reativacao: (n) => `[Automation] Criar Automação Reativação ${n}`,
-    testar_automacoes: (n) => `[Automation] Testar Automações CRM ${n}`,
-    finalizar: (n) => `[Automation] Finalizar CRM ${n}`,
+    receber_briefing: (n) => `[Automation] Receber Briefing ${n}`,
+    estruturar_funil: (n) => `[Automation] Estruturar Funil CRM ${n}`,
+    mapear_fluxos_chatbot: (n) => `[Automation] Mapear Fluxos Chatbot ${n}`,
+    configurar_boas_vindas: (n) => `[Automation] Configurar Boas-Vindas ${n}`,
+    configurar_atendimento_humano: (n) => `[Automation] Configurar Atendimento Humano ${n}`,
+    testar_fluxos: (n) => `[Automation] Testar Fluxos ${n}`,
+    conectar_whatsapp: (n) => `[Automation] Conectar WhatsApp ${n}`,
+    conectar_meta_ads: (n) => `[Automation] Conectar Meta Ads ${n}`,
+    agendar_call_apresentacao: (n) => `[Automation] Agendar Call Apresentação ${n}`,
+    apresentar_funil_crm: (n) => `[Automation] Apresentar Funil CRM ${n}`,
+    demonstrar_chatbot: (n) => `[Automation] Demonstrar Chatbot ${n}`,
+    monitorar_adocao: (n) => `[Automation] Monitorar Adoção ${n}`,
+    cobrar_feedback: (n) => `[Automation] Cobrar Feedback ${n}`,
+    aplicar_ajustes: (n) => `[Automation] Aplicar Ajustes ${n}`,
+    call_pos_venda: (n) => `[Automation] Call Pós-Venda ${n}`,
   },
   copilot: {
-    criar_pipeline: (n) => `[Copilot] Criar Pipeline CRM ${n}`,
-    conectar_whatsapp: (n) => `[Copilot] Configurar WhatsApp CRM ${n}`,
-    conectar_meta: (n) => `[Copilot] Conectar Meta Ads CRM ${n}`,
-    criar_campos: (n) => `[Copilot] Criar Campos CRM ${n}`,
-    cadastrar_usuarios: (n) => `[Copilot] Cadastrar Usuários CRM ${n}`,
-    importar_leads: (n) => `[Copilot] Importar Leads CRM ${n}`,
-    testar_basico: (n) => `[Copilot] Testar CRM Básico ${n}`,
-    marcar_call: (n) => `[Copilot] Marcar Call ${n}`,
-    definir_script_ia: (n) => `[Copilot] Definir Script IA ${n}`,
-    configurar_ia: (n) => `[Copilot] Configurar IA ${n}`,
-    configurar_agendamentos: (n) => `[Copilot] Configurar Agendamentos ${n}`,
-    testar_ia: (n) => `[Copilot] Testar IA ${n}`,
-    testar_agendamentos: (n) => `[Copilot] Testar Agendamentos ${n}`,
-    finalizar: (n) => `[Copilot] Finalizar CRM ${n}`,
+    receber_briefing: (n) => `[Copilot] Receber Briefing ${n}`,
+    treinar_ia: (n) => `[Copilot] Treinar IA ${n}`,
+    agendar_call_apresentacao: (n) => `[Copilot] Agendar Call Apresentação ${n}`,
+    realizar_call_apresentacao: (n) => `[Copilot] Realizar Call Apresentação ${n}`,
+    validacao_cliente: (n) => `[Copilot] Validação do Cliente ${n}`,
+    finalizar_configuracoes: (n) => `[Copilot] Finalizar Configurações ${n}`,
+    solicitar_testes: (n) => `[Copilot] Solicitar Testes ${n}`,
+    cobrar_feedback: (n) => `[Copilot] Cobrar Feedback ${n}`,
+    aplicar_ajustes: (n) => `[Copilot] Aplicar Ajustes ${n}`,
+    call_validacao_final: (n) => `[Copilot] Call Validação Final ${n}`,
+    ativar_sistema: (n) => `[Copilot] Ativar Sistema ${n}`,
+    call_pos_venda: (n) => `[Copilot] Call Pós-Venda ${n}`,
   },
+};
+
+// ================= FASES (AGRUPAMENTO VISUAL) =================
+
+export interface CrmPhase {
+  id: string;
+  label: string;
+  steps: string[];
+}
+
+export const CRM_PHASES_BY_PRODUTO: Record<CrmProduto, CrmPhase[]> = {
+  copilot: [
+    { id: 'preparacao', label: 'Fase 1 — Preparação interna', steps: ['receber_briefing', 'treinar_ia', 'agendar_call_apresentacao'] },
+    { id: 'apresentacao', label: 'Fase 2 — Apresentação e aprovação', steps: ['realizar_call_apresentacao', 'validacao_cliente'] },
+    { id: 'ajustes', label: 'Fase 3 — Ajustes finos', steps: ['finalizar_configuracoes', 'solicitar_testes', 'cobrar_feedback', 'aplicar_ajustes'] },
+    { id: 'entrega', label: 'Fase 4 — Entrega e ativação', steps: ['call_validacao_final', 'ativar_sistema'] },
+    { id: 'pos_venda', label: 'Fase 5 — Pós-venda', steps: ['call_pos_venda'] },
+  ],
+  v8: [
+    { id: 'preparacao', label: 'Fase 1 — Preparação interna', steps: ['receber_briefing', 'estruturar_funil', 'criar_campos', 'cadastrar_usuarios', 'importar_leads', 'agendar_call_apresentacao'] },
+    { id: 'meta', label: 'Fase 2 — Integração com Meta Ads', steps: ['conectar_meta_ads'] },
+    { id: 'apresentacao', label: 'Fase 3 — Apresentação e treinamento', steps: ['call_apresentacao_treinamento'] },
+    { id: 'acompanhamento', label: 'Fase 4 — Acompanhamento e adoção', steps: ['monitorar_adocao', 'cobrar_feedback', 'aplicar_ajustes', 'call_pos_venda'] },
+  ],
+  automation: [
+    { id: 'preparacao', label: 'Fase 1 — Preparação interna', steps: ['receber_briefing', 'estruturar_funil', 'mapear_fluxos_chatbot'] },
+    { id: 'chatbot', label: 'Fase 2 — Construção dos fluxos de chatbot', steps: ['configurar_boas_vindas', 'configurar_atendimento_humano', 'testar_fluxos'] },
+    { id: 'integracoes', label: 'Fase 3 — Integrações', steps: ['conectar_whatsapp', 'conectar_meta_ads'] },
+    { id: 'apresentacao', label: 'Fase 4 — Apresentação e treinamento', steps: ['agendar_call_apresentacao', 'apresentar_funil_crm', 'demonstrar_chatbot'] },
+    { id: 'acompanhamento', label: 'Fase 5 — Acompanhamento e adoção', steps: ['monitorar_adocao', 'cobrar_feedback', 'aplicar_ajustes', 'call_pos_venda'] },
+  ],
 };
 
 /** Retorna o próximo step da máquina do produto ou `null` se já é o último */
@@ -235,7 +279,7 @@ export function getNextStep(produto: CrmProduto, current: string): string | null
   return steps[idx + 1];
 }
 
-/** True se `current` é o último step da state-machine do produto */
+/** True se `current` é o último step da state-machine do produto ('call_pos_venda') */
 export function isLastStep(produto: CrmProduto, current: string): boolean {
   const steps = CRM_STEPS_BY_PRODUTO[produto];
   return steps[steps.length - 1] === current;
@@ -656,7 +700,7 @@ export function useMoveClientCrm() {
 
 /**
  * Cria uma linha em `crm_configuracoes` para cada produto informado (V8/Automation/Copilot).
- * Cada linha recebe o step inicial `criar_pipeline` e UMA tarefa automática com o
+ * Cada linha recebe o step inicial `receber_briefing` e UMA tarefa automática com o
  * título do step inicial do próprio produto. Idempotente por UNIQUE(client_id, produto):
  * se já existe configuração para esse (cliente, produto), mantém a existente e NÃO
  * duplica tarefa.
@@ -820,7 +864,7 @@ export function useCreateCrmConfiguracoes() {
 
 /**
  * Avança uma configuração para o próximo step e cria a tarefa seguinte.
- * Se o step atual era o último (`finalizar`), marca `is_finalizado=true` e NÃO cria tarefa nova —
+ * Se o step atual era o último (`call_pos_venda`), marca `is_finalizado=true` e NÃO cria tarefa nova —
  * o card passa a aparecer na coluna "CRMs Finalizados".
  */
 export function useAdvanceCrmConfiguracao() {

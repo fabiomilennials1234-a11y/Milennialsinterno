@@ -9,6 +9,7 @@ import {
   CRM_PRODUTO_COLOR,
   CRM_STEP_LABEL,
   CRM_STEPS_BY_PRODUTO,
+  CRM_PHASES_BY_PRODUTO,
   type CrmProduto,
 } from '@/hooks/useCrmKanban';
 import CrmConfigViewModal from './CrmConfigViewModal';
@@ -36,6 +37,7 @@ export default function CrmConfigColumnSection({ produto }: Props) {
   const label = CRM_PRODUTO_LABEL[produto];
   const color = CRM_PRODUTO_COLOR[produto];
   const steps = CRM_STEPS_BY_PRODUTO[produto];
+  const phases = CRM_PHASES_BY_PRODUTO[produto];
 
   // Agrupa configs por step para render O(1) por step
   const configsByStep = useMemo(() => {
@@ -56,31 +58,89 @@ export default function CrmConfigColumnSection({ produto }: Props) {
     );
   }
 
+  // Renderiza fases e steps com numeração global cumulativa
+  const renderPhases = (showCards: boolean) => {
+    let globalIdx = 0;
+    return (
+      <div className="space-y-4">
+        {phases.map((phase) => (
+          <div key={phase.id} className="space-y-2">
+            {/* Header da fase */}
+            <div className="px-2.5 py-1.5 bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg border border-primary/20">
+              <h3 className="text-[11px] font-bold text-primary uppercase tracking-wide">
+                {phase.label}
+              </h3>
+            </div>
+
+            {/* Steps dentro da fase */}
+            {phase.steps.map((stepId) => {
+              globalIdx++;
+              const stepLabel = CRM_STEP_LABEL[stepId] || stepId;
+              const stepConfigs = showCards ? (configsByStep.get(stepId) || []) : [];
+
+              return (
+                <div key={stepId} className="space-y-2">
+                  {/* Faixa da etapa */}
+                  <div className="p-2.5 bg-gradient-to-r from-muted/80 to-muted/60 rounded-xl border border-border/50 backdrop-blur-sm">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-semibold text-foreground">
+                        [{globalIdx}] {stepLabel}
+                      </h4>
+                      {stepConfigs.length > 0 && (
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                          {stepConfigs.length}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Cards do passo */}
+                  {stepConfigs.map((cfg: any) => {
+                    const clientName = cfg.clients?.razao_social || cfg.clients?.name || 'Cliente';
+                    return (
+                      <Card key={cfg.id} className="border-subtle hover:shadow-apple-hover transition-shadow">
+                        <CardContent className="p-3 space-y-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <h4 className="font-medium text-sm text-foreground line-clamp-2">{clientName}</h4>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-1.5 text-[10px] gap-1 shrink-0"
+                              onClick={() => setSelectedConfig(cfg)}
+                            >
+                              <Eye size={12} />
+                              Ver
+                            </Button>
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <Badge className={`${color} border text-[10px]`}>{label}</Badge>
+                            {cfg.created_at && (
+                              <CrmDeadlineBadge createdAt={cfg.created_at} produto={produto} />
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   if (configs.length === 0) {
-    // Mesmo sem cards, mostra as etapas vazias para o gestor enxergar o fluxo
     return (
       <>
-        <div className="space-y-2">
-          {steps.map((stepId, idx) => {
-            const stepLabel = CRM_STEP_LABEL[stepId] || stepId;
-            return (
-              <div
-                key={stepId}
-                className="p-2.5 bg-gradient-to-r from-muted/80 to-muted/60 rounded-xl border border-border/50 backdrop-blur-sm"
-              >
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-semibold text-foreground">
-                    [{idx + 1}] {stepLabel}
-                  </h4>
-                </div>
-              </div>
-            );
-          })}
-          <div className="text-center py-4 text-muted-foreground">
-            <Wrench size={24} className="mx-auto mb-1.5 opacity-40" />
-            <p className="text-xs">Nenhum card {label}</p>
-            <p className="text-[10px] mt-0.5 opacity-70">Use "Gerar tarefa" no olhinho do cliente</p>
-          </div>
+        {renderPhases(false)}
+        <div className="text-center py-4 text-muted-foreground">
+          <Wrench size={24} className="mx-auto mb-1.5 opacity-40" />
+          <p className="text-xs">Nenhum card {label}</p>
+          <p className="text-[10px] mt-0.5 opacity-70">Use "Gerar tarefa" no olhinho do cliente</p>
         </div>
         <CrmConfigViewModal
           isOpen={!!selectedConfig}
@@ -93,62 +153,7 @@ export default function CrmConfigColumnSection({ produto }: Props) {
 
   return (
     <>
-      <div className="space-y-3">
-        {steps.map((stepId, idx) => {
-          const stepLabel = CRM_STEP_LABEL[stepId] || stepId;
-          const stepConfigs = configsByStep.get(stepId) || [];
-
-          return (
-            <div key={stepId} className="space-y-2">
-              {/* Faixa da etapa (igual Paddock Onboarding) */}
-              <div className="p-2.5 bg-gradient-to-r from-muted/80 to-muted/60 rounded-xl border border-border/50 backdrop-blur-sm">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-semibold text-foreground">
-                    [{idx + 1}] {stepLabel}
-                  </h4>
-                  {stepConfigs.length > 0 && (
-                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                      {stepConfigs.length}
-                    </Badge>
-                  )}
-                </div>
-              </div>
-
-              {/* Cards do passo */}
-              {stepConfigs.map((cfg: any) => {
-                const clientName = cfg.clients?.razao_social || cfg.clients?.name || 'Cliente';
-                return (
-                  <Card key={cfg.id} className="border-subtle hover:shadow-apple-hover transition-shadow">
-                    <CardContent className="p-3 space-y-2">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <h4 className="font-medium text-sm text-foreground line-clamp-2">{clientName}</h4>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 px-1.5 text-[10px] gap-1 shrink-0"
-                          onClick={() => setSelectedConfig(cfg)}
-                        >
-                          <Eye size={12} />
-                          Ver
-                        </Button>
-                      </div>
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <Badge className={`${color} border text-[10px]`}>{label}</Badge>
-                        {cfg.created_at && (
-                          <CrmDeadlineBadge createdAt={cfg.created_at} produto={produto} />
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          );
-        })}
-      </div>
-
+      {renderPhases(true)}
       <CrmConfigViewModal
         isOpen={!!selectedConfig}
         onClose={() => setSelectedConfig(null)}

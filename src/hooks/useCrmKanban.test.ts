@@ -10,55 +10,44 @@ import {
   CRM_TASK_TITLE,
   CRM_STEP_LABEL,
   CRM_CONFIG_DEADLINE_DAYS,
+  CRM_PHASES_BY_PRODUTO,
   type CrmProduto,
 } from './useCrmKanban';
 
 // =============================================================
-// Pure function tests — state machines, step navigation, due dates
-// Covers V8, Automation, and Copilot equally.
+// Pure function tests — state machines, step navigation, due dates,
+// phase grouping. Covers V8, Automation, and Copilot equally.
 // =============================================================
 
 const ALL_PRODUCTS: CrmProduto[] = ['v8', 'automation', 'copilot'];
 
 describe('CRM State Machines — step definitions', () => {
-  it.each(ALL_PRODUCTS)('%s: first step is criar_pipeline', (produto) => {
+  it.each(ALL_PRODUCTS)('%s: first step is receber_briefing', (produto) => {
     const steps = CRM_STEPS_BY_PRODUTO[produto];
-    expect(steps[0]).toBe('criar_pipeline');
+    expect(steps[0]).toBe('receber_briefing');
   });
 
-  it.each(ALL_PRODUCTS)('%s: last step is finalizar', (produto) => {
+  it.each(ALL_PRODUCTS)('%s: last step is call_pos_venda', (produto) => {
     const steps = CRM_STEPS_BY_PRODUTO[produto];
-    expect(steps[steps.length - 1]).toBe('finalizar');
+    expect(steps[steps.length - 1]).toBe('call_pos_venda');
   });
 
-  it('V8 has 8 steps', () => {
-    expect(V8_STEPS).toHaveLength(8);
+  it('V8 has 12 steps', () => {
+    expect(V8_STEPS).toHaveLength(12);
   });
 
-  it('Automation has 14 steps', () => {
-    expect(AUTOMATION_STEPS).toHaveLength(14);
+  it('Automation has 15 steps', () => {
+    expect(AUTOMATION_STEPS).toHaveLength(15);
   });
 
-  it('Copilot has 14 steps', () => {
-    expect(COPILOT_STEPS).toHaveLength(14);
+  it('Copilot has 12 steps', () => {
+    expect(COPILOT_STEPS).toHaveLength(12);
   });
 
   it.each(ALL_PRODUCTS)('%s: no duplicate steps', (produto) => {
     const steps = CRM_STEPS_BY_PRODUTO[produto];
     const unique = new Set(steps);
     expect(unique.size).toBe(steps.length);
-  });
-
-  it('Automation shares first 7 steps with V8', () => {
-    const v8First7 = V8_STEPS.slice(0, 7);
-    const autoFirst7 = AUTOMATION_STEPS.slice(0, 7);
-    expect(autoFirst7).toEqual(v8First7);
-  });
-
-  it('Copilot shares first 7 steps with V8', () => {
-    const v8First7 = V8_STEPS.slice(0, 7);
-    const copilotFirst7 = COPILOT_STEPS.slice(0, 7);
-    expect(copilotFirst7).toEqual(v8First7);
   });
 });
 
@@ -68,21 +57,21 @@ describe('getNextStep', () => {
     expect(getNextStep(produto, steps[0])).toBe(steps[1]);
   });
 
-  it.each(ALL_PRODUCTS)('%s: second-to-last advances to finalizar', (produto) => {
+  it.each(ALL_PRODUCTS)('%s: second-to-last advances to call_pos_venda', (produto) => {
     const steps = CRM_STEPS_BY_PRODUTO[produto];
     const penultimate = steps[steps.length - 2];
-    expect(getNextStep(produto, penultimate)).toBe('finalizar');
+    expect(getNextStep(produto, penultimate)).toBe('call_pos_venda');
   });
 
-  it.each(ALL_PRODUCTS)('%s: finalizar returns null (no next step)', (produto) => {
-    expect(getNextStep(produto, 'finalizar')).toBeNull();
+  it.each(ALL_PRODUCTS)('%s: call_pos_venda returns null (no next step)', (produto) => {
+    expect(getNextStep(produto, 'call_pos_venda')).toBeNull();
   });
 
   it.each(ALL_PRODUCTS)('%s: unknown step returns null', (produto) => {
     expect(getNextStep(produto, 'nonexistent_step')).toBeNull();
   });
 
-  it('V8: full traversal hits all 8 steps', () => {
+  it('V8: full traversal hits all 12 steps', () => {
     const visited: string[] = [V8_STEPS[0]];
     let current: string | null = V8_STEPS[0];
     while (current !== null) {
@@ -92,7 +81,7 @@ describe('getNextStep', () => {
     expect(visited).toEqual([...V8_STEPS]);
   });
 
-  it('Automation: full traversal hits all 14 steps', () => {
+  it('Automation: full traversal hits all 15 steps', () => {
     const visited: string[] = [AUTOMATION_STEPS[0]];
     let current: string | null = AUTOMATION_STEPS[0];
     while (current !== null) {
@@ -102,7 +91,7 @@ describe('getNextStep', () => {
     expect(visited).toEqual([...AUTOMATION_STEPS]);
   });
 
-  it('Copilot: full traversal hits all 14 steps', () => {
+  it('Copilot: full traversal hits all 12 steps', () => {
     const visited: string[] = [COPILOT_STEPS[0]];
     let current: string | null = COPILOT_STEPS[0];
     while (current !== null) {
@@ -114,12 +103,12 @@ describe('getNextStep', () => {
 });
 
 describe('isLastStep', () => {
-  it.each(ALL_PRODUCTS)('%s: finalizar is last step', (produto) => {
-    expect(isLastStep(produto, 'finalizar')).toBe(true);
+  it.each(ALL_PRODUCTS)('%s: call_pos_venda is last step', (produto) => {
+    expect(isLastStep(produto, 'call_pos_venda')).toBe(true);
   });
 
-  it.each(ALL_PRODUCTS)('%s: criar_pipeline is NOT last step', (produto) => {
-    expect(isLastStep(produto, 'criar_pipeline')).toBe(false);
+  it.each(ALL_PRODUCTS)('%s: receber_briefing is NOT last step', (produto) => {
+    expect(isLastStep(produto, 'receber_briefing')).toBe(false);
   });
 
   it.each(ALL_PRODUCTS)('%s: unknown step is NOT last step', (produto) => {
@@ -190,6 +179,36 @@ describe('CRM_STEP_LABEL — every step has a human label', () => {
     for (const step of steps) {
       expect(CRM_STEP_LABEL[step]).toBeDefined();
       expect(CRM_STEP_LABEL[step].length).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe('CRM_PHASES_BY_PRODUTO — phase grouping integrity', () => {
+  it.each(ALL_PRODUCTS)('%s: phases cover all steps exactly once', (produto) => {
+    const steps = CRM_STEPS_BY_PRODUTO[produto];
+    const phases = CRM_PHASES_BY_PRODUTO[produto];
+    const phaseSteps = phases.flatMap(p => p.steps);
+    expect(phaseSteps).toEqual([...steps]);
+  });
+
+  it.each(ALL_PRODUCTS)('%s: no duplicate steps across phases', (produto) => {
+    const phases = CRM_PHASES_BY_PRODUTO[produto];
+    const allSteps = phases.flatMap(p => p.steps);
+    const unique = new Set(allSteps);
+    expect(unique.size).toBe(allSteps.length);
+  });
+
+  it.each(ALL_PRODUCTS)('%s: every phase has at least one step', (produto) => {
+    const phases = CRM_PHASES_BY_PRODUTO[produto];
+    for (const phase of phases) {
+      expect(phase.steps.length).toBeGreaterThan(0);
+    }
+  });
+
+  it.each(ALL_PRODUCTS)('%s: every phase has a non-empty label', (produto) => {
+    const phases = CRM_PHASES_BY_PRODUTO[produto];
+    for (const phase of phases) {
+      expect(phase.label.length).toBeGreaterThan(0);
     }
   });
 });

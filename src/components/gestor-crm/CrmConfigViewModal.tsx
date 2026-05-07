@@ -91,6 +91,8 @@ const FIELD_LABELS: Record<string, string> = {
   calendario_link: 'Link/ferramenta de agendamento',
   oferta_principal: 'Oferta principal',
   fonte_faq: 'Fonte de conhecimento / FAQ',
+  scripts: 'Scripts',
+  observacoes: 'Observações',
 };
 
 const VALUE_LABELS: Record<string, string> = {
@@ -149,6 +151,20 @@ function FormValue({ value }: { value: any }) {
   if (value === null || value === undefined) return <span className="text-sm text-muted-foreground">—</span>;
 
   if (Array.isArray(value)) {
+    // Long-string arrays (scripts, etc.) render as numbered blocks
+    const hasLongItems = value.some(v => String(v).length > 60 || String(v).includes('\n'));
+    if (hasLongItems) {
+      return (
+        <div className="space-y-2">
+          {value.map((v, i) => (
+            <div key={i} className="space-y-0.5">
+              <p className="text-[10px] font-semibold text-muted-foreground">#{i + 1}</p>
+              <p className="text-sm whitespace-pre-wrap bg-muted/30 rounded-md p-2 border border-border">{String(v)}</p>
+            </div>
+          ))}
+        </div>
+      );
+    }
     return (
       <div className="flex flex-wrap gap-1">
         {value.map((v, i) => (
