@@ -686,7 +686,9 @@ export function useArchiveDepartmentTask(department: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['archived-department-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['project-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['archived-project-tasks'] });
       toast.success('Tarefa arquivada!');
     },
     onError: (error: any) => {
@@ -709,6 +711,7 @@ export function useArchivedDepartmentTasks(department: string, type: 'daily' | '
         .eq('department', department)
         .eq('task_type', type)
         .eq('archived', true)
+        .is('related_project_id' as any, null)
         .order('archived_at', { ascending: false });
 
       if (!seesAll) {
@@ -746,6 +749,7 @@ export function useUnarchiveDepartmentTask(department: string) {
       queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['archived-department-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['project-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['archived-project-tasks'] });
       toast.success('Tarefa desarquivada!');
     },
     onError: (error: any) => {

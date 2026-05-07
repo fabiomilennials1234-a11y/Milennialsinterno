@@ -34,6 +34,31 @@ export function useProjectTasks(projectId: string, type: 'daily' | 'weekly' = 'd
 }
 
 // ---------------------------------------------------------------------------
+// Query: fetch ARCHIVED department_tasks filtered by related_project_id
+// ---------------------------------------------------------------------------
+
+export function useArchivedProjectTasks(projectId: string, type: 'daily' | 'weekly' = 'daily') {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['archived-project-tasks', projectId, type],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('department_tasks')
+        .select('*, clients:related_client_id(name, razao_social)')
+        .eq('related_project_id' as any, projectId)
+        .eq('task_type', type)
+        .eq('archived', true)
+        .order('archived_at', { ascending: false });
+
+      if (error) throw error;
+      return (data || []) as DepartmentTask[];
+    },
+    enabled: !!user?.id && !!projectId,
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Mutation: create a task linked to a project
 // ---------------------------------------------------------------------------
 
