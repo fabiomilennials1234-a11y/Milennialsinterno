@@ -70,6 +70,7 @@ const MilennialsTechPage = lazy(() => import("./features/milennials-tech/pages/M
 const BacklogTab = lazy(() => import("./features/milennials-tech/pages/BacklogTab").then(m => ({ default: m.BacklogTab })));
 const KanbanTab = lazy(() => import("./features/milennials-tech/pages/KanbanTab").then(m => ({ default: m.KanbanTab })));
 const SprintsTab = lazy(() => import("./features/milennials-tech/pages/SprintsTab").then(m => ({ default: m.SprintsTab })));
+const ProjectsTab = lazy(() => import("./features/milennials-tech/pages/ProjectsTab").then(m => ({ default: m.ProjectsTab })));
 const SubmitTaskPage = lazy(() => import("./features/milennials-tech/pages/SubmitTaskPage").then(m => ({ default: m.SubmitTaskPage })));
 
 const queryClient = new QueryClient({
@@ -541,6 +542,7 @@ function AppRoutes() {
         <Route path="backlog" element={<BacklogTab />} />
         <Route path="kanban" element={<KanbanTab />} />
         <Route path="sprints" element={<SprintsTab />} />
+        <Route path="projetos" element={<ProjectsTab />} />
       </Route>
 
       {/* Submit Task — shared form (any logged-in user) */}

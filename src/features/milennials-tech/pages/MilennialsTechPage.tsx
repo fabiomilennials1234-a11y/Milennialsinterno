@@ -1,18 +1,26 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import MainLayout from '@/layouts/MainLayout';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { isExecutive } from '@/types/auth';
 import { useTechRealtime } from '../hooks/useTechRealtime';
 import { CommandPalette } from '../components/CommandPalette';
 import { StatusLine } from '../components/StatusLine';
 
-const TABS = [
+const BASE_TABS = [
   { to: 'backlog', label: 'Backlog' },
   { to: 'kanban', label: 'Kanban' },
   { to: 'sprints', label: 'Sprints' },
 ];
 
 export function MilennialsTechPage() {
+  const { user } = useAuth();
   useTechRealtime();
+
+  const tabs = isExecutive(user?.role)
+    ? [...BASE_TABS, { to: 'projetos', label: 'Projetos' }]
+    : BASE_TABS;
+
   return (
     <MainLayout>
       <div className="mtech-scope min-h-screen">
@@ -25,7 +33,7 @@ export function MilennialsTechPage() {
             </p>
           </div>
           <nav className="flex gap-1">
-            {TABS.map(t => (
+            {tabs.map(t => (
               <NavLink
                 key={t.to}
                 to={t.to}

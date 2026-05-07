@@ -28,6 +28,12 @@ export interface TechProjectFilters {
 // Row type (from query with joins)
 // ---------------------------------------------------------------------------
 
+export interface TechProjectMemberInfo {
+  user_id: string;
+  name: string | null;
+  role: string;
+}
+
 export interface TechProjectRow {
   id: string;
   name: string;
@@ -45,7 +51,9 @@ export interface TechProjectRow {
   created_at: string;
   updated_at: string;
   lead_name: string | null;
+  client_name: string | null;
   member_count: number;
+  members: TechProjectMemberInfo[];
   task_count: number;
   pending_task_count: number;
 }
@@ -64,7 +72,8 @@ export function useTechProjects(filters?: TechProjectFilters) {
         .select(`
           *,
           lead:profiles!tech_projects_lead_id_fkey(name),
-          members:tech_project_members(count),
+          client:clients!tech_projects_client_id_fkey(name),
+          members_detail:tech_project_members(user_id, role, profile:profiles!tech_project_members_user_id_fkey(name)),
           tasks:tech_tasks!tech_tasks_project_id_fkey(id, status)
         `);
 
@@ -94,7 +103,15 @@ export function useTechProjects(filters?: TechProjectFilters) {
         created_at: row.created_at,
         updated_at: row.updated_at,
         lead_name: row.lead?.name ?? null,
-        member_count: row.members?.[0]?.count ?? 0,
+        client_name: row.client?.name ?? null,
+        member_count: Array.isArray(row.members_detail) ? row.members_detail.length : 0,
+        members: Array.isArray(row.members_detail)
+          ? row.members_detail.map((m: any) => ({
+              user_id: m.user_id,
+              name: m.profile?.name ?? null,
+              role: m.role,
+            }))
+          : [],
         task_count: Array.isArray(row.tasks) ? row.tasks.length : 0,
         pending_task_count: Array.isArray(row.tasks)
           ? row.tasks.filter((t: any) => t.status !== 'DONE').length
