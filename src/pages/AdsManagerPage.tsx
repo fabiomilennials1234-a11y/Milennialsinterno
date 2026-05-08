@@ -1,8 +1,7 @@
 import { useRef, useEffect, useState } from 'react';
 import MainLayout from '@/layouts/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
-import FullscreenSplash from '@/components/FullscreenSplash';
-import adsSplashImage from '@/assets/ads-splash.jpg';
+
 import { AdsManagerProvider } from '@/contexts/AdsManagerContext';
 import {
   Calendar,
@@ -138,7 +137,6 @@ export default function AdsManagerPage() {
   return (
     <AdsManagerProvider targetUserId={user?.id}>
       <MainLayout>
-        <FullscreenSplash imageSrc={adsSplashImage} message="SEM BUGS NO TORQUE PESSOAL" />
         {/* Notificação de movimentação pendente - ativa às 16:30 */}
         <AdsMovimentacaoNotification />
       

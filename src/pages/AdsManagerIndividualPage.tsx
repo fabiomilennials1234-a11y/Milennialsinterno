@@ -2,8 +2,7 @@ import { useParams } from 'react-router-dom';
 import { useRef, useEffect, useState } from 'react';
 import MainLayout from '@/layouts/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
-import FullscreenSplash from '@/components/FullscreenSplash';
-import adsSplashImage from '@/assets/ads-splash.jpg';
+
 import { AdsManagerProvider } from '@/contexts/AdsManagerContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -193,7 +192,6 @@ export default function AdsManagerIndividualPage() {
   // so column queries start in parallel with the profile query
   return <AdsManagerProvider targetUserId={userId}>
       <MainLayout>
-        <FullscreenSplash imageSrc={adsSplashImage} message="SEM BUGS NO TORQUE PESSOAL" />
         {/* Modal de justificativa para tarefas atrasadas */}
         <AdsTaskDelayModal />
         
