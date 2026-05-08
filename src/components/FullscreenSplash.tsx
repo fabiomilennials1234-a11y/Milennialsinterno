@@ -4,9 +4,10 @@ const SPLASH_DURATION = 30;
 
 interface FullscreenSplashProps {
   imageSrc: string;
+  message?: string;
 }
 
-export default function FullscreenSplash({ imageSrc }: FullscreenSplashProps) {
+export default function FullscreenSplash({ imageSrc, message }: FullscreenSplashProps) {
   const [visible, setVisible] = useState(true);
   const [countdown, setCountdown] = useState(SPLASH_DURATION);
   const [fading, setFading] = useState(false);
@@ -95,6 +96,35 @@ export default function FullscreenSplash({ imageSrc }: FullscreenSplashProps) {
         }}
         draggable={false}
       />
+
+      {/* Message overlay */}
+      {message && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '8%',
+            left: 0,
+            right: 0,
+            zIndex: 1,
+            textAlign: 'center',
+            padding: '0 2rem',
+          }}
+        >
+          <span
+            style={{
+              color: '#fff',
+              fontSize: 'clamp(2rem, 5vw, 4.5rem)',
+              fontWeight: 900,
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              textShadow: '0 4px 30px rgba(0,0,0,0.9), 0 2px 10px rgba(0,0,0,0.7)',
+              lineHeight: 1.1,
+            }}
+          >
+            {message}
+          </span>
+        </div>
+      )}
 
       {/* Bottom overlay for timer visibility */}
       <div

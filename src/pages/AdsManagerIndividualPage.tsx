@@ -193,7 +193,7 @@ export default function AdsManagerIndividualPage() {
   // so column queries start in parallel with the profile query
   return <AdsManagerProvider targetUserId={userId}>
       <MainLayout>
-        <FullscreenSplash imageSrc={adsSplashImage} />
+        <FullscreenSplash imageSrc={adsSplashImage} message="SEM BUGS NO TORQUE PESSOAL" />
         {/* Modal de justificativa para tarefas atrasadas */}
         <AdsTaskDelayModal />
         
