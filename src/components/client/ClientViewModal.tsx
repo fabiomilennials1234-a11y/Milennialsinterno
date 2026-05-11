@@ -590,6 +590,23 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
                 />
               )}
 
+              {/* Link Aula MKT Place */}
+              <a
+                href="https://docs.google.com/document/d/1pA-GSkwIkMoQ-pIw5IUHpWCyfoAhnRcuvwcD6TQvbps/edit?usp=sharing"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 p-4 bg-gradient-to-r from-purple-500/10 to-fuchsia-500/10 hover:from-purple-500/15 hover:to-fuchsia-500/15 rounded-xl border border-purple-500/30 hover:border-purple-500/50 transition-all group"
+              >
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-fuchsia-600 flex items-center justify-center shrink-0">
+                  <ExternalLink className="w-5 h-5 text-white" />
+                </div>
+                <div className="flex-1">
+                  <span className="text-sm font-bold text-foreground block">Acessar aula MKT Place</span>
+                  <span className="text-xs text-muted-foreground">Google Docs — Material de referência</span>
+                </div>
+                <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-purple-500 transition-colors shrink-0" />
+              </a>
+
               {/* MKT Place Diagnóstico Section */}
               {clientInfo && (
                 <MktplaceDiagnosticoSection
