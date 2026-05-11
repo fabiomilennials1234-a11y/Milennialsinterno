@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { AlertCircle, CheckCircle2, Clock, Rocket, Settings, Zap, Image } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Clock, Rocket, Zap, FileText } from 'lucide-react';
 
 // Millennials B2B Colors
 const COLORS = {
@@ -19,33 +19,21 @@ interface Passo {
 const PASSOS: Passo[] = [
   {
     number: 1,
-    title: '5x primeiros criativos entregues',
-    description: 'Máximo 5 dias após cliente entregar infos.',
-    icon: Image,
+    title: 'Criação do material das campanhas',
+    description: 'Após a aprovação da estratégia, em 10 dias criaremos todo o material das campanhas. Pode atrasar mediante a demora do cliente em enviar as coisas.',
+    icon: FileText,
   },
   {
     number: 2,
-    title: '5x primeiros criativos aprovados',
-    description: 'O cliente possui 1 dia para dar uma devolutiva dos anúncios, se não deveremos dar continuidade para avanço das campanhas.',
-    icon: CheckCircle2,
-  },
-  {
-    number: 3,
-    title: 'Campanha ativa',
-    description: 'Até 7 dias após o envio dos responsáveis do cliente.',
+    title: 'Treinamento comercial e CRM',
+    description: 'Após aprovado o material, em 7 dias iremos fazer o treinamento comercial e implementação do Torque CRM.',
     icon: Rocket,
   },
   {
-    number: 4,
-    title: 'Primeiros resultados',
-    description: 'É normal que os primeiros resultados apareçam em até 3 dias de campanhas. Assim iniciam as otimizações.',
+    number: 3,
+    title: 'Campanhas publicadas',
+    description: 'Após tudo aprovado, campanhas serão publicadas.',
     icon: Zap,
-  },
-  {
-    number: 5,
-    title: 'Otimização PRO+',
-    description: 'Após os primeiros 7 dias, devemos conversar sobre as campanhas.',
-    icon: Settings,
   },
 ];
 

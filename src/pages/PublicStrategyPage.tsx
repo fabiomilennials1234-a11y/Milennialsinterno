@@ -1389,7 +1389,7 @@ export default function PublicStrategyPage() {
               </h2>
             </motion.div>
 
-            <div className="grid md:grid-cols-2 gap-8">
+            <div className="grid md:grid-cols-2 gap-8 items-start">
               {/* BIO */}
               {strategy.profile_bio && (
                 <motion.div
