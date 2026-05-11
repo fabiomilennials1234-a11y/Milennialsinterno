@@ -52,6 +52,8 @@ const AVAILABLE_ROLES: UserRole[] = [
 ];
 
 const RECURRENCE_OPTIONS = [
+  { value: 'every_1h', label: 'A cada 1 hora' },
+  { value: 'every_6h', label: 'A cada 6 horas' },
   { value: 'daily', label: 'Diária' },
   { value: 'weekly_monday', label: 'Segunda-feira' },
   { value: 'weekly_tuesday', label: 'Terça-feira' },
@@ -61,6 +63,8 @@ const RECURRENCE_OPTIONS = [
 ] as const;
 
 const RECURRENCE_LABELS: Record<string, string> = {
+  every_1h: 'A cada 1 hora',
+  every_6h: 'A cada 6 horas',
   daily: 'Diária',
   weekly_monday: 'Segunda-feira',
   weekly_tuesday: 'Terça-feira',
@@ -330,7 +334,7 @@ export default function RecurringTasksPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-foreground capitalize">
-                        {t.task_type === 'daily' ? 'Diaria' : 'Semanal'}
+                        {t.task_type === 'weekly' ? 'Semanal' : 'Diaria'}
                       </td>
                       <td className="px-6 py-4 text-center">
                         <Switch
