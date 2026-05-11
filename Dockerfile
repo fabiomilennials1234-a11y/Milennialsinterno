@@ -21,11 +21,21 @@ RUN npm run build
 FROM nginx:alpine
 
 # SPA: todas as rotas caem no index.html
+# Assets com hash no nome → cache imutável 1 ano
+# index.html sem hash → sempre revalidar (garante deploy instantâneo)
 RUN echo 'server { \
   listen 80; \
   root /usr/share/nginx/html; \
   index index.html; \
-  location / { try_files $uri $uri/ /index.html; } \
+  location /assets/ { \
+    expires 1y; \
+    add_header Cache-Control "public, max-age=31536000, immutable"; \
+  } \
+  location / { \
+    try_files $uri $uri/ /index.html; \
+    add_header Cache-Control "no-cache, no-store, must-revalidate"; \
+    add_header Pragma "no-cache"; \
+  } \
   location /health { default_type text/plain; return 200 "ok"; } \
 }' > /etc/nginx/conf.d/default.conf
 
