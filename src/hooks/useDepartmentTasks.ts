@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDataScope } from '@/hooks/useDataScope';
 import { useActionJustification } from '@/contexts/JustificationContext';
 import { toast } from 'sonner';
-import { CONSULTORIA_TASK_MAP, GESTAO_TASK_MAP, getCurrentWeekday } from '@/hooks/useMktplaceKanban';
+import { CONSULTORIA_TASK_MAP, GESTAO_TASK_MAP, CONSULTORIA_DUE_DAYS, GESTAO_DUE_DAYS, getCurrentWeekday } from '@/hooks/useMktplaceKanban';
 import {
   getCurrentWeekday as getCurrentWeekdayCrm,
   welcomeTaskTitle as crmWelcomeTaskTitle,
@@ -377,6 +377,24 @@ export function useUpdateDepartmentTaskStatus(department: string) {
             .single();
 
           if (client?.mktplace_status) {
+            // Check for blocking tag — prevents mktplace_status advance while
+            // ADS strategy is pending. Task still completes normally.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { data: blockingTags } = await (supabase as any)
+              .from('client_tags')
+              .select('id')
+              .eq('client_id', clientId)
+              .eq('name', 'Aguardando Estratégia de Tráfego')
+              .is('dismissed_at', null)
+              .limit(1);
+
+            const isMktplaceBlocked = blockingTags && blockingTags.length > 0;
+            if (isMktplaceBlocked) {
+              toast.error('Cliente bloqueado no MKT Place', {
+                description: 'Aguardando conclusão da estratégia de tráfego (ADS) para liberar avanço.',
+              });
+            }
+
             const products = (client.contracted_products as string[]) || [];
             const isGestao = products.includes('gestor-mktplace');
             const clientName = client.razao_social || client.name || 'Cliente';
@@ -384,16 +402,18 @@ export function useUpdateDepartmentTaskStatus(department: string) {
             // Next step maps
             const CONSULTORIA_NEXT: Record<string, string> = {
               novo: 'consultoria_marcada',
-              consultoria_marcada: 'enviar_diagnostico',
-              enviar_diagnostico: 'diagnostico_enviado',
-              diagnostico_enviado: 'acompanhamento',
+              consultoria_marcada: 'material_preparado',
+              material_preparado: 'aula_ministrada',
+              aula_ministrada: 'material_enviado',
+              material_enviado: 'acompanhamento',
             };
             const GESTAO_NEXT: Record<string, string> = {
               novo: 'onboarding_marcado',
-              onboarding_marcado: 'apresentar_estrategia',
-              apresentar_estrategia: 'estrategia_apresentada',
-              estrategia_apresentada: 'acessos_pegados',
-              acessos_pegados: 'iniciar_plano',
+              onboarding_marcado: 'material_preparado_gestao',
+              material_preparado_gestao: 'onboarding_realizado',
+              onboarding_realizado: 'acessos_pegados',
+              acessos_pegados: 'operacao_auditada',
+              operacao_auditada: 'iniciar_plano',
               iniciar_plano: 'acompanhamento',
             };
 
@@ -401,7 +421,7 @@ export function useUpdateDepartmentTaskStatus(department: string) {
             const taskMap = isGestao ? GESTAO_TASK_MAP : CONSULTORIA_TASK_MAP;
             const nextStatus = nextMap[client.mktplace_status];
 
-            if (nextStatus) {
+            if (nextStatus && !isMktplaceBlocked) {
               if (nextStatus === 'acompanhamento') {
                 // Move to acompanhamento
                 const trackingType = isGestao ? 'gestao' : 'consultoria';
@@ -433,9 +453,14 @@ export function useUpdateDepartmentTaskStatus(department: string) {
                 if (stepErr) console.error('[MktPlace] Failed to advance mktplace_status:', stepErr.message);
                 if (!stepRows || stepRows.length === 0) console.error('[MktPlace] 0 rows updated — RLS likely blocked mktplace_status advance for client', clientId);
 
-                // Create next task
+                // Create next task with SLA due date
                 const taskNameFn = taskMap[nextStatus];
                 if (taskNameFn && user?.id) {
+                  const dueDaysMap = isGestao ? GESTAO_DUE_DAYS : CONSULTORIA_DUE_DAYS;
+                  const dueDays = dueDaysMap[nextStatus] ?? 1;
+                  const dueDate = new Date();
+                  dueDate.setDate(dueDate.getDate() + dueDays);
+
                   const ownerId = await resolveTaskOwner(clientId, 'assigned_mktplace', user.id);
                   await supabase.from('department_tasks').insert({
                     user_id: ownerId,
@@ -445,6 +470,7 @@ export function useUpdateDepartmentTaskStatus(department: string) {
                     priority: 'high',
                     department: 'consultor_mktplace',
                     related_client_id: clientId,
+                    due_date: dueDate.toISOString(),
                   } as any);
                 }
               }

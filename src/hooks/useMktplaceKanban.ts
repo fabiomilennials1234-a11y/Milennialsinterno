@@ -10,51 +10,73 @@ import { resolveTaskOwner } from './utils/resolveTaskOwner';
 
 export const MKTPLACE_CONSULTORIA_STEPS = [
   'consultoria_marcada',
-  'enviar_diagnostico',
-  'diagnostico_enviado',
+  'material_preparado',
+  'aula_ministrada',
+  'material_enviado',
 ] as const;
 
 export const MKTPLACE_GESTAO_STEPS = [
   'onboarding_marcado',
-  'apresentar_estrategia',
-  'estrategia_apresentada',
+  'material_preparado_gestao',
+  'onboarding_realizado',
   'acessos_pegados',
+  'operacao_auditada',
   'iniciar_plano',
 ] as const;
 
 export type ConsultoriaStep = typeof MKTPLACE_CONSULTORIA_STEPS[number];
 export type GestaoStep = typeof MKTPLACE_GESTAO_STEPS[number];
 
-// Task names generated per step
+// Task names generated per step — key = current status, value = task title created
+// SLA due days per step (used by useAdvanceMktplaceStep)
+export const CONSULTORIA_DUE_DAYS: Record<string, number> = {
+  novo: 1,
+  consultoria_marcada: 2,
+  material_preparado: 1,
+  aula_ministrada: 1,
+};
+
+export const GESTAO_DUE_DAYS: Record<string, number> = {
+  novo: 1,
+  onboarding_marcado: 2,
+  material_preparado_gestao: 1,
+  onboarding_realizado: 2,
+  acessos_pegados: 1,
+  operacao_auditada: 1,
+};
+
 export const CONSULTORIA_TASK_MAP: Record<string, (name: string) => string> = {
   novo: (n) => `Marcar Consultoria de MKT Place ${n}`,
-  consultoria_marcada: (n) => `Realizar Consultoria de MKT Place ${n}`,
-  enviar_diagnostico: (n) => `Enviar diagnóstico de mudanças ${n}`,
-  diagnostico_enviado: (n) => `Confirmar Visualização do Diagnóstico ${n}`,
+  consultoria_marcada: (n) => `Construir aula + diagnóstico de mudanças ${n}`,
+  material_preparado: (n) => `Ministrar aula apresentando o diagnóstico ${n}`,
+  aula_ministrada: (n) => `Enviar gravação da aula + diagnóstico ${n}`,
 };
 
 export const GESTAO_TASK_MAP: Record<string, (name: string) => string> = {
-  novo: (n) => `Marcar de Onboarding - Gestão de MKT Place ${n}`,
-  onboarding_marcado: (n) => `Realizar Onboarding - Gestão de MKT Place ${n}`,
-  apresentar_estrategia: (n) => `Criar e enviar estratégia ao cliente ${n}`,
-  estrategia_apresentada: (n) => `Pegar acessos e acessar MKT Place ${n}`,
-  acessos_pegados: (n) => `Iniciar campanhas MKT Place ${n}`,
+  novo: (n) => `Marcar Onboarding de Gestão de MKT Place ${n}`,
+  onboarding_marcado: (n) => `Construir estratégia + materiais para a reunião ${n}`,
+  material_preparado_gestao: (n) => `Realizar onboarding apresentando estratégia + solicitar acessos ${n}`,
+  onboarding_realizado: (n) => `Coletar acessos das contas (ML, Amazon, Shopee, Magalu, B2W) ${n}`,
+  acessos_pegados: (n) => `Auditar saúde da conta, listings, reputação e BuyBox ${n}`,
+  operacao_auditada: (n) => `Validar mix prioritário e metas com ${n}`,
 };
 
 // Next step mapping
 const CONSULTORIA_NEXT: Record<string, string | 'acompanhamento'> = {
   novo: 'consultoria_marcada',
-  consultoria_marcada: 'enviar_diagnostico',
-  enviar_diagnostico: 'diagnostico_enviado',
-  diagnostico_enviado: 'acompanhamento',
+  consultoria_marcada: 'material_preparado',
+  material_preparado: 'aula_ministrada',
+  aula_ministrada: 'material_enviado',
+  material_enviado: 'acompanhamento',
 };
 
 const GESTAO_NEXT: Record<string, string | 'acompanhamento'> = {
   novo: 'onboarding_marcado',
-  onboarding_marcado: 'apresentar_estrategia',
-  apresentar_estrategia: 'estrategia_apresentada',
-  estrategia_apresentada: 'acessos_pegados',
-  acessos_pegados: 'iniciar_plano',
+  onboarding_marcado: 'material_preparado_gestao',
+  material_preparado_gestao: 'onboarding_realizado',
+  onboarding_realizado: 'acessos_pegados',
+  acessos_pegados: 'operacao_auditada',
+  operacao_auditada: 'iniciar_plano',
   iniciar_plano: 'acompanhamento',
 };
 
@@ -191,6 +213,20 @@ export function useAdvanceMktplaceStep() {
       currentStatus: string;
       isGestao: boolean;
     }) => {
+      // Check for blocking tag — prevents advance while ADS strategy is pending
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: blockingTags } = await (supabase as any)
+        .from('client_tags')
+        .select('id')
+        .eq('client_id', clientId)
+        .eq('name', 'Aguardando Estratégia de Tráfego')
+        .is('dismissed_at', null)
+        .limit(1);
+
+      if (blockingTags && blockingTags.length > 0) {
+        throw new Error('Cliente bloqueado: aguardando conclusão da estratégia de tráfego (ADS).');
+      }
+
       const nextMap = isGestao ? GESTAO_NEXT : CONSULTORIA_NEXT;
       const taskMap = isGestao ? GESTAO_TASK_MAP : CONSULTORIA_TASK_MAP;
       const nextStatus = nextMap[currentStatus];
@@ -235,9 +271,14 @@ export function useAdvanceMktplaceStep() {
         if (stepErr) console.error('[MktPlace] Failed to advance mktplace_status:', stepErr.message);
         if (!stepRows || stepRows.length === 0) console.error('[MktPlace] 0 rows updated — RLS likely blocked mktplace_status advance for client', clientId);
 
-        // Create next task
+        // Create next task with SLA due date
         const taskNameFn = taskMap[nextStatus];
         if (taskNameFn && user?.id) {
+          const dueDaysMap = isGestao ? GESTAO_DUE_DAYS : CONSULTORIA_DUE_DAYS;
+          const dueDays = dueDaysMap[nextStatus] ?? 1;
+          const dueDate = new Date();
+          dueDate.setDate(dueDate.getDate() + dueDays);
+
           const ownerId = await resolveTaskOwner(clientId, 'assigned_mktplace', user.id);
           await supabase.from('department_tasks').insert({
             user_id: ownerId,
@@ -247,6 +288,7 @@ export function useAdvanceMktplaceStep() {
             priority: 'high',
             department: 'consultor_mktplace',
             related_client_id: clientId,
+            due_date: dueDate.toISOString(),
           } as any);
         }
       }
@@ -292,6 +334,11 @@ export function useCreateMktplaceInitialTask() {
 
       if (existing && existing.length > 0) return;
 
+      const dueDaysMap = isGestao ? GESTAO_DUE_DAYS : CONSULTORIA_DUE_DAYS;
+      const dueDays = dueDaysMap['novo'] ?? 1;
+      const dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + dueDays);
+
       const ownerId = await resolveTaskOwner(clientId, 'assigned_mktplace', user.id);
 
       await supabase.from('department_tasks').insert({
@@ -302,6 +349,7 @@ export function useCreateMktplaceInitialTask() {
         priority: 'high',
         department: 'consultor_mktplace',
         related_client_id: clientId,
+        due_date: dueDate.toISOString(),
       } as any);
     },
     onSuccess: () => {

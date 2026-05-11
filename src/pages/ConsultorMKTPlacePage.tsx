@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useMemo } from 'react';
 import MainLayout from '@/layouts/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -17,6 +17,8 @@ import MktplaceAcompanhamentoSection from '@/components/mktplace/MktplaceAcompan
 import MktplaceDocumentacaoSection from '@/components/mktplace/MktplaceDocumentacaoSection';
 import ClientViewModal from '@/components/client/ClientViewModal';
 import { useCreateMktplaceInitialTask, isGestaoMktplace, useMktplaceProfiles } from '@/hooks/useMktplaceKanban';
+import { useClientTagsBatch } from '@/hooks/useClientTags';
+import ClientTagsList from '@/components/client-tags/ClientTagsList';
 
 const COLUMNS = [
   { id: 'novo-cliente', title: 'Novos Clientes', icon: UserPlus, headerClass: 'section-header-green', iconColor: 'text-white' },
@@ -60,6 +62,9 @@ function MktplaceNovoClienteSection() {
     },
     enabled: !!user?.id,
   });
+
+  const clientIds = useMemo(() => clients.map(c => c.id), [clients]);
+  const { data: tagsByClient } = useClientTagsBatch(clientIds);
 
   // Auto-create initial tasks for new clients (run once per client set)
   const [tasksCreatedFor, setTasksCreatedFor] = useState<Set<string>>(new Set());
@@ -131,6 +136,11 @@ function MktplaceNovoClienteSection() {
                   <Badge variant="outline" className={`text-[10px] ${labelColor}`}>
                     {label}
                   </Badge>
+                  <ClientTagsList
+                    tags={tagsByClient?.get(client.id) ?? []}
+                    size="sm"
+                    className="mt-0"
+                  />
                   {client.monthly_value && (
                     <p className="text-sm font-semibold text-emerald-600">{formatCurrency(Number(client.monthly_value))}</p>
                   )}

@@ -4,6 +4,7 @@ import ClientTagBadge, { type ClientTagBadgeProps } from './ClientTagBadge';
 /** Canonical tag names — use these instead of raw strings to avoid typos. */
 export const TAG_ESPERAR_GROWTH = 'Esperar ser finalizado o Onboarding do Growth';
 export const TAG_ESPERAR_TORQUE = 'Esperar Torque ser finalizado';
+export const TAG_AGUARDANDO_ESTRATEGIA_ADS = 'Aguardando Estratégia de Tráfego';
 
 export interface ClientTagItem {
   id: string;

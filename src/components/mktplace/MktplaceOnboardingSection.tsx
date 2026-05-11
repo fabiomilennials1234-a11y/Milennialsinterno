@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useMktplaceClients, MKTPLACE_CONSULTORIA_STEPS, MKTPLACE_GESTAO_STEPS } from '@/hooks/useMktplaceKanban';
+import { useClientTagsBatch } from '@/hooks/useClientTags';
+import ClientTagsList from '@/components/client-tags/ClientTagsList';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,16 +11,18 @@ import ClientViewModal from '@/components/client/ClientViewModal';
 
 const CONSULTORIA_STEP_LABELS: Record<string, string> = {
   consultoria_marcada: '[ 1 ] Consultoria Marcada',
-  enviar_diagnostico: '[ 2 ] Enviar Diagnóstico de Mudanças',
-  diagnostico_enviado: '[ 3 ] Diagnóstico Enviado',
+  material_preparado: '[ 2 ] Material Preparado',
+  aula_ministrada: '[ 3 ] Aula Ministrada',
+  material_enviado: '[ 4 ] Material Enviado',
 };
 
 const GESTAO_STEP_LABELS: Record<string, string> = {
   onboarding_marcado: '[ 1 ] Onboarding Marcado',
-  apresentar_estrategia: '[ 2 ] Apresentar Estratégia',
-  estrategia_apresentada: '[ 3 ] Estratégia Apresentada',
+  material_preparado_gestao: '[ 2 ] Material Preparado',
+  onboarding_realizado: '[ 3 ] Onboarding Realizado',
   acessos_pegados: '[ 4 ] Acessos MKT Place Pegados',
-  iniciar_plano: '[ 5 ] Iniciar Plano de Ações',
+  operacao_auditada: '[ 5 ] Operação Auditada',
+  iniciar_plano: '[ 6 ] Iniciar Plano de Ações',
 };
 
 const COLUMNS = [
@@ -42,6 +46,8 @@ const COLUMNS = [
 
 export default function MktplaceOnboardingSection() {
   const { data: clients = [] } = useMktplaceClients();
+  const clientIds = useMemo(() => clients.map((c: any) => c.id), [clients]);
+  const { data: tagsByClient } = useClientTagsBatch(clientIds);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
 
   return (
@@ -119,6 +125,12 @@ export default function MktplaceOnboardingSection() {
                                 Ver
                               </Button>
                             </div>
+
+                            <ClientTagsList
+                              tags={tagsByClient?.get(client.id) ?? []}
+                              size="sm"
+                              className="mt-0"
+                            />
 
                             {/* Avanço é automático pela conclusão da tarefa */}
                           </CardContent>
