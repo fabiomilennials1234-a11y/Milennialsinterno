@@ -1,6 +1,10 @@
 import { cn } from '@/lib/utils';
 import ClientTagBadge, { type ClientTagBadgeProps } from './ClientTagBadge';
 
+/** Canonical tag names — use these instead of raw strings to avoid typos. */
+export const TAG_ESPERAR_GROWTH = 'Esperar ser finalizado o Onboarding do Growth';
+export const TAG_ESPERAR_TORQUE = 'Esperar Torque ser finalizado';
+
 export interface ClientTagItem {
   id: string;
   name: string;
@@ -16,6 +20,8 @@ interface Props {
   showHistory?: boolean;
   /** 'hidden' (default) renderiza nada quando lista vazia; 'inline' mostra placeholder discreto. */
   emptyState?: 'hidden' | 'inline';
+  /** Tag names to hide in this context (role-based visibility). */
+  excludeNames?: string[];
   className?: string;
 }
 
@@ -29,9 +35,12 @@ export default function ClientTagsList({
   layout = 'wrap',
   showHistory = false,
   emptyState = 'hidden',
+  excludeNames,
   className,
 }: Props) {
-  const visible = showHistory ? tags : tags.filter(t => !t.dismissed_at);
+  const excludeSet = excludeNames?.length ? new Set(excludeNames) : null;
+  const visible = (showHistory ? tags : tags.filter(t => !t.dismissed_at))
+    .filter(t => !excludeSet || !excludeSet.has(t.name));
 
   if (visible.length === 0) {
     if (emptyState === 'hidden') return null;

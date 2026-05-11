@@ -11,7 +11,7 @@ import ClientViewModal from '@/components/client/ClientViewModal';
 import OverdueInvoiceBadge from '@/components/shared/OverdueInvoiceBadge';
 import ContractStatusBadge from '@/components/shared/ContractStatusBadge';
 import ClientLabelBadge, { type ClientLabel } from '@/components/shared/ClientLabelBadge';
-import ClientTagsList from '@/components/client-tags/ClientTagsList';
+import ClientTagsList, { TAG_ESPERAR_GROWTH } from '@/components/client-tags/ClientTagsList';
 
 interface MilestoneCard {
   id: string;
@@ -230,6 +230,7 @@ export default function AdsOnboardingSection() {
                             <ClientTagsList
                               tags={tagsByClient?.get(client.id) ?? []}
                               size="sm"
+                              excludeNames={[TAG_ESPERAR_GROWTH]}
                               className="mt-0"
                             />
 

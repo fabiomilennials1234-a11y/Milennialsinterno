@@ -117,11 +117,11 @@ function LiveBadge({
         aria-label={`Etiqueta: ${name}`}
         className={cn(
           BASE, s.pill,
-          'bg-amber-500/8 border border-amber-500/20 text-amber-400',
+          'bg-slate-400/8 border border-slate-400/15 text-slate-400',
           className,
         )}
       >
-        <Hourglass size={s.icon} className="shrink-0 opacity-60" />
+        <Hourglass size={s.icon} className="shrink-0 opacity-50" />
         {name}
       </span>
     );
