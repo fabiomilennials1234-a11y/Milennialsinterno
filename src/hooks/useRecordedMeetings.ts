@@ -3,6 +3,22 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
+export interface TranscriptSegment {
+  speaker: number;
+  text: string;
+  start: number;
+  end: number;
+}
+
+export interface TranscriptData {
+  text: string;
+  segments?: TranscriptSegment[];
+  speakers_count?: number;
+  model: string;
+  transcribed_at: string;
+  has_diarization?: boolean;
+}
+
 export interface MeetingFolder {
   id: string;
   name: string;
@@ -26,7 +42,7 @@ export interface RecordedMeeting {
   file_size: number | null;
   duration_seconds: number | null;
   recorded_in_browser: boolean;
-  transcript: Record<string, unknown> | null;
+  transcript: TranscriptData | null;
   transcript_status: string | null;
   transcript_error: string | null;
   created_by: string | null;

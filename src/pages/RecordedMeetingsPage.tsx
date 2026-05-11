@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import MainLayout from '@/layouts/MainLayout';
-import { useRecordedMeetings, MeetingFolder, RecordedMeeting } from '@/hooks/useRecordedMeetings';
+import { useRecordedMeetings, MeetingFolder, RecordedMeeting, TranscriptData } from '@/hooks/useRecordedMeetings';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -45,6 +45,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+
+const SPEAKER_COLORS_CLASS = [
+  'text-blue-400',
+  'text-emerald-400',
+  'text-amber-400',
+  'text-purple-400',
+  'text-rose-400',
+  'text-cyan-400',
+  'text-orange-400',
+  'text-pink-400',
+];
 
 export default function RecordedMeetingsPage() {
   const {
@@ -92,9 +103,14 @@ export default function RecordedMeetingsPage() {
   const getMeetingCount = (folderId: string) =>
     meetings.filter((m) => m.folder_id === folderId).length;
 
+  const SPEAKER_COLORS_HEX = [
+    '#60a5fa', '#34d399', '#fbbf24', '#a78bfa',
+    '#fb7185', '#22d3ee', '#fb923c', '#f472b6',
+  ];
+
   const handleDownloadTranscript = (meeting: RecordedMeeting) => {
-    const text = (meeting.transcript as Record<string, unknown>)?.text as string || '';
-    if (!text) return;
+    const transcript = meeting.transcript;
+    if (!transcript?.text) return;
 
     const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -106,13 +122,26 @@ export default function RecordedMeetingsPage() {
     const dateFormatted = format(new Date(meeting.meeting_date + 'T12:00:00'), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
     const meta = `${esc(dateFormatted)}${clientName ? ` — ${esc(clientName)}` : ''}${meeting.duration_seconds ? ` — ${Math.floor(meeting.duration_seconds / 60)}min ${meeting.duration_seconds % 60}s` : ''}`;
 
+    let bodyContent: string;
+
+    if (transcript.has_diarization && transcript.segments && transcript.segments.length > 0) {
+      bodyContent = transcript.segments
+        .map((seg) => {
+          const color = SPEAKER_COLORS_HEX[seg.speaker % SPEAKER_COLORS_HEX.length];
+          return `<p><b style="color:${color}">Voz ${seg.speaker + 1}:</b> ${esc(seg.text)}</p>`;
+        })
+        .join('\n');
+    } else {
+      bodyContent = transcript.text.split('\n').map(p => `<p>${esc(p)}</p>`).join('\n');
+    }
+
     const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
 <head><meta charset="utf-8"><title>Transcrição</title></head>
 <body style="font-family:Calibri,sans-serif;font-size:12pt;line-height:1.6">
 <h1 style="font-size:16pt;margin-bottom:4pt">Transcrição da Reunião</h1>
 <p style="color:#666;font-size:10pt;margin-bottom:16pt">${meta}</p>
 <hr style="border:none;border-top:1px solid #ddd;margin-bottom:16pt">
-${text.split('\n').map(p => `<p>${esc(p)}</p>`).join('\n')}
+${bodyContent}
 </body></html>`;
 
     const blob = new Blob([html], { type: 'application/msword' });
@@ -496,28 +525,45 @@ ${text.split('\n').map(p => `<p>${esc(p)}</p>`).join('\n')}
                           </div>
 
                           {/* Transcript */}
-                          {meeting.transcript_status === 'completed' && meeting.transcript && (
-                            <div>
-                              <div className="flex items-center justify-between mb-2">
-                                <p className="text-xs font-medium text-muted-foreground uppercase">Transcrição</p>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-7 text-xs gap-1.5"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDownloadTranscript(meeting);
-                                  }}
-                                >
-                                  <Download size={12} />
-                                  Baixar .doc
-                                </Button>
+                          {meeting.transcript_status === 'completed' && meeting.transcript && (() => {
+                            const transcript = meeting.transcript;
+                            const hasSpeakers = transcript.has_diarization && transcript.segments && transcript.segments.length > 0;
+                            return (
+                              <div>
+                                <div className="flex items-center justify-between mb-2">
+                                  <p className="text-xs font-medium text-muted-foreground uppercase">Transcrição</p>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 text-xs gap-1.5"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDownloadTranscript(meeting);
+                                    }}
+                                  >
+                                    <Download size={12} />
+                                    Baixar .doc
+                                  </Button>
+                                </div>
+                                {hasSpeakers ? (
+                                  <div className="space-y-2 bg-card p-3 rounded-lg border border-border max-h-96 overflow-y-auto">
+                                    {transcript.segments!.map((seg, i) => (
+                                      <div key={i} className="text-sm">
+                                        <span className={`font-semibold ${SPEAKER_COLORS_CLASS[seg.speaker % SPEAKER_COLORS_CLASS.length]}`}>
+                                          Voz {seg.speaker + 1}:
+                                        </span>{' '}
+                                        <span className="text-foreground">{seg.text}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-sm whitespace-pre-wrap bg-card p-3 rounded-lg border border-border max-h-96 overflow-y-auto">
+                                    {transcript.text || 'Transcrição vazia'}
+                                  </p>
+                                )}
                               </div>
-                              <p className="text-sm whitespace-pre-wrap bg-card p-3 rounded-lg border border-border max-h-96 overflow-y-auto">
-                                {(meeting.transcript as Record<string, unknown>)?.text as string || 'Transcrição vazia'}
-                              </p>
-                            </div>
-                          )}
+                            );
+                          })()}
                           {meeting.transcript_status === 'failed' && meeting.transcript_error && (
                             <div>
                               <p className="text-xs font-medium text-muted-foreground uppercase mb-2">Erro na Transcrição</p>

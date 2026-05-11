@@ -9,13 +9,13 @@ serve(async (req) => {
     return new Response(null, { headers: cors });
   }
 
-  const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+  const DEEPGRAM_API_KEY = Deno.env.get("DEEPGRAM_API_KEY");
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-  if (!OPENROUTER_API_KEY) {
+  if (!DEEPGRAM_API_KEY) {
     return new Response(
-      JSON.stringify({ error: "OPENROUTER_API_KEY not configured" }),
+      JSON.stringify({ error: "DEEPGRAM_API_KEY not configured" }),
       { status: 500, headers: { ...cors, "Content-Type": "application/json" } },
     );
   }
@@ -102,74 +102,75 @@ serve(async (req) => {
         throw new Error(`Failed to download audio: ${audioResponse.status}`);
       }
       const audioBuffer = await audioResponse.arrayBuffer();
-      const audioBytes = new Uint8Array(audioBuffer);
 
-      // --- Convert to base64 ---
-      let base64Audio = "";
-      const CHUNK = 32768;
-      for (let i = 0; i < audioBytes.length; i += CHUNK) {
-        base64Audio += String.fromCharCode(
-          ...audioBytes.subarray(i, i + CHUNK),
-        );
-      }
-      base64Audio = btoa(base64Audio);
+      // --- Call Deepgram Nova-2 ---
+      const deepgramUrl =
+        "https://api.deepgram.com/v1/listen?model=nova-2&language=pt-BR&diarize=true&punctuate=true&utterances=true";
 
-      // --- Call OpenRouter ---
-      const openrouterResponse = await fetch(
-        "https://openrouter.ai/api/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-2.0-flash-001",
-            messages: [
-              {
-                role: "user",
-                content: [
-                  {
-                    type: "text",
-                    text: "Transcreva o audio a seguir em portugues brasileiro. Retorne APENAS a transcricao completa, sem comentarios adicionais. Se houver multiplos falantes, identifique como Falante 1, Falante 2, etc.",
-                  },
-                  {
-                    type: "input_audio",
-                    input_audio: {
-                      data: base64Audio,
-                      format: "webm",
-                    },
-                  },
-                ],
-              },
-            ],
-          }),
+      const deepgramResponse = await fetch(deepgramUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `Token ${DEEPGRAM_API_KEY}`,
+          "Content-Type": "audio/webm",
         },
-      );
+        body: audioBuffer,
+      });
 
-      if (!openrouterResponse.ok) {
-        const errText = await openrouterResponse.text();
+      if (!deepgramResponse.ok) {
+        const errText = await deepgramResponse.text();
         throw new Error(
-          `OpenRouter API error ${openrouterResponse.status}: ${errText}`,
+          `Deepgram API error ${deepgramResponse.status}: ${errText}`,
         );
       }
 
-      const result = await openrouterResponse.json();
-      const transcriptText = result.choices?.[0]?.message?.content;
+      const result = await deepgramResponse.json();
+      const utterances = result.results?.utterances;
 
-      if (!transcriptText) {
-        throw new Error("OpenRouter returned empty transcription");
+      let transcript: Record<string, unknown>;
+
+      if (utterances && utterances.length > 0) {
+        // Diarized transcript with speaker segments
+        const segments = utterances.map(
+          (u: { speaker: number; transcript: string; start: number; end: number }) => ({
+            speaker: u.speaker,
+            text: u.transcript,
+            start: u.start,
+            end: u.end,
+          }),
+        );
+
+        transcript = {
+          text: utterances
+            .map((u: { speaker: number; transcript: string }) => `Voz ${u.speaker + 1}: ${u.transcript}`)
+            .join("\n"),
+          segments,
+          speakers_count: new Set(utterances.map((u: { speaker: number }) => u.speaker)).size,
+          model: "deepgram-nova-2",
+          transcribed_at: new Date().toISOString(),
+          has_diarization: true,
+        };
+      } else {
+        // Fallback: plain transcript without diarization
+        const plainText =
+          result.results?.channels?.[0]?.alternatives?.[0]?.transcript || "";
+
+        if (!plainText) {
+          throw new Error("Deepgram returned empty transcription");
+        }
+
+        transcript = {
+          text: plainText,
+          model: "deepgram-nova-2",
+          transcribed_at: new Date().toISOString(),
+          has_diarization: false,
+        };
       }
 
       // --- Save success ---
       await adminClient
         .from("recorded_meetings")
         .update({
-          transcript: {
-            text: transcriptText,
-            model: "gemini-2.0-flash-001",
-            transcribed_at: new Date().toISOString(),
-          },
+          transcript,
           transcript_status: "completed",
           transcript_error: null,
         })
