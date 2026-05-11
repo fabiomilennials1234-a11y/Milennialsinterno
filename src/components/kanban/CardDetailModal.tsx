@@ -14,8 +14,10 @@ import {
   CheckCircle2,
   Archive,
   Trash2,
-  ExternalLink
+  ExternalLink,
+  Palette
 } from 'lucide-react';
+import { useClientDesignProfile } from '@/hooks/useClientDesignProfiles';
 import CardAttachmentsTab from '@/components/design/CardAttachmentsTab';
 import { cn } from '@/lib/utils';
 import { KanbanCard, useArchiveCard } from '@/hooks/useKanban';
@@ -111,7 +113,12 @@ export default function CardDetailModal({
   const upsertProdutoraBriefing = useUpsertProdutoraBriefing();
   
   const briefingLoading = isDesignBoard ? designBriefingLoading : isVideoBoard ? videoBriefingLoading : isDevBoard ? devBriefingLoading : isProdutoraBoard ? produtoraBriefingLoading : false;
-  
+
+  // Client Design Profile (shown as read-only summary on design board briefing tab)
+  const { data: clientDesignProfile } = useClientDesignProfile(
+    isDesignBoard && card.client_id ? card.client_id : undefined
+  );
+
   // Design briefing form
   const [designBriefingForm, setDesignBriefingForm] = useState({
     description: '',
@@ -384,6 +391,45 @@ export default function CardDetailModal({
           {/* Briefing Tab */}
           {activeTab === 'briefing' && isDesignBoard && (
             <div className="space-y-6">
+              {clientDesignProfile && (
+                <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-primary flex items-center gap-1.5">
+                    <Palette size={14} />
+                    Perfil de Design do Cliente
+                  </h4>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                    {clientDesignProfile.brand_colors && (
+                      <div className="text-xs"><span className="text-muted-foreground">Cores:</span> <span className="text-foreground">{clientDesignProfile.brand_colors}</span></div>
+                    )}
+                    {clientDesignProfile.typography && (
+                      <div className="text-xs"><span className="text-muted-foreground">Tipografia:</span> <span className="text-foreground">{clientDesignProfile.typography}</span></div>
+                    )}
+                    {clientDesignProfile.visual_style && (
+                      <div className="text-xs"><span className="text-muted-foreground">Estilo:</span> <span className="text-foreground">{clientDesignProfile.visual_style}</span></div>
+                    )}
+                    {clientDesignProfile.instagram_handle && (
+                      <div className="text-xs"><span className="text-muted-foreground">Instagram:</span> <span className="text-foreground">{clientDesignProfile.instagram_handle}</span></div>
+                    )}
+                    {clientDesignProfile.brand_manual_url && (
+                      <div className="text-xs">
+                        <a href={clientDesignProfile.brand_manual_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
+                          Manual de marca <ExternalLink size={10} />
+                        </a>
+                      </div>
+                    )}
+                    {clientDesignProfile.logo_url && (
+                      <div className="text-xs">
+                        <a href={clientDesignProfile.logo_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
+                          Logo <ExternalLink size={10} />
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                  {clientDesignProfile.notes && (
+                    <p className="text-xs text-muted-foreground mt-1 italic">{clientDesignProfile.notes}</p>
+                  )}
+                </div>
+              )}
               {briefingLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="w-6 h-6 animate-spin text-primary" />

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Loader2, User, CalendarIcon } from 'lucide-react';
+import { X, Loader2, User, CalendarIcon, Palette } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ClientCombobox } from '@/components/ui/client-combobox';
 import { useAllActiveClients } from '@/hooks/useAllActiveClients';
+import { useClientDesignProfile } from '@/hooks/useClientDesignProfiles';
 
 interface CreateDesignCardModalProps {
   isOpen: boolean;
@@ -64,12 +65,25 @@ export default function CreateDesignCardModal({
   
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const { data: designProfile } = useClientDesignProfile(formData.client_id ?? undefined);
+
   // Set default column when columns load
   useEffect(() => {
     if (designerColumns.length > 0 && !formData.column_id) {
       setFormData(prev => ({ ...prev, column_id: designerColumns[0].id }));
     }
   }, [designerColumns]);
+
+  // Auto-fill briefing fields from client design profile
+  useEffect(() => {
+    if (designProfile) {
+      setBriefingData(prev => ({
+        ...prev,
+        identity_url: prev.identity_url || designProfile.brand_manual_url || '',
+        client_instagram: prev.client_instagram || designProfile.instagram_handle || '',
+      }));
+    }
+  }, [designProfile]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -340,6 +354,12 @@ export default function CreateDesignCardModal({
               placeholder="Selecionar cliente..."
               className={errors.client_id ? "border-danger" : undefined}
             />
+            {designProfile && (
+              <div className="flex items-center gap-1.5 mt-1.5 text-xs text-success">
+                <Palette size={12} />
+                <span>Perfil de design cadastrado — campos preenchidos automaticamente</span>
+              </div>
+            )}
             {errors.client_id && (
               <p className="text-xs text-danger">{errors.client_id}</p>
             )}

@@ -1,3 +1,4 @@
+Initialising login role...
 export type Json =
   | string
   | number
@@ -952,6 +953,62 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "client_daily_tracking_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_design_profiles: {
+        Row: {
+          brand_colors: string | null
+          brand_manual_url: string | null
+          client_id: string
+          created_at: string
+          created_by: string
+          id: string
+          instagram_handle: string | null
+          logo_url: string | null
+          notes: string | null
+          typography: string | null
+          updated_at: string
+          visual_style: string | null
+          website_url: string | null
+        }
+        Insert: {
+          brand_colors?: string | null
+          brand_manual_url?: string | null
+          client_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          instagram_handle?: string | null
+          logo_url?: string | null
+          notes?: string | null
+          typography?: string | null
+          updated_at?: string
+          visual_style?: string | null
+          website_url?: string | null
+        }
+        Update: {
+          brand_colors?: string | null
+          brand_manual_url?: string | null
+          client_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          instagram_handle?: string | null
+          logo_url?: string | null
+          notes?: string | null
+          typography?: string | null
+          updated_at?: string
+          visual_style?: string | null
+          website_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_design_profiles_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: true
             referencedRelation: "clients"
@@ -2717,6 +2774,7 @@ export type Database = {
       }
       department_tasks: {
         Row: {
+          advance_to_step: string | null
           archived: boolean
           archived_at: string | null
           created_at: string
@@ -2724,9 +2782,12 @@ export type Database = {
           description: string | null
           due_date: string | null
           id: string
+          is_blocking: boolean
           justification: string | null
           justification_at: string | null
           priority: string | null
+          project_step: string | null
+          recurring_template_id: string | null
           related_client_id: string | null
           related_project_id: string | null
           status: string
@@ -2736,6 +2797,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          advance_to_step?: string | null
           archived?: boolean
           archived_at?: string | null
           created_at?: string
@@ -2743,9 +2805,12 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          is_blocking?: boolean
           justification?: string | null
           justification_at?: string | null
           priority?: string | null
+          project_step?: string | null
+          recurring_template_id?: string | null
           related_client_id?: string | null
           related_project_id?: string | null
           status?: string
@@ -2755,6 +2820,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          advance_to_step?: string | null
           archived?: boolean
           archived_at?: string | null
           created_at?: string
@@ -2762,9 +2828,12 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          is_blocking?: boolean
           justification?: string | null
           justification_at?: string | null
           priority?: string | null
+          project_step?: string | null
+          recurring_template_id?: string | null
           related_client_id?: string | null
           related_project_id?: string | null
           status?: string
@@ -2774,6 +2843,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "department_tasks_recurring_template_id_fkey"
+            columns: ["recurring_template_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_task_templates"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "department_tasks_related_client_id_fkey"
             columns: ["related_client_id"]
@@ -5900,6 +5976,39 @@ export type Database = {
           },
         ]
       }
+      project_task_templates: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          is_project_scoped: boolean
+          step: string | null
+          task_type: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_project_scoped?: boolean
+          step?: string | null
+          task_type?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_project_scoped?: boolean
+          step?: string | null
+          task_type?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       prova_social_metrics: {
         Row: {
           created_at: string | null
@@ -6803,6 +6912,137 @@ export type Database = {
           task_title?: string
         }
         Relationships: []
+      }
+      tech_dev_dailies: {
+        Row: {
+          blockers: string | null
+          created_at: string
+          date: string
+          dev_user_id: string
+          did_yesterday: string | null
+          doing_today: string | null
+          filled_by: string
+          id: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          blockers?: string | null
+          created_at?: string
+          date: string
+          dev_user_id: string
+          did_yesterday?: string | null
+          doing_today?: string | null
+          filled_by: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          blockers?: string | null
+          created_at?: string
+          date?: string
+          dev_user_id?: string
+          did_yesterday?: string | null
+          doing_today?: string | null
+          filled_by?: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tech_one_on_ones: {
+        Row: {
+          agreements: string | null
+          created_at: string
+          dev_user_id: string
+          id: string
+          improvements: string | null
+          notes: string | null
+          performance_rating: number
+          positives: string | null
+          reviewer_user_id: string
+          updated_at: string
+          week_start: string
+        }
+        Insert: {
+          agreements?: string | null
+          created_at?: string
+          dev_user_id: string
+          id?: string
+          improvements?: string | null
+          notes?: string | null
+          performance_rating: number
+          positives?: string | null
+          reviewer_user_id: string
+          updated_at?: string
+          week_start: string
+        }
+        Update: {
+          agreements?: string | null
+          created_at?: string
+          dev_user_id?: string
+          id?: string
+          improvements?: string | null
+          notes?: string | null
+          performance_rating?: number
+          positives?: string | null
+          reviewer_user_id?: string
+          updated_at?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
+      tech_project_dailies: {
+        Row: {
+          blockers: string | null
+          completion_pct: number
+          created_at: string
+          date: string
+          filled_by: string
+          id: string
+          next_steps: string | null
+          progress_today: string | null
+          project_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          blockers?: string | null
+          completion_pct?: number
+          created_at?: string
+          date: string
+          filled_by: string
+          id?: string
+          next_steps?: string | null
+          progress_today?: string | null
+          project_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          blockers?: string | null
+          completion_pct?: number
+          created_at?: string
+          date?: string
+          filled_by?: string
+          id?: string
+          next_steps?: string | null
+          progress_today?: string | null
+          project_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tech_project_dailies_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "tech_projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tech_project_members: {
         Row: {
@@ -7899,6 +8139,8 @@ export type Database = {
     Functions: {
       _cron_check_project_delays: { Args: never; Returns: number }
       _cron_generate_crm_stalled_tasks: { Args: never; Returns: number }
+      _cron_generate_project_daily_tasks: { Args: never; Returns: undefined }
+      _cron_generate_project_weekly_tasks: { Args: never; Returns: undefined }
       _cron_generate_recurring_tasks: { Args: never; Returns: number }
       admin_reconcile_user_page_grants: {
         Args: {
@@ -7946,10 +8188,12 @@ export type Database = {
         Args: { _card_id: string; _user_id: string }
         Returns: boolean
       }
+      can_view_design_board: { Args: { _user_id: string }; Returns: boolean }
       can_view_user: {
         Args: { _target_user_id: string; _viewer_id: string }
         Returns: boolean
       }
+      can_write_design_board: { Args: { _user_id: string }; Returns: boolean }
       check_action_plan_deadlines: { Args: never; Returns: undefined }
       check_ads_client_no_movement_7d: { Args: never; Returns: undefined }
       check_ads_client_stalled_14d: { Args: never; Returns: undefined }
@@ -8475,6 +8719,20 @@ export type Database = {
       }
       tech_unblock_task: { Args: { _task_id: string }; Returns: undefined }
       unarchive_justification: { Args: { p_id: string }; Returns: undefined }
+      upsert_client_design_profile: {
+        Args: {
+          p_brand_colors?: string
+          p_brand_manual_url?: string
+          p_client_id: string
+          p_instagram_handle?: string
+          p_logo_url?: string
+          p_notes?: string
+          p_typography?: string
+          p_visual_style?: string
+          p_website_url?: string
+        }
+        Returns: string
+      }
       upsert_kanban_briefing: {
         Args: { _briefing_type: string; _card_id: string; _payload: Json }
         Returns: Json
@@ -8660,3 +8918,5 @@ export const Constants = {
     },
   },
 } as const
+A new version of Supabase CLI is available: v2.98.2 (currently installed v2.90.0)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
