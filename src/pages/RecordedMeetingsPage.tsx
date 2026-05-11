@@ -21,6 +21,8 @@ import {
   Monitor,
   Clock,
   Building2,
+  Loader2,
+  AlertCircle,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -376,6 +378,24 @@ export default function RecordedMeetingsPage() {
                                 {clientNameMap[meeting.client_id]}
                               </Badge>
                             )}
+                            {meeting.transcript_status === 'processing' && (
+                              <Badge variant="outline" className="text-xs border-amber-500/30 text-amber-600 animate-pulse">
+                                <Loader2 size={12} className="mr-1 animate-spin" />
+                                Transcrevendo...
+                              </Badge>
+                            )}
+                            {meeting.transcript_status === 'completed' && (
+                              <Badge variant="outline" className="text-xs border-green-500/30 text-green-600">
+                                <FileText size={12} className="mr-1" />
+                                Transcrição pronta
+                              </Badge>
+                            )}
+                            {meeting.transcript_status === 'failed' && (
+                              <Badge variant="outline" className="text-xs border-red-500/30 text-red-600">
+                                <AlertCircle size={12} className="mr-1" />
+                                Erro na transcrição
+                              </Badge>
+                            )}
                           </div>
                           {!meeting.is_whole_team && meeting.participants?.length > 0 && (
                             <p className="text-xs text-muted-foreground mt-1 truncate">
@@ -438,6 +458,24 @@ export default function RecordedMeetingsPage() {
                               <p className="text-xs text-muted-foreground mt-1">{meeting.video_filename}</p>
                             )}
                           </div>
+
+                          {/* Transcript */}
+                          {meeting.transcript_status === 'completed' && meeting.transcript && (
+                            <div>
+                              <p className="text-xs font-medium text-muted-foreground uppercase mb-2">Transcrição</p>
+                              <p className="text-sm whitespace-pre-wrap bg-card p-3 rounded-lg border border-border max-h-96 overflow-y-auto">
+                                {(meeting.transcript as Record<string, unknown>)?.text as string || 'Transcrição vazia'}
+                              </p>
+                            </div>
+                          )}
+                          {meeting.transcript_status === 'failed' && meeting.transcript_error && (
+                            <div>
+                              <p className="text-xs font-medium text-muted-foreground uppercase mb-2">Erro na Transcrição</p>
+                              <p className="text-sm text-red-500 bg-red-500/5 p-3 rounded-lg border border-red-500/20">
+                                {meeting.transcript_error}
+                              </p>
+                            </div>
+                          )}
 
                           {/* Participants */}
                           {(meeting.is_whole_team || (meeting.participants?.length > 0)) && (

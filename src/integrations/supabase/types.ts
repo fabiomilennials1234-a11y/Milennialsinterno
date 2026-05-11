@@ -6129,6 +6129,7 @@ export type Database = {
           recorded_in_browser: boolean | null
           summary: string | null
           transcript: Record<string, unknown> | null
+          transcript_error: string | null
           transcript_status: string | null
           updated_at: string | null
           video_filename: string | null
@@ -6151,6 +6152,7 @@ export type Database = {
           recorded_in_browser?: boolean | null
           summary?: string | null
           transcript?: Record<string, unknown> | null
+          transcript_error?: string | null
           transcript_status?: string | null
           updated_at?: string | null
           video_filename?: string | null
@@ -6173,6 +6175,7 @@ export type Database = {
           recorded_in_browser?: boolean | null
           summary?: string | null
           transcript?: Record<string, unknown> | null
+          transcript_error?: string | null
           transcript_status?: string | null
           updated_at?: string | null
           video_filename?: string | null

@@ -26,7 +26,9 @@ export interface RecordedMeeting {
   file_size: number | null;
   duration_seconds: number | null;
   recorded_in_browser: boolean;
+  transcript: Record<string, unknown> | null;
   transcript_status: string | null;
+  transcript_error: string | null;
   created_by: string | null;
   created_by_name: string | null;
   created_at: string;
@@ -74,6 +76,11 @@ export function useRecordedMeetings() {
         .order('meeting_date', { ascending: false });
       if (error) throw error;
       return data as RecordedMeeting[];
+    },
+    refetchInterval: (query) => {
+      const data = query.state.data as RecordedMeeting[] | undefined;
+      if (data?.some((m) => m.transcript_status === 'processing')) return 10_000;
+      return false;
     },
   });
 

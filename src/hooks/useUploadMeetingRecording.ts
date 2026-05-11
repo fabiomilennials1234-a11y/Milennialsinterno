@@ -199,6 +199,11 @@ export function useUploadMeetingRecording(): UseUploadMeetingRecordingReturn {
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ['recorded-meetings'] });
 
+      // Fire-and-forget transcription
+      supabase.functions.invoke('transcribe-meeting', {
+        body: { recording_id: meeting.id },
+      }).catch((err) => console.warn('Transcription trigger failed:', err));
+
       setStatus('done');
       return meeting.id;
     } catch (err: unknown) {
