@@ -23,6 +23,7 @@ import {
   Building2,
   Loader2,
   AlertCircle,
+  Download,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -78,15 +79,50 @@ export default function RecordedMeetingsPage() {
     f.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const filteredMeetings = folderMeetings.filter(
-    (m) =>
-      m.ata?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      m.summary?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      m.participants?.some((p) => p.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredMeetings = searchTerm.trim()
+    ? folderMeetings.filter(
+        (m) =>
+          m.ata?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          m.summary?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          m.video_filename?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          m.participants?.some((p) => p.toLowerCase().includes(searchTerm.toLowerCase()))
+      )
+    : folderMeetings;
 
   const getMeetingCount = (folderId: string) =>
     meetings.filter((m) => m.folder_id === folderId).length;
+
+  const handleDownloadTranscript = (meeting: RecordedMeeting) => {
+    const text = (meeting.transcript as Record<string, unknown>)?.text as string || '';
+    if (!text) return;
+
+    const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    const clientName = meeting.client_id ? clientNameMap[meeting.client_id] || '' : '';
+    const dateStr = format(new Date(meeting.meeting_date + 'T12:00:00'), "dd-MM-yyyy");
+    const safeName = clientName.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9 _-]/g, '');
+    const fileName = `Transcricao${safeName ? `_${safeName}` : ''}_${dateStr}.doc`;
+
+    const dateFormatted = format(new Date(meeting.meeting_date + 'T12:00:00'), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+    const meta = `${esc(dateFormatted)}${clientName ? ` — ${esc(clientName)}` : ''}${meeting.duration_seconds ? ` — ${Math.floor(meeting.duration_seconds / 60)}min ${meeting.duration_seconds % 60}s` : ''}`;
+
+    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8"><title>Transcrição</title></head>
+<body style="font-family:Calibri,sans-serif;font-size:12pt;line-height:1.6">
+<h1 style="font-size:16pt;margin-bottom:4pt">Transcrição da Reunião</h1>
+<p style="color:#666;font-size:10pt;margin-bottom:16pt">${meta}</p>
+<hr style="border:none;border-top:1px solid #ddd;margin-bottom:16pt">
+${text.split('\n').map(p => `<p>${esc(p)}</p>`).join('\n')}
+</body></html>`;
+
+    const blob = new Blob([html], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
 
   const handleCreateFolder = () => {
     if (newFolderName.trim()) {
@@ -462,7 +498,21 @@ export default function RecordedMeetingsPage() {
                           {/* Transcript */}
                           {meeting.transcript_status === 'completed' && meeting.transcript && (
                             <div>
-                              <p className="text-xs font-medium text-muted-foreground uppercase mb-2">Transcrição</p>
+                              <div className="flex items-center justify-between mb-2">
+                                <p className="text-xs font-medium text-muted-foreground uppercase">Transcrição</p>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 text-xs gap-1.5"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDownloadTranscript(meeting);
+                                  }}
+                                >
+                                  <Download size={12} />
+                                  Baixar .doc
+                                </Button>
+                              </div>
                               <p className="text-sm whitespace-pre-wrap bg-card p-3 rounded-lg border border-border max-h-96 overflow-y-auto">
                                 {(meeting.transcript as Record<string, unknown>)?.text as string || 'Transcrição vazia'}
                               </p>
