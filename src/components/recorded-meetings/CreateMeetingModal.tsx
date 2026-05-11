@@ -14,6 +14,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Upload, X, Video, Loader2, Link } from 'lucide-react';
 import { toast } from 'sonner';
+import { ClientCombobox } from '@/components/ui/client-combobox';
+import { useAllActiveClients } from '@/hooks/useAllActiveClients';
 
 interface CreateMeetingModalProps {
   open: boolean;
@@ -25,6 +27,7 @@ type VideoMode = 'link' | 'upload';
 
 export default function CreateMeetingModal({ open, onOpenChange, folderId }: CreateMeetingModalProps) {
   const { createMeeting, uploadVideo } = useRecordedMeetings();
+  const { data: clients = [], isLoading: clientsLoading } = useAllActiveClients();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [videoMode, setVideoMode] = useState<VideoMode>('link');
@@ -36,6 +39,7 @@ export default function CreateMeetingModal({ open, onOpenChange, folderId }: Cre
   const [participants, setParticipants] = useState<string[]>([]);
   const [ata, setAta] = useState('');
   const [summary, setSummary] = useState('');
+  const [clientId, setClientId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
   const resetForm = () => {
@@ -48,6 +52,7 @@ export default function CreateMeetingModal({ open, onOpenChange, folderId }: Cre
     setParticipants([]);
     setAta('');
     setSummary('');
+    setClientId(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -109,6 +114,7 @@ export default function CreateMeetingModal({ open, onOpenChange, folderId }: Cre
 
       await createMeeting.mutateAsync({
         folder_id: folderId,
+        client_id: clientId || null,
         video_url: finalUrl,
         video_filename: finalFilename,
         ata: ata.trim() || null,
@@ -227,6 +233,18 @@ export default function CreateMeetingModal({ open, onOpenChange, folderId }: Cre
               type="date"
               value={meetingDate}
               onChange={(e) => setMeetingDate(e.target.value)}
+            />
+          </div>
+
+          {/* Cliente (opcional) */}
+          <div className="space-y-2">
+            <Label>Cliente (opcional)</Label>
+            <ClientCombobox
+              value={clientId}
+              onChange={(id) => setClientId(id)}
+              clients={clients}
+              isLoading={clientsLoading}
+              placeholder="Selecionar cliente..."
             />
           </div>
 

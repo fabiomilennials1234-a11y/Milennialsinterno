@@ -14,13 +14,19 @@ export interface MeetingFolder {
 export interface RecordedMeeting {
   id: string;
   folder_id: string;
+  client_id: string | null;
   video_url: string;
   video_filename: string | null;
+  audio_file_url: string | null;
   ata: string | null;
   summary: string | null;
   meeting_date: string;
   participants: string[];
   is_whole_team: boolean;
+  file_size: number | null;
+  duration_seconds: number | null;
+  recorded_in_browser: boolean;
+  transcript_status: string | null;
   created_by: string | null;
   created_by_name: string | null;
   created_at: string;
@@ -29,13 +35,18 @@ export interface RecordedMeeting {
 
 export interface RecordedMeetingFormData {
   folder_id: string;
+  client_id?: string | null;
   video_url: string;
   video_filename: string | null;
+  audio_file_url?: string | null;
   ata: string | null;
   summary: string | null;
   meeting_date: string;
   participants: string[];
   is_whole_team: boolean;
+  file_size?: number | null;
+  duration_seconds?: number | null;
+  recorded_in_browser?: boolean;
 }
 
 export function useRecordedMeetings() {

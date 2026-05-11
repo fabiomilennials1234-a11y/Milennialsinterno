@@ -11,6 +11,7 @@ import { useAdsNewClientNotifications } from '@/hooks/useAdsNewClientNotificatio
 import { useAssignedClientsRealtime } from '@/hooks/useAssignedClientsRealtime';
 import { useSidebarRealtime } from '@/hooks/useSidebarRealtime';
 import { useTrainingReminderToasts } from '@/hooks/useTrainingReminderToasts';
+import MeetingRecorderOverlay from '@/components/recorded-meetings/MeetingRecorderOverlay';
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -46,6 +47,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
       </div>
 
       {/* Churn alerts moved to /justificativas page */}
+
+      {/* Global meeting recorder overlay (FAB + recording bar + upload progress) */}
+      <MeetingRecorderOverlay />
     </div>
   );
 }

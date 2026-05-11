@@ -6114,45 +6114,66 @@ export type Database = {
       recorded_meetings: {
         Row: {
           ata: string | null
+          audio_file_url: string | null
+          client_id: string | null
           created_at: string | null
           created_by: string | null
           created_by_name: string | null
+          duration_seconds: number | null
+          file_size: number | null
           folder_id: string
           id: string
           is_whole_team: boolean | null
           meeting_date: string
           participants: string[] | null
+          recorded_in_browser: boolean | null
           summary: string | null
+          transcript: Record<string, unknown> | null
+          transcript_status: string | null
           updated_at: string | null
           video_filename: string | null
           video_url: string
         }
         Insert: {
           ata?: string | null
+          audio_file_url?: string | null
+          client_id?: string | null
           created_at?: string | null
           created_by?: string | null
           created_by_name?: string | null
+          duration_seconds?: number | null
+          file_size?: number | null
           folder_id: string
           id?: string
           is_whole_team?: boolean | null
           meeting_date?: string
           participants?: string[] | null
+          recorded_in_browser?: boolean | null
           summary?: string | null
+          transcript?: Record<string, unknown> | null
+          transcript_status?: string | null
           updated_at?: string | null
           video_filename?: string | null
           video_url: string
         }
         Update: {
           ata?: string | null
+          audio_file_url?: string | null
+          client_id?: string | null
           created_at?: string | null
           created_by?: string | null
           created_by_name?: string | null
+          duration_seconds?: number | null
+          file_size?: number | null
           folder_id?: string
           id?: string
           is_whole_team?: boolean | null
           meeting_date?: string
           participants?: string[] | null
+          recorded_in_browser?: boolean | null
           summary?: string | null
+          transcript?: Record<string, unknown> | null
+          transcript_status?: string | null
           updated_at?: string | null
           video_filename?: string | null
           video_url?: string
@@ -6163,6 +6184,13 @@ export type Database = {
             columns: ["folder_id"]
             isOneToOne: false
             referencedRelation: "meeting_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recorded_meetings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]

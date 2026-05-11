@@ -18,10 +18,14 @@ import {
   Trash2,
   Pencil,
   MoreVertical,
+  Monitor,
+  Clock,
+  Building2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import CreateMeetingModal from '@/components/recorded-meetings/CreateMeetingModal';
+import { useAllActiveClients } from '@/hooks/useAllActiveClients';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,6 +53,9 @@ export default function RecordedMeetingsPage() {
     deleteFolder,
     deleteMeeting,
   } = useRecordedMeetings();
+
+  const { data: clients = [] } = useAllActiveClients();
+  const clientNameMap = Object.fromEntries(clients.map(c => [c.id, c.name]));
 
   const [selectedFolder, setSelectedFolder] = useState<MeetingFolder | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -349,6 +356,24 @@ export default function RecordedMeetingsPage() {
                               <Badge variant="outline" className="text-xs">
                                 <AlignLeft size={12} className="mr-1" />
                                 Resumo
+                              </Badge>
+                            )}
+                            {meeting.recorded_in_browser && (
+                              <Badge variant="outline" className="text-xs border-emerald-500/30 text-emerald-600">
+                                <Monitor size={12} className="mr-1" />
+                                Gravado no sistema
+                              </Badge>
+                            )}
+                            {meeting.duration_seconds != null && meeting.duration_seconds > 0 && (
+                              <Badge variant="outline" className="text-xs">
+                                <Clock size={12} className="mr-1" />
+                                {Math.floor(meeting.duration_seconds / 60)}min {meeting.duration_seconds % 60}s
+                              </Badge>
+                            )}
+                            {meeting.client_id && clientNameMap[meeting.client_id] && (
+                              <Badge variant="outline" className="text-xs border-blue-500/30 text-blue-600">
+                                <Building2 size={12} className="mr-1" />
+                                {clientNameMap[meeting.client_id]}
                               </Badge>
                             )}
                           </div>
