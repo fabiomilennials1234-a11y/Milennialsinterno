@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAssignedClients, useClientTracking, useMoveClientDay, useUpsertClientDocumentation, useCreateCombinadoTask } from '@/hooks/useAdsManager';
 import { useCrmManagers } from '@/hooks/useClientRegistration';
@@ -94,8 +95,46 @@ export default function AdsAcompanhamentoSection({ compact }: Props) {
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Get active clients
+  const queryClient = useQueryClient();
+
+  // Get active clients that should be in Acompanhamento
   const activeClients = clients.filter(c => c.status === 'active' && c.campaign_published_at);
+
+  // ---------------------------------------------------------------------------
+  // Auto-backfill: detect active clients with campaign_published_at but no
+  // tracking record (orphans created via import or data inconsistency).
+  // Creates a client_daily_tracking row on 'segunda' so they appear in the board.
+  // ---------------------------------------------------------------------------
+  const backfillRanRef = useRef(false);
+  useEffect(() => {
+    if (backfillRanRef.current || activeClients.length === 0 || !targetUserId) return;
+
+    const trackedClientIds = new Set(tracking.map((t: any) => t.client_id));
+    const orphans = activeClients.filter(c => !trackedClientIds.has(c.id));
+    if (orphans.length === 0) return;
+
+    backfillRanRef.current = true;
+
+    (async () => {
+      for (const client of orphans) {
+        const { error } = await supabase
+          .from('client_daily_tracking')
+          .insert({
+            client_id: client.id,
+            ads_manager_id: client.assigned_ads_manager || targetUserId,
+            current_day: 'segunda',
+            last_moved_at: new Date().toISOString(),
+            is_delayed: false,
+          });
+        if (error && error.code !== '23505') {
+          // 23505 = unique violation (race condition safe)
+          console.error('[AdsAcompanhamentoSection] Backfill tracking error:', error);
+        }
+      }
+      // Refresh tracking data so orphans appear immediately
+      queryClient.invalidateQueries({ queryKey: ['client-tracking'] });
+    })();
+  }, [activeClients, tracking, targetUserId, queryClient]);
 
   // Get client position by day
   const getClientsByDay = (day: string) => {
