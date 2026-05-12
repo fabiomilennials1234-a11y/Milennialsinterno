@@ -1,6 +1,20 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { AlertTriangle, Clock, CheckCircle2, User } from 'lucide-react';
+import { AlertTriangle, Clock, CheckCircle2, User, Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { useAuth } from '@/contexts/AuthContext';
+import { isExecutive } from '@/types/auth';
 import type { TechProjectRow } from '../hooks/useTechProjects';
+import { useDeleteTechProject } from '../hooks/useTechProjects';
 import type { ProjectStep, ProjectPriority, ProjectType } from '../lib/projectSteps';
 import { PROJECT_STEPS, PROJECT_STEP_LABEL } from '../lib/projectSteps';
 import { getInitials } from '../hooks/useProfiles';
@@ -52,6 +66,9 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project, onClick }: ProjectCardProps) {
+  const { user } = useAuth();
+  const deleteProject = useDeleteTechProject();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const stepIdx = getStepIndex(project.current_step);
   const progress = ((stepIdx + 1) / PROJECT_STEPS.length) * 100;
   const priority = PRIORITY_CONFIG[project.priority] ?? PRIORITY_CONFIG.medium;
@@ -79,17 +96,31 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
       className="group cursor-pointer rounded-[var(--mtech-radius-md)] border border-[var(--mtech-border)] bg-[var(--mtech-surface)] p-3.5 transition-all hover:border-[var(--mtech-border-strong)] hover:translate-y-[-1px]"
       style={{ boxShadow: 'var(--mtech-shadow-card)', width: 340 }}
     >
-      {/* Row 1: Name + type badge */}
+      {/* Row 1: Name + type badge + delete */}
       <div className="flex items-start justify-between gap-2 mb-2.5">
         <h3 className="text-sm font-semibold text-[var(--mtech-text)] truncate flex-1 leading-tight">
           {project.name}
         </h3>
-        <span
-          className="flex-shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide select-none"
-          style={{ color: type.color, backgroundColor: type.bg }}
-        >
-          {type.label}
-        </span>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <span
+            className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide select-none"
+            style={{ color: type.color, backgroundColor: type.bg }}
+          >
+            {type.label}
+          </span>
+          {isExecutive(user?.role) && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowDeleteConfirm(true);
+              }}
+              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 -m-0.5 rounded-md hover:bg-[var(--mtech-danger)]/10 text-[var(--mtech-text-subtle)] hover:text-[var(--mtech-danger)]"
+              title="Excluir projeto"
+            >
+              <Trash2 className="h-3 w-3" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Row 2: Progress bar */}
@@ -201,6 +232,32 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
           </span>
         )}
       </div>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent
+          className="border-[var(--mtech-border)] bg-[var(--mtech-surface)] text-[var(--mtech-text)]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-[var(--mtech-text)]">Excluir projeto</AlertDialogTitle>
+            <AlertDialogDescription className="text-[var(--mtech-text-muted)]">
+              Tem certeza que deseja excluir <strong>"{project.name}"</strong>? Todas as tasks, membros e historico serao permanentemente removidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-[var(--mtech-border)] text-[var(--mtech-text-muted)] hover:bg-[var(--mtech-surface-elev)]">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteProject.mutate(project.id)}
+              className="bg-[var(--mtech-danger)] text-white hover:bg-[var(--mtech-danger)]/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 }

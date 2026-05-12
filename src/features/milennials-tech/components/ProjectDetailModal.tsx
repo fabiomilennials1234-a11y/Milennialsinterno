@@ -9,6 +9,16 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -28,8 +38,10 @@ import {
   X,
   FolderKanban,
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { isExecutive } from '@/types/auth';
 import type { TechProjectRow } from '../hooks/useTechProjects';
-import { useUpdateTechProject, techProjectKeys } from '../hooks/useTechProjects';
+import { useUpdateTechProject, useDeleteTechProject, techProjectKeys } from '../hooks/useTechProjects';
 import { TaskFormModal } from './TaskFormModal';
 import {
   useTechProjectMembers,
@@ -96,7 +108,10 @@ interface ProjectDetailModalProps {
 export function ProjectDetailModal({ project, open, onOpenChange }: ProjectDetailModalProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const updateProject = useUpdateTechProject();
+  const deleteProject = useDeleteTechProject();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { data: members = [], isLoading: membersLoading } = useTechProjectMembers(project.id);
   const { data: projectTasks = [], isLoading: tasksLoading } = useTechTasks({ projectId: project.id });
   const { data: profiles = [] } = useTechProfiles();
@@ -603,15 +618,29 @@ export function ProjectDetailModal({ project, open, onOpenChange }: ProjectDetai
 
         {/* Bottom actions */}
         <div className="flex items-center justify-between pt-4 mt-4 border-t border-[var(--mtech-border)]">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={handleViewInKanban}
-            className="text-[var(--mtech-accent)] hover:text-[var(--mtech-accent)]/80 h-8 text-xs gap-1.5"
-          >
-            <ExternalLink className="h-3 w-3" />
-            Ver tasks no Kanban
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleViewInKanban}
+              className="text-[var(--mtech-accent)] hover:text-[var(--mtech-accent)]/80 h-8 text-xs gap-1.5"
+            >
+              <ExternalLink className="h-3 w-3" />
+              Ver tasks no Kanban
+            </Button>
+            {isExecutive(user?.role) && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setShowDeleteConfirm(true)}
+                disabled={deleteProject.isPending}
+                className="text-[var(--mtech-danger)] hover:text-[var(--mtech-danger)] hover:bg-[var(--mtech-danger)]/10 h-8 text-xs gap-1.5"
+              >
+                <Trash2 className="h-3 w-3" />
+                {deleteProject.isPending ? 'Excluindo...' : 'Excluir'}
+              </Button>
+            )}
+          </div>
           <Button
             size="sm"
             variant="ghost"
@@ -621,6 +650,33 @@ export function ProjectDetailModal({ project, open, onOpenChange }: ProjectDetai
             Fechar
           </Button>
         </div>
+
+        {/* Delete confirmation */}
+        <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <AlertDialogContent className="border-[var(--mtech-border)] bg-[var(--mtech-surface)] text-[var(--mtech-text)]">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-[var(--mtech-text)]">Excluir projeto</AlertDialogTitle>
+              <AlertDialogDescription className="text-[var(--mtech-text-muted)]">
+                Tem certeza que deseja excluir <strong>"{project.name}"</strong>? Todas as tasks, membros e historico serao permanentemente removidos. Esta acao nao pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="border-[var(--mtech-border)] text-[var(--mtech-text-muted)] hover:bg-[var(--mtech-surface-elev)]">
+                Cancelar
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  deleteProject.mutate(project.id, {
+                    onSuccess: () => onOpenChange(false),
+                  });
+                }}
+                className="bg-[var(--mtech-danger)] text-white hover:bg-[var(--mtech-danger)]/90"
+              >
+                Excluir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
 
       <TaskFormModal
