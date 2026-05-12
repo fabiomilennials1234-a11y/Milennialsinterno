@@ -14,6 +14,7 @@ import {
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseDateOnly } from '@/lib/dateUtils';
 import ProToolContentView from './ProToolContentView';
 import AdsBonusTableView from './AdsBonusTableView';
 
@@ -254,7 +255,7 @@ export default function AdsCardDetailModal({
             {dueDate && (
               <div className="flex items-center gap-2 text-sm text-foreground bg-muted/30 px-3 py-1.5 rounded-lg">
                 <Calendar size={14} className="text-muted-foreground" />
-                <span>Entrega: {format(new Date(dueDate), "dd 'de' MMMM", { locale: ptBR })}</span>
+                <span>Entrega: {format(parseDateOnly(dueDate), "dd 'de' MMMM", { locale: ptBR })}</span>
               </div>
             )}
 

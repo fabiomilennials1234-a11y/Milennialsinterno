@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { isPast, isToday } from 'date-fns';
+import { parseDateOnly } from '@/lib/dateUtils';
 
 /**
  * Factory de hooks de delay/justificativa para boards especializados.
@@ -113,7 +114,7 @@ export function createKanbanDelayHooks(config: KanbanDelayConfig) {
         const overdueCards = ((cards || []) as CardLite[]).filter(card => {
           if (card.column_id !== personColumn.id) return false;
           if (!card.due_date) return false;
-          const dueDate = new Date(card.due_date);
+          const dueDate = parseDateOnly(card.due_date);
           return isPast(dueDate) && !isToday(dueDate);
         });
 

@@ -1,5 +1,6 @@
 import { Flag, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { parseDateOnly } from '@/lib/dateUtils';
 import type { KanbanCard } from '@/hooks/useKanban';
 
 export type KanbanFilter = 'all' | 'urgent' | 'high' | 'overdue';
@@ -12,7 +13,7 @@ interface KanbanFiltersProps {
 
 function isOverdue(card: KanbanCard): boolean {
   if (!card.due_date) return false;
-  const due = new Date(card.due_date);
+  const due = parseDateOnly(card.due_date);
   const now = new Date();
   now.setHours(0, 0, 0, 0);
   due.setHours(0, 0, 0, 0);

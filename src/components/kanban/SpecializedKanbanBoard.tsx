@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { format, isPast, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseDateOnly } from '@/lib/dateUtils';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -193,7 +194,7 @@ function sanitizeFileName(name: string): string {
 
 function isCardOverdue(card: KanbanCard): boolean {
   if (!card.due_date) return false;
-  const dueDate = new Date(card.due_date);
+  const dueDate = parseDateOnly(card.due_date);
   return isPast(dueDate) && !isToday(dueDate);
 }
 
@@ -1014,7 +1015,7 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
                                                 ) : (
                                                   <Calendar size={11} strokeWidth={2.25} />
                                                 )}
-                                                {format(new Date(card.due_date), 'dd MMM', { locale: ptBR })}
+                                                {format(parseDateOnly(card.due_date), 'dd MMM', { locale: ptBR })}
                                               </div>
                                             )}
                                             {cardCreators[card.id] && (

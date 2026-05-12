@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select';
 import { format, startOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseDateOnly } from '@/lib/dateUtils';
 import {
   useCurrentMonthInvoices,
   useCreateInvoice,
@@ -85,7 +86,7 @@ function InvoiceCard({ invoice }: { invoice: ClientInvoice }) {
 
       {invoice.due_date && (
         <p className="text-xs text-muted-foreground mt-1">
-          Vencimento: {format(new Date(invoice.due_date), 'dd/MM/yyyy')}
+          Vencimento: {format(parseDateOnly(invoice.due_date), 'dd/MM/yyyy')}
         </p>
       )}
     </div>

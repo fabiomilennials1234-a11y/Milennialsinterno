@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { TechTask, TechTaskInsert, TechTaskUpdate, TechTaskStatus, TechTaskType } from '../types';
+import type { TechTask, TechTaskInsert, TechTaskUpdate, TechTaskStatus, TechTaskType, TechTaskPriority } from '../types';
 
 // ---------------------------------------------------------------------------
 // Query key factory
@@ -19,7 +19,10 @@ export const techTaskKeys = {
 export interface TechTaskFilters {
   sprintId?: string;
   status?: TechTaskStatus;
+  statuses?: TechTaskStatus[];
   type?: TechTaskType;
+  types?: TechTaskType[];
+  priorities?: TechTaskPriority[];
   assigneeId?: string;
   search?: string;
   projectId?: string;
@@ -40,11 +43,18 @@ export function useTechTasks(filters?: TechTaskFilters) {
       if (filters?.sprintId) {
         query = query.eq('sprint_id', filters.sprintId);
       }
-      if (filters?.status) {
+      if (filters?.statuses && filters.statuses.length > 0) {
+        query = query.in('status', filters.statuses);
+      } else if (filters?.status) {
         query = query.eq('status', filters.status);
       }
-      if (filters?.type) {
+      if (filters?.types && filters.types.length > 0) {
+        query = query.in('type', filters.types);
+      } else if (filters?.type) {
         query = query.eq('type', filters.type);
+      }
+      if (filters?.priorities && filters.priorities.length > 0) {
+        query = query.in('priority', filters.priorities);
       }
       if (filters?.assigneeId) {
         query = query.eq('assignee_id', filters.assigneeId);

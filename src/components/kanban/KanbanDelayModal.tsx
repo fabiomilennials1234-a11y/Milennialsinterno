@@ -3,6 +3,7 @@ import { AlertTriangle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseDateOnly } from '@/lib/dateUtils';
 import type { UseMutationResult } from '@tanstack/react-query';
 
 interface DelayedCard {
@@ -105,7 +106,7 @@ export default function KanbanDelayModal({
             <p className="text-xs text-muted-foreground mb-1">Demanda:</p>
             <p className="font-semibold text-foreground">{currentCard.title}</p>
             <p className="text-xs text-danger mt-2">
-              Prazo: {format(new Date(currentCard.due_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+              Prazo: {format(parseDateOnly(currentCard.due_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
             </p>
           </div>
 

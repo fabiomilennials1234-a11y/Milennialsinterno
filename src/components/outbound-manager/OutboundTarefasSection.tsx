@@ -22,6 +22,7 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import { fireCelebration } from '@/lib/confetti';
 import { format, differenceInDays, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseDateOnly } from '@/lib/dateUtils';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -796,18 +797,18 @@ export default function OutboundTarefasSection({ type, compact }: Props) {
                                   {task.due_date && (
                                     <div className={cn(
                                       "flex items-center gap-1.5 mt-3 text-xs",
-                                      isPast(new Date(task.due_date)) && task.status !== 'done' ? "text-danger" : "text-muted-foreground"
+                                      isPast(parseDateOnly(task.due_date)) && task.status !== 'done' ? "text-danger" : "text-muted-foreground"
                                     )}>
                                       <Calendar size={12} />
                                       <span>
-                                        {new Date(task.due_date).toLocaleDateString('pt-BR')}
-                                        {isPast(new Date(task.due_date)) && task.status !== 'done' && ' (Atrasado!)'}
+                                        {parseDateOnly(task.due_date).toLocaleDateString('pt-BR')}
+                                        {isPast(parseDateOnly(task.due_date)) && task.status !== 'done' && ' (Atrasado!)'}
                                       </span>
                                     </div>
                                   )}
 
                                   {/* Justification for overdue regular tasks */}
-                                  {task.due_date && isPast(new Date(task.due_date)) && task.status !== 'done' && (
+                                  {task.due_date && isPast(parseDateOnly(task.due_date)) && task.status !== 'done' && (
                                     <div className="mt-2">
                                       {(task as any).justification ? (
                                         <TooltipProvider>

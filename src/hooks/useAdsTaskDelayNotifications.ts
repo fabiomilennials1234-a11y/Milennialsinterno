@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { parseDateOnly } from '@/lib/dateUtils';
 
 export interface AdsTaskDelayNotification {
   id: string;
@@ -64,7 +65,7 @@ export function useCheckOverdueAdsTasks() {
         // due_date vem como 'YYYY-MM-DD' do banco — comparar direto como string
         const dueDateStr = typeof task.due_date === 'string'
           ? task.due_date.split('T')[0]
-          : new Date(task.due_date).toLocaleDateString('en-CA');
+          : parseDateOnly(String(task.due_date)).toLocaleDateString('en-CA');
         // Tarefa está atrasada se a data de vencimento é estritamente anterior a hoje
         return dueDateStr < todayStr;
       });

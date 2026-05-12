@@ -13,7 +13,8 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import ClientViewModal from '@/components/client/ClientViewModal';
 import DiagnosticoCountdownBadge from '@/components/mktplace/DiagnosticoCountdownBadge';
 import MktplaceRelatorioCountdownBadge from '@/components/mktplace/MktplaceRelatorioCountdownBadge';
-import { Eye, GripVertical, Clock, Calendar as CalendarIcon } from 'lucide-react';
+import MktplaceReportBuilderModal from '@/components/mktplace/MktplaceReportBuilderModal';
+import { Eye, GripVertical, Clock, Calendar as CalendarIcon, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -59,6 +60,7 @@ export default function MktplaceAcompanhamentoSection({ trackingType, title }: P
   const [docForm, setDocForm] = useState<DocForm>({ ...emptyForm });
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [reportModal, setReportModal] = useState<{ open: boolean; clientId?: string; clientName?: string }>({ open: false });
 
   const getClientsByDay = (day: string) => {
     return tracking
@@ -196,6 +198,15 @@ export default function MktplaceAcompanhamentoSection({ trackingType, title }: P
                                   <Eye size={10} />
                                   Ver
                                 </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-5 px-1 text-[10px] gap-0.5 text-purple-500"
+                                  onClick={() => setReportModal({ open: true, clientId: item.client_id, clientName })}
+                                >
+                                  <FileText size={10} />
+                                  Relatorio
+                                </Button>
                                 {item.daysInPosition > 0 && (
                                   <Badge variant="outline" className={cn(
                                     "text-[9px] h-4 px-1",
@@ -207,7 +218,7 @@ export default function MktplaceAcompanhamentoSection({ trackingType, title }: P
                                 )}
                               </div>
                               <DiagnosticoCountdownBadge clientId={item.client_id} className="w-full justify-center" alwaysShow />
-                              <MktplaceRelatorioCountdownBadge clientId={item.client_id} className="w-full justify-center" alwaysShow />
+                              <MktplaceRelatorioCountdownBadge clientId={item.client_id} trackingType={trackingType} className="w-full justify-center" alwaysShow />
                             </div>
                           )}
                         </Draggable>
@@ -368,6 +379,17 @@ export default function MktplaceAcompanhamentoSection({ trackingType, title }: P
           isOpen={true}
           onClose={() => setSelectedClientId(null)}
           clientId={selectedClientId}
+        />
+      )}
+
+      {/* Modal de criação de relatório MKT Place */}
+      {reportModal.clientId && (
+        <MktplaceReportBuilderModal
+          open={reportModal.open}
+          onClose={() => setReportModal({ open: false })}
+          clientId={reportModal.clientId}
+          clientName={reportModal.clientName || 'Cliente'}
+          trackingType={trackingType}
         />
       )}
     </>

@@ -1,0 +1,255 @@
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { useMktplaceRelatorios, useDeleteMktplaceRelatorio } from '@/hooks/useMktplaceRelatorios';
+import { useMktplaceRelatorioStatus } from '@/hooks/useMktplaceRelatorioStatus';
+import MktplaceReportBuilderModal from './MktplaceReportBuilderModal';
+import { BarChart3, Plus, Trash2, Loader2, Clock, AlertTriangle, FileQuestion, ChevronDown, ChevronUp } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import type { MktplaceRelatorio } from '@/hooks/useMktplaceRelatorios';
+
+interface Props {
+  clientId: string;
+  clientName: string;
+  trackingType: 'consultoria' | 'gestao';
+}
+
+const FIELD_LABELS: Record<string, string> = {
+  acoes_realizadas: 'Acoes realizadas',
+  resultados: 'Resultados obtidos',
+  metricas_chave: 'Metricas de desempenho',
+  pontos_melhoria: 'Pontos de melhoria',
+  proximos_passos: 'Proximos passos',
+  resumo: 'Resumo executivo',
+  observacoes: 'Observacoes',
+  titulo: 'Campanha/produto destaque',
+  feedback_cliente: 'Feedback do cliente',
+  saude_contas: 'Saude das contas',
+  status_logistica: 'Logistica e fulfillment',
+  situacao_estoque: 'Estoque e rupturas',
+};
+
+const DISPLAY_FIELDS_BASE = [
+  'acoes_realizadas', 'resultados', 'metricas_chave', 'pontos_melhoria',
+  'proximos_passos', 'resumo', 'observacoes', 'titulo', 'feedback_cliente',
+] as const;
+
+const DISPLAY_FIELDS_GESTAO = [
+  ...DISPLAY_FIELDS_BASE,
+  'saude_contas', 'status_logistica', 'situacao_estoque',
+] as const;
+
+export default function MktplaceRelatorioSection({ clientId, clientName, trackingType }: Props) {
+  const { data: reports, isLoading } = useMktplaceRelatorios(clientId, trackingType);
+  const { daysSince, daysLeft, cycleDays, status } = useMktplaceRelatorioStatus(clientId, trackingType);
+  const deleteReport = useDeleteMktplaceRelatorio();
+
+  const [isBuilderOpen, setIsBuilderOpen] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const isGestao = trackingType === 'gestao';
+  const isPending = status === 'pending';
+  const isOverdue = status === 'overdue';
+  const isUrgent = status === 'alert';
+  const displayFields = isGestao ? DISPLAY_FIELDS_GESTAO : DISPLAY_FIELDS_BASE;
+
+  const handleDelete = async () => {
+    if (!deleteConfirmId) return;
+    await deleteReport.mutateAsync({ id: deleteConfirmId, clientId });
+    setDeleteConfirmId(null);
+  };
+
+  return (
+    <>
+      <div className="bg-card rounded-2xl border border-subtle overflow-hidden shadow-apple">
+        {/* Header */}
+        <div className="section-header section-header-purple">
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-3">
+              <BarChart3 size={18} className="text-white" />
+              <h3 className="font-semibold text-white">
+                Relatorios MKT Place — {isGestao ? 'Gestao' : 'Consultoria'}
+              </h3>
+              <Badge variant="secondary" className="text-[10px] h-5 px-2 bg-white/20 text-white border-0">
+                {cycleDays}d
+              </Badge>
+            </div>
+            <Button
+              size="sm"
+              variant="secondary"
+              className="h-7 text-xs"
+              onClick={() => setIsBuilderOpen(true)}
+            >
+              <Plus size={14} className="mr-1" />
+              Criar Relatorio
+            </Button>
+          </div>
+        </div>
+
+        <div className="p-4 space-y-3">
+          {/* Cycle counter */}
+          {isPending ? (
+            <div className="p-3 rounded-lg border bg-muted/30 border-muted-foreground/20 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileQuestion size={16} className="text-muted-foreground" />
+                <div>
+                  <p className="text-xs font-medium">Relatorio pendente</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    Aguardando consultor MKT Place para iniciar contagem
+                  </p>
+                </div>
+              </div>
+              <Badge variant="secondary" className="text-sm font-bold px-3">
+                --
+              </Badge>
+            </div>
+          ) : (
+            <div className={`p-3 rounded-lg border flex items-center justify-between ${
+              isOverdue
+                ? 'bg-destructive/10 border-destructive/20'
+                : isUrgent
+                  ? 'bg-warning/10 border-warning/20'
+                  : 'bg-purple-500/10 border-purple-500/20'
+            }`}>
+              <div className="flex items-center gap-2">
+                {isOverdue ? (
+                  <AlertTriangle size={16} className="text-destructive" />
+                ) : (
+                  <Clock size={16} className={isUrgent ? 'text-warning' : 'text-purple-500'} />
+                )}
+                <div>
+                  <p className="text-xs font-medium">
+                    {isOverdue ? 'Relatorio vencido!' : 'Proximo relatorio'}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {daysSince} dia{daysSince !== 1 ? 's' : ''} desde o ultimo relatorio
+                  </p>
+                </div>
+              </div>
+              <Badge
+                variant={isOverdue ? 'destructive' : 'secondary'}
+                className="text-sm font-bold px-3"
+              >
+                {isOverdue ? `+${daysSince - cycleDays}d` : `${daysLeft}d`}
+              </Badge>
+            </div>
+          )}
+
+          {/* Reports list */}
+          {isLoading ? (
+            <div className="flex justify-center py-4">
+              <Loader2 className="animate-spin text-muted-foreground" size={20} />
+            </div>
+          ) : !reports || reports.length === 0 ? (
+            <div className="text-center py-4 text-muted-foreground">
+              <BarChart3 className="mx-auto mb-2 opacity-50" size={24} />
+              <p className="text-sm">Nenhum relatorio criado ainda</p>
+              <p className="text-xs mt-1">Clique em "Criar Relatorio" para comecar</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {reports.map((report: MktplaceRelatorio) => {
+                const isExpanded = expandedId === report.id;
+                return (
+                  <div
+                    key={report.id}
+                    className="rounded-lg border bg-card border-subtle hover:shadow-md transition-all"
+                  >
+                    <div
+                      className="p-3 flex items-center justify-between cursor-pointer"
+                      onClick={() => setExpandedId(isExpanded ? null : report.id)}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">
+                          Relatorio — {format(new Date(report.created_at), "dd 'de' MMM 'de' yyyy", { locale: ptBR })}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          Ciclo: {report.cycle_start_date} a {report.cycle_end_date}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(e) => { e.stopPropagation(); }}
+                        >
+                          {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive"
+                          onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(report.id); }}
+                        >
+                          <Trash2 size={14} />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Expanded content */}
+                    {isExpanded && (
+                      <div className="px-3 pb-3 border-t border-subtle pt-3 space-y-3">
+                        {displayFields.map(fieldKey => {
+                          const value = report[fieldKey as keyof MktplaceRelatorio] as string | null;
+                          if (!value) return null;
+                          return (
+                            <div key={fieldKey}>
+                              <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-0.5">
+                                {FIELD_LABELS[fieldKey] || fieldKey}
+                              </p>
+                              <p className="text-sm text-foreground whitespace-pre-wrap">{value}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Builder Modal */}
+      <MktplaceReportBuilderModal
+        open={isBuilderOpen}
+        onClose={() => setIsBuilderOpen(false)}
+        clientId={clientId}
+        clientName={clientName}
+        trackingType={trackingType}
+      />
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusao</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este relatorio? Esta acao nao pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}

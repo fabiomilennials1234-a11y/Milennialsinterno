@@ -48,6 +48,7 @@ import {
 import { useKanbanActionPermissions } from '@/hooks/useKanbanActionPermissions';
 import { format, isPast, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseDateOnly } from '@/lib/dateUtils';
 import { toast } from 'sonner';
 import {
   Tooltip,
@@ -286,7 +287,7 @@ export default function CardDetailModal({
   if (!isOpen) return null;
 
   const priority = priorityConfig[card.priority];
-  const isOverdue = card.due_date && isPast(new Date(card.due_date)) && !isToday(new Date(card.due_date));
+  const isOverdue = card.due_date && isPast(parseDateOnly(card.due_date)) && !isToday(parseDateOnly(card.due_date));
 
   const tabs: { id: TabType; label: string; icon: React.ReactNode }[] = [
     ...(isSpecialBoard ? [{ id: 'briefing' as TabType, label: 'Briefing', icon: <FileText size={16} /> }] : []),
@@ -316,7 +317,7 @@ export default function CardDetailModal({
               {card.due_date && (
                 <span className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Calendar size={12} />
-                  {format(new Date(card.due_date), "dd MMM yyyy", { locale: ptBR })}
+                  {format(parseDateOnly(card.due_date), "dd MMM yyyy", { locale: ptBR })}
                 </span>
               )}
             </div>

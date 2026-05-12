@@ -4,12 +4,13 @@ import { useMktplaceRelatorioStatus } from '@/hooks/useMktplaceRelatorioStatus';
 
 interface Props {
   clientId: string;
+  trackingType: 'consultoria' | 'gestao';
   className?: string;
   alwaysShow?: boolean;
 }
 
-export default function MktplaceRelatorioCountdownBadge({ clientId, className, alwaysShow }: Props) {
-  const { daysLeft, daysSince, status, isLoading } = useMktplaceRelatorioStatus(clientId);
+export default function MktplaceRelatorioCountdownBadge({ clientId, trackingType, className, alwaysShow }: Props) {
+  const { daysLeft, daysSince, cycleDays, status, isLoading } = useMktplaceRelatorioStatus(clientId, trackingType);
 
   if (isLoading) return null;
   if (!alwaysShow && (status === 'normal' || status === 'pending')) return null;
@@ -21,7 +22,7 @@ export default function MktplaceRelatorioCountdownBadge({ clientId, className, a
         className={`text-[10px] px-2 py-0.5 gap-1 border-muted-foreground/30 text-muted-foreground ${className || ''}`}
       >
         <FileQuestion size={10} />
-        Relatório pendente
+        Relatorio pendente
       </Badge>
     );
   }
@@ -33,7 +34,7 @@ export default function MktplaceRelatorioCountdownBadge({ clientId, className, a
         className={`text-[10px] px-2 py-0.5 gap-1 ${className || ''}`}
       >
         <AlertTriangle size={10} />
-        Relatório vencido (+{daysSince - 30}d)
+        Relatorio vencido (+{daysSince - cycleDays}d)
       </Badge>
     );
   }
@@ -45,7 +46,7 @@ export default function MktplaceRelatorioCountdownBadge({ clientId, className, a
         className={`text-[10px] px-2 py-0.5 gap-1 border-warning text-warning ${className || ''}`}
       >
         <Clock size={10} />
-        Relatório em {daysLeft}d
+        Relatorio em {daysLeft}d
       </Badge>
     );
   }
@@ -57,7 +58,7 @@ export default function MktplaceRelatorioCountdownBadge({ clientId, className, a
       className={`text-[10px] px-2 py-0.5 gap-1 border-muted-foreground/30 text-muted-foreground ${className || ''}`}
     >
       <BarChart3 size={10} />
-      Relatório em {daysLeft}d
+      Relatorio em {daysLeft}d
     </Badge>
   );
 }

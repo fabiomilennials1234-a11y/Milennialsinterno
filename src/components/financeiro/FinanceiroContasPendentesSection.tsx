@@ -3,7 +3,8 @@ import { Receipt, CheckCircle, Clock, AlertTriangle, Calendar } from 'lucide-rea
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { format, differenceInDays, parseISO } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
+import { parseDateOnly } from '@/lib/dateUtils';
 import {
   usePendingInvoices,
   useUpdateInvoiceStatus,
@@ -21,9 +22,9 @@ function formatCurrency(value: number) {
 function PendingInvoiceCard({ invoice }: { invoice: ClientInvoice }) {
   const updateStatus = useUpdateInvoiceStatus();
 
-  const isOverdue = invoice.due_date && new Date(invoice.due_date) < new Date();
+  const isOverdue = invoice.due_date && parseDateOnly(invoice.due_date) < new Date();
   const daysUntilDue = invoice.due_date
-    ? differenceInDays(parseISO(invoice.due_date), new Date())
+    ? differenceInDays(parseDateOnly(invoice.due_date), new Date())
     : null;
 
   return (
@@ -84,7 +85,7 @@ function PendingInvoiceCard({ invoice }: { invoice: ClientInvoice }) {
             ) : daysUntilDue === 0 ? (
               'Vence hoje'
             ) : (
-              <>Vence em {daysUntilDue} dias ({format(parseISO(invoice.due_date), 'dd/MM')})</>
+              <>Vence em {daysUntilDue} dias ({format(parseDateOnly(invoice.due_date), 'dd/MM')})</>
             )}
           </span>
         </div>
@@ -106,10 +107,10 @@ export default function FinanceiroContasSection() {
   }
 
   const overdueInvoices = invoices.filter(
-    (inv) => inv.due_date && new Date(inv.due_date) < new Date()
+    (inv) => inv.due_date && parseDateOnly(inv.due_date) < new Date()
   );
   const pendingInvoices = invoices.filter(
-    (inv) => !inv.due_date || new Date(inv.due_date) >= new Date()
+    (inv) => !inv.due_date || parseDateOnly(inv.due_date) >= new Date()
   );
 
   const totalPending = invoices.reduce((sum, inv) => sum + Number(inv.invoice_value), 0);

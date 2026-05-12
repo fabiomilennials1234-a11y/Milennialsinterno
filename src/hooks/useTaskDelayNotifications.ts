@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { isPast, isToday } from 'date-fns';
+import { parseDateOnly } from '@/lib/dateUtils';
 
 export interface TaskDelayNotification {
   id: string;
@@ -62,7 +63,7 @@ export function useCheckOverdueTasks() {
 
         const overdueAdsTasks = (adsTasks || []).filter(task => {
           if (!task.due_date) return false;
-          const dueDate = new Date(task.due_date);
+          const dueDate = parseDateOnly(task.due_date);
           return isPast(dueDate) && !isToday(dueDate);
         });
 
@@ -190,7 +191,7 @@ export function useCheckOverdueTasks() {
 
       const overdueCards = (kanbanCards || []).filter(card => {
         if (!card.due_date) return false;
-        const dueDate = new Date(card.due_date);
+        const dueDate = parseDateOnly(card.due_date);
         return isPast(dueDate) && !isToday(dueDate);
       });
 

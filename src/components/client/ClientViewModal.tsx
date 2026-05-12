@@ -35,6 +35,8 @@ import ClientLabelSelector from '@/components/shared/ClientLabelSelector';
 import { useClientInfo, useClientCallForm, useSaveClientCallForm, useUpdateClientInfo, ClientCallForm } from '@/hooks/useClientCallForm';
 import StrategyBuilderSection from '@/components/strategy/StrategyBuilderSection';
 import MktplaceDiagnosticoSection from '@/components/mktplace/MktplaceDiagnosticoSection';
+import MktplaceRelatorioSection from '@/components/mktplace/MktplaceRelatorioSection';
+import { isGestaoMktplace } from '@/hooks/useMktplaceKanban';
 import OutboundStrategyBuilderSection from '@/components/outbound-strategy/OutboundStrategyBuilderSection';
 import ResultsReportSection from '@/components/results-report/ResultsReportSection';
 import ResultsReportCountdownBadge from '@/components/results-report/ResultsReportCountdownBadge';
@@ -612,6 +614,15 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
                 <MktplaceDiagnosticoSection
                   clientId={clientId}
                   clientName={clientInfo.name}
+                />
+              )}
+
+              {/* MKT Place Relatorio Section */}
+              {clientInfo && mktplaceId && (
+                <MktplaceRelatorioSection
+                  clientId={clientId}
+                  clientName={clientInfo.name}
+                  trackingType={isGestaoMktplace(clientInfo) ? 'gestao' : 'consultoria'}
                 />
               )}
 

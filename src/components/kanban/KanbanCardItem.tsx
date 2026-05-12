@@ -3,6 +3,7 @@ import { KanbanCard } from '@/hooks/useKanban';
 import { cn } from '@/lib/utils';
 import { format, formatDistanceToNow, isPast, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseDateOnly } from '@/lib/dateUtils';
 import { useAuth } from '@/contexts/AuthContext';
 import ClientLabelBadge, { type ClientLabel } from '@/components/shared/ClientLabelBadge';
 import ClientLabelSelector from '@/components/shared/ClientLabelSelector';
@@ -75,7 +76,7 @@ export default function KanbanCardItem({
   const prio = priorityMeta[card.priority];
   const showPriorityFlag = card.priority === 'high' || card.priority === 'urgent';
 
-  const dueDate = card.due_date ? new Date(card.due_date) : null;
+  const dueDate = card.due_date ? parseDateOnly(card.due_date) : null;
   const isOverdue = dueDate && isPast(dueDate) && !isToday(dueDate);
   const isDueToday = dueDate && isToday(dueDate);
   const hasJustification = Boolean(card.justification);

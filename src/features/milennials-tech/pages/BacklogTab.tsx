@@ -8,13 +8,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTechTasks, type TechTaskFilters } from '../hooks/useTechTasks';
 import { useTechProjects } from '../hooks/useTechProjects';
-import { BacklogTabs } from '../components/BacklogTabs';
+import {
+  BacklogFilterBar,
+  EMPTY_FILTERS,
+  type BacklogFilters,
+} from '../components/BacklogTabs';
 import { TaskRow } from '../components/TaskRow';
 import { TaskFormModal } from '../components/TaskFormModal';
 import { TaskDetailModal } from '../components/TaskDetailModal';
-import type { TechTaskType } from '../types';
-
-const TYPE_TABS: string[] = ['BUG', 'FEATURE', 'HOTFIX', 'CHORE', 'DONE'];
 
 export function BacklogTab() {
   const { user } = useAuth();
@@ -35,7 +36,7 @@ export function BacklogTab() {
     });
   }, [setSearchParams]);
 
-  const [activeTab, setActiveTab] = useState<string>('BUG');
+  const [chipFilters, setChipFilters] = useState<BacklogFilters>(EMPTY_FILTERS);
   const [search, setSearch] = useState('');
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -55,22 +56,27 @@ export function BacklogTab() {
     setOpenTaskId(id);
   }, []);
 
-  // Build filters based on active tab
+  // Build query filters from chip state
   const filters = useMemo<TechTaskFilters>(() => {
     const f: TechTaskFilters = {};
     if (search) f.search = search;
     if (projectFilter) f.projectId = projectFilter;
 
-    if (activeTab === 'DONE') {
-      // "Concluídas" tab shows completed tasks of all types
-      f.status = 'DONE';
-    } else {
-      // Type tabs show backlog tasks of that type
-      f.type = activeTab as TechTaskType;
-      f.status = 'BACKLOG';
+    // Type filters
+    if (chipFilters.types.length > 0) {
+      f.types = chipFilters.types;
     }
+    // Priority filters
+    if (chipFilters.priorities.length > 0) {
+      f.priorities = chipFilters.priorities;
+    }
+    // Status filters
+    if (chipFilters.statuses.length > 0) {
+      f.statuses = chipFilters.statuses;
+    }
+
     return f;
-  }, [activeTab, search, projectFilter]);
+  }, [chipFilters, search, projectFilter]);
 
   const { data: tasks = [], isLoading } = useTechTasks(filters);
 
@@ -116,18 +122,18 @@ export function BacklogTab() {
               </Button>
             </>
           )}
-        <Button
-          size="sm"
-          onClick={() => setShowCreateModal(true)}
-          className="bg-[var(--mtech-accent)] text-[var(--mtech-bg)] hover:bg-[var(--mtech-accent)]/90 font-semibold gap-1.5"
-        >
-          <Plus className="h-4 w-4" />
-          Nova Task
-        </Button>
+          <Button
+            size="sm"
+            onClick={() => setShowCreateModal(true)}
+            className="bg-[var(--mtech-accent)] text-[var(--mtech-bg)] hover:bg-[var(--mtech-accent)]/90 font-semibold gap-1.5"
+          >
+            <Plus className="h-4 w-4" />
+            Nova Task
+          </Button>
         </div>
       </div>
 
-      {/* Search + tabs */}
+      {/* Search + filters */}
       <div className="flex flex-col gap-4 mb-4">
         <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--mtech-text-subtle)]" />
@@ -138,7 +144,7 @@ export function BacklogTab() {
             className="pl-9 border-[var(--mtech-input-border)] bg-[var(--mtech-input-bg)] text-[var(--mtech-text)] placeholder:text-[var(--mtech-text-subtle)]"
           />
         </div>
-        <BacklogTabs activeTab={activeTab} onTabChange={setActiveTab} />
+        <BacklogFilterBar filters={chipFilters} onChange={setChipFilters} />
       </div>
 
       {/* Task table */}
@@ -161,9 +167,11 @@ export function BacklogTab() {
         <div className="flex flex-col items-center justify-center py-16 gap-3">
           <Inbox className="h-12 w-12 text-[var(--mtech-text-subtle)] opacity-40" />
           <p className="text-sm text-[var(--mtech-text-muted)]">
-            {search ? 'Nenhuma task corresponde à busca.' : 'Nenhuma task nesta categoria.'}
+            {search || chipFilters.types.length > 0 || chipFilters.priorities.length > 0 || chipFilters.statuses.length > 0
+              ? 'Nenhuma task corresponde aos filtros.'
+              : 'Nenhuma task encontrada.'}
           </p>
-          {!search && (
+          {!search && chipFilters.types.length === 0 && chipFilters.priorities.length === 0 && chipFilters.statuses.length === 0 && (
             <Button
               size="sm"
               onClick={() => setShowCreateModal(true)}

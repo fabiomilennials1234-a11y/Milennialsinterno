@@ -9,6 +9,7 @@ import {
   CommandItem,
 } from '@/components/ui/command';
 import type { KanbanCard, KanbanColumn } from '@/hooks/useKanban';
+import { parseDateOnly } from '@/lib/dateUtils';
 
 interface KanbanQuickSearchProps {
   cards: KanbanCard[];
@@ -75,7 +76,7 @@ export default function KanbanQuickSearch({ cards, columns, onSelect }: KanbanQu
                   {card.due_date && (
                     <span className="inline-flex items-center gap-1 ml-2">
                       <Clock size={10} />
-                      {new Date(card.due_date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                      {parseDateOnly(card.due_date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
                     </span>
                   )}
                 </div>

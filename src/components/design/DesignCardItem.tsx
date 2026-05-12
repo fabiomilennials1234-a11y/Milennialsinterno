@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Calendar, AlertTriangle, Image as ImageIcon, Video, Download, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { parseDateOnly } from '@/lib/dateUtils';
 import { format, isPast, isToday } from 'date-fns';
 import { KanbanCard } from '@/hooks/useKanban';
 import { CardAttachment } from '@/hooks/useDesignKanban';
@@ -193,7 +194,7 @@ export default function DesignCardItem({
               ) : (
                 <Calendar size={10} />
               )}
-              {format(new Date(card.due_date), "dd/MM/yyyy")}
+              {format(parseDateOnly(card.due_date), "dd/MM/yyyy")}
               {isOverdue && !hasJustification && (
                 <span className="ml-1 text-[9px] uppercase">(Atrasado)</span>
               )}
