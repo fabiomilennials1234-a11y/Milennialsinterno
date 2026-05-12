@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { VIDEO_STATUSES } from '@/hooks/useVideoKanban';
 import { ClientCombobox } from '@/components/ui/client-combobox';
 import { useAllActiveClients } from '@/hooks/useAllActiveClients';
+import { useClientVideoProfile } from '@/hooks/useClientVideoProfiles';
 
 interface CreateVideoCardModalProps {
   isOpen: boolean;
@@ -21,7 +22,22 @@ export default function CreateVideoCardModal({
   editorColumns,
 }: CreateVideoCardModalProps) {
   const { data: clients = [], isLoading: clientsLoading } = useAllActiveClients();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    title: string;
+    column_id: string;
+    priority: 'low' | 'medium' | 'high' | 'urgent';
+    due_date: string;
+    status: string;
+    client_id: string | null;
+    creatives_quantity: number;
+    briefing: {
+      script_url: string;
+      observations: string;
+      materials_url: string;
+      reference_video_url: string;
+      identity_url: string;
+    };
+  }>({
     title: '',
     column_id: '',
     priority: 'medium' as 'low' | 'medium' | 'high' | 'urgent',
@@ -37,6 +53,22 @@ export default function CreateVideoCardModal({
       identity_url: '',
     },
   });
+
+  const { data: videoProfile } = useClientVideoProfile(formData.client_id ?? undefined);
+
+  // Auto-fill briefing fields from client video profile
+  useEffect(() => {
+    if (videoProfile) {
+      setFormData(prev => ({
+        ...prev,
+        briefing: {
+          ...prev.briefing,
+          reference_video_url: prev.briefing.reference_video_url || videoProfile.reference_urls || '',
+          identity_url: prev.briefing.identity_url || videoProfile.brand_assets_url || '',
+        },
+      }));
+    }
+  }, [videoProfile]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

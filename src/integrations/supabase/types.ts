@@ -1,4 +1,3 @@
-Initialising login role...
 export type Json =
   | string
   | number
@@ -12,6 +11,31 @@ export type Database = {
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.1"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -1016,6 +1040,74 @@ export type Database = {
           },
         ]
       }
+      client_dev_profiles: {
+        Row: {
+          analytics_id: string | null
+          api_docs_url: string | null
+          client_id: string
+          cms_platform: string | null
+          created_at: string
+          created_by: string
+          css_framework: string | null
+          deploy_notes: string | null
+          domain: string | null
+          figma_url: string | null
+          frontend_stack: string | null
+          hosting_provider: string | null
+          id: string
+          notes: string | null
+          repository_url: string | null
+          staging_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          analytics_id?: string | null
+          api_docs_url?: string | null
+          client_id: string
+          cms_platform?: string | null
+          created_at?: string
+          created_by: string
+          css_framework?: string | null
+          deploy_notes?: string | null
+          domain?: string | null
+          figma_url?: string | null
+          frontend_stack?: string | null
+          hosting_provider?: string | null
+          id?: string
+          notes?: string | null
+          repository_url?: string | null
+          staging_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          analytics_id?: string | null
+          api_docs_url?: string | null
+          client_id?: string
+          cms_platform?: string | null
+          created_at?: string
+          created_by?: string
+          css_framework?: string | null
+          deploy_notes?: string | null
+          domain?: string | null
+          figma_url?: string | null
+          frontend_stack?: string | null
+          hosting_provider?: string | null
+          id?: string
+          notes?: string | null
+          repository_url?: string | null
+          staging_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_dev_profiles_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_idempotency_keys: {
         Row: {
           client_id: string
@@ -1612,6 +1704,74 @@ export type Database = {
             foreignKeyName: "client_tags_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_video_profiles: {
+        Row: {
+          brand_assets_url: string | null
+          client_id: string
+          created_at: string
+          created_by: string
+          editing_style: string | null
+          id: string
+          instagram_handle: string | null
+          intro_outro_url: string | null
+          music_style: string | null
+          notes: string | null
+          pacing: string | null
+          reference_urls: string | null
+          resolution: string | null
+          tiktok_handle: string | null
+          updated_at: string
+          video_format: string | null
+          youtube_channel: string | null
+        }
+        Insert: {
+          brand_assets_url?: string | null
+          client_id: string
+          created_at?: string
+          created_by: string
+          editing_style?: string | null
+          id?: string
+          instagram_handle?: string | null
+          intro_outro_url?: string | null
+          music_style?: string | null
+          notes?: string | null
+          pacing?: string | null
+          reference_urls?: string | null
+          resolution?: string | null
+          tiktok_handle?: string | null
+          updated_at?: string
+          video_format?: string | null
+          youtube_channel?: string | null
+        }
+        Update: {
+          brand_assets_url?: string | null
+          client_id?: string
+          created_at?: string
+          created_by?: string
+          editing_style?: string | null
+          id?: string
+          instagram_handle?: string | null
+          intro_outro_url?: string | null
+          music_style?: string | null
+          notes?: string | null
+          pacing?: string | null
+          reference_urls?: string | null
+          resolution?: string | null
+          tiktok_handle?: string | null
+          updated_at?: string
+          video_format?: string | null
+          youtube_channel?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_video_profiles_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -4500,6 +4660,7 @@ export type Database = {
           created_at: string
           cycle_end_date: string
           cycle_start_date: string
+          feedback_cliente: string | null
           id: string
           is_published: boolean | null
           metricas_chave: string | null
@@ -4507,8 +4668,12 @@ export type Database = {
           pontos_melhoria: string | null
           proximos_passos: string | null
           public_token: string | null
+          report_type: string
           resultados: string | null
           resumo: string | null
+          saude_contas: string | null
+          situacao_estoque: string | null
+          status_logistica: string | null
           titulo: string | null
           updated_at: string
         }
@@ -4519,6 +4684,7 @@ export type Database = {
           created_at?: string
           cycle_end_date?: string
           cycle_start_date?: string
+          feedback_cliente?: string | null
           id?: string
           is_published?: boolean | null
           metricas_chave?: string | null
@@ -4526,8 +4692,12 @@ export type Database = {
           pontos_melhoria?: string | null
           proximos_passos?: string | null
           public_token?: string | null
+          report_type?: string
           resultados?: string | null
           resumo?: string | null
+          saude_contas?: string | null
+          situacao_estoque?: string | null
+          status_logistica?: string | null
           titulo?: string | null
           updated_at?: string
         }
@@ -4538,6 +4708,7 @@ export type Database = {
           created_at?: string
           cycle_end_date?: string
           cycle_start_date?: string
+          feedback_cliente?: string | null
           id?: string
           is_published?: boolean | null
           metricas_chave?: string | null
@@ -4545,8 +4716,12 @@ export type Database = {
           pontos_melhoria?: string | null
           proximos_passos?: string | null
           public_token?: string | null
+          report_type?: string
           resultados?: string | null
           resumo?: string | null
+          saude_contas?: string | null
+          situacao_estoque?: string | null
+          status_logistica?: string | null
           titulo?: string | null
           updated_at?: string
         }
@@ -6128,7 +6303,7 @@ export type Database = {
           participants: string[] | null
           recorded_in_browser: boolean | null
           summary: string | null
-          transcript: Record<string, unknown> | null
+          transcript: Json | null
           transcript_error: string | null
           transcript_status: string | null
           updated_at: string | null
@@ -6151,7 +6326,7 @@ export type Database = {
           participants?: string[] | null
           recorded_in_browser?: boolean | null
           summary?: string | null
-          transcript?: Record<string, unknown> | null
+          transcript?: Json | null
           transcript_error?: string | null
           transcript_status?: string | null
           updated_at?: string | null
@@ -6174,7 +6349,7 @@ export type Database = {
           participants?: string[] | null
           recorded_in_browser?: boolean | null
           summary?: string | null
-          transcript?: Record<string, unknown> | null
+          transcript?: Json | null
           transcript_error?: string | null
           transcript_status?: string | null
           updated_at?: string | null
@@ -6183,17 +6358,17 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "recorded_meetings_folder_id_fkey"
-            columns: ["folder_id"]
-            isOneToOne: false
-            referencedRelation: "meeting_folders"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "recorded_meetings_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recorded_meetings_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_folders"
             referencedColumns: ["id"]
           },
         ]
@@ -8220,11 +8395,15 @@ export type Database = {
         Returns: boolean
       }
       can_view_design_board: { Args: { _user_id: string }; Returns: boolean }
+      can_view_devs_board: { Args: { _user_id: string }; Returns: boolean }
       can_view_user: {
         Args: { _target_user_id: string; _viewer_id: string }
         Returns: boolean
       }
+      can_view_video_board: { Args: { _user_id: string }; Returns: boolean }
       can_write_design_board: { Args: { _user_id: string }; Returns: boolean }
+      can_write_devs_board: { Args: { _user_id: string }; Returns: boolean }
+      can_write_video_board: { Args: { _user_id: string }; Returns: boolean }
       check_action_plan_deadlines: { Args: never; Returns: undefined }
       check_ads_client_no_movement_7d: { Args: never; Returns: undefined }
       check_ads_client_stalled_14d: { Args: never; Returns: undefined }
@@ -8654,6 +8833,10 @@ export type Database = {
         Args: { p_client_id: string }
         Returns: undefined
       }
+      maybe_create_mktplace_ads_block_tag: {
+        Args: { p_client_id: string }
+        Returns: undefined
+      }
       nudge_user_for_justification: {
         Args: { p_notification_id: string }
         Returns: undefined
@@ -8761,6 +8944,42 @@ export type Database = {
           p_typography?: string
           p_visual_style?: string
           p_website_url?: string
+        }
+        Returns: string
+      }
+      upsert_client_dev_profile: {
+        Args: {
+          p_analytics_id?: string
+          p_api_docs_url?: string
+          p_client_id: string
+          p_cms_platform?: string
+          p_css_framework?: string
+          p_deploy_notes?: string
+          p_domain?: string
+          p_figma_url?: string
+          p_frontend_stack?: string
+          p_hosting_provider?: string
+          p_notes?: string
+          p_repository_url?: string
+          p_staging_url?: string
+        }
+        Returns: string
+      }
+      upsert_client_video_profile: {
+        Args: {
+          p_brand_assets_url?: string
+          p_client_id: string
+          p_editing_style?: string
+          p_instagram_handle?: string
+          p_intro_outro_url?: string
+          p_music_style?: string
+          p_notes?: string
+          p_pacing?: string
+          p_reference_urls?: string
+          p_resolution?: string
+          p_tiktok_handle?: string
+          p_video_format?: string
+          p_youtube_channel?: string
         }
         Returns: string
       }
@@ -8921,6 +9140,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       tech_sprint_status: ["PLANNING", "ACTIVE", "COMPLETED"],
@@ -8949,5 +9171,3 @@ export const Constants = {
     },
   },
 } as const
-A new version of Supabase CLI is available: v2.98.2 (currently installed v2.90.0)
-We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
