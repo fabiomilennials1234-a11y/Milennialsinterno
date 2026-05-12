@@ -149,7 +149,7 @@ export function useMeetingRecorder(): UseMeetingRecorderReturn {
 
       const videoRecorder = new MediaRecorder(combinedStream, {
         mimeType: videoMimeType,
-        videoBitsPerSecond: 2_500_000,
+        videoBitsPerSecond: 1_000_000, // 1Mbps — sufficient for screen content
       });
 
       videoRecorder.ondataavailable = (e) => {
@@ -166,7 +166,7 @@ export function useMeetingRecorder(): UseMeetingRecorderReturn {
 
       const audioRecorder = new MediaRecorder(audioOnlyStream, {
         mimeType: audioMimeType,
-        audioBitsPerSecond: 128_000,
+        audioBitsPerSecond: 64_000, // 64kbps opus — transparent for voice
       });
 
       audioRecorder.ondataavailable = (e) => {

@@ -82,10 +82,6 @@ export default function CreateMeetingModal({ open, onOpenChange, folderId }: Cre
         toast.error('Selecione um arquivo de vídeo');
         return;
       }
-      if (file.size > 50 * 1024 * 1024) {
-        toast.error('Arquivo maior que 50MB. Use a opção "Colar link" para vídeos grandes.');
-        return;
-      }
       setVideoFile(file);
     }
   };
@@ -170,7 +166,7 @@ export default function CreateMeetingModal({ open, onOpenChange, folderId }: Cre
                 }`}
               >
                 <Upload size={14} />
-                Upload (até 50MB)
+                Upload arquivo
               </button>
             </div>
 
@@ -218,7 +214,7 @@ export default function CreateMeetingModal({ open, onOpenChange, folderId }: Cre
                   >
                     <div className="flex flex-col items-center gap-1">
                       <Upload size={20} className="text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">Clique para selecionar o vídeo (máx. 50MB)</span>
+                      <span className="text-sm text-muted-foreground">Clique para selecionar o video</span>
                     </div>
                   </Button>
                 )}

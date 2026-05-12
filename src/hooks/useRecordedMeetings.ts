@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { uploadBlob } from '@/lib/storageUpload';
 
 export interface TranscriptSegment {
   speaker: number;
@@ -202,7 +203,10 @@ export function useRecordedMeetings() {
     },
   });
 
-  const uploadVideo = async (file: File): Promise<{ url: string; filename: string }> => {
+  const uploadVideo = async (
+    file: File,
+    onProgress?: (percentage: number) => void,
+  ): Promise<{ url: string; filename: string }> => {
     const timestamp = Date.now();
     const safeName = file.name
       .normalize('NFD')
@@ -211,17 +215,15 @@ export function useRecordedMeetings() {
       .slice(0, 50);
     const path = `${user?.id || 'anonymous'}/${timestamp}-${safeName}`;
 
-    const { error } = await supabase.storage
-      .from('recorded-meetings')
-      .upload(path, file, { cacheControl: '3600', upsert: false });
+    const url = await uploadBlob(
+      'recorded-meetings',
+      path,
+      file,
+      file.type || 'video/webm',
+      onProgress,
+    );
 
-    if (error) throw error;
-
-    const { data: urlData } = supabase.storage
-      .from('recorded-meetings')
-      .getPublicUrl(path);
-
-    return { url: urlData.publicUrl, filename: file.name };
+    return { url, filename: file.name };
   };
 
   return {

@@ -2,13 +2,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
-import * as tus from 'tus-js-client';
-
-declare global {
-  interface Window {
-    __SUPABASE_URL__?: string;
-  }
-}
+import { uploadBlob } from '@/lib/storageUpload';
 
 interface UploadMetadata {
   title: string;
@@ -35,86 +29,6 @@ interface UseUploadMeetingRecordingReturn {
   progress: UploadProgress;
   error: string | null;
   reset: () => void;
-}
-
-// TUS upload threshold — files above this use resumable upload
-const TUS_THRESHOLD = 6 * 1024 * 1024; // 6MB
-
-function uploadBlobWithTus(
-  bucketName: string,
-  objectName: string,
-  blob: Blob,
-  contentType: string,
-  token: string,
-  onProgress?: (percentage: number) => void,
-): Promise<void> {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-    || window.__SUPABASE_URL__
-    || '';
-
-  return new Promise((resolve, reject) => {
-    const upload = new tus.Upload(blob, {
-      endpoint: `${supabaseUrl}/storage/v1/upload/resumable`,
-      retryDelays: [0, 3000, 5000, 10000, 20000],
-      headers: {
-        authorization: `Bearer ${token}`,
-        'x-upsert': 'false',
-      },
-      uploadDataDuringCreation: true,
-      removeFingerprintOnSuccess: true,
-      metadata: {
-        bucketName,
-        objectName,
-        contentType,
-        cacheControl: '3600',
-      },
-      chunkSize: 6 * 1024 * 1024,
-      onError: (error) => {
-        reject(new Error(`Upload falhou: ${error.message || 'Erro de conexao'}`));
-      },
-      onProgress: (bytesUploaded, bytesTotal) => {
-        const pct = Math.round((bytesUploaded / bytesTotal) * 100);
-        onProgress?.(pct);
-      },
-      onSuccess: () => resolve(),
-    });
-
-    upload.findPreviousUploads().then((prev) => {
-      if (prev.length > 0) upload.resumeFromPreviousUpload(prev[0]);
-      upload.start();
-    });
-  });
-}
-
-async function uploadBlob(
-  bucketName: string,
-  objectName: string,
-  blob: Blob,
-  contentType: string,
-  onProgress?: (percentage: number) => void,
-): Promise<string> {
-  const useTus = blob.size > TUS_THRESHOLD;
-
-  if (useTus) {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.access_token) throw new Error('Sessao expirada. Faca login novamente.');
-
-    await uploadBlobWithTus(bucketName, objectName, blob, contentType, session.access_token, onProgress);
-  } else {
-    onProgress?.(0);
-    const { error } = await supabase.storage
-      .from(bucketName)
-      .upload(objectName, blob, {
-        contentType,
-        cacheControl: '3600',
-        upsert: false,
-      });
-    if (error) throw error;
-    onProgress?.(100);
-  }
-
-  const { data: urlData } = supabase.storage.from(bucketName).getPublicUrl(objectName);
-  return urlData.publicUrl;
 }
 
 export function useUploadMeetingRecording(): UseUploadMeetingRecordingReturn {
