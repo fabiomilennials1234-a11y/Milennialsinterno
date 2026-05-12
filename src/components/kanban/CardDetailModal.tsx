@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { 
-  X, 
-  Calendar, 
-  MessageSquare, 
-  FileText, 
-  Paperclip, 
+import {
+  X,
+  Calendar,
+  MessageSquare,
+  FileText,
+  Paperclip,
   Clock,
   Send,
   Loader2,
@@ -15,14 +15,13 @@ import {
   Archive,
   Trash2,
   ExternalLink,
-  Palette,
-  Film,
-  Code2
+  Database,
 } from 'lucide-react';
 import { useClientDesignProfile } from '@/hooks/useClientDesignProfiles';
 import { useClientVideoProfile } from '@/hooks/useClientVideoProfiles';
 import { useClientDevProfile } from '@/hooks/useClientDevProfiles';
 import CardAttachmentsTab from '@/components/design/CardAttachmentsTab';
+import ClientInfoTab from '@/components/kanban/ClientInfoTab';
 import { cn } from '@/lib/utils';
 import { KanbanCard, useArchiveCard } from '@/hooks/useKanban';
 import {
@@ -75,7 +74,7 @@ interface CardDetailModalProps {
   boardId?: string;
 }
 
-type TabType = 'briefing' | 'comments' | 'attachments' | 'activity';
+type TabType = 'briefing' | 'comments' | 'attachments' | 'activity' | 'info';
 
 const priorityConfig = {
   low: { label: 'Baixa', color: 'bg-success/10 text-success border-success/20' },
@@ -119,20 +118,17 @@ export default function CardDetailModal({
   
   const briefingLoading = isDesignBoard ? designBriefingLoading : isVideoBoard ? videoBriefingLoading : isDevBoard ? devBriefingLoading : isProdutoraBoard ? produtoraBriefingLoading : false;
 
-  // Client Design Profile (shown as read-only summary on design board briefing tab)
-  const { data: clientDesignProfile } = useClientDesignProfile(
+  // Client profiles for Info tab
+  const { data: clientDesignProfile, isLoading: designProfileLoading } = useClientDesignProfile(
     isDesignBoard && card.client_id ? card.client_id : undefined
   );
-
-  // Client Video Profile (shown as read-only summary on video board briefing tab)
-  const { data: clientVideoProfile } = useClientVideoProfile(
+  const { data: clientVideoProfile, isLoading: videoProfileLoading } = useClientVideoProfile(
     isVideoBoard && card.client_id ? card.client_id : undefined
   );
-
-  // Client Dev Profile (shown as read-only summary on dev board briefing tab)
-  const { data: clientDevProfile } = useClientDevProfile(
+  const { data: clientDevProfile, isLoading: devProfileLoading } = useClientDevProfile(
     isDevBoard && card.client_id ? card.client_id : undefined
   );
+  const profileLoading = (isDesignBoard && designProfileLoading) || (isVideoBoard && videoProfileLoading) || (isDevBoard && devProfileLoading);
 
   // Design briefing form
   const [designBriefingForm, setDesignBriefingForm] = useState({
@@ -303,11 +299,14 @@ export default function CardDetailModal({
   const priority = priorityConfig[card.priority];
   const isOverdue = card.due_date && isPast(parseDateOnly(card.due_date)) && !isToday(parseDateOnly(card.due_date));
 
+  const showInfoTab = (isDesignBoard || isVideoBoard || isDevBoard) && !!card.client_id;
+
   const tabs: { id: TabType; label: string; icon: React.ReactNode }[] = [
     ...(isSpecialBoard ? [{ id: 'briefing' as TabType, label: 'Briefing', icon: <FileText size={16} /> }] : []),
     { id: 'comments', label: 'Comentários', icon: <MessageSquare size={16} /> },
     { id: 'attachments', label: 'Anexos', icon: <Paperclip size={16} /> },
     { id: 'activity', label: 'Atividade', icon: <Activity size={16} /> },
+    ...(showInfoTab ? [{ id: 'info' as TabType, label: 'Info', icon: <Database size={16} /> }] : []),
   ];
 
   return (
@@ -406,45 +405,6 @@ export default function CardDetailModal({
           {/* Briefing Tab */}
           {activeTab === 'briefing' && isDesignBoard && (
             <div className="space-y-6">
-              {clientDesignProfile && (
-                <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2">
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-primary flex items-center gap-1.5">
-                    <Palette size={14} />
-                    Perfil de Design do Cliente
-                  </h4>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-                    {clientDesignProfile.brand_colors && (
-                      <div className="text-xs"><span className="text-muted-foreground">Cores:</span> <span className="text-foreground">{clientDesignProfile.brand_colors}</span></div>
-                    )}
-                    {clientDesignProfile.typography && (
-                      <div className="text-xs"><span className="text-muted-foreground">Tipografia:</span> <span className="text-foreground">{clientDesignProfile.typography}</span></div>
-                    )}
-                    {clientDesignProfile.visual_style && (
-                      <div className="text-xs"><span className="text-muted-foreground">Estilo:</span> <span className="text-foreground">{clientDesignProfile.visual_style}</span></div>
-                    )}
-                    {clientDesignProfile.instagram_handle && (
-                      <div className="text-xs"><span className="text-muted-foreground">Instagram:</span> <span className="text-foreground">{clientDesignProfile.instagram_handle}</span></div>
-                    )}
-                    {clientDesignProfile.brand_manual_url && (
-                      <div className="text-xs">
-                        <a href={clientDesignProfile.brand_manual_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
-                          Manual de marca <ExternalLink size={10} />
-                        </a>
-                      </div>
-                    )}
-                    {clientDesignProfile.logo_url && (
-                      <div className="text-xs">
-                        <a href={clientDesignProfile.logo_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
-                          Logo <ExternalLink size={10} />
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                  {clientDesignProfile.notes && (
-                    <p className="text-xs text-muted-foreground mt-1 italic">{clientDesignProfile.notes}</p>
-                  )}
-                </div>
-              )}
               {briefingLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="w-6 h-6 animate-spin text-primary" />
@@ -585,61 +545,6 @@ export default function CardDetailModal({
           {/* Video Briefing Tab */}
           {activeTab === 'briefing' && isVideoBoard && (
             <div className="space-y-6">
-              {clientVideoProfile && (
-                <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2">
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-primary flex items-center gap-1.5">
-                    <Film size={14} />
-                    Perfil de Video do Cliente
-                  </h4>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-                    {clientVideoProfile.editing_style && (
-                      <div className="text-xs"><span className="text-muted-foreground">Estilo:</span> <span className="text-foreground">{clientVideoProfile.editing_style}</span></div>
-                    )}
-                    {clientVideoProfile.video_format && (
-                      <div className="text-xs"><span className="text-muted-foreground">Formatos:</span> <span className="text-foreground">{clientVideoProfile.video_format}</span></div>
-                    )}
-                    {clientVideoProfile.resolution && (
-                      <div className="text-xs"><span className="text-muted-foreground">Resolucao:</span> <span className="text-foreground">{clientVideoProfile.resolution}</span></div>
-                    )}
-                    {clientVideoProfile.pacing && (
-                      <div className="text-xs"><span className="text-muted-foreground">Ritmo:</span> <span className="text-foreground">{clientVideoProfile.pacing}</span></div>
-                    )}
-                    {clientVideoProfile.music_style && (
-                      <div className="text-xs"><span className="text-muted-foreground">Musica:</span> <span className="text-foreground">{clientVideoProfile.music_style}</span></div>
-                    )}
-                    {clientVideoProfile.instagram_handle && (
-                      <div className="text-xs"><span className="text-muted-foreground">Instagram:</span> <span className="text-foreground">{clientVideoProfile.instagram_handle}</span></div>
-                    )}
-                    {clientVideoProfile.tiktok_handle && (
-                      <div className="text-xs"><span className="text-muted-foreground">TikTok:</span> <span className="text-foreground">{clientVideoProfile.tiktok_handle}</span></div>
-                    )}
-                    {clientVideoProfile.youtube_channel && (
-                      <div className="text-xs">
-                        <a href={clientVideoProfile.youtube_channel} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
-                          Canal YouTube <ExternalLink size={10} />
-                        </a>
-                      </div>
-                    )}
-                    {clientVideoProfile.intro_outro_url && (
-                      <div className="text-xs">
-                        <a href={clientVideoProfile.intro_outro_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
-                          Intro/Outro <ExternalLink size={10} />
-                        </a>
-                      </div>
-                    )}
-                    {clientVideoProfile.brand_assets_url && (
-                      <div className="text-xs">
-                        <a href={clientVideoProfile.brand_assets_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
-                          Assets da marca <ExternalLink size={10} />
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                  {clientVideoProfile.notes && (
-                    <p className="text-xs text-muted-foreground mt-1 italic">{clientVideoProfile.notes}</p>
-                  )}
-                </div>
-              )}
               {briefingLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="w-6 h-6 animate-spin text-primary" />
@@ -703,70 +608,6 @@ export default function CardDetailModal({
           {/* Dev Briefing Tab */}
           {activeTab === 'briefing' && isDevBoard && (
             <div className="space-y-6">
-              {clientDevProfile && (
-                <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2">
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-primary flex items-center gap-1.5">
-                    <Code2 size={14} />
-                    Perfil de Desenvolvimento do Cliente
-                  </h4>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-                    {clientDevProfile.frontend_stack && (
-                      <div className="text-xs"><span className="text-muted-foreground">Stack:</span> <span className="text-foreground">{clientDevProfile.frontend_stack}</span></div>
-                    )}
-                    {clientDevProfile.css_framework && (
-                      <div className="text-xs"><span className="text-muted-foreground">CSS:</span> <span className="text-foreground">{clientDevProfile.css_framework}</span></div>
-                    )}
-                    {clientDevProfile.cms_platform && (
-                      <div className="text-xs"><span className="text-muted-foreground">CMS:</span> <span className="text-foreground">{clientDevProfile.cms_platform}</span></div>
-                    )}
-                    {clientDevProfile.hosting_provider && (
-                      <div className="text-xs"><span className="text-muted-foreground">Hosting:</span> <span className="text-foreground">{clientDevProfile.hosting_provider}</span></div>
-                    )}
-                    {clientDevProfile.domain && (
-                      <div className="text-xs"><span className="text-muted-foreground">Dominio:</span> <span className="text-foreground">{clientDevProfile.domain}</span></div>
-                    )}
-                    {clientDevProfile.analytics_id && (
-                      <div className="text-xs"><span className="text-muted-foreground">Analytics:</span> <span className="text-foreground">{clientDevProfile.analytics_id}</span></div>
-                    )}
-                    {clientDevProfile.staging_url && (
-                      <div className="text-xs">
-                        <a href={clientDevProfile.staging_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
-                          Staging <ExternalLink size={10} />
-                        </a>
-                      </div>
-                    )}
-                    {clientDevProfile.repository_url && (
-                      <div className="text-xs">
-                        <a href={clientDevProfile.repository_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
-                          Repositorio <ExternalLink size={10} />
-                        </a>
-                      </div>
-                    )}
-                    {clientDevProfile.figma_url && (
-                      <div className="text-xs">
-                        <a href={clientDevProfile.figma_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
-                          Figma <ExternalLink size={10} />
-                        </a>
-                      </div>
-                    )}
-                    {clientDevProfile.api_docs_url && (
-                      <div className="text-xs">
-                        <a href={clientDevProfile.api_docs_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
-                          API Docs <ExternalLink size={10} />
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                  {clientDevProfile.deploy_notes && (
-                    <div className="text-xs mt-1">
-                      <span className="text-muted-foreground">Deploy:</span> <span className="text-foreground">{clientDevProfile.deploy_notes}</span>
-                    </div>
-                  )}
-                  {clientDevProfile.notes && (
-                    <p className="text-xs text-muted-foreground mt-1 italic">{clientDevProfile.notes}</p>
-                  )}
-                </div>
-              )}
               {briefingLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="w-6 h-6 animate-spin text-primary" />
@@ -995,6 +836,21 @@ export default function CardDetailModal({
                 ))
               )}
             </div>
+          )}
+
+          {/* Info Tab */}
+          {activeTab === 'info' && showInfoTab && card.client_id && (
+            <ClientInfoTab
+              clientId={card.client_id}
+              clientName={card.client?.name || 'Cliente'}
+              isDesignBoard={isDesignBoard}
+              isVideoBoard={isVideoBoard}
+              isDevBoard={isDevBoard}
+              designProfile={clientDesignProfile}
+              videoProfile={clientVideoProfile}
+              devProfile={clientDevProfile}
+              isLoading={!!profileLoading}
+            />
           )}
         </div>
 
