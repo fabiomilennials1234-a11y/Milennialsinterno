@@ -3,7 +3,6 @@
 
 import SpecializedKanbanBoard from '@/components/kanban/SpecializedKanbanBoard';
 import CreateVideoCardModal from '@/components/kanban/CreateVideoCardModal';
-import VideoDelayModal from '@/components/video/VideoDelayModal';
 import { VIDEO_STATUSES } from '@/hooks/useVideoKanban';
 import {
   useEditorDelayedCards,
@@ -31,7 +30,6 @@ export default function VideoKanbanBoard() {
         delay: {
           useDelayedCards: useEditorDelayedCards,
           useJustifications: useEditorJustifications,
-          DelayModal: VideoDelayModal,
           showModalForRole: 'editor_video',
         },
         afterMoveNotification: {

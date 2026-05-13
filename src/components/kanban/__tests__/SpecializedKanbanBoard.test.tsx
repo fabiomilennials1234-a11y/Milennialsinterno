@@ -64,8 +64,6 @@ function renderWithClient(ui: React.ReactElement) {
 }
 
 const DummyCreateModal: SpecializedBoardConfig['CreateCardModal'] = () => null;
-const DummyDelayModal: NonNullable<SpecializedBoardConfig['delay']>['DelayModal'] =
-  () => null;
 
 function makeConfig(
   delayedData: unknown[] | undefined
@@ -85,7 +83,6 @@ function makeConfig(
     delay: {
       useDelayedCards: () => ({ data: delayedData as unknown[] }),
       useJustifications: () => ({ data: [] }),
-      DelayModal: DummyDelayModal,
       showModalForRole: 'design',
     },
     CreateCardModal: DummyCreateModal,

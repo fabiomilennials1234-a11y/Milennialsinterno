@@ -3,7 +3,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTargetAdsManager } from '@/contexts/AdsManagerContext';
-import { useActionJustification } from '@/contexts/JustificationContext';
 import { toast } from 'sonner';
 import { addDays, getDay } from 'date-fns';
 
@@ -250,7 +249,6 @@ export function useCompleteOnboardingTaskWithAutomation() {
   const { user } = useAuth();
   const { targetUserId } = useTargetAdsManager();
   const queryClient = useQueryClient();
-  const { requireJustification } = useActionJustification();
 
   // Use targetUserId if available (when CEO is viewing a manager's board)
   const effectiveUserId = targetUserId || user?.id;
@@ -277,47 +275,6 @@ export function useCompleteOnboardingTaskWithAutomation() {
       // Check if this is an ADVANCING task (one that moves the client forward)
       const taskDef = ADVANCING_TASK_DEFINITIONS[taskType as keyof typeof ADVANCING_TASK_DEFINITIONS];
       const isAdvancing = !!taskDef;
-
-      // J8: Require justification BEFORE marking done (UI blocking modal)
-      // Only for advancing tasks completed by the primary manager
-      if (isAdvancing) {
-        const { data: clientForCheck } = await supabase
-          .from('clients')
-          .select('assigned_ads_manager')
-          .eq('id', clientId)
-          .single();
-
-        const isSecondaryCompletion = clientForCheck?.assigned_ads_manager !== effectiveUserId;
-
-        if (!isSecondaryCompletion) {
-          await requireJustification({
-            title: 'Justificativa: Milestone Concluído',
-            subtitle: `Marco ${taskDef.milestone} — ${clientName}`,
-            message: `Registre o que foi entregue neste milestone (ex: "site ao ar", "criativos aprovados", "conta configurada").`,
-            taskId: taskId,
-            taskTable: 'onboarding_milestone_done',
-            taskTitle: `Milestone ${taskDef.milestone} concluído: ${clientName} (${taskType})`,
-          });
-
-          // J10: Detect milestone skip (if jumping more than 1 milestone)
-          const { data: currentOnboarding } = await supabase
-            .from('client_onboarding')
-            .select('current_milestone')
-            .eq('client_id', clientId)
-            .maybeSingle();
-
-          if (currentOnboarding && taskDef.nextMilestone > (currentOnboarding.current_milestone || 0) + 1) {
-            await requireJustification({
-              title: 'Justificativa: Pular Milestone',
-              subtitle: `Pulando do Marco ${currentOnboarding.current_milestone} para o Marco ${taskDef.nextMilestone}`,
-              message: `Você está avançando o cliente "${clientName}" mais de um milestone de uma vez. Explique o motivo.`,
-              taskId: `skip_${taskId}`,
-              taskTable: 'onboarding_milestone_skip',
-              taskTitle: `Milestone skip: ${clientName} (Marco ${currentOnboarding.current_milestone} → ${taskDef.nextMilestone})`,
-            });
-          }
-        }
-      }
 
       // Mark task as done — DB triggers handle ALL automation from here:
       //   advance_onboarding_on_task_completion → next task + client_onboarding + client status

@@ -23,11 +23,9 @@ import CreateCardModal from './CreateCardModal';
 import CreateDesignCardModal from './CreateDesignCardModal';
 import CreateVideoCardModal from './CreateVideoCardModal';
 import CardDetailModal from './CardDetailModal';
-import JustificationModal from '@/components/shared/JustificationModal';
 import ClientRegistrationBoard from '@/components/client-registration/ClientRegistrationBoard';
 import ProdutoraKanbanBoard from '@/components/produtora/ProdutoraKanbanBoard';
 import { toast } from 'sonner';
-import { useAddJustification } from '@/hooks/useTaskJustification';
 import { useKanbanActionPermissions } from '@/hooks/useKanbanActionPermissions';
 import { useUpsertBriefing } from '@/hooks/useDesignKanban';
 import { useUpsertVideoBriefing } from '@/hooks/useVideoKanban';
@@ -55,7 +53,6 @@ function StandardKanbanBoard({ boardSlug }: KanbanBoardProps) {
   const [selectedColumnId, setSelectedColumnId] = useState<string | null>(null);
   const [selectedCard, setSelectedCard] = useState<KanbanCard | null>(null);
   const [isCardDetailOpen, setIsCardDetailOpen] = useState(false);
-  const [justificationModal, setJustificationModal] = useState<{ open: boolean; card: KanbanCard | null }>({ open: false, card: null });
 
   const { data: board, isLoading: boardLoading } = useBoard(boardSlug);
   const { data: columns = [], isLoading: columnsLoading } = useBoardColumns(board?.id);
@@ -66,7 +63,6 @@ function StandardKanbanBoard({ boardSlug }: KanbanBoardProps) {
   const archiveCard = useArchiveCard();
   const upsertBriefing = useUpsertBriefing();
   const upsertVideoBriefing = useUpsertVideoBriefing();
-  const addJustification = useAddJustification('kanban_cards', ['cards', board?.id || '']);
 
   const isDesignBoard = boardSlug === 'design' || board?.slug === 'design';
   const isVideoBoard = boardSlug === 'editor-video' || board?.slug === 'editor-video';
@@ -342,7 +338,7 @@ function StandardKanbanBoard({ boardSlug }: KanbanBoardProps) {
                   onCardClick={handleCardClick}
                   onArchiveCard={canDelete ? handleArchiveCard : undefined}
                   onDeleteCard={canDelete ? handleDeleteCard : undefined}
-                  onJustifyCard={(card) => setJustificationModal({ open: true, card })}
+
                   isCollapsed={isCollapsed(column.id)}
                   onToggleCollapse={() => toggleCollapse(column.id)}
                 />
@@ -357,7 +353,7 @@ function StandardKanbanBoard({ boardSlug }: KanbanBoardProps) {
                   onCardClick={handleCardClick}
                   onArchiveCard={canDelete ? handleArchiveCard : undefined}
                   onDeleteCard={canDelete ? handleDeleteCard : undefined}
-                  onJustifyCard={(card) => setJustificationModal({ open: true, card })}
+
                   isCollapsed={isCollapsed(column.id)}
                   onToggleCollapse={() => toggleCollapse(column.id)}
                 />
@@ -372,7 +368,7 @@ function StandardKanbanBoard({ boardSlug }: KanbanBoardProps) {
                   onCardClick={handleCardClick}
                   onArchiveCard={canDelete ? handleArchiveCard : undefined}
                   onDeleteCard={canDelete ? handleDeleteCard : undefined}
-                  onJustifyCard={(card) => setJustificationModal({ open: true, card })}
+
                   isCollapsed={isCollapsed(column.id)}
                   onToggleCollapse={() => toggleCollapse(column.id)}
                   focusedCardId={focusedCardId}
@@ -421,22 +417,6 @@ function StandardKanbanBoard({ boardSlug }: KanbanBoardProps) {
         onSelect={handleCardClick}
       />
 
-      {/* Justification Modal */}
-      <JustificationModal
-        isOpen={justificationModal.open}
-        onClose={() => setJustificationModal({ open: false, card: null })}
-        onSubmit={async (justification) => {
-          if (justificationModal.card) {
-            await addJustification.mutateAsync({
-              taskId: justificationModal.card.id,
-              justification,
-            });
-          }
-        }}
-        taskTitle={justificationModal.card?.title}
-        existingJustification={justificationModal.card?.justification}
-        isPending={addJustification.isPending}
-      />
     </div>
   );
 }

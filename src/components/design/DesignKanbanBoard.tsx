@@ -3,7 +3,6 @@
 
 import SpecializedKanbanBoard from '@/components/kanban/SpecializedKanbanBoard';
 import CreateDesignCardModal from '@/components/kanban/CreateDesignCardModal';
-import DesignDelayModal from '@/components/design/DesignDelayModal';
 import {
   useDesignerDelayedCards,
   useDesignerJustifications,
@@ -46,7 +45,6 @@ export default function DesignKanbanBoard() {
         delay: {
           useDelayedCards: useDesignerDelayedCards,
           useJustifications: useDesignerJustifications,
-          DelayModal: DesignDelayModal,
           showModalForRole: 'design',
         },
         afterMoveNotification: {

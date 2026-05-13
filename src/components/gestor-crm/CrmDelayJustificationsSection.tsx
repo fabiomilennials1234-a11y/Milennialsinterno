@@ -1,13 +1,12 @@
 import { useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useActionJustification } from '@/contexts/JustificationContext';
 import { useAllCrmDelayedConfigs, type DelayedConfigSummary } from '@/hooks/useAllCrmDelayedConfigs';
 import {
   useCrmConfigCollectiveJustifications,
   type CollectiveJustification,
 } from '@/hooks/useCrmConfigCollectiveJustifications';
 import { avatarColor, initials } from '@/lib/avatar';
-import { ArrowRight, CircleCheck } from 'lucide-react';
+import { CircleCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -102,7 +101,6 @@ export default function CrmDelayJustificationsSection({
 
 function ConfigCard({ config }: { config: DelayedConfigSummary }) {
   const { user } = useAuth();
-  const { requireJustification } = useActionJustification();
   const { data: perspectives = [] } = useCrmConfigCollectiveJustifications(config.config_id);
 
   const myPerspective = useMemo(
@@ -125,23 +123,6 @@ function ConfigCard({ config }: { config: DelayedConfigSummary }) {
   const showDot = config.delayed_days >= 4;
 
   const produtoLabel = PRODUTO_LABEL[config.produto] ?? config.produto;
-
-  const handleJustifyMe = async () => {
-    if (!myPerspective || !myPerspective.is_pending) return;
-    try {
-      await requireJustification({
-        title: 'Tarefa CRM atrasada',
-        subtitle: `${produtoLabel} · ${config.client_name}`,
-        message: `Esta configuração está atrasada há ${config.delayed_days} dia(s).`,
-        taskId: config.config_id,
-        taskTable: `crm_config_delay__${myPerspective.user_role}`,
-        taskTitle: `${produtoLabel} - ${config.client_name}`,
-        priority: config.delayed_days >= 8 ? 'urgent' : 'high',
-      });
-    } catch {
-      // user fechou — sem ação.
-    }
-  };
 
   return (
     <div
@@ -188,7 +169,6 @@ function ConfigCard({ config }: { config: DelayedConfigSummary }) {
           <PerspectiveContent
             perspective={myPerspective}
             isOwn
-            onJustify={handleJustifyMe}
           />
         </div>
       )}
@@ -237,11 +217,9 @@ function Avatar({ userId, userName }: { userId: string; userName: string }) {
 function PerspectiveContent({
   perspective,
   isOwn = false,
-  onJustify,
 }: {
   perspective: CollectiveJustification;
   isOwn?: boolean;
-  onJustify?: () => void;
 }) {
   return (
     <div>
@@ -276,14 +254,10 @@ function PerspectiveContent({
         </>
       )}
 
-      {isOwn && perspective.is_pending && onJustify && (
-        <button
-          onClick={onJustify}
-          className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-foreground hover:text-warning transition-colors"
-        >
-          Justificar agora
-          <ArrowRight size={12} />
-        </button>
+      {isOwn && perspective.is_pending && (
+        <p className="mt-2 text-xs text-muted-foreground italic">
+          Justifique na página de Justificativas
+        </p>
       )}
     </div>
   );

@@ -1,11 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
-import { ArrowRight, CircleCheck } from 'lucide-react';
+import { CircleCheck } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useActionJustification } from '@/contexts/JustificationContext';
 import { cn } from '@/lib/utils';
 
 const ROLE_COPY: Record<string, string> = {
@@ -52,7 +51,6 @@ export default function ClientTagDelayJustificationsSection({
   showEmptyState = false,
 }: Props) {
   const { user } = useAuth();
-  const { requireJustification } = useActionJustification();
 
   const { data: pending = [], isLoading } = useQuery({
     queryKey: ['client-tag-delay-pending', user?.id],
@@ -119,23 +117,6 @@ export default function ClientTagDelayJustificationsSection({
         <PendingTagCard
           key={p.notification_id}
           pending={p}
-          onJustify={async () => {
-            const days = expiredDays(p.expires_at);
-            const roleLabel = ROLE_AS[p.user_role] ?? p.user_role;
-            try {
-              await requireJustification({
-                title: 'Etiqueta vencida',
-                subtitle: `${p.tag_name} · ${p.client_name}`,
-                message: `O prazo desta etiqueta venceu há ${days} dia(s). Como ${roleLabel} responsável, descreva o motivo do atraso.`,
-                taskId: p.tag_id,
-                taskTable: p.task_table,
-                taskTitle: p.task_title || `${p.tag_name} - ${p.client_name}`,
-                priority: days >= 3 ? 'urgent' : 'high',
-              });
-            } catch {
-              // user fechou — sem ação.
-            }
-          }}
         />
       ))}
     </div>
@@ -147,7 +128,6 @@ function PendingTagCard({
   onJustify,
 }: {
   pending: PendingTagJustification;
-  onJustify: () => void | Promise<void>;
 }) {
   const days = expiredDays(pending.expires_at);
   const copy =
@@ -175,21 +155,14 @@ function PendingTagCard({
         </span>
       </div>
 
-      {/* Strip lateral com nome da tag + copy + ação */}
+      {/* Strip lateral com nome da tag + copy */}
       <div className="mx-4 mb-3 pl-3 py-2.5 border-l-2 border-danger/60 bg-danger/5 rounded-r-md">
         <p className="text-sm font-semibold text-foreground uppercase tracking-wide">
           {pending.tag_name}
         </p>
         <p className="text-sm text-foreground/80 mt-1 leading-relaxed">
-          {copy} explique o motivo do atraso desta etiqueta para alinhar com os outros responsáveis.
+          {copy} justifique na página de Justificativas.
         </p>
-        <button
-          onClick={onJustify}
-          className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-foreground hover:text-danger transition-colors"
-        >
-          Justificar agora
-          <ArrowRight size={12} />
-        </button>
       </div>
 
       {/* Footer */}

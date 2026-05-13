@@ -11,7 +11,6 @@ import {
   useDeleteDepartmentTask,
   type DepartmentTask,
 } from '@/hooks/useDepartmentTasks';
-import { useAddJustification } from '@/hooks/useTaskJustification';
 import { useAuth } from '@/contexts/AuthContext';
 import { Plus, MoreHorizontal, Calendar, Trash2, Archive, ArchiveRestore, Eye, AlertTriangle, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -40,7 +39,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import JustificationModal from '@/components/shared/JustificationModal';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -77,13 +75,11 @@ export default function ProjectTarefasSection({ projectId, type = 'daily' }: Pro
   const archiveTask = useArchiveDepartmentTask('devs');
   const unarchiveTask = useUnarchiveDepartmentTask('devs');
   const deleteTask = useDeleteDepartmentTask('devs');
-  const addJustification = useAddJustification('department_tasks', ['project-tasks', projectId, type]);
   const canManageTasks = !!user?.role && CAN_MANAGE_TASKS_ROLES.has(user.role);
 
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [isAdding, setIsAdding] = useState<string | null>(null);
   const [showArchivedModal, setShowArchivedModal] = useState(false);
-  const [justificationModal, setJustificationModal] = useState<{ open: boolean; task?: DepartmentTask }>({ open: false });
 
   const handleAddTask = async () => {
     if (!newTaskTitle.trim()) return;
@@ -392,22 +388,6 @@ export default function ProjectTarefasSection({ projectId, type = 'daily' }: Pro
         })}
       </div>
 
-      {/* Justification Modal */}
-      <JustificationModal
-        isOpen={justificationModal.open}
-        onClose={() => setJustificationModal({ open: false })}
-        onSubmit={async (justification) => {
-          if (justificationModal.task) {
-            await addJustification.mutateAsync({
-              taskId: justificationModal.task.id,
-              justification,
-            });
-          }
-        }}
-        taskTitle={justificationModal.task?.title}
-        existingJustification={(justificationModal.task as any)?.justification}
-        isPending={addJustification.isPending}
-      />
     </DragDropContext>
 
       {/* Archived Tasks Modal */}

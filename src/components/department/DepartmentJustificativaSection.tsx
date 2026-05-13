@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useAddJustification } from '@/hooks/useTaskJustification';
 import { useTaskDelayJustificationsByRole, ROLE_LABELS } from '@/hooks/useTaskDelayNotifications';
 import { AlertTriangle, Clock, CheckCircle, Archive, ArchiveRestore, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,7 +16,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import JustificationModal from '@/components/shared/JustificationModal';
 
 interface Props {
   department: string;
@@ -39,10 +37,7 @@ interface OverdueTask {
 export default function DepartmentJustificativaSection({ department, compact }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [justificationModal, setJustificationModal] = useState<{ open: boolean; task?: OverdueTask }>({ open: false });
   const [showArchived, setShowArchived] = useState(false);
-
-  const addJustification = useAddJustification('department_tasks', ['department-overdue-tasks', department]);
 
   // Fetch overdue tasks for this department (active)
   const { data: overdueTasks = [], isLoading } = useQuery({
@@ -188,22 +183,6 @@ export default function DepartmentJustificativaSection({ department, compact }: 
           </TabsContent>
         </Tabs>
 
-        {/* Justification Modal */}
-        <JustificationModal
-          isOpen={justificationModal.open}
-          onClose={() => setJustificationModal({ open: false })}
-          onSubmit={async (justification) => {
-            if (justificationModal.task) {
-              await addJustification.mutateAsync({
-                taskId: justificationModal.task.id,
-                justification,
-              });
-            }
-          }}
-          taskTitle={justificationModal.task?.title}
-          existingJustification={justificationModal.task?.justification}
-          isPending={addJustification.isPending}
-        />
       </>
     );
   }
@@ -212,23 +191,6 @@ export default function DepartmentJustificativaSection({ department, compact }: 
   return (
     <div className="space-y-3">
       {renderOverdueTasks()}
-
-      {/* Justification Modal */}
-      <JustificationModal
-        isOpen={justificationModal.open}
-        onClose={() => setJustificationModal({ open: false })}
-        onSubmit={async (justification) => {
-          if (justificationModal.task) {
-            await addJustification.mutateAsync({
-              taskId: justificationModal.task.id,
-              justification,
-            });
-          }
-        }}
-        taskTitle={justificationModal.task?.title}
-        existingJustification={justificationModal.task?.justification}
-        isPending={addJustification.isPending}
-      />
     </div>
   );
 

@@ -11,7 +11,6 @@ import { resolveKanbanRedirect } from "@/routing/kanbanRedirect";
 import { AccessDenied, PageAccessRoute } from "@/routing/PageAccessRoute";
 import { usePageAccess } from "@/hooks/usePageAccess";
 import { resolveKanbanPageSlug } from "@/lib/kanbanOperationalAccess";
-import { JustificationProvider } from "@/contexts/JustificationContext";
 import { usePermissionDivergenceLogger } from "@/hooks/usePermissionDivergenceLogger";
 import AppBootSkeleton from "@/components/AppBootSkeleton";
 import MainLayout from "@/layouts/MainLayout";
@@ -575,11 +574,9 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <JustificationProvider>
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
-        </JustificationProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>

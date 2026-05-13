@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDataScope } from '@/hooks/useDataScope';
-import { useActionJustification } from '@/contexts/JustificationContext';
 import { toast } from 'sonner';
 import { CONSULTORIA_TASK_MAP, GESTAO_TASK_MAP, CONSULTORIA_DUE_DAYS, GESTAO_DUE_DAYS, getCurrentWeekday } from '@/hooks/useMktplaceKanban';
 import {
@@ -179,7 +178,6 @@ export function useCreateDepartmentTask(department: string) {
 export function useUpdateDepartmentTaskStatus(department: string) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const { requireJustification } = useActionJustification();
 
   return useMutation({
     mutationFn: async ({ taskId, status, _source, _financeiroMeta, taskTitle }: {
@@ -194,16 +192,6 @@ export function useUpdateDepartmentTaskStatus(department: string) {
         const finStatus = status === 'todo' ? 'pending' : status; // todo→pending, doing→doing, done→done
 
         if (status === 'done') {
-          // J1: Require justification before completing financeiro task
-          await requireJustification({
-            title: 'Justificativa: Tarefa Concluída',
-            subtitle: 'Registro obrigatório',
-            message: 'Descreva o que foi feito para concluir esta tarefa (ex: "cobrei boleto", "enviei contrato").',
-            taskId: taskId,
-            taskTable: 'financeiro_task_done',
-            taskTitle: taskTitle || 'Tarefa financeira concluída',
-          });
-
           // 1. Mark the financeiro_task as done
           const { error: taskError } = await supabase
             .from('financeiro_tasks')

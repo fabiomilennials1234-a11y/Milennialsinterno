@@ -9,7 +9,6 @@ import {
   useDeleteDepartmentTask,
   DepartmentTask
 } from '@/hooks/useDepartmentTasks';
-import { useAddJustification } from '@/hooks/useTaskJustification';
 import { useAuth } from '@/contexts/AuthContext';
 import { Plus, MoreHorizontal, Calendar, Trash2, Archive, ArchiveRestore, Eye, AlertTriangle, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -48,7 +47,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import JustificationModal from '@/components/shared/JustificationModal';
 
 interface Props {
   department: string;
@@ -73,13 +71,11 @@ export default function DepartmentTarefasSection({ department, type = 'daily' }:
   const archiveTask = useArchiveDepartmentTask(department);
   const unarchiveTask = useUnarchiveDepartmentTask(department);
   const deleteTask = useDeleteDepartmentTask(department);
-  const addJustification = useAddJustification('department_tasks', ['department-tasks', department, type]);
   const canManageTasks = !!user?.role && CAN_MANAGE_TASKS_ROLES.has(user.role);
 
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [isAdding, setIsAdding] = useState<string | null>(null);
   const [showArchivedModal, setShowArchivedModal] = useState(false);
-  const [justificationModal, setJustificationModal] = useState<{ open: boolean; task?: DepartmentTask }>({ open: false });
   const [financeiroConfirm, setFinanceiroConfirm] = useState<{ open: boolean; task?: DepartmentTask }>({ open: false });
 
   // Check if a task is a financeiro auto-created task (department_task, not mapped financeiro_task)
@@ -413,23 +409,6 @@ export default function DepartmentTarefasSection({ department, type = 'daily' }:
         );
         })}
       </div>
-
-      {/* Justification Modal */}
-      <JustificationModal
-        isOpen={justificationModal.open}
-        onClose={() => setJustificationModal({ open: false })}
-        onSubmit={async (justification) => {
-          if (justificationModal.task) {
-            await addJustification.mutateAsync({
-              taskId: justificationModal.task.id,
-              justification,
-            });
-          }
-        }}
-        taskTitle={justificationModal.task?.title}
-        existingJustification={(justificationModal.task as any)?.justification}
-        isPending={addJustification.isPending}
-      />
 
       {/* Financeiro Auto-Task Confirmation Dialog */}
       <AlertDialog open={financeiroConfirm.open} onOpenChange={(open) => !open && setFinanceiroConfirm({ open: false })}>

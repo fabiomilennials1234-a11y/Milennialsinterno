@@ -22,7 +22,6 @@ import AdsBonusSection from '@/components/ads-manager/AdsBonusSection';
 import AdsLemasSection from '@/components/ads-manager/AdsLemasSection';
 import AdsChurnSection from '@/components/ads-manager/AdsChurnSection';
 import AdsMovimentacaoNotification from '@/components/ads-manager/AdsMovimentacaoNotification';
-import AdsTaskDelayModal from '@/components/AdsTaskDelayModal';
 
 // Cores vibrantes para cada seção - Ordem definida pelo usuário
 const COLUMNS = [{
@@ -192,9 +191,6 @@ export default function AdsManagerIndividualPage() {
   // so column queries start in parallel with the profile query
   return <AdsManagerProvider targetUserId={userId}>
       <MainLayout>
-        {/* Modal de justificativa para tarefas atrasadas */}
-        <AdsTaskDelayModal />
-        
         {/* Notificação de movimentação pendente - ativa às 16:30 */}
         <AdsMovimentacaoNotification />
         

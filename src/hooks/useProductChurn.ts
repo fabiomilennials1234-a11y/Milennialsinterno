@@ -1,7 +1,6 @@
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useActionJustification } from '@/contexts/JustificationContext';
 import { toast } from 'sonner';
 
 export interface ProductChurn {
@@ -47,8 +46,6 @@ export type ProductDistratoStep = typeof PRODUCT_DISTRATO_STEPS[keyof typeof PRO
 export function useProductChurn(productSlug?: string) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const { requireJustification } = useActionJustification();
-
   // Fetch churns for a specific product
   const { data: productChurns = [], isLoading } = useQuery({
     queryKey: ['product-churns', productSlug],
@@ -89,16 +86,6 @@ export function useProductChurn(productSlug?: string) {
       monthlyValue: number;
       hasValidContract: boolean;
     }) => {
-      // J4: Require justification before initiating churn
-      const churnJustification = await requireJustification({
-        title: 'Justificativa: Churn de Produto',
-        subtitle: 'Registro obrigatório de motivo',
-        message: `Explique o motivo do churn do produto "${productName}". Este registro é obrigatório para análise de perda de receita.`,
-        taskId: `${clientId}:${productSlug}`,
-        taskTable: 'product_churn_initiated',
-        taskTitle: `Churn iniciado: ${productName}`,
-      });
-
       const distratoStep = hasValidContract
         ? PRODUCT_DISTRATO_STEPS.CHURN_SOLICITADO
         : PRODUCT_DISTRATO_STEPS.SEM_CONTRATO_SOLICITADO;
@@ -170,7 +157,7 @@ export function useProductChurn(productSlug?: string) {
           recipient_role: recipient.role,
           notification_type: 'product_churn_initiated',
           title: '🔴 Novo Churn de Produto',
-          message: `Churn iniciado para "${productName}" do cliente "${client?.name || 'Cliente'}". Motivo: ${churnJustification.substring(0, 100)}`,
+          message: `Churn iniciado para "${productName}" do cliente "${client?.name || 'Cliente'}".`,
           client_id: clientId,
           priority: 'high',
           metadata: {

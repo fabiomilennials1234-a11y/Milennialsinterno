@@ -12,7 +12,6 @@ import {
 } from '@/hooks/useOnboardingTasks';
 
 import { useCompleteOnboardingTaskWithAutomation } from '@/hooks/useOnboardingAutomation';
-import { useAddJustification } from '@/hooks/useTaskJustification';
 import { Plus, MoreHorizontal, Calendar, Target, Timer, Archive, CheckCircle, Trash2, ArchiveRestore, Eye, AlertTriangle, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,7 +43,6 @@ import {
 } from '@/components/ui/tooltip';
 import AdsCardDetailModal from './AdsCardDetailModal';
 import AdsCardDescriptionPreview from './AdsCardDescriptionPreview';
-import JustificationModal from '@/components/shared/JustificationModal';
 import { Tag } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -100,9 +98,6 @@ export default function AdsTarefasSection({ type, compact }: Props) {
   const deleteOnboardingTask = useDeleteOnboardingTask();
   const unarchiveOnboardingTask = useUnarchiveOnboardingTask();
   const canArchive = useCanArchiveTasks();
-  const addAdsJustification = useAddJustification('ads_tasks', ['ads-tasks', type]);
-  const addOnboardingJustification = useAddJustification('onboarding_tasks', ['onboarding-tasks']);
-
   // Instantly advance the client in the Onboarding pipeline via optimistic cache update.
   // This runs SYNCHRONOUSLY on the same click — no waiting for DB triggers or realtime.
   const advanceClientOnboardingInstantly = (completedTask: AdsTask) => {
@@ -193,12 +188,6 @@ export default function AdsTarefasSection({ type, compact }: Props) {
   const [selectedTask, setSelectedTask] = useState<AdsTask | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showArchivedModal, setShowArchivedModal] = useState(false);
-  const [justificationModal, setJustificationModal] = useState<{ 
-    open: boolean; 
-    task?: any; 
-    isOnboarding?: boolean;
-  }>({ open: false });
-
   // Task types that have a visible ads_task entry in Tarefas Diárias.
   // The corresponding onboarding_tasks must be hidden to avoid duplicates.
   const HIDDEN_ONBOARDING_TASK_TYPES = [
@@ -965,29 +954,6 @@ export default function AdsTarefasSection({ type, compact }: Props) {
         </DialogContent>
       </Dialog>
 
-      {/* Justification Modal */}
-      <JustificationModal
-        isOpen={justificationModal.open}
-        onClose={() => setJustificationModal({ open: false })}
-        onSubmit={async (justification) => {
-          if (justificationModal.task) {
-            if (justificationModal.isOnboarding) {
-              await addOnboardingJustification.mutateAsync({
-                taskId: justificationModal.task.id,
-                justification,
-              });
-            } else {
-              await addAdsJustification.mutateAsync({
-                taskId: justificationModal.task.id,
-                justification,
-              });
-            }
-          }
-        }}
-        taskTitle={justificationModal.task?.title}
-        existingJustification={justificationModal.task?.justification}
-        isPending={addAdsJustification.isPending || addOnboardingJustification.isPending}
-      />
     </>
   );
 }

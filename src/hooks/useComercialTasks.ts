@@ -5,7 +5,6 @@ import { toast } from 'sonner';
 import { useEffect } from 'react';
 import { fireCelebration } from '@/lib/confetti';
 import { getCurrentDayPortuguese, PADDOCK_AUTO_TASK_TYPES } from './useComercialAutomation';
-import { useActionJustification } from '@/contexts/JustificationContext';
 import { resolveTaskOwner } from './utils/resolveTaskOwner';
 
 // Paddock step progression maps (mirrored from useComercialAutomation)
@@ -189,7 +188,6 @@ export function useCreateComercialTask() {
 export function useUpdateComercialTaskStatus() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const { requireJustification } = useActionJustification();
 
   return useMutation({
     mutationFn: async ({ taskId, status }: { taskId: string; status: 'todo' | 'doing' | 'done' }) => {
@@ -200,46 +198,12 @@ export function useUpdateComercialTaskStatus() {
         .eq('id', taskId)
         .single();
 
-      // If completing an auto-generated overdue task, require justification
-      if (status === 'done' && task?.is_auto_generated && task?.due_date) {
-        const isOverdue = new Date(task.due_date) < new Date();
-        if (isOverdue) {
-          const justificationText = await requireJustification({
-            title: 'Tarefa Atrasada',
-            subtitle: 'Justificativa obrigatória',
-            message: `A tarefa "${task.title}" está atrasada. Explique o motivo do atraso.`,
-            taskId: task.id,
-            taskTable: 'comercial_tasks',
-            taskTitle: task.title,
-            priority: 'urgent',
-          });
-
-          // Save justification to the task
-          await supabase
-            .from('comercial_tasks')
-            .update({
-              status,
-              justification: justificationText,
-              justification_at: new Date().toISOString(),
-            })
-            .eq('id', taskId);
-
-          // Continue with automation below (skip normal update)
-        } else {
-          const { error } = await supabase
-            .from('comercial_tasks')
-            .update({ status })
-            .eq('id', taskId);
-          if (error) throw error;
-        }
-      } else {
-        // Update the task status
-        const { error } = await supabase
-          .from('comercial_tasks')
-          .update({ status })
-          .eq('id', taskId);
-        if (error) throw error;
-      }
+      // Update the task status
+      const { error } = await supabase
+        .from('comercial_tasks')
+        .update({ status })
+        .eq('id', taskId);
+      if (error) throw error;
 
       // If moving to done and it's an auto-generated task, trigger automation
       if (status === 'done' && task?.is_auto_generated && task?.auto_task_type) {

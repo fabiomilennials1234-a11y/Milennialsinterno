@@ -70,11 +70,6 @@ export interface CreateCardModalProps {
   [key: string]: unknown;
 }
 
-export interface DelayModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  delayedCards: unknown[];
-}
 
 export type CardCreatorsMap = Record<string, { user_id: string; name: string } | undefined>;
 
@@ -102,8 +97,7 @@ export interface SpecializedBoardConfig {
   delay?: {
     useDelayedCards: () => { data: unknown[] };
     useJustifications: (personName: string) => { data: Array<{ id: string; created_at: string; justification: string }> };
-    DelayModal: React.ComponentType<DelayModalProps>;
-    // Role que deve ver o modal ao abrir o board
+    // Role that can see delay data
     showModalForRole: UserRole;
   };
 
@@ -216,8 +210,6 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
-  const [isDelayModalOpen, setIsDelayModalOpen] = useState(false);
-
   // -------- Hooks opcionais --------
   // Sempre precisamos chamar Hooks na mesma ordem. Usamos passthrough controlado:
   // para delay, se config.delay não existe, usamos um stub que retorna vazio.
@@ -229,14 +221,6 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
     : null;
 
   const customAfterMove = config.useCustomAfterMove ? config.useCustomAfterMove() : null;
-
-  // Abre modal de atraso automaticamente para role configurada.
-  useEffect(() => {
-    if (!config.delay) return;
-    if (delayedCards.length > 0 && user?.role === config.delay.showModalForRole) {
-      setIsDelayModalOpen(true);
-    }
-  }, [delayedCards.length, user?.role, config.delay]);
 
   // -------- Board --------
   const { data: board, isLoading: isBoardLoading } = useQuery({
@@ -836,8 +820,6 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
   // -------- Render --------
 
   const CreateCardModal = config.CreateCardModal;
-  const DelayModal = config.delay?.DelayModal;
-
   return (
     <>
       <DragDropContext onDragEnd={handleDragEnd}>
@@ -1130,14 +1112,6 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
           card={selectedCard}
           boardId={board?.id}
           {...config.cardDetailFlags}
-        />
-      )}
-
-      {DelayModal && (
-        <DelayModal
-          isOpen={isDelayModalOpen}
-          onClose={() => setIsDelayModalOpen(false)}
-          delayedCards={delayedCards}
         />
       )}
 

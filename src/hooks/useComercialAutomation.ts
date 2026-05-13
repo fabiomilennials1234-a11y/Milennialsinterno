@@ -8,7 +8,6 @@ import {
   useCreateComercialDelayNotification,
   hasActiveJustificationForDelay,
 } from './useComercialDelayNotifications';
-import { useActionJustification } from '@/contexts/JustificationContext';
 import { resolveTaskOwner } from './utils/resolveTaskOwner';
 
 // Legacy auto task types (kept for backward compatibility with existing tasks)
@@ -220,7 +219,6 @@ export function getCurrentDayPortuguese(): string {
 // ============================================================
 export function useCompleteComercialTaskWithAutomation() {
   const queryClient = useQueryClient();
-  const { requireJustification } = useActionJustification();
 
   return useMutation({
     mutationFn: async ({
@@ -245,40 +243,11 @@ export function useCompleteComercialTaskWithAutomation() {
         .eq('id', taskId)
         .single();
 
-      // If overdue auto task, require justification
-      if (taskData?.is_auto_generated && taskData?.due_date) {
-        const isOverdue = new Date(taskData.due_date) < new Date();
-        if (isOverdue) {
-          const justificationText = await requireJustification({
-            title: 'Tarefa Atrasada',
-            subtitle: 'Justificativa obrigatória',
-            message: `A tarefa "${taskData.title}" está atrasada. Explique o motivo do atraso.`,
-            taskId: taskData.id,
-            taskTable: 'comercial_tasks',
-            taskTitle: taskData.title,
-            priority: 'urgent',
-          });
-
-          await supabase
-            .from('comercial_tasks')
-            .update({
-              status: 'done',
-              justification: justificationText,
-              justification_at: new Date().toISOString(),
-            })
-            .eq('id', taskId);
-        } else {
-          await supabase
-            .from('comercial_tasks')
-            .update({ status: 'done' })
-            .eq('id', taskId);
-        }
-      } else {
-        await supabase
-          .from('comercial_tasks')
-          .update({ status: 'done' })
-          .eq('id', taskId);
-      }
+      // Mark task as done
+      await supabase
+        .from('comercial_tasks')
+        .update({ status: 'done' })
+        .eq('id', taskId);
 
       const userId = taskData?.user_id;
       const actualTaskType = taskType || taskData?.auto_task_type;

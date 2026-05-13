@@ -3,7 +3,6 @@
 
 import SpecializedKanbanBoard from '@/components/kanban/SpecializedKanbanBoard';
 import CreateDevCardModal from '@/components/kanban/CreateDevCardModal';
-import DevsDelayModal from '@/components/devs/DevsDelayModal';
 import {
   useDevDelayedCards,
   useDevJustifications,
@@ -38,7 +37,6 @@ export default function DevsKanbanBoard() {
         delay: {
           useDelayedCards: useDevDelayedCards,
           useJustifications: useDevJustifications,
-          DelayModal: DevsDelayModal,
           showModalForRole: 'devs',
         },
         afterMoveNotification: {

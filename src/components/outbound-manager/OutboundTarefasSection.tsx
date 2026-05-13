@@ -13,7 +13,6 @@ import {
 } from '@/hooks/useOnboardingTasks';
 
 import { useCompleteOnboardingTaskWithAutomation } from '@/hooks/useOnboardingAutomation';
-import { useAddJustification } from '@/hooks/useTaskJustification';
 import { Plus, MoreHorizontal, Calendar, Target, Timer, Archive, CheckCircle, Trash2, ArchiveRestore, Eye, AlertTriangle, ChevronDown, BarChart3, FileText, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,7 +47,6 @@ import OutboundCardDescriptionPreview from './OutboundCardDescriptionPreview';
 import OutboundProspectionAnalysisModal, { parseAnalysisFromDescription } from './OutboundProspectionAnalysisModal';
 import OutboundWeeklyReportModal, { parseReportFromDescription } from './OutboundWeeklyReportModal';
 import OutboundWeeklyReviewModal, { parseReviewFromDescription } from './OutboundWeeklyReviewModal';
-import JustificationModal from '@/components/shared/JustificationModal';
 import { toast } from 'sonner';
 
 interface Props {
@@ -106,9 +104,6 @@ export default function OutboundTarefasSection({ type, compact }: Props) {
   const deleteOnboardingTask = useDeleteOnboardingTask();
   const unarchiveOnboardingTask = useUnarchiveOnboardingTask();
   const canArchive = useCanArchiveTasks();
-  const addOutboundJustification = useAddJustification('outbound_tasks', ['outbound-tasks', type]);
-  const addOnboardingJustification = useAddJustification('onboarding_tasks', ['onboarding-tasks']);
-
   // Auto-create tasks for each assigned client
   useAutoCreateProspectionTasks();
   useAutoCreateWeeklyTasks();
@@ -211,11 +206,6 @@ export default function OutboundTarefasSection({ type, compact }: Props) {
   const [selectedTask, setSelectedTask] = useState<AdsTask | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showArchivedModal, setShowArchivedModal] = useState(false);
-  const [justificationModal, setJustificationModal] = useState<{
-    open: boolean;
-    task?: any;
-    isOnboarding?: boolean;
-  }>({ open: false });
 
   // Task types that have a visible outbound_task entry in Tarefas Diárias.
   // The corresponding onboarding_tasks must be hidden to avoid duplicates.
@@ -1069,29 +1059,6 @@ export default function OutboundTarefasSection({ type, compact }: Props) {
         }}
       />
 
-      {/* Justification Modal */}
-      <JustificationModal
-        isOpen={justificationModal.open}
-        onClose={() => setJustificationModal({ open: false })}
-        onSubmit={async (justification) => {
-          if (justificationModal.task) {
-            if (justificationModal.isOnboarding) {
-              await addOnboardingJustification.mutateAsync({
-                taskId: justificationModal.task.id,
-                justification,
-              });
-            } else {
-              await addOutboundJustification.mutateAsync({
-                taskId: justificationModal.task.id,
-                justification,
-              });
-            }
-          }
-        }}
-        taskTitle={justificationModal.task?.title}
-        existingJustification={justificationModal.task?.justification}
-        isPending={addOutboundJustification.isPending || addOnboardingJustification.isPending}
-      />
     </>
   );
 }

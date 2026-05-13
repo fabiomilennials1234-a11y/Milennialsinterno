@@ -3,7 +3,6 @@
 
 import SpecializedKanbanBoard from '@/components/kanban/SpecializedKanbanBoard';
 import CreateProdutoraCardModal from '@/components/produtora/CreateProdutoraCardModal';
-import ProdutoraDelayModal from '@/components/produtora/ProdutoraDelayModal';
 import { PRODUTORA_STATUSES } from '@/hooks/useProdutoraKanban';
 import {
   useProdutoraDelayedCards,
@@ -31,7 +30,6 @@ export default function ProdutoraKanbanBoard() {
         delay: {
           useDelayedCards: useProdutoraDelayedCards,
           useJustifications: useProdutoraJustifications,
-          DelayModal: ProdutoraDelayModal,
           showModalForRole: 'produtora',
         },
         afterMoveNotification: {
