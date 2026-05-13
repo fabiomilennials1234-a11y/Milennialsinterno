@@ -100,10 +100,10 @@ export default function AdsAcompanhamentoSection({ compact }: Props) {
   // Get active clients that should be in Acompanhamento
   const activeClients = clients.filter(c => c.status === 'active' && c.campaign_published_at);
 
-  // Get client position by day
+  // Get client position by day (excludes churned clients)
   const getClientsByDay = (day: string) => {
     return tracking
-      .filter(t => t.current_day === day)
+      .filter(t => t.current_day === day && t.clients?.status !== 'churned')
       .map(t => ({
         ...t,
         client: t.clients,

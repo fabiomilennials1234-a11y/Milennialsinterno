@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDataScope } from '@/hooks/useDataScope';
 import { useTargetOutboundManager } from '@/contexts/OutboundManagerContext';
-import { useActionJustification } from '@/contexts/JustificationContext';
 import { toast } from 'sonner';
 
 // Helper to get date key in Brazil timezone (YYYY-MM-DD)
@@ -339,7 +338,9 @@ export function useOutboundClientTracking() {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data;
+
+      // Filter out tracking records for churned clients
+      return (data || []).filter((t: any) => t.clients?.status !== 'churned');
     },
     enabled: !!effectiveUserId,
   });
@@ -481,21 +482,9 @@ export function useOutboundCreateTask() {
 
 export function useOutboundUpdateTaskStatus() {
   const queryClient = useQueryClient();
-  const { requireJustification } = useActionJustification();
 
   return useMutation({
     mutationFn: async ({ id, status, task_type, taskTitle }: { id: string; status: string; task_type: string; taskTitle?: string }) => {
-      if (status === 'done') {
-        await requireJustification({
-          title: 'Justificativa: Tarefa Concluída',
-          subtitle: 'Registro obrigatório',
-          message: 'Descreva o resultado desta tarefa e o que foi realizado.',
-          taskId: id,
-          taskTable: 'outbound_task_done',
-          taskTitle: taskTitle || 'Tarefa de Outbound concluída',
-        });
-      }
-
       const { error } = await supabase
         .from('outbound_tasks')
         .update({ status })

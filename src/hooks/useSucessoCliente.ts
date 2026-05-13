@@ -93,10 +93,11 @@ export function useCSClientsByManager() {
         .from('clients')
         .select('*')
         .eq('archived', false)
+        .neq('status', 'churned')
         .order('name');
 
       if (error) throw error;
-      
+
       return (clients || []) as CSClient[];
     },
   });

@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTargetAdsManager } from '@/contexts/AdsManagerContext';
-import { useActionJustification } from '@/contexts/JustificationContext';
 import { toast } from 'sonner';
 
 // Helper to get date key in Brazil timezone (YYYY-MM-DD)
@@ -358,6 +357,9 @@ export function useClientTracking() {
       const { data, error } = await query;
       if (error) throw error;
 
+      // Filter out tracking records for churned clients
+      const filtered = (data || []).filter((t: any) => t.clients?.status !== 'churned');
+
       // Include tracking for clients where user is secondary manager
       if (effectiveUserId) {
         const { data: secondaryRecords } = await supabase
@@ -366,7 +368,7 @@ export function useClientTracking() {
           .eq('secondary_manager_id', effectiveUserId);
 
         if (secondaryRecords && secondaryRecords.length > 0) {
-          const existingClientIds = new Set((data || []).map((t: any) => t.client_id));
+          const existingClientIds = new Set(filtered.map((t: any) => t.client_id));
           const missingClientIds = secondaryRecords
             .map(r => r.client_id)
             .filter(id => !existingClientIds.has(id));
@@ -378,13 +380,14 @@ export function useClientTracking() {
               .in('client_id', missingClientIds);
 
             if (secondaryTracking && secondaryTracking.length > 0) {
-              return [...(data || []), ...secondaryTracking];
+              const secondaryFiltered = secondaryTracking.filter((t: any) => t.clients?.status !== 'churned');
+              return [...filtered, ...secondaryFiltered];
             }
           }
         }
       }
 
-      return data;
+      return filtered;
     },
     enabled: !!effectiveUserId,
   });
@@ -529,22 +532,9 @@ export function useCreateTask() {
 
 export function useUpdateTaskStatus() {
   const queryClient = useQueryClient();
-  const { requireJustification } = useActionJustification();
 
   return useMutation({
     mutationFn: async ({ id, status, task_type, taskTitle, _source }: { id: string; status: string; task_type: string; taskTitle?: string; _source?: 'department' }) => {
-      // J11: Require justification when marking ads task as done
-      if (status === 'done' && _source !== 'department') {
-        await requireJustification({
-          title: 'Justificativa: Tarefa Concluída',
-          subtitle: 'Registro obrigatório',
-          message: 'Descreva o resultado desta tarefa e o que foi realizado.',
-          taskId: id,
-          taskTable: 'ads_task_done',
-          taskTitle: taskTitle || 'Tarefa de Ads concluída',
-        });
-      }
-
       const table = _source === 'department' ? 'department_tasks' : 'ads_tasks';
       const { error } = await (supabase as any)
         .from(table)

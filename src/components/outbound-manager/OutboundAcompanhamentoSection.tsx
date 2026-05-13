@@ -106,10 +106,10 @@ export default function OutboundAcompanhamentoSection({ compact }: Props) {
     });
   }, [activeClients, tracking]);
 
-  // Get client position by day
+  // Get client position by day (excludes churned clients)
   const getClientsByDay = (day: string) => {
     return tracking
-      .filter(t => t.current_day === day)
+      .filter(t => t.current_day === day && t.clients?.status !== 'churned')
       .map(t => ({
         ...t,
         client: t.clients,

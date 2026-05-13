@@ -48,7 +48,7 @@ export interface DepartmentTask {
 // Fetch all clients for Sucesso do Cliente (they see all clients assigned to any ads manager)
 export function useSucessoClients() {
   const { user } = useAuth();
-  
+
   return useQuery({
     queryKey: ['sucesso-clients', user?.id],
     queryFn: async () => {
@@ -56,8 +56,9 @@ export function useSucessoClients() {
         .from('clients')
         .select('*')
         .eq('archived', false)
+        .neq('status', 'churned')
         .order('created_at', { ascending: false });
-      
+
       if (error) throw error;
       return data as DepartmentClient[];
     },
@@ -93,7 +94,7 @@ export function useComercialNewClients() {
 // Fetch all clients for Consultor Comercial
 export function useComercialClients() {
   const { user } = useAuth();
-  
+
   return useQuery({
     queryKey: ['comercial-clients', user?.id],
     queryFn: async () => {
@@ -101,8 +102,9 @@ export function useComercialClients() {
         .from('clients')
         .select('*')
         .eq('archived', false)
+        .neq('status', 'churned')
         .order('created_at', { ascending: false });
-      
+
       if (error) throw error;
       return data as DepartmentClient[];
     },
@@ -137,7 +139,7 @@ export function useComercialChurnedClients() {
 // Fetch all clients for Financeiro
 export function useFinanceiroClients() {
   const { user } = useAuth();
-  
+
   return useQuery({
     queryKey: ['financeiro-clients', user?.id],
     queryFn: async () => {
@@ -145,8 +147,9 @@ export function useFinanceiroClients() {
         .from('clients')
         .select('*')
         .eq('archived', false)
+        .neq('status', 'churned')
         .order('created_at', { ascending: false });
-      
+
       if (error) throw error;
       return data as DepartmentClient[];
     },
@@ -181,7 +184,7 @@ export function useFinanceiroChurnedClients() {
 // Fetch all clients for overview
 export function useGestorProjetosClients() {
   const { user } = useAuth();
-  
+
   return useQuery({
     queryKey: ['gestor-projetos-clients', user?.id],
     queryFn: async () => {
@@ -189,8 +192,9 @@ export function useGestorProjetosClients() {
         .from('clients')
         .select('*')
         .eq('archived', false)
+        .neq('status', 'churned')
         .order('created_at', { ascending: false });
-      
+
       if (error) throw error;
       return data as DepartmentClient[];
     },

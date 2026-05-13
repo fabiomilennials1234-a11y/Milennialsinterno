@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useActionJustification } from '@/contexts/JustificationContext';
 import { toast } from 'sonner';
 import { useEffect } from 'react';
 
@@ -38,6 +37,7 @@ export function useComercialAssignedClients() {
         .from('clients')
         .select('*')
         .eq('archived', false)
+        .neq('status', 'churned')
         .order('created_at', { ascending: false });
 
       // CEO can see all clients, others see only assigned
@@ -200,6 +200,7 @@ export function useComercialAcompanhamentoClients() {
         .select('*')
         .eq('comercial_status', 'em_acompanhamento')
         .eq('archived', false)
+        .neq('status', 'churned')
         .order('updated_at', { ascending: false });
 
       if (user?.role === 'consultor_comercial') {
@@ -221,7 +222,6 @@ const COMERCIAL_STATUS_ORDER = ['novo_cliente', 'onboarding_paddock', 'consultor
 // Update client comercial status
 export function useUpdateComercialStatus() {
   const queryClient = useQueryClient();
-  const { requireJustification } = useActionJustification();
 
   return useMutation({
     mutationFn: async ({
@@ -237,22 +237,6 @@ export function useUpdateComercialStatus() {
       clientName?: string;
       currentStatus?: string;
     }) => {
-      // J7: Detect regression (moving to an earlier status)
-      if (currentStatus) {
-        const currentIdx = COMERCIAL_STATUS_ORDER.indexOf(currentStatus);
-        const newIdx = COMERCIAL_STATUS_ORDER.indexOf(status);
-        if (currentIdx >= 0 && newIdx >= 0 && newIdx < currentIdx) {
-          await requireJustification({
-            title: 'Justificativa: Regressão de Status',
-            subtitle: 'Movimentação regressiva detectada',
-            message: `Você está movendo o cliente "${clientName || 'Cliente'}" de volta para um status anterior. Explique o motivo.`,
-            taskId: clientId,
-            taskTable: 'comercial_status_regression',
-            taskTitle: `Regressão: ${clientName || 'Cliente'} (${currentStatus} → ${status})`,
-          });
-        }
-      }
-
       const updates: Record<string, any> = { comercial_status: status };
 
       if (status === 'consultoria_marcada' && onboardingStarted) {
