@@ -11,6 +11,7 @@ import DepartmentTasksTab from '@/components/department/DepartmentTasksTab';
 import DepartmentTarefasSection from '@/components/department/DepartmentTarefasSection';
 import DepartmentJustificativaSection from '@/components/department/DepartmentJustificativaSection';
 import CrmDelayJustificationsSection from '@/components/gestor-crm/CrmDelayJustificationsSection';
+import CrmDailyTasksSection from '@/components/gestor-crm/CrmDailyTasksSection';
 import CrmNovoClienteSection from '@/components/gestor-crm/CrmNovoClienteSection';
 import CrmBoasVindasSection from '@/components/gestor-crm/CrmBoasVindasSection';
 import CrmAcompanhamentoSection from '@/components/gestor-crm/CrmAcompanhamentoSection';
@@ -65,7 +66,7 @@ export default function GestorCRMPage() {
       case 'documentacao':
         return <CrmSectionBoundary name="Documentação"><CrmDocumentacaoSection /></CrmSectionBoundary>;
       case 'tarefas-diarias':
-        return <DepartmentTarefasSection department="gestor_crm" type="daily" />;
+        return <CrmSectionBoundary name="Tarefas Diárias"><CrmDailyTasksSection /></CrmSectionBoundary>;
       case 'novos-clientes':
         return <CrmSectionBoundary name="Novos clientes"><CrmNovoClienteSection /></CrmSectionBoundary>;
       case 'boas-vindas':

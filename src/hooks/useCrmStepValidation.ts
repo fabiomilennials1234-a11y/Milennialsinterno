@@ -45,6 +45,8 @@ export interface CrmConfigState {
   training_at: string | null;
   reset_count: number;
   is_finalizado: boolean;
+  delay_justification: string | null;
+  delay_justified_at: string | null;
 }
 
 /**
@@ -79,7 +81,7 @@ export function useCrmConfigState(configId: string | undefined) {
       if (!configId) return null;
       const { data, error } = await (supabase as any)
         .from('crm_configuracoes')
-        .select('id, produto, current_step, checklist_state, field_values, step_entered_at, blocked_until, activation_at, training_at, reset_count, is_finalizado')
+        .select('id, produto, current_step, checklist_state, field_values, step_entered_at, blocked_until, activation_at, training_at, reset_count, is_finalizado, delay_justification, delay_justified_at')
         .eq('id', configId)
         .single();
       if (error) throw error;
@@ -129,14 +131,47 @@ export function useCrmStepValidation(configId: string | undefined, produto: CrmP
       }
     }
 
-    // Blocked until
+    // Blocked until (D+N temporal gate)
     if (configState.blocked_until && new Date(configState.blocked_until) > new Date()) {
       const dt = new Date(configState.blocked_until);
       blockers.push(
         `Bloqueado ate ${dt.toLocaleDateString('pt-BR')} ${dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
       );
     }
+
+    // Deadline overdue: step_entered_at + deadline_days < now → require justification
+    if (
+      currentValidation.deadline_days &&
+      configState.step_entered_at
+    ) {
+      const entered = new Date(configState.step_entered_at).getTime();
+      const deadlineMs = entered + currentValidation.deadline_days * 24 * 60 * 60 * 1000;
+      if (Date.now() > deadlineMs) {
+        if (!configState.delay_justification || configState.delay_justification.trim() === '') {
+          blockers.push('Etapa estourada: justifique o atraso antes de avancar');
+        }
+      }
+    }
   }
+
+  // Compute step deadline status for UI badge
+  const stepDeadlineStatus = (() => {
+    if (!currentValidation?.deadline_days || !configState?.step_entered_at) {
+      return { status: 'none' as const, remainingMs: 0, totalMs: 0 };
+    }
+    const entered = new Date(configState.step_entered_at).getTime();
+    const totalMs = currentValidation.deadline_days * 24 * 60 * 60 * 1000;
+    const deadlineMs = entered + totalMs;
+    const remainingMs = deadlineMs - Date.now();
+    const ratio = remainingMs / totalMs;
+
+    if (remainingMs <= 0) return { status: 'overdue' as const, remainingMs, totalMs };
+    if (ratio <= 0.25) return { status: 'critical' as const, remainingMs, totalMs };
+    if (ratio <= 0.50) return { status: 'warning' as const, remainingMs, totalMs };
+    return { status: 'ok' as const, remainingMs, totalMs };
+  })();
+
+  const isOverdue = stepDeadlineStatus.status === 'overdue';
 
   const canAdvance = blockers.length === 0 && !!configState && !configState.is_finalizado;
 
@@ -223,6 +258,67 @@ export function useCrmStepValidation(configId: string | undefined, produto: CrmP
     },
   });
 
+  const saveDelayJustification = useMutation({
+    mutationFn: async ({ justification }: { justification: string }) => {
+      if (!configId || !configState) throw new Error('Config not loaded');
+      if (!justification.trim()) throw new Error('Justificativa obrigatoria');
+
+      const { error } = await (supabase as any)
+        .from('crm_configuracoes')
+        .update({
+          delay_justification: justification,
+          delay_justified_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', configId);
+      if (error) throw error;
+
+      // Log
+      await (supabase as any).from('crm_validation_log').insert({
+        config_id: configId,
+        step_key: configState.current_step,
+        action: 'delay_justification',
+        details: { justification },
+        performed_by: user?.id || null,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['crm-config-state', configId] });
+      toast.success('Justificativa salva');
+    },
+    onError: (err: Error) => {
+      toast.error('Erro ao salvar justificativa', { description: err.message });
+    },
+  });
+
+  const resetStep = useMutation({
+    mutationFn: async ({ reason, newDate }: { reason: string; newDate?: string }) => {
+      if (!configId) throw new Error('Config not loaded');
+
+      const { data, error } = await (supabase as any).rpc('reset_crm_step', {
+        _config_id: configId,
+        _reason: reason,
+        _new_date: newDate || null,
+        _performed_by: user?.id || null,
+      });
+      if (error) throw error;
+      return data as { success: boolean; reset_count?: number; error?: string };
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['crm-config-state', configId] });
+      queryClient.invalidateQueries({ queryKey: ['crm-configuracoes'] });
+
+      if (result?.success) {
+        toast.success(`Etapa resetada (reset #${result.reset_count})`);
+      } else {
+        toast.error(result?.error || 'Erro ao resetar etapa');
+      }
+    },
+    onError: (err: Error) => {
+      toast.error('Erro ao resetar etapa', { description: err.message });
+    },
+  });
+
   return {
     currentValidation,
     configState,
@@ -230,8 +326,12 @@ export function useCrmStepValidation(configId: string | undefined, produto: CrmP
     validations,
     blockers,
     canAdvance,
+    stepDeadlineStatus,
+    isOverdue,
     toggleChecklist,
     saveField,
     advanceStep,
+    saveDelayJustification,
+    resetStep,
   };
 }

@@ -4,7 +4,11 @@ import { CRM_STEP_LABEL } from '@/hooks/useCrmKanban';
 import CrmChecklist from './CrmChecklist';
 import CrmRequiredFields from './CrmRequiredFields';
 import CrmAdvanceButton from './CrmAdvanceButton';
-import { Clock, Timer } from 'lucide-react';
+import CrmStepDeadlineBadge from './CrmStepDeadlineBadge';
+import CrmDelayJustificationField from './CrmDelayJustificationField';
+import CrmResetLoopSection from './CrmResetLoopSection';
+import CrmBlockedCountdown from './CrmBlockedCountdown';
+import { Clock } from 'lucide-react';
 
 interface Props {
   configId: string;
@@ -20,8 +24,8 @@ interface Props {
  * Controls whether advance is allowed based on validation state.
  *
  * Two modes:
- * - compact: shows just the button + blocker count (for kanban cards)
- * - full (default): shows full checklist + fields + button (for modal/detail view)
+ * - compact: shows just the button + blocker count + step deadline badge (for kanban cards)
+ * - full (default): shows full checklist + fields + button + deadline + justification + reset (for modal/detail view)
  */
 export default function CrmValidationGate({ configId, produto, compact }: Props) {
   const {
@@ -30,9 +34,13 @@ export default function CrmValidationGate({ configId, produto, compact }: Props)
     configLoading,
     blockers,
     canAdvance,
+    stepDeadlineStatus,
+    isOverdue,
     toggleChecklist,
     saveField,
     advanceStep,
+    saveDelayJustification,
+    resetStep,
   } = useCrmStepValidation(configId, produto);
 
   if (configLoading || !configState) {
@@ -54,10 +62,15 @@ export default function CrmValidationGate({ configId, produto, compact }: Props)
 
   const stepLabel = CRM_STEP_LABEL[configState.current_step] || configState.current_step;
 
-  // Compact mode: just show button with blocker badge
+  // Compact mode: just show button with blocker badge + step deadline
   if (compact) {
     return (
       <div className="flex items-center gap-2">
+        <CrmStepDeadlineBadge
+          status={stepDeadlineStatus.status}
+          remainingMs={stepDeadlineStatus.remainingMs}
+          totalMs={stepDeadlineStatus.totalMs}
+        />
         {blockers.length > 0 && (
           <span className="text-[10px] text-amber-600 font-medium">
             {blockers.length} pendencia{blockers.length > 1 ? 's' : ''}
@@ -77,31 +90,43 @@ export default function CrmValidationGate({ configId, produto, compact }: Props)
   const hasChecklist = currentValidation?.checklist_items && currentValidation.checklist_items.length > 0;
   const hasFields = currentValidation?.required_fields && currentValidation.required_fields.length > 0;
   const hasBlockedUntil = configState.blocked_until && new Date(configState.blocked_until) > new Date();
+  const hasResetLoop = currentValidation?.has_reset_loop === true;
 
   return (
     <div className="space-y-4">
-      {/* Step header */}
+      {/* Step header with deadline badge */}
       <div className="flex items-center gap-2 text-sm">
         <Clock size={14} className="text-muted-foreground" />
         <span className="text-muted-foreground">Etapa atual:</span>
         <span className="font-medium text-foreground">{stepLabel}</span>
+        <CrmStepDeadlineBadge
+          status={stepDeadlineStatus.status}
+          remainingMs={stepDeadlineStatus.remainingMs}
+          totalMs={stepDeadlineStatus.totalMs}
+          className="ml-auto"
+        />
       </div>
 
-      {/* Blocked until timer */}
-      {hasBlockedUntil && (
-        <div className="flex items-center gap-2 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
-          <Timer size={14} className="text-amber-600 shrink-0" />
-          <p className="text-xs text-amber-700">
-            Etapa bloqueada ate{' '}
-            <strong>
-              {new Date(configState.blocked_until!).toLocaleDateString('pt-BR')}{' '}
-              {new Date(configState.blocked_until!).toLocaleTimeString('pt-BR', {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </strong>
-          </p>
+      {/* Reset count indicator */}
+      {configState.reset_count > 0 && (
+        <div className="flex items-center gap-1.5 text-[11px] text-amber-600 font-medium px-2 py-1 bg-amber-500/5 rounded-md border border-amber-500/15">
+          Reset #{configState.reset_count}
         </div>
+      )}
+
+      {/* Blocked countdown (D+N) */}
+      {hasBlockedUntil && (
+        <CrmBlockedCountdown blockedUntil={configState.blocked_until!} />
+      )}
+
+      {/* Delay justification (when overdue) */}
+      {isOverdue && (
+        <CrmDelayJustificationField
+          currentJustification={configState.delay_justification}
+          justifiedAt={configState.delay_justified_at}
+          onSave={(justification) => saveDelayJustification.mutate({ justification })}
+          isSaving={saveDelayJustification.isPending}
+        />
       )}
 
       {/* Checklist */}
@@ -121,6 +146,15 @@ export default function CrmValidationGate({ configId, produto, compact }: Props)
           values={configState.field_values}
           onSave={(key, value) => saveField.mutate({ key, value })}
           disabled={!!hasBlockedUntil}
+        />
+      )}
+
+      {/* Reset loop section */}
+      {hasResetLoop && (
+        <CrmResetLoopSection
+          resetCount={configState.reset_count}
+          onReset={(reason, newDate) => resetStep.mutate({ reason, newDate })}
+          isResetting={resetStep.isPending}
         />
       )}
 

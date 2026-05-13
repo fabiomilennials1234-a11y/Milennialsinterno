@@ -45,25 +45,14 @@ export function useTechDevs() {
   return useQuery<DevInfo[]>({
     queryKey: devDailyKeys.devs,
     queryFn: async () => {
-      // Get user_ids with 'devs' role
-      const { data: roles, error: rolesErr } = await (supabase as any)
-        .from('user_roles')
-        .select('user_id')
-        .eq('role', 'devs');
-      if (rolesErr) throw rolesErr;
-
-      if (!roles || roles.length === 0) return [];
-
-      const userIds = roles.map((r: any) => r.user_id);
-
-      // Get names from profiles
-      const { data: profiles, error: profErr } = await supabase
+      const { data, error } = await (supabase as any)
         .from('profiles')
         .select('user_id, name')
-        .in('user_id', userIds);
-      if (profErr) throw profErr;
+        .eq('is_tech_team_member', true)
+        .order('name');
+      if (error) throw error;
 
-      return (profiles || []).map((p) => ({
+      return (data || []).map((p: any) => ({
         user_id: p.user_id,
         name: p.name ?? 'Sem nome',
       }));

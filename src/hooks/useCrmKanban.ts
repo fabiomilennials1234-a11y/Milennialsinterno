@@ -121,8 +121,9 @@ export const AUTOMATION_STEPS = [
   'conectar_whatsapp',
   'conectar_meta_ads',
   'agendar_call_apresentacao',
-  'apresentar_funil_crm',
-  'demonstrar_chatbot',
+  'call_apresentacao_treinamento',
+  'cadastrar_usuarios',
+  'importar_leads',
   'monitorar_adocao',
   'cobrar_feedback',
   'aplicar_ajustes',
@@ -185,8 +186,6 @@ export const CRM_STEP_LABEL: Record<string, string> = {
   configurar_atendimento_humano: 'Configurar direcionamento para atendimento humano',
   testar_fluxos: 'Testar todos os fluxos internamente',
   conectar_whatsapp: 'Conectar WhatsApp ao CRM',
-  apresentar_funil_crm: 'Apresentar funil e estrutura do CRM',
-  demonstrar_chatbot: 'Demonstrar fluxo completo do chatbot',
 };
 
 // Nome da tarefa gerada ao entrar em cada step (por produto).
@@ -217,8 +216,9 @@ export const CRM_TASK_TITLE: Record<CrmProduto, Record<string, (name: string) =>
     conectar_whatsapp: (n) => `[Automation] Conectar WhatsApp ${n}`,
     conectar_meta_ads: (n) => `[Automation] Conectar Meta Ads ${n}`,
     agendar_call_apresentacao: (n) => `[Automation] Agendar Call Apresentação ${n}`,
-    apresentar_funil_crm: (n) => `[Automation] Apresentar Funil CRM ${n}`,
-    demonstrar_chatbot: (n) => `[Automation] Demonstrar Chatbot ${n}`,
+    call_apresentacao_treinamento: (n) => `[Automation] Call Apresentação e Treinamento ${n}`,
+    cadastrar_usuarios: (n) => `[Automation] Cadastrar Usuários ${n}`,
+    importar_leads: (n) => `[Automation] Importar Leads ${n}`,
     monitorar_adocao: (n) => `[Automation] Monitorar Adoção ${n}`,
     cobrar_feedback: (n) => `[Automation] Cobrar Feedback ${n}`,
     aplicar_ajustes: (n) => `[Automation] Aplicar Ajustes ${n}`,
@@ -266,8 +266,9 @@ export const CRM_PHASES_BY_PRODUTO: Record<CrmProduto, CrmPhase[]> = {
     { id: 'preparacao', label: 'Fase 1 — Preparação interna', steps: ['receber_briefing', 'estruturar_funil', 'mapear_fluxos_chatbot'] },
     { id: 'chatbot', label: 'Fase 2 — Construção dos fluxos de chatbot', steps: ['configurar_boas_vindas', 'configurar_atendimento_humano', 'testar_fluxos'] },
     { id: 'integracoes', label: 'Fase 3 — Integrações', steps: ['conectar_whatsapp', 'conectar_meta_ads'] },
-    { id: 'apresentacao', label: 'Fase 4 — Apresentação e treinamento', steps: ['agendar_call_apresentacao', 'apresentar_funil_crm', 'demonstrar_chatbot'] },
-    { id: 'acompanhamento', label: 'Fase 5 — Acompanhamento e adoção', steps: ['monitorar_adocao', 'cobrar_feedback', 'aplicar_ajustes', 'call_pos_venda'] },
+    { id: 'apresentacao', label: 'Fase 4 — Apresentação e treinamento', steps: ['agendar_call_apresentacao', 'call_apresentacao_treinamento'] },
+    { id: 'onboarding_cliente', label: 'Fase 5 — Onboarding do cliente', steps: ['cadastrar_usuarios', 'importar_leads'] },
+    { id: 'acompanhamento', label: 'Fase 6 — Acompanhamento e adoção', steps: ['monitorar_adocao', 'cobrar_feedback', 'aplicar_ajustes', 'call_pos_venda'] },
   ],
 };
 
