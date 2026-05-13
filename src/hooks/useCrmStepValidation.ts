@@ -47,6 +47,7 @@ export interface CrmConfigState {
   is_finalizado: boolean;
   delay_justification: string | null;
   delay_justified_at: string | null;
+  delay_justification_category: string | null;
 }
 
 /**
@@ -81,7 +82,7 @@ export function useCrmConfigState(configId: string | undefined) {
       if (!configId) return null;
       const { data, error } = await (supabase as any)
         .from('crm_configuracoes')
-        .select('id, produto, current_step, checklist_state, field_values, step_entered_at, blocked_until, activation_at, training_at, reset_count, is_finalizado, delay_justification, delay_justified_at')
+        .select('id, produto, current_step, checklist_state, field_values, step_entered_at, blocked_until, activation_at, training_at, reset_count, is_finalizado, delay_justification, delay_justified_at, delay_justification_category')
         .eq('id', configId)
         .single();
       if (error) throw error;
@@ -259,7 +260,7 @@ export function useCrmStepValidation(configId: string | undefined, produto: CrmP
   });
 
   const saveDelayJustification = useMutation({
-    mutationFn: async ({ justification }: { justification: string }) => {
+    mutationFn: async ({ justification, category }: { justification: string; category?: string }) => {
       if (!configId || !configState) throw new Error('Config not loaded');
       if (!justification.trim()) throw new Error('Justificativa obrigatoria');
 
@@ -268,6 +269,7 @@ export function useCrmStepValidation(configId: string | undefined, produto: CrmP
         .update({
           delay_justification: justification,
           delay_justified_at: new Date().toISOString(),
+          delay_justification_category: category || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', configId);
@@ -278,7 +280,7 @@ export function useCrmStepValidation(configId: string | undefined, produto: CrmP
         config_id: configId,
         step_key: configState.current_step,
         action: 'delay_justification',
-        details: { justification },
+        details: { justification, category: category || null },
         performed_by: user?.id || null,
       });
     },
@@ -292,7 +294,7 @@ export function useCrmStepValidation(configId: string | undefined, produto: CrmP
   });
 
   const resetStep = useMutation({
-    mutationFn: async ({ reason, newDate }: { reason: string; newDate?: string }) => {
+    mutationFn: async ({ reason, newDate, failedItems }: { reason: string; newDate?: string; failedItems?: string[] }) => {
       if (!configId) throw new Error('Config not loaded');
 
       const { data, error } = await (supabase as any).rpc('reset_crm_step', {
@@ -300,6 +302,7 @@ export function useCrmStepValidation(configId: string | undefined, produto: CrmP
         _reason: reason,
         _new_date: newDate || null,
         _performed_by: user?.id || null,
+        _failed_items: failedItems && failedItems.length > 0 ? JSON.stringify(failedItems) : null,
       });
       if (error) throw error;
       return data as { success: boolean; reset_count?: number; error?: string };

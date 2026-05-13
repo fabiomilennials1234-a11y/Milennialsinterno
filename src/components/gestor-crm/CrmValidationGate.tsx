@@ -8,6 +8,8 @@ import CrmStepDeadlineBadge from './CrmStepDeadlineBadge';
 import CrmDelayJustificationField from './CrmDelayJustificationField';
 import CrmResetLoopSection from './CrmResetLoopSection';
 import CrmBlockedCountdown from './CrmBlockedCountdown';
+import CrmValidationHistory from './CrmValidationHistory';
+import CrmTimeline from './CrmTimeline';
 import { Clock } from 'lucide-react';
 
 interface Props {
@@ -25,7 +27,7 @@ interface Props {
  *
  * Two modes:
  * - compact: shows just the button + blocker count + step deadline badge (for kanban cards)
- * - full (default): shows full checklist + fields + button + deadline + justification + reset (for modal/detail view)
+ * - full (default): shows full checklist + fields + button + deadline + justification + reset + history + timeline (for modal/detail view)
  */
 export default function CrmValidationGate({ configId, produto, compact }: Props) {
   const {
@@ -123,8 +125,9 @@ export default function CrmValidationGate({ configId, produto, compact }: Props)
       {isOverdue && (
         <CrmDelayJustificationField
           currentJustification={configState.delay_justification}
+          currentCategory={configState.delay_justification_category}
           justifiedAt={configState.delay_justified_at}
-          onSave={(justification) => saveDelayJustification.mutate({ justification })}
+          onSave={(justification, category) => saveDelayJustification.mutate({ justification, category })}
           isSaving={saveDelayJustification.isPending}
         />
       )}
@@ -153,7 +156,8 @@ export default function CrmValidationGate({ configId, produto, compact }: Props)
       {hasResetLoop && (
         <CrmResetLoopSection
           resetCount={configState.reset_count}
-          onReset={(reason, newDate) => resetStep.mutate({ reason, newDate })}
+          checklistItems={currentValidation?.checklist_items || []}
+          onReset={(reason, newDate, failedItems) => resetStep.mutate({ reason, newDate, failedItems })}
           isResetting={resetStep.isPending}
         />
       )}
@@ -166,6 +170,21 @@ export default function CrmValidationGate({ configId, produto, compact }: Props)
           onAdvance={() => advanceStep.mutate()}
           isLoading={advanceStep.isPending}
         />
+      </div>
+
+      {/* Timeline (7.6) */}
+      <div className="pt-2 border-t border-border/30">
+        <CrmTimeline
+          configId={configId}
+          produto={produto}
+          currentStep={configState.current_step}
+          isFinalizado={configState.is_finalizado}
+        />
+      </div>
+
+      {/* History (7.4) */}
+      <div className="pt-2 border-t border-border/30">
+        <CrmValidationHistory configId={configId} />
       </div>
     </div>
   );

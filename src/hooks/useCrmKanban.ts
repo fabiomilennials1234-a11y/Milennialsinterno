@@ -77,8 +77,8 @@ export function getHighestProduct(products: CrmProduto[]): CrmProduto {
  * registra o motivo do atraso.
  */
 export const CRM_CONFIG_DEADLINE_DAYS: Record<CrmProduto, number> = {
-  v8: 7,
-  automation: 7,
+  v8: 12,
+  automation: 15,
   copilot: 10,
 };
 

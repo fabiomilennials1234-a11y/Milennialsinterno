@@ -2,29 +2,39 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { RotateCcw, Calendar, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Props {
   resetCount: number;
-  onReset: (reason: string, newDate?: string) => void;
+  checklistItems: string[];
+  onReset: (reason: string, newDate?: string, failedItems?: string[]) => void;
   isResetting: boolean;
 }
 
 /**
  * Reset loop section for steps with has_reset_loop=true.
- * Shows reset count, requires reason + optional new date before resetting.
+ * Shows reset count, requires reason + failed items selection + optional new date before resetting.
  */
-export default function CrmResetLoopSection({ resetCount, onReset, isResetting }: Props) {
+export default function CrmResetLoopSection({ resetCount, checklistItems, onReset, isResetting }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [reason, setReason] = useState('');
   const [newDate, setNewDate] = useState('');
+  const [failedItems, setFailedItems] = useState<string[]>([]);
+
+  const toggleFailedItem = (item: string) => {
+    setFailedItems(prev =>
+      prev.includes(item) ? prev.filter(i => i !== item) : [...prev, item]
+    );
+  };
 
   const handleReset = () => {
     if (!reason.trim()) return;
-    onReset(reason.trim(), newDate || undefined);
+    onReset(reason.trim(), newDate || undefined, failedItems.length > 0 ? failedItems : undefined);
     setReason('');
     setNewDate('');
+    setFailedItems([]);
     setIsOpen(false);
   };
 
@@ -62,6 +72,33 @@ export default function CrmResetLoopSection({ resetCount, onReset, isResetting }
             Checklist sera zerado e uma nova tarefa de reagendamento sera criada.
           </div>
 
+          {/* Failed items selection (7.8) */}
+          {checklistItems.length > 0 && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-foreground">Qual(is) item(ns) travou(aram)?</label>
+              <div className="space-y-1">
+                {checklistItems.map(item => (
+                  <label
+                    key={item}
+                    className={cn(
+                      'flex items-start gap-2 p-1.5 rounded-md border cursor-pointer transition-all text-[11px]',
+                      failedItems.includes(item)
+                        ? 'bg-amber-500/10 border-amber-500/30'
+                        : 'bg-background border-border/50 hover:border-amber-500/20'
+                    )}
+                  >
+                    <Checkbox
+                      checked={failedItems.includes(item)}
+                      onCheckedChange={() => toggleFailedItem(item)}
+                      className="mt-0.5"
+                    />
+                    <span className="leading-snug">{item}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="space-y-1">
             <label className="text-xs font-medium text-foreground">Motivo do reset *</label>
             <Textarea
@@ -90,7 +127,7 @@ export default function CrmResetLoopSection({ resetCount, onReset, isResetting }
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => { setIsOpen(false); setReason(''); setNewDate(''); }}
+              onClick={() => { setIsOpen(false); setReason(''); setNewDate(''); setFailedItems([]); }}
               className="h-7 text-[11px]"
             >
               Cancelar
