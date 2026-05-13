@@ -8,7 +8,6 @@ import { CONSULTORIA_TASK_MAP, GESTAO_TASK_MAP, CONSULTORIA_DUE_DAYS, GESTAO_DUE
 import {
   getCurrentWeekday as getCurrentWeekdayCrm,
   welcomeTaskTitle as crmWelcomeTaskTitle,
-  getNextStep as getNextCrmStep,
   getConfigDueDate as getCrmConfigDueDate,
   CRM_TASK_TITLE,
   type CrmProduto,
@@ -532,10 +531,12 @@ export function useUpdateDepartmentTaskStatus(department: string) {
       // ===== GESTOR DE CRM — MOTOR DE CONFIGURAÇÃO (V8 / Automation / Copilot) =====
       // Se a tarefa tem description='crm-config:{produto}', identifica a configuração
       // pela combinação (client_id, produto) — sem ambiguidade entre cards de produtos
-      // diferentes do mesmo cliente — e avança o step. Ao concluir o último step
-      // ('finalizar'), marca `is_finalizado=true` para o card ir para "CRMs Finalizados".
+      // diferentes do mesmo cliente — e avança o step via RPC `advance_crm_step`.
+      // O RPC valida checklist + campos obrigatórios + bloqueio temporal antes de avançar.
+      // Se a validação falha, a tarefa volta para 'todo' e o usuário é notificado.
       let crmConfigAdvanced = false;
       let crmConfigFinalized = false;
+      let crmValidationBlocked = false;
       if (status === 'done') {
         const { data: cfgTask } = await supabase
           .from('department_tasks')
@@ -561,85 +562,99 @@ export function useUpdateDepartmentTaskStatus(department: string) {
               .maybeSingle();
 
             if (cfg && !cfg.is_finalizado) {
-              const next = getNextCrmStep(produto, cfg.current_step);
+              // Call server-side validation RPC
+              const { data: rpcResult, error: rpcError } = await (supabase as any).rpc('advance_crm_step', {
+                _config_id: cfg.id,
+                _performed_by: user?.id || null,
+              });
 
-              if (next === null) {
-                // Último step concluído → finaliza configuração (card vai para CRMs Finalizados)
-                await (supabase as any)
-                  .from('crm_configuracoes')
-                  .update({ is_finalizado: true, finalizado_at: new Date().toISOString() })
-                  .eq('id', cfg.id);
-                crmConfigFinalized = true;
-              } else {
-                // Avança step + cria próxima tarefa (idempotente)
-                await (supabase as any)
-                  .from('crm_configuracoes')
-                  .update({ current_step: next })
-                  .eq('id', cfg.id);
+              if (rpcError) {
+                console.error('[CRM] advance_crm_step RPC error:', rpcError.message);
+                // Fallback: don't block, let old behavior handle it
+              } else if (rpcResult && !rpcResult.allowed) {
+                // Validation failed — revert task to 'todo'
+                await supabase
+                  .from('department_tasks')
+                  .update({ status: 'todo' } as any)
+                  .eq('id', taskId);
+                crmValidationBlocked = true;
+              } else if (rpcResult?.allowed) {
+                if (rpcResult.finalized) {
+                  crmConfigFinalized = true;
+                } else {
+                  // RPC advanced the step — create next task
+                  const nextStep = rpcResult.next_step as string;
+                  const { data: client } = await supabase
+                    .from('clients')
+                    .select('name, razao_social')
+                    .eq('id', cfgTask.related_client_id)
+                    .single();
+                  const clientName = (client?.razao_social as string | null) || client?.name || 'Cliente';
 
-                // Nome do cliente para o título da próxima tarefa
-                const { data: client } = await supabase
-                  .from('clients')
-                  .select('name, razao_social')
-                  .eq('id', cfgTask.related_client_id)
-                  .single();
-                const clientName = (client?.razao_social as string | null) || client?.name || 'Cliente';
+                  const titleFn = CRM_TASK_TITLE[produto][nextStep];
+                  if (titleFn && user?.id) {
+                    // Guard: only create if no active task exists for this config
+                    const { data: existingNext } = await (supabase as any)
+                      .from('department_tasks')
+                      .select('id')
+                      .eq('related_client_id', cfgTask.related_client_id)
+                      .eq('department', 'gestor_crm')
+                      .eq('description', `crm-config:${produto}`)
+                      .in('status', ['todo', 'doing'])
+                      .eq('archived', false)
+                      .limit(1);
 
-                const titleFn = CRM_TASK_TITLE[produto][next];
-                if (titleFn && user?.id) {
-                  // Guarda: só cria a próxima tarefa se não houver uma ativa
-                  // (todo/doing) com a mesma tag para este cliente.
-                  // Protege contra double-fire do React Query / drag-drop.
-                  const { data: existingNext } = await (supabase as any)
-                    .from('department_tasks')
-                    .select('id')
-                    .eq('related_client_id', cfgTask.related_client_id)
-                    .eq('department', 'gestor_crm')
-                    .eq('description', `crm-config:${produto}`)
-                    .in('status', ['todo', 'doing'])
-                    .eq('archived', false)
-                    .limit(1);
-
-                  if (!existingNext || existingNext.length === 0) {
-                    const dueDate = cfg.created_at
-                      ? getCrmConfigDueDate(cfg.created_at, produto)
-                      : undefined;
-                    const ownerId = await resolveTaskOwner(cfgTask.related_client_id, 'assigned_crm', user.id);
-                    await supabase.from('department_tasks').insert({
-                      user_id: ownerId,
-                      title: titleFn(clientName),
-                      description: `crm-config:${produto}`,
-                      task_type: 'daily',
-                      status: 'todo',
-                      priority: 'high',
-                      department: 'gestor_crm',
-                      related_client_id: cfgTask.related_client_id,
-                      due_date: dueDate,
-                    } as any);
+                    if (!existingNext || existingNext.length === 0) {
+                      const dueDate = cfg.created_at
+                        ? getCrmConfigDueDate(cfg.created_at, produto)
+                        : undefined;
+                      const ownerId = await resolveTaskOwner(cfgTask.related_client_id, 'assigned_crm', user.id);
+                      await supabase.from('department_tasks').insert({
+                        user_id: ownerId,
+                        title: titleFn(clientName),
+                        description: `crm-config:${produto}`,
+                        task_type: 'daily',
+                        status: 'todo',
+                        priority: 'high',
+                        department: 'gestor_crm',
+                        related_client_id: cfgTask.related_client_id,
+                        due_date: dueDate,
+                      } as any);
+                    }
                   }
+                  crmConfigAdvanced = true;
                 }
-                crmConfigAdvanced = true;
               }
             }
           }
         }
       }
 
-      return { _source: 'department' as const, status, financeiroCompleted, allClientTasksDone, mktplaceAdvanced, crmWelcomeAdvanced, crmConfigAdvanced, crmConfigFinalized };
+      return { _source: 'department' as const, status, financeiroCompleted, allClientTasksDone, mktplaceAdvanced, crmWelcomeAdvanced, crmConfigAdvanced, crmConfigFinalized, crmValidationBlocked };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['project-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['all-project-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['tech', 'projects'] });
+      if (result?.crmValidationBlocked) {
+        queryClient.invalidateQueries({ queryKey: ['crm-configuracoes'] });
+        queryClient.invalidateQueries({ queryKey: ['crm-configs-for-client'] });
+        queryClient.invalidateQueries({ queryKey: ['crm-config-state'] });
+        toast.error('Etapa com pendencias', {
+          description: 'Complete o checklist e campos obrigatorios antes de concluir.',
+        });
+      }
       if (result?.crmConfigAdvanced) {
         queryClient.invalidateQueries({ queryKey: ['crm-configuracoes'] });
         queryClient.invalidateQueries({ queryKey: ['crm-configs-for-client'] });
+        queryClient.invalidateQueries({ queryKey: ['crm-config-state'] });
         toast.success('Etapa concluída — próxima tarefa criada!');
       }
       if (result?.crmConfigFinalized) {
         queryClient.invalidateQueries({ queryKey: ['crm-configuracoes'] });
         queryClient.invalidateQueries({ queryKey: ['crm-configs-for-client'] });
+        queryClient.invalidateQueries({ queryKey: ['crm-config-state'] });
         toast.success('CRM finalizado! Card movido para "CRMs Finalizados".');
       }
       if (result?.crmWelcomeAdvanced) {

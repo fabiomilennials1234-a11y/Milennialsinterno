@@ -11,7 +11,6 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import ClientViewModal from '@/components/client/ClientViewModal';
-import DiagnosticoCountdownBadge from '@/components/mktplace/DiagnosticoCountdownBadge';
 import MktplaceRelatorioCountdownBadge from '@/components/mktplace/MktplaceRelatorioCountdownBadge';
 import MktplaceReportBuilderModal from '@/components/mktplace/MktplaceReportBuilderModal';
 import { Eye, GripVertical, Clock, Calendar as CalendarIcon, FileText } from 'lucide-react';
@@ -217,7 +216,6 @@ export default function MktplaceAcompanhamentoSection({ trackingType, title }: P
                                   </Badge>
                                 )}
                               </div>
-                              <DiagnosticoCountdownBadge clientId={item.client_id} className="w-full justify-center" alwaysShow />
                               <MktplaceRelatorioCountdownBadge clientId={item.client_id} trackingType={trackingType} className="w-full justify-center" alwaysShow />
                             </div>
                           )}

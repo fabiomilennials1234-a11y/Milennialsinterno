@@ -7,11 +7,14 @@ function getCycleDays(trackingType: 'consultoria' | 'gestao'): number {
   return trackingType === 'gestao' ? 15 : 30;
 }
 
+export type RelatorioStatusColor = 'green' | 'yellow' | 'orange' | 'red' | 'overdue';
+
 export interface MktplaceRelatorioCycleStatus {
   daysSince: number;
   daysLeft: number;
   cycleDays: number;
   status: 'pending' | 'normal' | 'alert' | 'overdue';
+  statusColor: RelatorioStatusColor;
   isLoading: boolean;
 }
 
@@ -76,16 +79,13 @@ export function useMktplaceRelatorioStatus(
     const createdDate = latestRel.created_at.split('T')[0];
     const daysSince = getDaysSinceDate(createdDate);
     const daysLeft = getDaysRemaining(daysSince, cycleDays);
+    const result = deriveStatus(daysLeft, daysSince, cycleDays);
 
-    let status: MktplaceRelatorioCycleStatus['status'] = 'normal';
-    if (daysLeft === 0 && daysSince >= cycleDays) status = 'overdue';
-    else if (daysLeft > 0 && daysLeft <= 4) status = 'alert';
-
-    return { daysSince, daysLeft, cycleDays, status, isLoading };
+    return { daysSince, daysLeft, cycleDays, ...result, isLoading };
   }
 
   if (!clientData?.assigned_mktplace) {
-    return { daysSince: 0, daysLeft: 0, cycleDays, status: 'pending', isLoading };
+    return { daysSince: 0, daysLeft: 0, cycleDays, status: 'pending', statusColor: 'green' as const, isLoading };
   }
 
   const clientCreated = clientData.created_at?.split('T')[0] || CUTOFF_DATE;
@@ -93,10 +93,24 @@ export function useMktplaceRelatorioStatus(
 
   const daysSince = getDaysSinceDate(referenceDate);
   const daysLeft = getDaysRemaining(daysSince, cycleDays);
+  const result = deriveStatus(daysLeft, daysSince, cycleDays);
 
-  let status: MktplaceRelatorioCycleStatus['status'] = 'normal';
-  if (daysLeft === 0 && daysSince >= cycleDays) status = 'overdue';
-  else if (daysLeft > 0 && daysLeft <= 4) status = 'alert';
+  return { daysSince, daysLeft, cycleDays, ...result, isLoading };
+}
 
-  return { daysSince, daysLeft, cycleDays, status, isLoading };
+function deriveStatus(
+  daysLeft: number,
+  daysSince: number,
+  cycleDays: number,
+): { status: MktplaceRelatorioCycleStatus['status']; statusColor: RelatorioStatusColor } {
+  if (daysLeft === 0 && daysSince >= cycleDays) {
+    return { status: 'overdue', statusColor: 'overdue' };
+  }
+
+  const percentLeft = cycleDays > 0 ? daysLeft / cycleDays : 0;
+
+  if (percentLeft > 0.50) return { status: 'normal', statusColor: 'green' };
+  if (percentLeft > 0.25) return { status: 'normal', statusColor: 'yellow' };
+  if (percentLeft > 0.10) return { status: 'alert', statusColor: 'orange' };
+  return { status: 'alert', statusColor: 'red' };
 }

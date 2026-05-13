@@ -2,6 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Badge } from '@/components/ui/badge';
 import { CRM_PRODUTO_LABEL, CRM_PRODUTO_COLOR, CRM_STEP_LABEL, type CrmProduto } from '@/hooks/useCrmKanban';
 import { FileText, CheckCircle2, Clock } from 'lucide-react';
+import CrmValidationGate from './CrmValidationGate';
 
 interface Props {
   isOpen: boolean;
@@ -56,6 +57,16 @@ export default function CrmConfigViewModal({ isOpen, onClose, config }: Props) {
               </span>
             )}
           </div>
+
+          {/* Validation gate — checklist, required fields, advance button */}
+          {!config.is_finalizado && (
+            <div className="border-t border-border pt-4">
+              <CrmValidationGate
+                configId={config.id}
+                produto={config.produto}
+              />
+            </div>
+          )}
 
           {/* Renderização genérica dos dados do formulário */}
           <FormDataView data={formData} />

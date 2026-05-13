@@ -14,6 +14,7 @@ import {
 } from '@/hooks/useCrmKanban';
 import CrmConfigViewModal from './CrmConfigViewModal';
 import CrmDeadlineBadge from './CrmDeadlineBadge';
+import CrmValidationGate from './CrmValidationGate';
 
 interface Props {
   produto: CrmProduto;
@@ -119,6 +120,14 @@ export default function CrmConfigColumnSection({ produto }: Props) {
                             {cfg.created_at && (
                               <CrmDeadlineBadge createdAt={cfg.created_at} produto={produto} />
                             )}
+                          </div>
+                          {/* Compact validation gate: shows blocker count + advance button */}
+                          <div className="pt-1 border-t border-border/30">
+                            <CrmValidationGate
+                              configId={cfg.id}
+                              produto={produto}
+                              compact
+                            />
                           </div>
                         </CardContent>
                       </Card>
