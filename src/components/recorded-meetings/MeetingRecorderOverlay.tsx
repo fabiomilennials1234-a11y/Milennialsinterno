@@ -1,7 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useMeetingRecorder, RecorderStatus } from '@/hooks/useMeetingRecorder';
-import { useUploadMeetingRecording } from '@/hooks/useUploadMeetingRecording';
+import { useMeetingRecorder } from '@/hooks/useMeetingRecorder';
+import { useChunkUploader } from '@/hooks/useChunkUploader';
+import { useRecordingSession, RecordingSession } from '@/hooks/useRecordingSession';
+import { useRecordingAssembly } from '@/hooks/useRecordingAssembly';
+import { useRecordingRecovery } from '@/hooks/useRecordingRecovery';
+import RecordingRecoveryBanner from './RecordingRecoveryBanner';
 import { useRecordedMeetings } from '@/hooks/useRecordedMeetings';
 import { useAllActiveClients } from '@/hooks/useAllActiveClients';
 import { ClientCombobox } from '@/components/ui/client-combobox';
@@ -27,8 +31,10 @@ import {
   MonitorUp,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
+import { clearSession } from '@/lib/recordingIDB';
 
-type OverlayState = 'idle' | 'setup' | 'recording' | 'paused' | 'uploading' | 'done' | 'error';
+type OverlayState = 'idle' | 'setup' | 'recording' | 'paused' | 'processing' | 'done' | 'error';
 
 function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -36,32 +42,186 @@ function formatDuration(seconds: number): string {
   return `${m}:${s}`;
 }
 
-function formatBytes(bytes: number): string {
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
 export default function MeetingRecorderOverlay() {
-  const recorder = useMeetingRecorder();
-  const uploader = useUploadMeetingRecording();
   const { folders } = useRecordedMeetings();
   const { data: clients = [], isLoading: clientsLoading } = useAllActiveClients();
+  const queryClient = useQueryClient();
 
   // Setup form state
   const [title, setTitle] = useState('');
   const [folderId, setFolderId] = useState('');
   const [clientId, setClientId] = useState<string | null>(null);
+  const [showSetup, setShowSetup] = useState(false);
+
+  // Pipeline state
+  const [activeSession, setActiveSession] = useState<RecordingSession | null>(null);
+  const [pipelineState, setPipelineState] = useState<'idle' | 'processing' | 'done' | 'error'>('idle');
+  const [pipelineError, setPipelineError] = useState<string | null>(null);
+
+  // Track chunk counts via refs for stable callback references
+  const videoCountRef = useRef(0);
+  const audioCountRef = useRef(0);
+  const totalBytesRef = useRef(0);
+  const activeSessionRef = useRef<RecordingSession | null>(null);
+  activeSessionRef.current = activeSession;
+
+  // Hooks
+  const chunkUploader = useChunkUploader();
+  const sessionApi = useRecordingSession();
+  const assembly = useRecordingAssembly();
+  const recovery = useRecordingRecovery();
+
+  // Refs for form values (stable access in callbacks)
+  const titleRef = useRef(title);
+  const folderIdRef = useRef(folderId);
+  const clientIdRef = useRef(clientId);
+  titleRef.current = title;
+  folderIdRef.current = folderId;
+  clientIdRef.current = clientId;
+
+  // Debounced DB update for chunk progress (avoid hammering DB every second)
+  const lastProgressUpdateRef = useRef(0);
+  const progressUpdateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const scheduleProgressUpdate = useCallback(() => {
+    if (progressUpdateTimerRef.current) return; // already scheduled
+
+    progressUpdateTimerRef.current = setTimeout(() => {
+      progressUpdateTimerRef.current = null;
+      const session = activeSessionRef.current;
+      if (session) {
+        sessionApi.updateChunkProgress(
+          session.id,
+          videoCountRef.current + audioCountRef.current,
+          totalBytesRef.current,
+        );
+        lastProgressUpdateRef.current = Date.now();
+      }
+    }, 5000); // update DB every 5 seconds
+  }, [sessionApi]);
+
+  // Chunk callbacks
+  const handleVideoChunk = useCallback((blob: Blob, index: number) => {
+    const session = activeSessionRef.current;
+    if (!session) return;
+
+    videoCountRef.current = index + 1;
+    totalBytesRef.current += blob.size;
+
+    chunkUploader.enqueueChunk({
+      sessionId: session.id,
+      track: 'video',
+      index,
+      blob,
+      storagePrefix: session.storage_prefix,
+    });
+
+    scheduleProgressUpdate();
+  }, [chunkUploader, scheduleProgressUpdate]);
+
+  const handleAudioChunk = useCallback((blob: Blob, index: number) => {
+    const session = activeSessionRef.current;
+    if (!session) return;
+
+    audioCountRef.current = index + 1;
+    totalBytesRef.current += blob.size;
+
+    chunkUploader.enqueueChunk({
+      sessionId: session.id,
+      track: 'audio',
+      index,
+      blob,
+      storagePrefix: session.storage_prefix,
+    });
+
+    scheduleProgressUpdate();
+  }, [chunkUploader, scheduleProgressUpdate]);
+
+  // Auto-stop handler (browser "Stop sharing")
+  const handleAutoStop = useCallback(async (durationSeconds: number) => {
+    const session = activeSessionRef.current;
+    if (!session) return;
+
+    setPipelineState('processing');
+
+    try {
+      // Drain remaining uploads
+      await chunkUploader.drainQueue();
+
+      // Flush final progress to DB
+      await sessionApi.updateChunkProgress(
+        session.id,
+        videoCountRef.current + audioCountRef.current,
+        totalBytesRef.current,
+      );
+
+      await sessionApi.stopSession(session.id, durationSeconds);
+
+      // Assemble
+      const meetingId = await assembly.assemble({
+        sessionId: session.id,
+        storagePrefix: session.storage_prefix,
+        videoChunkCount: videoCountRef.current,
+        audioChunkCount: audioCountRef.current,
+        durationSeconds,
+        title: titleRef.current.trim(),
+        folderId: folderIdRef.current,
+        clientId: clientIdRef.current,
+      });
+
+      await clearSession(session.id);
+      queryClient.invalidateQueries({ queryKey: ['recorded-meetings'] });
+      setPipelineState('done');
+      toast.success('Gravacao salva com sucesso!');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erro desconhecido';
+      setPipelineError(msg);
+      setPipelineState('error');
+      toast.error('Erro ao salvar gravacao: ' + msg);
+
+      if (session) {
+        await sessionApi.markFailed(session.id, msg);
+      }
+    }
+  }, [chunkUploader, sessionApi, assembly, queryClient]);
+
+  const recorder = useMeetingRecorder({
+    onAutoStop: handleAutoStop,
+    onVideoChunk: handleVideoChunk,
+    onAudioChunk: handleAudioChunk,
+  });
 
   const overlayState: OverlayState = (() => {
-    if (uploader.status === 'uploading') return 'uploading';
-    if (uploader.status === 'done') return 'done';
-    if (uploader.status === 'error') return 'error';
+    if (pipelineState === 'processing') return 'processing';
+    if (pipelineState === 'done') return 'done';
+    if (pipelineState === 'error') return 'error';
     if (recorder.status === 'recording') return 'recording';
     if (recorder.status === 'paused') return 'paused';
     return 'idle';
   })();
 
-  const [showSetup, setShowSetup] = useState(false);
+  // Prevent page close during recording or processing
+  useEffect(() => {
+    const shouldBlock = overlayState === 'recording' || overlayState === 'paused' || overlayState === 'processing';
+    if (!shouldBlock) return;
+
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [overlayState]);
+
+  // Cleanup progress timer on unmount
+  useEffect(() => {
+    return () => {
+      if (progressUpdateTimerRef.current) {
+        clearTimeout(progressUpdateTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleOpenSetup = useCallback(() => {
     if (!recorder.isSupported) {
@@ -83,62 +243,130 @@ export default function MeetingRecorderOverlay() {
       toast.error('Selecione uma pasta');
       return;
     }
-    setShowSetup(false);
-    await recorder.startRecording();
-  }, [title, folderId, recorder]);
 
-  const handleStop = useCallback(async () => {
     try {
-      const result = await recorder.stopRecording();
-
-      await uploader.upload(result.videoBlob, result.audioBlob, {
+      // Create session in DB first
+      const session = await sessionApi.createSession({
         title: title.trim(),
         folderId,
         clientId,
-        durationSeconds: result.durationSeconds,
-        meetingDate: new Date().toISOString().split('T')[0],
-        participants: [],
-        isWholeTeam: true,
-        ata: null,
-        summary: null,
       });
 
+      // Reset counters
+      videoCountRef.current = 0;
+      audioCountRef.current = 0;
+      totalBytesRef.current = 0;
+
+      setActiveSession(session);
+      setPipelineState('idle');
+      setPipelineError(null);
+      setShowSetup(false);
+
+      await recorder.startRecording();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erro ao iniciar';
+      toast.error(msg);
+    }
+  }, [title, folderId, clientId, sessionApi, recorder]);
+
+  const handleStop = useCallback(async () => {
+    if (!activeSession) return;
+
+    setPipelineState('processing');
+
+    try {
+      const durationSeconds = await recorder.stopRecording();
+
+      // Drain remaining chunk uploads
+      await chunkUploader.drainQueue();
+
+      // Flush final progress
+      await sessionApi.updateChunkProgress(
+        activeSession.id,
+        videoCountRef.current + audioCountRef.current,
+        totalBytesRef.current,
+      );
+
+      await sessionApi.stopSession(activeSession.id, durationSeconds);
+
+      // Assemble
+      const meetingId = await assembly.assemble({
+        sessionId: activeSession.id,
+        storagePrefix: activeSession.storage_prefix,
+        videoChunkCount: videoCountRef.current,
+        audioChunkCount: audioCountRef.current,
+        durationSeconds,
+        title: titleRef.current.trim(),
+        folderId: folderIdRef.current,
+        clientId: clientIdRef.current,
+      });
+
+      await clearSession(activeSession.id);
+      queryClient.invalidateQueries({ queryKey: ['recorded-meetings'] });
+      setPipelineState('done');
       toast.success('Gravacao salva com sucesso!');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Erro desconhecido';
+      setPipelineError(msg);
+      setPipelineState('error');
       toast.error('Erro ao salvar gravacao: ' + msg);
-    }
-  }, [recorder, uploader, title, folderId, clientId]);
 
-  const handleCancel = useCallback(() => {
+      if (activeSession) {
+        await sessionApi.markFailed(activeSession.id, msg);
+      }
+    }
+  }, [activeSession, recorder, chunkUploader, sessionApi, assembly, queryClient]);
+
+  const handleCancel = useCallback(async () => {
     recorder.cancelRecording();
+
+    if (activeSession) {
+      await sessionApi.abandonSession(activeSession.id);
+      await clearSession(activeSession.id);
+    }
+
+    setActiveSession(null);
+    setPipelineState('idle');
+    setPipelineError(null);
     setShowSetup(false);
-  }, [recorder]);
+  }, [recorder, activeSession, sessionApi]);
 
   const handleDismiss = useCallback(() => {
-    uploader.reset();
+    setActiveSession(null);
+    setPipelineState('idle');
+    setPipelineError(null);
     setTitle('');
     setFolderId('');
     setClientId(null);
-  }, [uploader]);
+  }, []);
 
-  // FAB — always visible when idle and not in setup
+  // Computed visibility
   const showFab = overlayState === 'idle' && !showSetup;
-
-  // Recording bar — visible during recording/paused
   const showRecordingBar = overlayState === 'recording' || overlayState === 'paused';
-
-  // Upload progress — visible during uploading
-  const showUploadProgress = overlayState === 'uploading';
-
-  // Done banner
+  const showProcessing = overlayState === 'processing';
   const showDone = overlayState === 'done';
-
-  // Error banner
   const showError = overlayState === 'error';
+
+  const assemblyLabel = (() => {
+    switch (assembly.stage) {
+      case 'fetching': return 'Baixando chunks...';
+      case 'assembling': return 'Montando gravacao...';
+      case 'uploading-video': return 'Enviando video...';
+      case 'uploading-audio': return 'Enviando audio...';
+      case 'finalizing': return 'Finalizando...';
+      default: return 'Processando...';
+    }
+  })();
 
   return createPortal(
     <>
+      {/* Recovery Banner */}
+      <RecordingRecoveryBanner
+        sessions={recovery.recoverableSessions}
+        onAbandon={recovery.abandonSession}
+        onDismiss={recovery.dismissSession}
+      />
+
       {/* Floating Action Button */}
       {showFab && (
         <button
@@ -258,6 +486,13 @@ export default function MeetingRecorderOverlay() {
             {title}
           </span>
 
+          {/* Chunk indicator */}
+          <span className="text-xs text-muted-foreground tabular-nums hidden sm:block">
+            {chunkUploader.pendingCount > 0
+              ? `${chunkUploader.pendingCount} pendente${chunkUploader.pendingCount > 1 ? 's' : ''}`
+              : ''}
+          </span>
+
           {/* Divider */}
           <div className="w-px h-6 bg-border" />
 
@@ -308,26 +543,11 @@ export default function MeetingRecorderOverlay() {
         </div>
       )}
 
-      {/* Upload Progress */}
-      {showUploadProgress && (
+      {/* Processing (assembly + upload) */}
+      {showProcessing && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 px-5 py-3 rounded-2xl bg-card border border-border shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200 min-w-[280px]">
           <Loader2 size={18} className="text-primary animate-spin shrink-0" />
-          <div className="flex-1 space-y-1">
-            <p className="text-sm font-medium text-foreground">
-              {uploader.progress.stage === 'video' && 'Enviando video...'}
-              {uploader.progress.stage === 'audio' && 'Enviando audio...'}
-              {uploader.progress.stage === 'saving' && 'Salvando...'}
-            </p>
-            <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
-              <div
-                className="h-full rounded-full bg-primary transition-all duration-300"
-                style={{ width: `${uploader.progress.percentage}%` }}
-              />
-            </div>
-          </div>
-          <span className="text-xs text-muted-foreground tabular-nums">
-            {uploader.progress.percentage}%
-          </span>
+          <p className="text-sm font-medium text-foreground">{assemblyLabel}</p>
         </div>
       )}
 
@@ -352,7 +572,7 @@ export default function MeetingRecorderOverlay() {
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-2xl bg-card border border-destructive/30 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200 max-w-md">
           <AlertCircle size={18} className="text-destructive shrink-0" />
           <span className="text-sm text-foreground flex-1 truncate">
-            {uploader.error || recorder.error || 'Erro desconhecido'}
+            {pipelineError || assembly.error || recorder.error || 'Erro desconhecido'}
           </span>
           <Button
             variant="ghost"

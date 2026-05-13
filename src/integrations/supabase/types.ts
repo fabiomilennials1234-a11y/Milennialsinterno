@@ -2400,42 +2400,72 @@ export type Database = {
       }
       crm_configuracoes: {
         Row: {
+          activation_at: string | null
+          blocked_until: string | null
+          checklist_state: Json
           client_id: string
           created_at: string
           created_by: string | null
           current_step: string
+          delay_justification: string | null
+          delay_justification_category: string | null
+          delay_justified_at: string | null
+          field_values: Json
           finalizado_at: string | null
           form_data: Json
           gestor_id: string
           id: string
           is_finalizado: boolean
           produto: string
+          reset_count: number
+          step_entered_at: string | null
+          training_at: string | null
           updated_at: string
         }
         Insert: {
+          activation_at?: string | null
+          blocked_until?: string | null
+          checklist_state?: Json
           client_id: string
           created_at?: string
           created_by?: string | null
           current_step?: string
+          delay_justification?: string | null
+          delay_justification_category?: string | null
+          delay_justified_at?: string | null
+          field_values?: Json
           finalizado_at?: string | null
           form_data?: Json
           gestor_id: string
           id?: string
           is_finalizado?: boolean
           produto: string
+          reset_count?: number
+          step_entered_at?: string | null
+          training_at?: string | null
           updated_at?: string
         }
         Update: {
+          activation_at?: string | null
+          blocked_until?: string | null
+          checklist_state?: Json
           client_id?: string
           created_at?: string
           created_by?: string | null
           current_step?: string
+          delay_justification?: string | null
+          delay_justification_category?: string | null
+          delay_justified_at?: string | null
+          field_values?: Json
           finalizado_at?: string | null
           form_data?: Json
           gestor_id?: string
           id?: string
           is_finalizado?: boolean
           produto?: string
+          reset_count?: number
+          step_entered_at?: string | null
+          training_at?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -2618,6 +2648,95 @@ export type Database = {
             columns: ["notification_id"]
             isOneToOne: false
             referencedRelation: "task_delay_notifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_step_validations: {
+        Row: {
+          checklist_items: Json | null
+          created_at: string
+          deadline_days: number | null
+          has_reset_loop: boolean
+          id: string
+          marks_timestamp: string | null
+          produto: string
+          required_fields: Json | null
+          step_index: number
+          step_key: string
+          step_label: string
+          task_title_template: string
+          trigger_delay_days: number | null
+          trigger_event: string | null
+        }
+        Insert: {
+          checklist_items?: Json | null
+          created_at?: string
+          deadline_days?: number | null
+          has_reset_loop?: boolean
+          id?: string
+          marks_timestamp?: string | null
+          produto: string
+          required_fields?: Json | null
+          step_index: number
+          step_key: string
+          step_label: string
+          task_title_template: string
+          trigger_delay_days?: number | null
+          trigger_event?: string | null
+        }
+        Update: {
+          checklist_items?: Json | null
+          created_at?: string
+          deadline_days?: number | null
+          has_reset_loop?: boolean
+          id?: string
+          marks_timestamp?: string | null
+          produto?: string
+          required_fields?: Json | null
+          step_index?: number
+          step_key?: string
+          step_label?: string
+          task_title_template?: string
+          trigger_delay_days?: number | null
+          trigger_event?: string | null
+        }
+        Relationships: []
+      }
+      crm_validation_log: {
+        Row: {
+          action: string
+          config_id: string
+          created_at: string
+          details: Json
+          id: string
+          performed_by: string | null
+          step_key: string
+        }
+        Insert: {
+          action: string
+          config_id: string
+          created_at?: string
+          details?: Json
+          id?: string
+          performed_by?: string | null
+          step_key: string
+        }
+        Update: {
+          action?: string
+          config_id?: string
+          created_at?: string
+          details?: Json
+          id?: string
+          performed_by?: string | null
+          step_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_validation_log_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "crm_configuracoes"
             referencedColumns: ["id"]
           },
         ]
@@ -6089,6 +6208,7 @@ export type Database = {
           group_id: string | null
           id: string
           is_coringa: boolean
+          is_tech_team_member: boolean | null
           last_sign_in_at: string | null
           name: string
           squad_id: string | null
@@ -6105,6 +6225,7 @@ export type Database = {
           group_id?: string | null
           id?: string
           is_coringa?: boolean
+          is_tech_team_member?: boolean | null
           last_sign_in_at?: string | null
           name: string
           squad_id?: string | null
@@ -6121,6 +6242,7 @@ export type Database = {
           group_id?: string | null
           id?: string
           is_coringa?: boolean
+          is_tech_team_member?: boolean | null
           last_sign_in_at?: string | null
           name?: string
           squad_id?: string | null
@@ -6303,6 +6425,7 @@ export type Database = {
           participants: string[] | null
           recorded_in_browser: boolean | null
           summary: string | null
+          title: string | null
           transcript: Json | null
           transcript_error: string | null
           transcript_status: string | null
@@ -6326,6 +6449,7 @@ export type Database = {
           participants?: string[] | null
           recorded_in_browser?: boolean | null
           summary?: string | null
+          title?: string | null
           transcript?: Json | null
           transcript_error?: string | null
           transcript_status?: string | null
@@ -6349,6 +6473,7 @@ export type Database = {
           participants?: string[] | null
           recorded_in_browser?: boolean | null
           summary?: string | null
+          title?: string | null
           transcript?: Json | null
           transcript_error?: string | null
           transcript_status?: string | null
@@ -6369,6 +6494,94 @@ export type Database = {
             columns: ["folder_id"]
             isOneToOne: false
             referencedRelation: "meeting_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recording_sessions: {
+        Row: {
+          assembled_at: string | null
+          chunk_count: number
+          client_id: string | null
+          created_at: string | null
+          created_by: string
+          duration_seconds: number | null
+          error_message: string | null
+          final_audio_path: string | null
+          final_video_path: string | null
+          folder_id: string
+          id: string
+          meeting_id: string | null
+          started_at: string
+          status: string
+          stopped_at: string | null
+          storage_prefix: string
+          title: string
+          total_bytes: number
+          updated_at: string | null
+        }
+        Insert: {
+          assembled_at?: string | null
+          chunk_count?: number
+          client_id?: string | null
+          created_at?: string | null
+          created_by: string
+          duration_seconds?: number | null
+          error_message?: string | null
+          final_audio_path?: string | null
+          final_video_path?: string | null
+          folder_id: string
+          id?: string
+          meeting_id?: string | null
+          started_at?: string
+          status?: string
+          stopped_at?: string | null
+          storage_prefix: string
+          title: string
+          total_bytes?: number
+          updated_at?: string | null
+        }
+        Update: {
+          assembled_at?: string | null
+          chunk_count?: number
+          client_id?: string | null
+          created_at?: string | null
+          created_by?: string
+          duration_seconds?: number | null
+          error_message?: string | null
+          final_audio_path?: string | null
+          final_video_path?: string | null
+          folder_id?: string
+          id?: string
+          meeting_id?: string | null
+          started_at?: string
+          status?: string
+          stopped_at?: string | null
+          storage_prefix?: string
+          title?: string
+          total_bytes?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recording_sessions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recording_sessions_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recording_sessions_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "recorded_meetings"
             referencedColumns: ["id"]
           },
         ]
@@ -8359,6 +8572,10 @@ export type Database = {
         }
         Returns: Json
       }
+      advance_crm_step: {
+        Args: { _config_id: string; _performed_by?: string }
+        Returns: Json
+      }
       approve_client: {
         Args: {
           p_assignments?: Json
@@ -8420,6 +8637,7 @@ export type Database = {
       check_department_tasks_stalled: { Args: never; Returns: undefined }
       check_expired_client_tags: { Args: never; Returns: undefined }
       check_financeiro_clients_stalled: { Args: never; Returns: undefined }
+      check_mktplace_relatorio_deadlines: { Args: never; Returns: number }
       check_no_clients_moved_today: { Args: never; Returns: undefined }
       check_onboarding_tasks_stuck: { Args: never; Returns: undefined }
       check_overdue_deliveries: { Args: never; Returns: undefined }
@@ -8621,6 +8839,7 @@ export type Database = {
           user_role: string
         }[]
       }
+      get_public_mktplace_relatorio: { Args: { _token: string }; Returns: Json }
       get_team_users_in_scope: {
         Args: never
         Returns: {
@@ -8858,6 +9077,16 @@ export type Database = {
       request_justification_revision: {
         Args: { p_comment: string; p_justification_id: string }
         Returns: undefined
+      }
+      reset_crm_step: {
+        Args: {
+          _config_id: string
+          _failed_items?: Json
+          _new_date?: string
+          _performed_by?: string
+          _reason: string
+        }
+        Returns: Json
       }
       revoke_page: {
         Args: { _page_slug: string; _reason?: string; _user_id: string }

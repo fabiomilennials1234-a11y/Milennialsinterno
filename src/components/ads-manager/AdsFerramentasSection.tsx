@@ -158,12 +158,20 @@ export default function AdsFerramentasSection() {
       });
     }
 
-    tools.push({
-      id: 'tabela_bonus',
-      title: 'Tabela de Bônus Millennials',
-      icon: '💰',
-      content: 'TABELA GANHO DE BÔNUS MILENNIALS',
-    });
+    tools.push(
+      {
+        id: 'acesso_cursos',
+        title: 'Acesso Cursos',
+        icon: '🎓',
+        content: 'Como ver os cursos?: https://drive.google.com/file/d/17lWX-KZe8fW-m1UR-gNbP9ai7KLqqrgg/view?usp=sharing\n\nAcesso.\n\nLogin: fabiomilennials1234@gmail.com\n\nSenha: Milennials123',
+      },
+      {
+        id: 'tabela_bonus',
+        title: 'Tabela de Bônus Millennials',
+        icon: '💰',
+        content: 'TABELA GANHO DE BÔNUS MILENNIALS',
+      },
+    );
 
     return tools;
   }, [

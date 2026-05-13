@@ -2,10 +2,13 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 
 export type RecorderStatus = 'idle' | 'recording' | 'paused' | 'stopped' | 'error';
 
-interface RecorderResult {
-  videoBlob: Blob;
-  audioBlob: Blob;
-  durationSeconds: number;
+interface UseMeetingRecorderOptions {
+  /** Called when recording stops externally (e.g. user clicks browser "Stop sharing"). */
+  onAutoStop?: (durationSeconds: number) => void;
+  /** Called for each video chunk from timeslice. */
+  onVideoChunk?: (blob: Blob, index: number) => void;
+  /** Called for each audio chunk from timeslice. */
+  onAudioChunk?: (blob: Blob, index: number) => void;
 }
 
 interface UseMeetingRecorderReturn {
@@ -13,8 +16,10 @@ interface UseMeetingRecorderReturn {
   durationSeconds: number;
   error: string | null;
   isSupported: boolean;
+  videoChunkIndex: number;
+  audioChunkIndex: number;
   startRecording: () => Promise<void>;
-  stopRecording: () => Promise<RecorderResult>;
+  stopRecording: () => Promise<number>;
   pauseRecording: () => void;
   resumeRecording: () => void;
   cancelRecording: () => void;
@@ -22,23 +27,38 @@ interface UseMeetingRecorderReturn {
 
 /**
  * Hook for screen + audio recording via getDisplayMedia.
- * Creates two MediaRecorders: one for video+audio (.webm), one for audio-only (.webm opus).
- * Timer increments each second during recording.
+ *
+ * In chunked mode (when onVideoChunk/onAudioChunk are provided),
+ * chunks are delivered via callbacks and NOT accumulated in memory.
+ * stopRecording() returns only durationSeconds.
  */
-export function useMeetingRecorder(): UseMeetingRecorderReturn {
+export function useMeetingRecorder(options?: UseMeetingRecorderOptions): UseMeetingRecorderReturn {
   const [status, setStatus] = useState<RecorderStatus>('idle');
   const [durationSeconds, setDurationSeconds] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [videoChunkIndex, setVideoChunkIndex] = useState(0);
+  const [audioChunkIndex, setAudioChunkIndex] = useState(0);
 
   const videoRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRecorderRef = useRef<MediaRecorder | null>(null);
   const displayStreamRef = useRef<MediaStream | null>(null);
-  const videoChunksRef = useRef<Blob[]>([]);
-  const audioChunksRef = useRef<Blob[]>([]);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const resolveStopRef = useRef<((result: RecorderResult) => void) | null>(null);
+  const resolveStopRef = useRef<((durationSeconds: number) => void) | null>(null);
   const durationRef = useRef(0);
   const stopInternalRef = useRef<() => void>(() => {});
+
+  // Chunk indices tracked via refs for synchronous access in callbacks
+  const videoIndexRef = useRef(0);
+  const audioIndexRef = useRef(0);
+
+  // Keep callbacks in refs for stable references
+  const onAutoStopRef = useRef(options?.onAutoStop);
+  const onVideoChunkRef = useRef(options?.onVideoChunk);
+  const onAudioChunkRef = useRef(options?.onAudioChunk);
+  onAutoStopRef.current = options?.onAutoStop;
+  onVideoChunkRef.current = options?.onVideoChunk;
+  onAudioChunkRef.current = options?.onAudioChunk;
 
   const isSupported = typeof navigator !== 'undefined'
     && !!navigator.mediaDevices
@@ -53,17 +73,16 @@ export function useMeetingRecorder(): UseMeetingRecorderReturn {
       displayStreamRef.current.getTracks().forEach(t => t.stop());
       displayStreamRef.current = null;
     }
+    if (audioContextRef.current) {
+      audioContextRef.current.close().catch(() => {});
+      audioContextRef.current = null;
+    }
     videoRecorderRef.current = null;
     audioRecorderRef.current = null;
-    videoChunksRef.current = [];
-    audioChunksRef.current = [];
   }, []);
 
-  // Cleanup on unmount
   useEffect(() => {
-    return () => {
-      cleanup();
-    };
+    return () => { cleanup(); };
   }, [cleanup]);
 
   const startTimer = useCallback(() => {
@@ -98,18 +117,18 @@ export function useMeetingRecorder(): UseMeetingRecorderReturn {
 
     try {
       setError(null);
-      videoChunksRef.current = [];
-      audioChunksRef.current = [];
+      videoIndexRef.current = 0;
+      audioIndexRef.current = 0;
+      setVideoChunkIndex(0);
+      setAudioChunkIndex(0);
 
-      // Request screen capture with system audio
       const displayStream = await navigator.mediaDevices.getDisplayMedia({
         video: { frameRate: 30 },
-        audio: true, // System audio (if browser supports)
+        audio: true,
       });
 
       displayStreamRef.current = displayStream;
 
-      // Try to get microphone audio
       let micStream: MediaStream | null = null;
       try {
         micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -117,11 +136,10 @@ export function useMeetingRecorder(): UseMeetingRecorderReturn {
         // Microphone not available — continue without it
       }
 
-      // Combine all audio tracks for the video recording
       const audioContext = new AudioContext();
+      audioContextRef.current = audioContext;
       const destination = audioContext.createMediaStreamDestination();
 
-      // Add display audio tracks (system audio)
       const displayAudioTracks = displayStream.getAudioTracks();
       if (displayAudioTracks.length > 0) {
         const displaySource = audioContext.createMediaStreamSource(
@@ -130,35 +148,38 @@ export function useMeetingRecorder(): UseMeetingRecorderReturn {
         displaySource.connect(destination);
       }
 
-      // Add microphone
       if (micStream) {
         const micSource = audioContext.createMediaStreamSource(micStream);
         micSource.connect(destination);
       }
 
-      // Combined stream: display video + mixed audio
       const combinedStream = new MediaStream([
         ...displayStream.getVideoTracks(),
         ...destination.stream.getAudioTracks(),
       ]);
 
-      // Video recorder (video + audio)
+      // Video recorder
       const videoMimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
         ? 'video/webm;codecs=vp9,opus'
         : 'video/webm';
 
       const videoRecorder = new MediaRecorder(combinedStream, {
         mimeType: videoMimeType,
-        videoBitsPerSecond: 1_000_000, // 1Mbps — sufficient for screen content
+        videoBitsPerSecond: 1_000_000,
       });
 
       videoRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) videoChunksRef.current.push(e.data);
+        if (e.data.size > 0) {
+          const idx = videoIndexRef.current;
+          videoIndexRef.current += 1;
+          setVideoChunkIndex(videoIndexRef.current);
+          onVideoChunkRef.current?.(e.data, idx);
+        }
       };
 
       videoRecorderRef.current = videoRecorder;
 
-      // Audio-only recorder (for future transcription)
+      // Audio-only recorder
       const audioOnlyStream = destination.stream;
       const audioMimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
         ? 'audio/webm;codecs=opus'
@@ -166,11 +187,16 @@ export function useMeetingRecorder(): UseMeetingRecorderReturn {
 
       const audioRecorder = new MediaRecorder(audioOnlyStream, {
         mimeType: audioMimeType,
-        audioBitsPerSecond: 64_000, // 64kbps opus — transparent for voice
+        audioBitsPerSecond: 64_000,
       });
 
       audioRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+        if (e.data.size > 0) {
+          const idx = audioIndexRef.current;
+          audioIndexRef.current += 1;
+          setAudioChunkIndex(audioIndexRef.current);
+          onAudioChunkRef.current?.(e.data, idx);
+        }
       };
 
       audioRecorderRef.current = audioRecorder;
@@ -178,19 +204,16 @@ export function useMeetingRecorder(): UseMeetingRecorderReturn {
       // Handle user stopping screen share via browser UI
       displayStream.getVideoTracks()[0].addEventListener('ended', () => {
         if (videoRecorderRef.current?.state !== 'inactive') {
-          // User clicked "Stop sharing" in browser — auto-stop recording
           stopInternalRef.current();
         }
       });
 
-      // Start both recorders
-      videoRecorder.start(1000); // 1s timeslice
+      videoRecorder.start(1000);
       audioRecorder.start(1000);
       startTimer();
       setStatus('recording');
     } catch (err: unknown) {
       const e = err as { name?: string; message?: string };
-      // User cancelled the screen picker
       if (e.name === 'NotAllowedError' || e.name === 'AbortError') {
         setStatus('idle');
         return;
@@ -211,16 +234,11 @@ export function useMeetingRecorder(): UseMeetingRecorderReturn {
 
     const finalDuration = durationRef.current;
 
-    // Create promise that resolves when both recorders stop
     let videoStopped = false;
     let audioStopped = false;
 
     const checkDone = () => {
       if (videoStopped && audioStopped) {
-        const videoBlob = new Blob(videoChunksRef.current, { type: 'video/webm' });
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-
-        // Stop all tracks
         if (displayStreamRef.current) {
           displayStreamRef.current.getTracks().forEach(t => t.stop());
           displayStreamRef.current = null;
@@ -229,12 +247,10 @@ export function useMeetingRecorder(): UseMeetingRecorderReturn {
         setStatus('stopped');
 
         if (resolveStopRef.current) {
-          resolveStopRef.current({
-            videoBlob,
-            audioBlob,
-            durationSeconds: finalDuration,
-          });
+          resolveStopRef.current(finalDuration);
           resolveStopRef.current = null;
+        } else if (onAutoStopRef.current) {
+          onAutoStopRef.current(finalDuration);
         }
       }
     };
@@ -257,10 +273,9 @@ export function useMeetingRecorder(): UseMeetingRecorderReturn {
     videoRecorder.stop();
   }, [pauseTimer]);
 
-  // Keep ref in sync so event listener can call latest version
   stopInternalRef.current = stopRecordingInternal;
 
-  const stopRecording = useCallback((): Promise<RecorderResult> => {
+  const stopRecording = useCallback((): Promise<number> => {
     return new Promise((resolve, reject) => {
       if (!videoRecorderRef.current || videoRecorderRef.current.state === 'inactive') {
         reject(new Error('Nenhuma gravacao em andamento'));
@@ -295,6 +310,10 @@ export function useMeetingRecorder(): UseMeetingRecorderReturn {
     setStatus('idle');
     setDurationSeconds(0);
     durationRef.current = 0;
+    videoIndexRef.current = 0;
+    audioIndexRef.current = 0;
+    setVideoChunkIndex(0);
+    setAudioChunkIndex(0);
     setError(null);
     resolveStopRef.current = null;
   }, [cleanup, pauseTimer]);
@@ -304,6 +323,8 @@ export function useMeetingRecorder(): UseMeetingRecorderReturn {
     durationSeconds,
     error,
     isSupported,
+    videoChunkIndex,
+    audioChunkIndex,
     startRecording,
     stopRecording,
     pauseRecording,

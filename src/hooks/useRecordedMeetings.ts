@@ -32,6 +32,7 @@ export interface RecordedMeeting {
   id: string;
   folder_id: string;
   client_id: string | null;
+  title: string | null;
   video_url: string;
   video_filename: string | null;
   audio_file_url: string | null;
@@ -55,6 +56,7 @@ export interface RecordedMeeting {
 export interface RecordedMeetingFormData {
   folder_id: string;
   client_id?: string | null;
+  title?: string | null;
   video_url: string;
   video_filename: string | null;
   audio_file_url?: string | null;

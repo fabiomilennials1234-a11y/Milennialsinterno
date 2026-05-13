@@ -86,6 +86,7 @@ export function useUploadMeetingRecording(): UseUploadMeetingRecordingReturn {
       const insertData = {
         folder_id: metadata.folderId,
         client_id: metadata.clientId || null,
+        title: metadata.title || null,
         video_url: videoUrl,
         video_filename: `${timestamp}-video.webm`,
         audio_file_url: audioUrl,
@@ -104,7 +105,7 @@ export function useUploadMeetingRecording(): UseUploadMeetingRecordingReturn {
 
       const { data: meeting, error: dbError } = await supabase
         .from('recorded_meetings')
-        .insert(insertData as any)
+        .insert(insertData)
         .select('id')
         .single();
 
