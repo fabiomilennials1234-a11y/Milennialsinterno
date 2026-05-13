@@ -1,24 +1,7 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Quote, Sparkles, Mic, BookOpen, Heart, MessageSquare, Users, FileText, Lock, Link2, ChevronRight } from 'lucide-react';
-
-interface Lema {
-  number: string;
-  text: string;
-  icon: React.ReactNode;
-}
-
-const LEMAS: Lema[] = [
-  { number: 'Primeiro', text: 'Jamais descumprirei um prazo que dei a um cliente, e se por algum motivo isso acontecer, eu o avisarei um dia antes.', icon: <BookOpen className="w-4 h-4" /> },
-  { number: 'Segundo', text: 'O dinheiro do meu cliente e meu dinheiro. Sempre lembrarei que por tras de cada cliente existe um sonho, que tambem e meu.', icon: <Heart className="w-4 h-4" /> },
-  { number: 'Terceiro', text: 'Sempre irei relatar ao meu gestor de projetos minhas ideias que acredito que possam melhorar a Milennials, alem disso, sempre irei relatar o que esta me incomodando, visando minha felicidade e de todos na equipe.', icon: <MessageSquare className="w-4 h-4" /> },
-  { number: 'Quarto', text: 'Meu unico e principal objetivo aqui e ser feliz, e se por algum dia eu nao for, irei conversar com meu gestor.', icon: <Sparkles className="w-4 h-4" /> },
-  { number: 'Quinto', text: 'Nos somos a melhor equipe de Marketing do mundo, e hoje, amanha e sempre irei provar isso para mim mesmo.', icon: <Users className="w-4 h-4" /> },
-  { number: 'Sexto', text: 'Se um dia um cliente nao me responder, eu o chamarei novamente no dia seguinte. Nenhum dos meus clientes ficara um dia sem um contato meu.', icon: <MessageSquare className="w-4 h-4" /> },
-  { number: 'Setimo', text: 'Nao existe relatorio sem video explicando.', icon: <FileText className="w-4 h-4" /> },
-  { number: 'Oitavo', text: 'Sempre que precisar falar com alguem da equipe, irei falar nos grupos que possuo acesso. Jamais chamarei alguem da equipe no privado.', icon: <Lock className="w-4 h-4" /> },
-  { number: 'Nono', text: 'Sempre anexarei na descricao de meus clientes o Dashboard, Link do drive e Link do documento de objecoes + Chamarizes.', icon: <Link2 className="w-4 h-4" /> },
-];
+import { Quote, Sparkles, Mic, ChevronRight } from 'lucide-react';
+import { LEMAS_MILLENNIALS } from '@/lib/lemasMillennials';
 
 export default function OutboundLemasSection() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -33,7 +16,7 @@ export default function OutboundLemasSection() {
             </div>
             <div>
               <h3 className="text-lg font-bold text-foreground">LEMAS MILLENNIALS</h3>
-              <p className="text-xs text-muted-foreground">Nossos valores e principios</p>
+              <p className="text-xs text-muted-foreground">Nossos valores e princípios</p>
             </div>
           </div>
         </div>
@@ -47,14 +30,14 @@ export default function OutboundLemasSection() {
             <Quote size={16} className="text-warning" />
             <h4 className="text-sm font-medium text-foreground">Quais os Lemas da Millennials?</h4>
           </div>
-          <p className="text-xs text-muted-foreground mt-2 pl-6">Clique para ver os 9 lemas</p>
+          <p className="text-xs text-muted-foreground mt-2 pl-6">Clique para ver os {LEMAS_MILLENNIALS.length} lemas</p>
         </div>
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="max-w-2xl p-0 gap-0 bg-card border-subtle overflow-hidden max-h-[90vh] shadow-apple-lg">
           <DialogTitle className="sr-only">Lemas da Millennials</DialogTitle>
-          <DialogDescription className="sr-only">Os 9 lemas e valores da equipe</DialogDescription>
+          <DialogDescription className="sr-only">Os {LEMAS_MILLENNIALS.length} lemas e valores da equipe</DialogDescription>
 
           <div className="p-6 border-b border-subtle bg-gradient-to-r from-warning/10 to-transparent">
             <div className="flex items-center gap-3">
@@ -63,7 +46,7 @@ export default function OutboundLemasSection() {
               </div>
               <div>
                 <span className="inline-block text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-1 rounded-md mb-1">Lemas Millennials</span>
-                <h2 className="text-xl font-bold text-foreground">Os 9 Lemas da Millennials</h2>
+                <h2 className="text-xl font-bold text-foreground">Os {LEMAS_MILLENNIALS.length} Lemas da Millennials</h2>
               </div>
             </div>
           </div>
@@ -75,8 +58,8 @@ export default function OutboundLemasSection() {
                   <Mic className="w-5 h-5 text-foreground" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-foreground mb-1">Para ganho do Bonus</h3>
-                  <p className="text-xs text-muted-foreground">Enviar Audio lendo a mensagem abaixo</p>
+                  <h3 className="text-sm font-bold text-foreground mb-1">Para ganho do Bônus</h3>
+                  <p className="text-xs text-muted-foreground">Enviar Áudio lendo a mensagem abaixo</p>
                 </div>
               </div>
             </div>
@@ -88,17 +71,14 @@ export default function OutboundLemasSection() {
             </div>
 
             <div className="space-y-3">
-              {LEMAS.map((lema, index) => (
+              {LEMAS_MILLENNIALS.map((lema, index) => (
                 <div key={index} className="group relative overflow-hidden rounded-xl border border-warning/20 bg-gradient-to-r from-warning/5 to-transparent p-4 transition-all hover:border-warning/40 hover:from-warning/10">
                   <div className="flex items-start gap-3">
                     <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-warning/20 to-orange-500/20 flex items-center justify-center border border-warning/30">
                       <span className="text-sm font-bold text-warning">{index + 1}</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-semibold text-warning uppercase tracking-wide">{lema.number}</span>
-                        <div className="text-warning/60">{lema.icon}</div>
-                      </div>
+                      <p className="text-xs font-semibold text-warning uppercase tracking-wide mb-1">{lema.title}</p>
                       <p className="text-sm text-foreground leading-relaxed">{lema.text}</p>
                     </div>
                     <ChevronRight className="w-4 h-4 text-warning/40 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -109,7 +89,7 @@ export default function OutboundLemasSection() {
 
             <div className="pt-2 flex items-center justify-center gap-2 text-xs text-muted-foreground">
               <Sparkles className="w-4 h-4 text-warning" />
-              <span>Lemas Millennials - Nossos valores e principios</span>
+              <span>Lemas Millennials • Nossos valores e princípios</span>
             </div>
           </div>
         </DialogContent>
