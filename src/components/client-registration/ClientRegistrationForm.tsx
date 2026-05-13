@@ -53,7 +53,15 @@ import {
   formatCurrency,
   parseCurrency,
 } from '@/lib/validators';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { NICHE_OPTIONS } from '@/lib/nicheOptions';
 
 // Limites de carteira por cargo (mesmos da Sidebar)
 const MANAGER_LIMITS: Record<string, number> = {
@@ -101,9 +109,7 @@ const clientSchema = z.object({
     .max(255, 'Razão Social deve ter no máximo 255 caracteres'),
   niche: z
     .string()
-    .trim()
-    .min(2, 'Nicho é obrigatório')
-    .max(100, 'Nicho deve ter no máximo 100 caracteres'),
+    .min(1, 'Nicho é obrigatório'),
   general_info: z
     .string()
     .trim()
@@ -803,17 +809,20 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Qual o nicho do cliente? *</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Ex: Restaurante, E-commerce, Clínica, Advocacia..."
-                        className="input-apple"
-                        maxLength={100}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription className="text-xs">
-                      {field.value.length}/100 caracteres
-                    </FormDescription>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="input-apple">
+                          <SelectValue placeholder="Selecione o nicho..." />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {NICHE_OPTIONS.map((niche) => (
+                          <SelectItem key={niche} value={niche}>
+                            {niche}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

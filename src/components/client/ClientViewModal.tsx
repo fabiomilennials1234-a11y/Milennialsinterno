@@ -7,6 +7,14 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { NICHE_OPTIONS } from '@/lib/nicheOptions';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
@@ -434,12 +442,21 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
                     <Target className="w-4 h-4 text-primary" />
                     <span className="text-sm font-semibold text-foreground">Nicho</span>
                   </div>
-                  <Input
-                    placeholder="Ex: Bolos, Restaurantes..."
+                  <Select
                     value={clientInfoData.niche}
-                    onChange={(e) => handleClientInfoChange('niche', e.target.value)}
-                    className="h-8 text-sm"
-                  />
+                    onValueChange={(value) => handleClientInfoChange('niche', value)}
+                  >
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="Selecione o nicho..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {NICHE_OPTIONS.map((niche) => (
+                        <SelectItem key={niche} value={niche}>
+                          {niche}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="bg-muted/30 rounded-xl p-4 border border-border">
