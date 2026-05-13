@@ -130,7 +130,7 @@ export default function AdsFerramentasSection() {
         id: 'drive_clientes',
         title: 'Drive Clientes',
         icon: '📁',
-        content: '',
+        content: 'Acesse o Drive de Clientes: https://drive.google.com/drive/folders/1Eozba8FtM-cgVL_6IcOR_6A4fC6djp3b?usp=sharing',
       },
       {
         id: 'relatorio_reportei',
