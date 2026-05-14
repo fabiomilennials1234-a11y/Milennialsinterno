@@ -95,6 +95,7 @@ export default function MeetingRecorderRoot() {
           isOffline={isOffline}
           isApproachingLimit={isApproachingLimit}
           remainingSeconds={remainingSeconds}
+          health={health}
           onPause={pauseRecording}
           onResume={resumeRecording}
           onStop={stopRecording}

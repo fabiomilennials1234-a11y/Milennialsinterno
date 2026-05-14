@@ -1,7 +1,9 @@
 import { Button } from '@/components/ui/button';
 import { Pause, Play, Square, X, Clock, WifiOff } from 'lucide-react';
 import { formatDuration } from './recordingUtils';
+import { RecordingHealthIndicator } from './RecordingHealthIndicator';
 import type { OverlayState } from '@/hooks/useRecordingOrchestrator';
+import type { RecordingHealth } from '@/hooks/useRecordingHealth';
 
 export interface RecordingControlBarProps {
   overlayState: OverlayState;
@@ -11,6 +13,7 @@ export interface RecordingControlBarProps {
   isOffline: boolean;
   isApproachingLimit: boolean;
   remainingSeconds: number;
+  health: RecordingHealth;
   onPause: () => void;
   onResume: () => void;
   onStop: () => void;
@@ -25,6 +28,7 @@ export function RecordingControlBar({
   isOffline,
   isApproachingLimit,
   remainingSeconds,
+  health,
   onPause,
   onResume,
   onStop,
@@ -77,6 +81,9 @@ export function RecordingControlBar({
           <span className="text-xs font-medium hidden sm:inline">Sem rede</span>
         </div>
       )}
+
+      {/* Health indicator */}
+      <RecordingHealthIndicator health={health} />
 
       {/* Divider */}
       <div className="w-px h-6 bg-border" />

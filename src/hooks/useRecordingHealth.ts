@@ -1,7 +1,7 @@
 /**
  * Pure health-assessment hook for active recordings.
  *
- * Evaluates recorder, network, auth, and upload status.
+ * Evaluates recorder, network, auth, upload, storage, and chunks status.
  * No side-effects (no toasts, no actions) — consumers react to the output.
  */
 import { useState, useEffect, useRef, useMemo } from 'react';
@@ -26,6 +26,16 @@ export interface UploadHealthCheck extends HealthCheck {
   consecutiveFailures: number;
 }
 
+export interface StorageHealthCheck extends HealthCheck {
+  usagePercent: number;
+  availableMB: number;
+}
+
+export interface ChunksHealthCheck extends HealthCheck {
+  pending: number;
+  trend: 'stable' | 'growing' | 'shrinking';
+}
+
 export interface RecordingHealth {
   overall: HealthStatus;
   checks: {
@@ -33,6 +43,8 @@ export interface RecordingHealth {
     network: HealthCheck;
     auth: AuthHealthCheck;
     upload: UploadHealthCheck;
+    storage: StorageHealthCheck;
+    chunks: ChunksHealthCheck;
   };
 }
 
@@ -42,11 +54,14 @@ interface UseRecordingHealthOptions {
   videoTrackReadyState: MediaStreamTrackState | null;
   isOffline: boolean;
   consecutiveFailures: number;
+  pendingChunkCount: number;
   isActive: boolean;
   supabaseClient: SupabaseClient;
 }
 
 const AUTH_POLL_INTERVAL = 30_000; // 30s
+const STORAGE_POLL_INTERVAL = 60_000; // 60s
+const CHUNKS_TREND_INTERVAL = 30_000; // 30s — snapshot window
 
 function worstStatus(...statuses: HealthStatus[]): HealthStatus {
   if (statuses.includes('critical')) return 'critical';
@@ -61,12 +76,27 @@ export function useRecordingHealth(options: UseRecordingHealthOptions): Recordin
     videoTrackReadyState,
     isOffline,
     consecutiveFailures,
+    pendingChunkCount,
     isActive,
     supabaseClient,
   } = options;
 
   const [authExpiresIn, setAuthExpiresIn] = useState<number | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // ── Storage state ──
+  const [storageUsagePercent, setStorageUsagePercent] = useState(0);
+  const [storageAvailableMB, setStorageAvailableMB] = useState(0);
+  const [storageAvailable, setStorageAvailable] = useState(true);
+  const storagePollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // ── Chunks trend state ──
+  const prevPendingRef = useRef<number>(0);
+  const prevPendingTimestampRef = useRef<number>(Date.now());
+  const [chunksTrend, setChunksTrend] = useState<'stable' | 'growing' | 'shrinking'>('stable');
+  const [growingDurationMs, setGrowingDurationMs] = useState(0);
+  const growingStartRef = useRef<number | null>(null);
+  const chunksTrendPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // ── Auth polling ──
   useEffect(() => {
@@ -93,7 +123,6 @@ export function useRecordingHealth(options: UseRecordingHealthOptions): Recordin
       }
     };
 
-    // Check immediately
     checkAuth();
     pollRef.current = setInterval(checkAuth, AUTH_POLL_INTERVAL);
 
@@ -104,6 +133,109 @@ export function useRecordingHealth(options: UseRecordingHealthOptions): Recordin
       }
     };
   }, [isActive, supabaseClient]);
+
+  // ── Storage polling ──
+  useEffect(() => {
+    if (!isActive) {
+      setStorageUsagePercent(0);
+      setStorageAvailableMB(0);
+      setStorageAvailable(true);
+      if (storagePollRef.current) {
+        clearInterval(storagePollRef.current);
+        storagePollRef.current = null;
+      }
+      return;
+    }
+
+    const checkStorage = async () => {
+      if (!navigator.storage?.estimate) {
+        setStorageAvailable(false);
+        return;
+      }
+
+      try {
+        const estimate = await navigator.storage.estimate();
+        const quota = estimate.quota ?? 0;
+        const usage = estimate.usage ?? 0;
+
+        if (quota > 0) {
+          setStorageUsagePercent(Math.round((usage / quota) * 100));
+          setStorageAvailableMB(Math.round((quota - usage) / (1024 * 1024)));
+        } else {
+          setStorageAvailable(false);
+        }
+      } catch {
+        setStorageAvailable(false);
+      }
+    };
+
+    checkStorage();
+    storagePollRef.current = setInterval(checkStorage, STORAGE_POLL_INTERVAL);
+
+    return () => {
+      if (storagePollRef.current) {
+        clearInterval(storagePollRef.current);
+        storagePollRef.current = null;
+      }
+    };
+  }, [isActive]);
+
+  // ── Chunks trend tracking ──
+  useEffect(() => {
+    if (!isActive) {
+      setChunksTrend('stable');
+      setGrowingDurationMs(0);
+      growingStartRef.current = null;
+      prevPendingRef.current = 0;
+      prevPendingTimestampRef.current = Date.now();
+      if (chunksTrendPollRef.current) {
+        clearInterval(chunksTrendPollRef.current);
+        chunksTrendPollRef.current = null;
+      }
+      return;
+    }
+
+    prevPendingRef.current = pendingChunkCount;
+    prevPendingTimestampRef.current = Date.now();
+
+    const checkTrend = () => {
+      const prev = prevPendingRef.current;
+      const current = pendingChunkCount;
+      const now = Date.now();
+
+      let newTrend: 'stable' | 'growing' | 'shrinking';
+      if (current > prev) {
+        newTrend = 'growing';
+      } else if (current < prev) {
+        newTrend = 'shrinking';
+      } else {
+        newTrend = 'stable';
+      }
+
+      if (newTrend === 'growing') {
+        if (!growingStartRef.current) {
+          growingStartRef.current = now;
+        }
+        setGrowingDurationMs(now - growingStartRef.current);
+      } else {
+        growingStartRef.current = null;
+        setGrowingDurationMs(0);
+      }
+
+      setChunksTrend(newTrend);
+      prevPendingRef.current = current;
+      prevPendingTimestampRef.current = now;
+    };
+
+    chunksTrendPollRef.current = setInterval(checkTrend, CHUNKS_TREND_INTERVAL);
+
+    return () => {
+      if (chunksTrendPollRef.current) {
+        clearInterval(chunksTrendPollRef.current);
+        chunksTrendPollRef.current = null;
+      }
+    };
+  }, [isActive, pendingChunkCount]);
 
   // ── Compute health checks ──
   const health = useMemo((): RecordingHealth => {
@@ -187,9 +319,86 @@ export function useRecordingHealth(options: UseRecordingHealthOptions): Recordin
       };
     })();
 
-    const overall = worstStatus(recorder.status, network.status, auth.status, upload.status);
+    // Storage check
+    const storage: StorageHealthCheck = (() => {
+      if (!storageAvailable) {
+        return {
+          status: 'ok' as const,
+          usagePercent: 0,
+          availableMB: 0,
+          message: 'Monitoramento indisponivel',
+        };
+      }
 
-    return { overall, checks: { recorder, network, auth, upload } };
+      if (storageUsagePercent > 90) {
+        return {
+          status: 'critical' as const,
+          usagePercent: storageUsagePercent,
+          availableMB: storageAvailableMB,
+          message: `${storageUsagePercent}% em uso — ${storageAvailableMB}MB livres`,
+        };
+      }
+
+      if (storageUsagePercent >= 70) {
+        return {
+          status: 'warning' as const,
+          usagePercent: storageUsagePercent,
+          availableMB: storageAvailableMB,
+          message: `${storageUsagePercent}% em uso — ${storageAvailableMB}MB livres`,
+        };
+      }
+
+      return {
+        status: 'ok' as const,
+        usagePercent: storageUsagePercent,
+        availableMB: storageAvailableMB,
+      };
+    })();
+
+    // Chunks trend check
+    const chunks: ChunksHealthCheck = (() => {
+      if (pendingChunkCount > 50 || (chunksTrend === 'growing' && growingDurationMs > 60_000)) {
+        return {
+          status: 'critical' as const,
+          pending: pendingChunkCount,
+          trend: chunksTrend,
+          message: pendingChunkCount > 50
+            ? `${pendingChunkCount} chunks pendentes`
+            : 'Fila crescendo ha mais de 1min',
+        };
+      }
+
+      if (
+        (pendingChunkCount >= 20 && pendingChunkCount <= 50) ||
+        (chunksTrend === 'growing' && growingDurationMs > 30_000)
+      ) {
+        return {
+          status: 'warning' as const,
+          pending: pendingChunkCount,
+          trend: chunksTrend,
+          message: pendingChunkCount >= 20
+            ? `${pendingChunkCount} chunks pendentes`
+            : 'Fila crescendo ha mais de 30s',
+        };
+      }
+
+      return {
+        status: 'ok' as const,
+        pending: pendingChunkCount,
+        trend: chunksTrend,
+      };
+    })();
+
+    const overall = worstStatus(
+      recorder.status,
+      network.status,
+      auth.status,
+      upload.status,
+      storage.status,
+      chunks.status,
+    );
+
+    return { overall, checks: { recorder, network, auth, upload, storage, chunks } };
   }, [
     isActive,
     videoRecorderState,
@@ -198,6 +407,12 @@ export function useRecordingHealth(options: UseRecordingHealthOptions): Recordin
     isOffline,
     consecutiveFailures,
     authExpiresIn,
+    storageAvailable,
+    storageUsagePercent,
+    storageAvailableMB,
+    pendingChunkCount,
+    chunksTrend,
+    growingDurationMs,
   ]);
 
   return health;

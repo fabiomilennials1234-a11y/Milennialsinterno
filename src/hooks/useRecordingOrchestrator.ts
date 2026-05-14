@@ -259,6 +259,7 @@ export function useRecordingOrchestrator(): UseRecordingOrchestratorReturn {
     videoTrackReadyState: recorder.videoTrackReadyState,
     isOffline,
     consecutiveFailures: chunkUploader.consecutiveFailures,
+    pendingChunkCount: chunkUploader.pendingCount,
     isActive,
     supabaseClient: supabase,
   });
@@ -365,6 +366,13 @@ export function useRecordingOrchestrator(): UseRecordingOrchestratorReturn {
       chunkUploader.pauseUploads(30_000);
     }
   }, [health.checks.upload.status, isActive]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Storage critical → warn user
+  useEffect(() => {
+    if (health.checks.storage.status === 'critical' && isActive) {
+      toast.warning('Espaco de armazenamento quase esgotado. Gravacao pode falhar.', { duration: 10000 });
+    }
+  }, [health.checks.storage.status, isActive]);
 
   // ── Prevent page close during recording/processing ──
   useEffect(() => {

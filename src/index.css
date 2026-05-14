@@ -889,6 +889,20 @@
   }
 
   /* Action Plan urgency - pulsing borders */
+  /* Recording health indicator pulses */
+  @keyframes healthPulseOk {
+    0%, 100% { box-shadow: 0 0 0 2px hsl(var(--success) / 0.12); }
+    50% { box-shadow: 0 0 0 3px hsl(var(--success) / 0.3); }
+  }
+  @keyframes healthPulseWarn {
+    0%, 100% { box-shadow: 0 0 0 2px hsl(var(--warning) / 0.15); }
+    50% { box-shadow: 0 0 0 4px hsl(var(--warning) / 0.4); }
+  }
+  @keyframes healthPulseCrit {
+    0%, 100% { box-shadow: 0 0 0 2px hsl(var(--danger) / 0.2); }
+    50% { box-shadow: 0 0 0 5px hsl(var(--danger) / 0.5); }
+  }
+
   @keyframes pulse-border-red {
     0%, 100% {
       box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
