@@ -18,6 +18,9 @@ interface UseMeetingRecorderReturn {
   isSupported: boolean;
   videoChunkIndex: number;
   audioChunkIndex: number;
+  videoRecorderState: RecordingState | null;
+  audioRecorderState: RecordingState | null;
+  videoTrackReadyState: MediaStreamTrackState | null;
   startRecording: () => Promise<void>;
   stopRecording: () => Promise<number>;
   pauseRecording: () => void;
@@ -38,6 +41,9 @@ export function useMeetingRecorder(options?: UseMeetingRecorderOptions): UseMeet
   const [error, setError] = useState<string | null>(null);
   const [videoChunkIndex, setVideoChunkIndex] = useState(0);
   const [audioChunkIndex, setAudioChunkIndex] = useState(0);
+  const [videoRecorderState, setVideoRecorderState] = useState<RecordingState | null>(null);
+  const [audioRecorderState, setAudioRecorderState] = useState<RecordingState | null>(null);
+  const [videoTrackReadyState, setVideoTrackReadyState] = useState<MediaStreamTrackState | null>(null);
 
   const videoRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRecorderRef = useRef<MediaRecorder | null>(null);
@@ -47,6 +53,7 @@ export function useMeetingRecorder(options?: UseMeetingRecorderOptions): UseMeet
   const resolveStopRef = useRef<((durationSeconds: number) => void) | null>(null);
   const durationRef = useRef(0);
   const stopInternalRef = useRef<() => void>(() => {});
+  const healthPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Chunk indices tracked via refs for synchronous access in callbacks
   const videoIndexRef = useRef(0);
@@ -65,6 +72,10 @@ export function useMeetingRecorder(options?: UseMeetingRecorderOptions): UseMeet
     && !!navigator.mediaDevices.getDisplayMedia;
 
   const cleanup = useCallback(() => {
+    if (healthPollRef.current) {
+      clearInterval(healthPollRef.current);
+      healthPollRef.current = null;
+    }
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
@@ -79,6 +90,9 @@ export function useMeetingRecorder(options?: UseMeetingRecorderOptions): UseMeet
     }
     videoRecorderRef.current = null;
     audioRecorderRef.current = null;
+    setVideoRecorderState(null);
+    setAudioRecorderState(null);
+    setVideoTrackReadyState(null);
   }, []);
 
   useEffect(() => {
@@ -212,6 +226,34 @@ export function useMeetingRecorder(options?: UseMeetingRecorderOptions): UseMeet
       audioRecorder.start(1000);
       startTimer();
       setStatus('recording');
+
+      // ── Health state: expose MediaRecorder + track states ──
+      setVideoRecorderState(videoRecorder.state);
+      setAudioRecorderState(audioRecorder.state);
+      const videoTrack = displayStream.getVideoTracks()[0];
+      setVideoTrackReadyState(videoTrack?.readyState ?? null);
+
+      // Event-driven updates (primary)
+      videoRecorder.addEventListener('pause', () => setVideoRecorderState('paused'));
+      videoRecorder.addEventListener('resume', () => setVideoRecorderState('recording'));
+      videoRecorder.addEventListener('start', () => setVideoRecorderState('recording'));
+      videoRecorder.addEventListener('stop', () => setVideoRecorderState('inactive'));
+      audioRecorder.addEventListener('pause', () => setAudioRecorderState('paused'));
+      audioRecorder.addEventListener('resume', () => setAudioRecorderState('recording'));
+      audioRecorder.addEventListener('start', () => setAudioRecorderState('recording'));
+      audioRecorder.addEventListener('stop', () => setAudioRecorderState('inactive'));
+
+      // Polling fallback (2s) — some browsers don't fire events reliably
+      healthPollRef.current = setInterval(() => {
+        if (videoRecorderRef.current) {
+          setVideoRecorderState(videoRecorderRef.current.state);
+        }
+        if (audioRecorderRef.current) {
+          setAudioRecorderState(audioRecorderRef.current.state);
+        }
+        const vTrack = displayStreamRef.current?.getVideoTracks()[0];
+        setVideoTrackReadyState(vTrack?.readyState ?? null);
+      }, 2000);
     } catch (err: unknown) {
       const e = err as { name?: string; message?: string };
       if (e.name === 'NotAllowedError' || e.name === 'AbortError') {
@@ -352,6 +394,9 @@ export function useMeetingRecorder(options?: UseMeetingRecorderOptions): UseMeet
     audioIndexRef.current = 0;
     setVideoChunkIndex(0);
     setAudioChunkIndex(0);
+    setVideoRecorderState(null);
+    setAudioRecorderState(null);
+    setVideoTrackReadyState(null);
     setError(null);
     resolveStopRef.current = null;
   }, [cleanup, pauseTimer]);
@@ -363,6 +408,9 @@ export function useMeetingRecorder(options?: UseMeetingRecorderOptions): UseMeet
     isSupported,
     videoChunkIndex,
     audioChunkIndex,
+    videoRecorderState,
+    audioRecorderState,
+    videoTrackReadyState,
     startRecording,
     stopRecording,
     pauseRecording,

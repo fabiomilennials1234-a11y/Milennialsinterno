@@ -29,6 +29,7 @@ export default function MeetingRecorderRoot() {
     assemblyStage,
     assemblyError,
     recorderError,
+    health,
     recoverableSessions,
     abandonRecovery,
     dismissRecovery,

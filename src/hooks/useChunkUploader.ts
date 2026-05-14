@@ -26,6 +26,12 @@ interface UseChunkUploaderReturn {
   uploadPendingFromIDB: (sessionId: string, storagePrefix: string) => Promise<void>;
   pendingCount: number;
   error: string | null;
+  /** Number of consecutive chunk upload failures (resets on any success). */
+  consecutiveFailures: number;
+  /** Pause upload processing for the given duration in ms. */
+  pauseUploads: (ms: number) => void;
+  /** Resume upload processing immediately (clears any active pause). */
+  resumeUploads: () => void;
 }
 
 const MAX_RETRIES = 3;
@@ -54,12 +60,16 @@ function sleep(ms: number): Promise<void> {
 export function useChunkUploader(): UseChunkUploaderReturn {
   const [pendingCount, setPendingCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [consecutiveFailures, setConsecutiveFailures] = useState(0);
 
   const videoQueueRef = useRef<ChunkJob[]>([]);
   const audioQueueRef = useRef<ChunkJob[]>([]);
   const videoProcessingRef = useRef(false);
   const audioProcessingRef = useRef(false);
   const drainResolversRef = useRef<Array<() => void>>([]);
+  const consecutiveFailuresRef = useRef(0);
+  const pausedUntilRef = useRef(0);
+  const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const updatePendingCount = useCallback(() => {
     setPendingCount(videoQueueRef.current.length + audioQueueRef.current.length);
@@ -82,6 +92,13 @@ export function useChunkUploader(): UseChunkUploaderReturn {
     processingRef.current = true;
 
     while (queueRef.current.length > 0) {
+      // Respect pause: wait until pause expires
+      const now = Date.now();
+      if (pausedUntilRef.current > now) {
+        const waitMs = pausedUntilRef.current - now;
+        await sleep(waitMs);
+      }
+
       const job = queueRef.current[0];
       const path = buildStoragePath(job.storagePrefix, job.track, job.index);
       const contentType = job.track === 'video' ? 'video/webm' : 'audio/webm';
@@ -99,12 +116,20 @@ export function useChunkUploader(): UseChunkUploaderReturn {
             const msg = err instanceof Error ? err.message : 'Upload failed';
             setError(msg);
             console.error(`[ChunkUploader] Failed after ${MAX_RETRIES} retries:`, msg);
+            // Track consecutive failures
+            consecutiveFailuresRef.current += 1;
+            setConsecutiveFailures(consecutiveFailuresRef.current);
             // Leave chunk in IDB for recovery — skip this chunk and continue
           }
         }
       }
 
       if (uploaded) {
+        // Reset consecutive failures on any success
+        if (consecutiveFailuresRef.current > 0) {
+          consecutiveFailuresRef.current = 0;
+          setConsecutiveFailures(0);
+        }
         await markUploaded(job.sessionId, job.track, job.index);
       }
 
@@ -185,5 +210,32 @@ export function useChunkUploader(): UseChunkUploaderReturn {
     }
   }, [enqueueChunk, drainQueue]);
 
-  return { enqueueChunk, drainQueue, uploadPendingFromIDB, pendingCount, error };
+  const pauseUploads = useCallback((ms: number) => {
+    pausedUntilRef.current = Date.now() + ms;
+    // Auto-resume after duration
+    if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
+    pauseTimerRef.current = setTimeout(() => {
+      pausedUntilRef.current = 0;
+      pauseTimerRef.current = null;
+    }, ms);
+  }, []);
+
+  const resumeUploads = useCallback(() => {
+    pausedUntilRef.current = 0;
+    if (pauseTimerRef.current) {
+      clearTimeout(pauseTimerRef.current);
+      pauseTimerRef.current = null;
+    }
+  }, []);
+
+  return {
+    enqueueChunk,
+    drainQueue,
+    uploadPendingFromIDB,
+    pendingCount,
+    error,
+    consecutiveFailures,
+    pauseUploads,
+    resumeUploads,
+  };
 }

@@ -21,6 +21,8 @@ import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useRecordingLimits } from '@/hooks/useRecordingLimits';
 import { useRecordedMeetings } from '@/hooks/useRecordedMeetings';
 import { useAllActiveClients } from '@/hooks/useAllActiveClients';
+import { useRecordingHealth, RecordingHealth } from '@/hooks/useRecordingHealth';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { clearSession } from '@/lib/recordingIDB';
@@ -58,6 +60,9 @@ export interface UseRecordingOrchestratorReturn {
   assemblyStage: AssemblyStage;
   assemblyError: string | null;
   recorderError: string | null;
+
+  // Health
+  health: RecordingHealth;
 
   // Recovery
   recoverableSessions: RecoverableSession[];
@@ -247,6 +252,17 @@ export function useRecordingOrchestrator(): UseRecordingOrchestratorReturn {
   const { isOffline } = useNetworkStatus(isActive);
   const { isApproachingLimit, remainingSeconds, shouldAutoStop } = useRecordingLimits(recorder.durationSeconds, isActive);
 
+  // ── Health monitoring ──
+  const health = useRecordingHealth({
+    videoRecorderState: recorder.videoRecorderState,
+    audioRecorderState: recorder.audioRecorderState,
+    videoTrackReadyState: recorder.videoTrackReadyState,
+    isOffline,
+    consecutiveFailures: chunkUploader.consecutiveFailures,
+    isActive,
+    supabaseClient: supabase,
+  });
+
   // ── handleStop — declared BEFORE the useEffect that references it ──
   const handleStop = useCallback(async () => {
     if (!activeSession || stoppingRef.current) return;
@@ -306,6 +322,49 @@ export function useRecordingOrchestrator(): UseRecordingOrchestratorReturn {
       handleStop();
     }
   }, [shouldAutoStop, handleStop]);
+
+  // ── Health reactions ──
+
+  // Recorder critical → auto-stop
+  useEffect(() => {
+    if (health.checks.recorder.status === 'critical' && (overlayState === 'recording' || overlayState === 'paused')) {
+      toast.error('Gravacao parou inesperadamente. Salvando dados capturados...', { duration: 8000 });
+      handleStop();
+    }
+  }, [health.checks.recorder.status]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auth warning → proactive refresh
+  useEffect(() => {
+    if (health.checks.auth.status === 'warning' && isActive) {
+      supabase.auth.refreshSession().then(({ error }) => {
+        if (error) {
+          console.error('[Recording] Token refresh failed:', error);
+        }
+      });
+    }
+  }, [health.checks.auth.status, isActive]);
+
+  // Auth critical → aggressive alert + retry
+  useEffect(() => {
+    if (health.checks.auth.status === 'critical' && isActive) {
+      supabase.auth.refreshSession().then(({ error }) => {
+        if (error) {
+          toast.error('Sessao expirada. Salve a gravacao agora para nao perder dados.', {
+            duration: Infinity,
+            id: 'auth-critical',
+          });
+        }
+      });
+    }
+  }, [health.checks.auth.status, isActive]);
+
+  // Upload critical → pause + backoff
+  useEffect(() => {
+    if (health.checks.upload.status === 'critical' && isActive) {
+      toast.warning('Uploads com falha consecutiva. Pausando por 30s...', { duration: 8000 });
+      chunkUploader.pauseUploads(30_000);
+    }
+  }, [health.checks.upload.status, isActive]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Prevent page close during recording/processing ──
   useEffect(() => {
@@ -460,6 +519,9 @@ export function useRecordingOrchestrator(): UseRecordingOrchestratorReturn {
     assemblyStage: assembly.stage,
     assemblyError: assembly.error,
     recorderError: recorder.error,
+
+    // Health
+    health,
 
     // Recovery
     recoverableSessions: recovery.recoverableSessions,

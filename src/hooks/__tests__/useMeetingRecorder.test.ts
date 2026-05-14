@@ -72,6 +72,14 @@ class MockMediaRecorder {
     this.state = 'recording';
   }
 
+  addEventListener(_type: string, _listener: () => void) {
+    // noop — health monitoring events not tested here
+  }
+
+  removeEventListener(_type: string, _listener: () => void) {
+    // noop
+  }
+
   static isTypeSupported(_mimeType: string): boolean {
     return true;
   }
