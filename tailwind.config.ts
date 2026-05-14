@@ -174,6 +174,14 @@ export default {
           from: { transform: "translateX(0)" },
           to: { transform: "translateX(calc(-100% - var(--gap)))" },
         },
+        "journey-dot-pulse": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.55" },
+        },
+        "journey-bar-glow": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.7" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -182,6 +190,8 @@ export default {
         "fade-in": "fade-in 0.3s ease-out",
         "scale-in": "scale-in 0.2s ease-out",
         marquee: "marquee var(--duration) linear infinite",
+        "journey-dot-pulse": "journey-dot-pulse 2s ease-in-out infinite",
+        "journey-bar-glow": "journey-bar-glow 2s ease-in-out infinite",
       },
     },
   },

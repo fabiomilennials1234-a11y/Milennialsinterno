@@ -21,11 +21,11 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
-import { 
-  User, 
-  Building2, 
-  DollarSign, 
-  Target, 
+import {
+  User,
+  Building2,
+  DollarSign,
+  Target,
   FileText,
   ExternalLink,
   Loader2,
@@ -33,7 +33,11 @@ import {
   CheckCircle2,
   AlertTriangle,
   StickyNote,
-  AlertTriangle as AlertTriangleIcon
+  AlertTriangle as AlertTriangleIcon,
+  Rocket,
+  Handshake,
+  Store,
+  Settings,
 } from 'lucide-react';
 import ClientNotesSection from './ClientNotesSection';
 import ClientCallFormSection from './ClientCallFormSection';
@@ -61,6 +65,9 @@ import { useClientTags } from '@/hooks/useClientTags';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import ClientJourneyMap from './ClientJourneyMap';
+import { useClientJourneyMap, type JourneyPipeline as HookJourneyPipeline } from '@/hooks/useClientJourneyMap';
+import type { JourneyPipeline } from './ClientJourneyMap';
 
 interface ClientViewModalProps {
   isOpen: boolean;
@@ -96,6 +103,19 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
   const updateClientInfo = useUpdateClientInfo();
 
   const canSetClientLabel = isCEO || isAdminUser || user?.role === 'sucesso_cliente';
+
+  // Journey map
+  const { pipelines: rawPipelines, isLoading: journeyLoading } = useClientJourneyMap(clientId, clientInfo ?? null);
+  const ICON_MAP: Record<string, React.ReactNode> = {
+    Rocket: <Rocket className="w-3 h-3" />,
+    Handshake: <Handshake className="w-3 h-3" />,
+    Store: <Store className="w-3 h-3" />,
+    Settings: <Settings className="w-3 h-3" />,
+  };
+  const journeyPipelines: JourneyPipeline[] = rawPipelines.map(p => ({
+    ...p,
+    icon: ICON_MAP[p.icon] ?? <Settings className="w-3 h-3" />,
+  }));
 
   // Buscar nomes dos responsáveis (Gestor, Treinador Comercial, MKT Place)
   const gestorId = clientInfo?.assigned_ads_manager;
@@ -371,6 +391,12 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
 
               {/* Historico de criativos */}
               <ClientCreativesHistory clientId={clientId} />
+
+              {/* Jornada do cliente */}
+              <ClientJourneyMap
+                pipelines={journeyPipelines}
+                isLoading={journeyLoading}
+              />
 
               {/* Produtos Inclusos */}
               {clientInfo?.contracted_products && clientInfo.contracted_products.length > 0 && (
