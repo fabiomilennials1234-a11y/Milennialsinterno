@@ -13,7 +13,7 @@ import { useSidebarRealtime } from '@/hooks/useSidebarRealtime';
 import { useTrainingReminderToasts } from '@/hooks/useTrainingReminderToasts';
 import { RecordingErrorBoundary } from '@/components/recorded-meetings/RecordingErrorBoundary';
 
-const LazyRecordingOverlay = lazy(() => import('@/components/recorded-meetings/MeetingRecorderOverlay'));
+const LazyMeetingRecorder = lazy(() => import('@/components/recorded-meetings/MeetingRecorderRoot'));
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -53,7 +53,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
       {/* Global meeting recorder overlay (FAB + recording bar + upload progress) */}
       <RecordingErrorBoundary>
         <Suspense fallback={null}>
-          <LazyRecordingOverlay />
+          <LazyMeetingRecorder />
         </Suspense>
       </RecordingErrorBoundary>
     </div>

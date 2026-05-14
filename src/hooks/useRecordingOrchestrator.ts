@@ -1,7 +1,7 @@
 /**
  * Orchestrator hook for the recording pipeline.
  *
- * Concentrates ALL logic that was previously in MeetingRecorderOverlay:
+ * Concentrates ALL recording logic, consumed by MeetingRecorderRoot:
  * - State machine (OverlayState)
  * - Form state (title, folderId, clientId, showSetup)
  * - Chunk callback wiring (videoChunk / audioChunk -> chunkUploader.enqueue)
@@ -10,8 +10,6 @@
  * - Auto-stop by shouldAutoStop (from useRecordingLimits)
  * - beforeunload guard
  * - Progress debounce
- *
- * The component becomes a thin JSX wrapper.
  */
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useMeetingRecorder } from '@/hooks/useMeetingRecorder';
