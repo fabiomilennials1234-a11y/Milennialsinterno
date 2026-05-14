@@ -4,7 +4,7 @@
  * Manages the server-side state machine:
  *   recording → stopped → assembling → done | failed | abandoned
  */
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -141,7 +141,7 @@ export function useRecordingSession(): UseRecordingSessionReturn {
     return (data ?? []) as RecordingSession[];
   }, [user]);
 
-  return {
+  return useMemo(() => ({
     createSession,
     updateChunkProgress,
     stopSession,
@@ -150,5 +150,14 @@ export function useRecordingSession(): UseRecordingSessionReturn {
     markFailed,
     abandonSession,
     getIncompleteSessions,
-  };
+  }), [
+    createSession,
+    updateChunkProgress,
+    stopSession,
+    markAssembling,
+    markDone,
+    markFailed,
+    abandonSession,
+    getIncompleteSessions,
+  ]);
 }
