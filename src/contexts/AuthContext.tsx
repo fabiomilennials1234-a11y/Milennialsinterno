@@ -43,10 +43,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // 2 queries em Promise.all é mais robusto e quase tão rápido (mesmo RTT).
   const fetchUserData = useCallback(async (userId: string): Promise<(User & { group_id?: string | null; squad_id?: string | null }) | null> => {
     try {
+      // 8s timeout prevents eternal spinner when PostgREST hangs.
+      // AbortController is passed to the Supabase client via .abortSignal().
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8_000);
+
       const [profileRes, roleRes] = await Promise.all([
-        supabase.from('profiles').select('*').eq('user_id', userId).maybeSingle(),
-        supabase.from('user_roles').select('role').eq('user_id', userId).maybeSingle(),
+        supabase.from('profiles').select('*').eq('user_id', userId).abortSignal(controller.signal).maybeSingle(),
+        supabase.from('user_roles').select('role').eq('user_id', userId).abortSignal(controller.signal).maybeSingle(),
       ]);
+
+      clearTimeout(timeout);
 
       if (profileRes.error) {
         console.error('Error fetching profile:', profileRes.error);
@@ -93,11 +100,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
     userRef.current = user;
   }, [user]);
 
-  // Bootstrap: getSession() + onAuthStateChange.
-  // getSession() handles the case where INITIAL_SESSION fires before
-  // useEffect runs. onAuthStateChange covers all subsequent changes.
+  // Bootstrap: onAuthStateChange (INITIAL_SESSION) + getSession() fallback.
+  // Supabase docs: subscribe first, then getSession.
   useEffect(() => {
     let cancelled = false;
+
+    // Safety net: if hydration hasn't resolved isLoading within 10s,
+    // force it to false so the user sees login instead of eternal spinner.
+    // This covers: hanging PostgREST, network partition, DNS failure, etc.
+    const safetyTimer = setTimeout(() => {
+      if (!cancelled) {
+        console.error(
+          '[AuthContext] Safety timeout: hydration did not complete within 10s — forcing isLoading=false'
+        );
+        setIsLoading(false);
+      }
+    }, 10_000);
 
     // Full hydration: fetch profile + role, set user + session.
     // If fetchUserData fails (network blip, RLS timeout) but we already
@@ -125,7 +143,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       } else {
         setUser(null);
       }
-      if (!cancelled) setIsLoading(false);
+      if (!cancelled) {
+        setIsLoading(false);
+        clearTimeout(safetyTimer);
+      }
     };
 
     // Light hydration: only update session token, skip profile queries.
@@ -140,6 +161,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setUser(null);
       setSession(null);
       setIsLoading(false);
+      clearTimeout(safetyTimer);
     };
 
     // Handle auth events with discrimination by type
@@ -183,19 +205,34 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
     };
 
-    // getSession covers the race where INITIAL_SESSION fires before
-    // this useEffect mounts.
+    // Subscribe FIRST — Supabase fires INITIAL_SESSION synchronously
+    // during setup, which is the primary hydration path.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthEvent);
+
+    // getSession as FALLBACK — covers the edge case where INITIAL_SESSION
+    // fired before this useEffect mounted (shouldn't happen but defensive).
     supabase.auth.getSession().then(({ data }) => {
       if (!hydratedRef.current) {
         hydratedRef.current = true;
         void hydrateWithUserData(data.session);
       }
+    }).catch((err) => {
+      // getSession rejected (network error, corrupted storage, SDK bug).
+      // If INITIAL_SESSION already handled hydration, this is harmless.
+      // If not, force loading to resolve so user sees login page.
+      console.error('[AuthContext] getSession() rejected:', err);
+      if (!hydratedRef.current && !cancelled) {
+        hydratedRef.current = true;
+        setUser(null);
+        setSession(null);
+        setIsLoading(false);
+        clearTimeout(safetyTimer);
+      }
     });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthEvent);
 
     return () => {
       cancelled = true;
+      clearTimeout(safetyTimer);
       subscription.unsubscribe();
     };
   }, [fetchUserData]);
