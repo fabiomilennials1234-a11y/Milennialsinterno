@@ -26,23 +26,30 @@ export function openRecordingDB(): Promise<IDBDatabase> {
   if (dbPromise) return dbPromise;
 
   dbPromise = new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    try {
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        const store = db.createObjectStore(STORE_NAME, {
-          keyPath: ['sessionId', 'track', 'index'],
-        });
-        store.createIndex('bySession', 'sessionId', { unique: false });
-      }
-    };
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          const store = db.createObjectStore(STORE_NAME, {
+            keyPath: ['sessionId', 'track', 'index'],
+          });
+          store.createIndex('bySession', 'sessionId', { unique: false });
+        }
+      };
 
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => {
+        dbPromise = null;
+        reject(request.error);
+      };
+    } catch (err) {
+      // indexedDB.open() can throw synchronously in some environments
+      // (e.g. Firefox private browsing with IDB disabled)
       dbPromise = null;
-      reject(request.error);
-    };
+      reject(err);
+    }
   });
 
   return dbPromise;

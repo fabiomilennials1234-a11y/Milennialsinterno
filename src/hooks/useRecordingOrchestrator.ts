@@ -120,16 +120,21 @@ export function useRecordingOrchestrator(): UseRecordingOrchestratorReturn {
   const scheduleProgressUpdate = useCallback(() => {
     if (progressUpdateTimerRef.current) return;
 
-    progressUpdateTimerRef.current = setTimeout(() => {
+    progressUpdateTimerRef.current = setTimeout(async () => {
       progressUpdateTimerRef.current = null;
       const session = activeSessionRef.current;
       if (session) {
-        sessionApi.updateChunkProgress(
-          session.id,
-          videoCountRef.current + audioCountRef.current,
-          totalBytesRef.current,
-        );
-        lastProgressUpdateRef.current = Date.now();
+        try {
+          await sessionApi.updateChunkProgress(
+            session.id,
+            videoCountRef.current + audioCountRef.current,
+            totalBytesRef.current,
+          );
+          lastProgressUpdateRef.current = Date.now();
+        } catch (err) {
+          // Non-critical: progress flush failure must not crash recording
+          console.error('[Recording] Erro ao atualizar progresso:', err);
+        }
       }
     }, 5000);
   }, [sessionApi]);
@@ -211,7 +216,11 @@ export function useRecordingOrchestrator(): UseRecordingOrchestratorReturn {
       toast.error('Erro ao salvar gravacao: ' + msg);
 
       if (session) {
-        await sessionApi.markFailed(session.id, msg);
+        try {
+          await sessionApi.markFailed(session.id, msg);
+        } catch (markErr) {
+          console.error('[Recording] Erro ao marcar sessao como falha:', markErr);
+        }
       }
     }
   }, [chunkUploader, sessionApi, assembly, queryClient]);
@@ -280,7 +289,11 @@ export function useRecordingOrchestrator(): UseRecordingOrchestratorReturn {
       toast.error('Erro ao salvar gravacao: ' + msg);
 
       if (activeSession) {
-        await sessionApi.markFailed(activeSession.id, msg);
+        try {
+          await sessionApi.markFailed(activeSession.id, msg);
+        } catch (markErr) {
+          console.error('[Recording] Erro ao marcar sessao como falha:', markErr);
+        }
       }
     } finally {
       stoppingRef.current = false;
@@ -343,8 +356,9 @@ export function useRecordingOrchestrator(): UseRecordingOrchestratorReturn {
       return;
     }
 
+    let session: RecordingSession | null = null;
     try {
-      const session = await sessionApi.createSession({
+      session = await sessionApi.createSession({
         title: title.trim(),
         folderId,
         clientId,
@@ -363,17 +377,41 @@ export function useRecordingOrchestrator(): UseRecordingOrchestratorReturn {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Erro ao iniciar';
       toast.error(msg);
+
+      // If session was created but recorder failed, abandon the orphan session
+      if (session) {
+        setActiveSession(null);
+        try {
+          await sessionApi.abandonSession(session.id);
+          await clearSession(session.id);
+        } catch (cleanupErr) {
+          console.error('[Recording] Erro ao limpar sessao orfã:', cleanupErr);
+        }
+      }
     }
   }, [title, folderId, clientId, sessionApi, recorder]);
 
   const cancelRecording = useCallback(async () => {
-    recorder.cancelRecording();
-
-    if (activeSession) {
-      await sessionApi.abandonSession(activeSession.id);
-      await clearSession(activeSession.id);
+    try {
+      recorder.cancelRecording();
+    } catch (err) {
+      console.error('[Recording] Erro ao cancelar recorder:', err);
     }
 
+    if (activeSession) {
+      try {
+        await sessionApi.abandonSession(activeSession.id);
+      } catch (err) {
+        console.error('[Recording] Erro ao abandonar sessao:', err);
+      }
+      try {
+        await clearSession(activeSession.id);
+      } catch (err) {
+        console.error('[Recording] Erro ao limpar sessao do IDB:', err);
+      }
+    }
+
+    // Always reset state, even if cleanup failed
     setActiveSession(null);
     setPipelineState('idle');
     setPipelineError(null);

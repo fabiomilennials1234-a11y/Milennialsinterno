@@ -225,53 +225,76 @@ export function useMeetingRecorder(options?: UseMeetingRecorderOptions): UseMeet
   }, [isSupported, cleanup, startTimer]);
 
   const stopRecordingInternal = useCallback(() => {
-    const videoRecorder = videoRecorderRef.current;
-    const audioRecorder = audioRecorderRef.current;
+    try {
+      const videoRecorder = videoRecorderRef.current;
+      const audioRecorder = audioRecorderRef.current;
 
-    if (!videoRecorder || videoRecorder.state === 'inactive') return;
+      if (!videoRecorder || videoRecorder.state === 'inactive') return;
 
-    pauseTimer();
+      pauseTimer();
 
-    const finalDuration = durationRef.current;
+      const finalDuration = durationRef.current;
 
-    let videoStopped = false;
-    let audioStopped = false;
+      let videoStopped = false;
+      let audioStopped = false;
 
-    const checkDone = () => {
-      if (videoStopped && audioStopped) {
-        if (displayStreamRef.current) {
-          displayStreamRef.current.getTracks().forEach(t => t.stop());
-          displayStreamRef.current = null;
+      const checkDone = () => {
+        if (videoStopped && audioStopped) {
+          try {
+            if (displayStreamRef.current) {
+              displayStreamRef.current.getTracks().forEach(t => t.stop());
+              displayStreamRef.current = null;
+            }
+          } catch (trackErr) {
+            console.error('[Recording] Erro ao parar tracks:', trackErr);
+          }
+
+          setStatus('stopped');
+
+          if (resolveStopRef.current) {
+            resolveStopRef.current(finalDuration);
+            resolveStopRef.current = null;
+          } else if (onAutoStopRef.current) {
+            onAutoStopRef.current(finalDuration);
+          }
         }
+      };
 
-        setStatus('stopped');
-
-        if (resolveStopRef.current) {
-          resolveStopRef.current(finalDuration);
-          resolveStopRef.current = null;
-        } else if (onAutoStopRef.current) {
-          onAutoStopRef.current(finalDuration);
-        }
-      }
-    };
-
-    videoRecorder.onstop = () => {
-      videoStopped = true;
-      checkDone();
-    };
-
-    if (audioRecorder && audioRecorder.state !== 'inactive') {
-      audioRecorder.onstop = () => {
-        audioStopped = true;
+      videoRecorder.onstop = () => {
+        videoStopped = true;
         checkDone();
       };
-      audioRecorder.stop();
-    } else {
-      audioStopped = true;
-    }
 
-    videoRecorder.stop();
-  }, [pauseTimer]);
+      if (audioRecorder && audioRecorder.state !== 'inactive') {
+        audioRecorder.onstop = () => {
+          audioStopped = true;
+          checkDone();
+        };
+        try {
+          audioRecorder.stop();
+        } catch (audioErr) {
+          console.error('[Recording] Erro ao parar gravador de audio:', audioErr);
+          audioStopped = true;
+          checkDone();
+        }
+      } else {
+        audioStopped = true;
+      }
+
+      try {
+        videoRecorder.stop();
+      } catch (videoErr) {
+        console.error('[Recording] Erro ao parar gravador de video:', videoErr);
+        videoStopped = true;
+        checkDone();
+      }
+    } catch (err) {
+      console.error('[Recording] Erro ao parar gravacao:', err);
+      setError('Erro ao parar gravacao');
+      setStatus('error');
+      cleanup();
+    }
+  }, [pauseTimer, cleanup]);
 
   stopInternalRef.current = stopRecordingInternal;
 
@@ -287,26 +310,41 @@ export function useMeetingRecorder(options?: UseMeetingRecorderOptions): UseMeet
   }, [stopRecordingInternal]);
 
   const pauseRecording = useCallback(() => {
-    if (videoRecorderRef.current?.state === 'recording') {
-      videoRecorderRef.current.pause();
-      audioRecorderRef.current?.pause();
-      pauseTimer();
-      setStatus('paused');
+    try {
+      if (videoRecorderRef.current?.state === 'recording') {
+        videoRecorderRef.current.pause();
+        audioRecorderRef.current?.pause();
+        pauseTimer();
+        setStatus('paused');
+      }
+    } catch (err) {
+      console.error('[Recording] Erro ao pausar gravacao:', err);
+      // Non-critical: log but don't crash the recording flow
     }
   }, [pauseTimer]);
 
   const resumeRecording = useCallback(() => {
-    if (videoRecorderRef.current?.state === 'paused') {
-      videoRecorderRef.current.resume();
-      audioRecorderRef.current?.resume();
-      resumeTimer();
-      setStatus('recording');
+    try {
+      if (videoRecorderRef.current?.state === 'paused') {
+        videoRecorderRef.current.resume();
+        audioRecorderRef.current?.resume();
+        resumeTimer();
+        setStatus('recording');
+      }
+    } catch (err) {
+      console.error('[Recording] Erro ao retomar gravacao:', err);
+      // Non-critical: log but don't crash the recording flow
     }
   }, [resumeTimer]);
 
   const cancelRecording = useCallback(() => {
-    pauseTimer();
-    cleanup();
+    try {
+      pauseTimer();
+      cleanup();
+    } catch (err) {
+      console.error('[Recording] Erro durante cleanup ao cancelar:', err);
+    }
+    // Always reset state, even if cleanup failed
     setStatus('idle');
     setDurationSeconds(0);
     durationRef.current = 0;

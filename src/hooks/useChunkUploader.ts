@@ -137,8 +137,19 @@ export function useChunkUploader(): UseChunkUploaderReturn {
       return Promise.resolve();
     }
 
-    return new Promise((resolve) => {
-      drainResolversRef.current.push(resolve);
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        // Remove this resolver from the list
+        drainResolversRef.current = drainResolversRef.current.filter((r) => r !== wrappedResolve);
+        reject(new Error('Tempo limite de upload excedido (60s)'));
+      }, 60_000);
+
+      const wrappedResolve = () => {
+        clearTimeout(timeout);
+        resolve();
+      };
+
+      drainResolversRef.current.push(wrappedResolve);
     });
   }, []);
 
@@ -146,26 +157,32 @@ export function useChunkUploader(): UseChunkUploaderReturn {
     sessionId: string,
     storagePrefix: string,
   ) => {
-    const pending = await getPendingChunks(sessionId);
-    if (pending.length === 0) return;
+    try {
+      const pending = await getPendingChunks(sessionId);
+      if (pending.length === 0) return;
 
-    // Sort by track and index for deterministic upload order
-    pending.sort((a, b) => {
-      if (a.track !== b.track) return a.track === 'video' ? -1 : 1;
-      return a.index - b.index;
-    });
-
-    for (const chunk of pending) {
-      enqueueChunk({
-        sessionId: chunk.sessionId,
-        track: chunk.track,
-        index: chunk.index,
-        blob: chunk.blob,
-        storagePrefix,
+      // Sort by track and index for deterministic upload order
+      pending.sort((a, b) => {
+        if (a.track !== b.track) return a.track === 'video' ? -1 : 1;
+        return a.index - b.index;
       });
-    }
 
-    await drainQueue();
+      for (const chunk of pending) {
+        enqueueChunk({
+          sessionId: chunk.sessionId,
+          track: chunk.track,
+          index: chunk.index,
+          blob: chunk.blob,
+          storagePrefix,
+        });
+      }
+
+      await drainQueue();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erro ao recuperar chunks';
+      console.error('[ChunkUploader] Erro ao carregar chunks pendentes do IDB:', err);
+      setError(msg);
+    }
   }, [enqueueChunk, drainQueue]);
 
   return { enqueueChunk, drainQueue, uploadPendingFromIDB, pendingCount, error };
