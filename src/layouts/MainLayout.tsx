@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, lazy, Suspense } from 'react';
 import AppSidebar from '@/components/layout/AppSidebar';
 import AppHeader from '@/components/layout/AppHeader';
 // ChurnNotificationModal removed — churn alerts now appear in Justificativas page
@@ -11,7 +11,9 @@ import { useAdsNewClientNotifications } from '@/hooks/useAdsNewClientNotificatio
 import { useAssignedClientsRealtime } from '@/hooks/useAssignedClientsRealtime';
 import { useSidebarRealtime } from '@/hooks/useSidebarRealtime';
 import { useTrainingReminderToasts } from '@/hooks/useTrainingReminderToasts';
-import MeetingRecorderOverlay from '@/components/recorded-meetings/MeetingRecorderOverlay';
+import { RecordingErrorBoundary } from '@/components/recorded-meetings/RecordingErrorBoundary';
+
+const LazyRecordingOverlay = lazy(() => import('@/components/recorded-meetings/MeetingRecorderOverlay'));
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -49,7 +51,11 @@ export default function MainLayout({ children }: MainLayoutProps) {
       {/* Churn alerts moved to /justificativas page */}
 
       {/* Global meeting recorder overlay (FAB + recording bar + upload progress) */}
-      <MeetingRecorderOverlay />
+      <RecordingErrorBoundary>
+        <Suspense fallback={null}>
+          <LazyRecordingOverlay />
+        </Suspense>
+      </RecordingErrorBoundary>
     </div>
   );
 }
