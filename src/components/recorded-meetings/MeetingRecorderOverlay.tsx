@@ -5,6 +5,8 @@ import { useChunkUploader } from '@/hooks/useChunkUploader';
 import { useRecordingSession, RecordingSession } from '@/hooks/useRecordingSession';
 import { useRecordingAssembly } from '@/hooks/useRecordingAssembly';
 import { useRecordingRecovery } from '@/hooks/useRecordingRecovery';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
+import { useRecordingLimits, MAX_RECORDING_SECONDS } from '@/hooks/useRecordingLimits';
 import RecordingRecoveryBanner from './RecordingRecoveryBanner';
 import { useRecordedMeetings } from '@/hooks/useRecordedMeetings';
 import { useAllActiveClients } from '@/hooks/useAllActiveClients';
@@ -37,11 +39,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { clearSession } from '@/lib/recordingIDB';
 
 type OverlayState = 'idle' | 'setup' | 'recording' | 'paused' | 'processing' | 'done' | 'error';
-
-/** Maximum recording duration: 2 hours */
-const MAX_RECORDING_SECONDS = 2 * 60 * 60; // 7200
-/** Warning threshold: 5 minutes before limit */
-const WARNING_THRESHOLD_SECONDS = MAX_RECORDING_SECONDS - 5 * 60; // 6900
 
 function formatDuration(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -209,6 +206,11 @@ export default function MeetingRecorderOverlay() {
     return 'idle';
   })();
 
+  // Extracted hooks — network + 2h limit
+  const isActive = overlayState === 'recording' || overlayState === 'paused';
+  const { isOffline } = useNetworkStatus(isActive);
+  const { isApproachingLimit, remainingSeconds, shouldAutoStop } = useRecordingLimits(recorder.durationSeconds, isActive);
+
   // Prevent page close during recording or processing
   useEffect(() => {
     const shouldBlock = overlayState === 'recording' || overlayState === 'paused' || overlayState === 'processing';
@@ -231,62 +233,6 @@ export default function MeetingRecorderOverlay() {
       }
     };
   }, []);
-
-  // --- 2h limit: warning at 1h55, auto-stop at 2h ---
-  const warningShownRef = useRef(false);
-  const autoStopTriggeredRef = useRef(false);
-
-  // Reset flags when a new recording starts
-  useEffect(() => {
-    if (overlayState === 'idle') {
-      warningShownRef.current = false;
-      autoStopTriggeredRef.current = false;
-    }
-  }, [overlayState]);
-
-  // Track approaching limit
-  const isApproachingLimit = (overlayState === 'recording' || overlayState === 'paused')
-    && recorder.durationSeconds >= WARNING_THRESHOLD_SECONDS;
-  const remainingSeconds = Math.max(0, MAX_RECORDING_SECONDS - recorder.durationSeconds);
-
-  // --- Network detection: warn when connection drops during recording ---
-  const [isOffline, setIsOffline] = useState(!navigator.onLine);
-  const offlineToastShownRef = useRef(false);
-
-  useEffect(() => {
-    const isActive = overlayState === 'recording' || overlayState === 'paused';
-
-    const handleOffline = () => {
-      setIsOffline(true);
-      if (isActive && !offlineToastShownRef.current) {
-        offlineToastShownRef.current = true;
-        toast.error('Conexao perdida — chunks sendo salvos localmente. Reconecte para nao perder dados.', {
-          duration: Infinity,
-          id: 'recording-offline',
-        });
-      }
-    };
-
-    const handleOnline = () => {
-      setIsOffline(false);
-      offlineToastShownRef.current = false;
-      if (isActive) {
-        toast.success('Conexao restaurada — upload de chunks retomado.', {
-          id: 'recording-offline',
-          duration: 4000,
-        });
-      } else {
-        toast.dismiss('recording-offline');
-      }
-    };
-
-    window.addEventListener('offline', handleOffline);
-    window.addEventListener('online', handleOnline);
-    return () => {
-      window.removeEventListener('offline', handleOffline);
-      window.removeEventListener('online', handleOnline);
-    };
-  }, [overlayState]);
 
   const handleOpenSetup = useCallback(() => {
     if (!recorder.isSupported) {
@@ -385,28 +331,12 @@ export default function MeetingRecorderOverlay() {
     }
   }, [activeSession, recorder, chunkUploader, sessionApi, assembly, queryClient]);
 
-  // --- 2h auto-stop effect (must be AFTER handleStop declaration to avoid TDZ) ---
+  // Auto-stop when 2h limit reached (signaled by useRecordingLimits)
   useEffect(() => {
-    const isActive = overlayState === 'recording' || overlayState === 'paused';
-    if (!isActive) return;
-
-    // Warning at 5min remaining
-    if (recorder.durationSeconds >= WARNING_THRESHOLD_SECONDS && !warningShownRef.current) {
-      warningShownRef.current = true;
-      toast.warning('Gravacao se aproximando do limite de 2 horas. Restam 5 minutos.', {
-        duration: 10000,
-      });
-    }
-
-    // Auto-stop at limit
-    if (recorder.durationSeconds >= MAX_RECORDING_SECONDS && !autoStopTriggeredRef.current) {
-      autoStopTriggeredRef.current = true;
-      toast.error('Limite de 2 horas atingido. Gravacao sendo salva automaticamente.', {
-        duration: 8000,
-      });
+    if (shouldAutoStop) {
       handleStop();
     }
-  }, [recorder.durationSeconds, overlayState, handleStop]);
+  }, [shouldAutoStop, handleStop]);
 
   const handleCancel = useCallback(async () => {
     recorder.cancelRecording();
