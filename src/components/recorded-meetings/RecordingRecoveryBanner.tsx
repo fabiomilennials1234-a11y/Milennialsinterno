@@ -2,7 +2,7 @@
  * Banner shown when interrupted recording sessions are detected.
  * Offers to recover (re-upload + assemble) or discard.
  */
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { AlertCircle, RefreshCw, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { RecoverableSession } from '@/hooks/useRecordingRecovery';
@@ -30,6 +30,17 @@ export default function RecordingRecoveryBanner({
   const assembly = useRecordingAssembly();
   const sessionApi = useRecordingSession();
   const queryClient = useQueryClient();
+
+  const toastFiredRef = useRef(false);
+  useEffect(() => {
+    if (sessions.length > 0 && !toastFiredRef.current) {
+      toastFiredRef.current = true;
+      toast.warning(
+        `${sessions.length} gravação interrompida detectada. Recupere ou descarte no banner acima.`,
+        { duration: 15000, id: 'recovery-alert' },
+      );
+    }
+  }, [sessions.length]);
 
   if (sessions.length === 0) return null;
 

@@ -30,6 +30,7 @@ import {
   AlertCircle,
   MonitorUp,
   Clock,
+  WifiOff,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
@@ -270,6 +271,45 @@ export default function MeetingRecorderOverlay() {
     }
   }, [recorder.durationSeconds, overlayState, handleStop]);
 
+  // --- Network detection: warn when connection drops during recording ---
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const offlineToastShownRef = useRef(false);
+
+  useEffect(() => {
+    const isActive = overlayState === 'recording' || overlayState === 'paused';
+
+    const handleOffline = () => {
+      setIsOffline(true);
+      if (isActive && !offlineToastShownRef.current) {
+        offlineToastShownRef.current = true;
+        toast.error('Conexao perdida — chunks sendo salvos localmente. Reconecte para nao perder dados.', {
+          duration: Infinity,
+          id: 'recording-offline',
+        });
+      }
+    };
+
+    const handleOnline = () => {
+      setIsOffline(false);
+      offlineToastShownRef.current = false;
+      if (isActive) {
+        toast.success('Conexao restaurada — upload de chunks retomado.', {
+          id: 'recording-offline',
+          duration: 4000,
+        });
+      } else {
+        toast.dismiss('recording-offline');
+      }
+    };
+
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('online', handleOnline);
+    return () => {
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', handleOnline);
+    };
+  }, [overlayState]);
+
   const handleOpenSetup = useCallback(() => {
     if (!recorder.isSupported) {
       toast.error('Seu navegador nao suporta gravacao de tela');
@@ -419,6 +459,45 @@ export default function MeetingRecorderOverlay() {
         onDismiss={recovery.dismissSession}
       />
 
+      {/* Top Recording Strip — always visible, impossible to miss */}
+      {(showRecordingBar || showProcessing) && (
+        <div className={`fixed top-0 left-0 right-0 z-[60] flex items-center justify-center gap-3 h-9 text-white text-sm font-medium select-none transition-colors ${
+          showProcessing
+            ? 'bg-blue-600'
+            : overlayState === 'paused'
+              ? 'bg-yellow-600'
+              : isOffline
+                ? 'bg-orange-600'
+                : 'bg-red-600'
+        }`}>
+          {showProcessing ? (
+            <>
+              <Loader2 size={14} className="animate-spin" />
+              <span>Salvando gravação...</span>
+            </>
+          ) : (
+            <>
+              <div className={`w-2 h-2 rounded-full bg-white ${
+                overlayState === 'recording' ? 'animate-pulse' : ''
+              }`} />
+              <span>{overlayState === 'paused' ? 'PAUSADO' : 'GRAVANDO'}</span>
+              <span className="tabular-nums">{formatDuration(recorder.durationSeconds)}</span>
+              {isOffline && (
+                <div className="flex items-center gap-1 text-white/90">
+                  <WifiOff size={14} />
+                  <span className="text-xs">Sem rede</span>
+                </div>
+              )}
+              {isApproachingLimit && (
+                <span className="text-xs text-white/80 tabular-nums">
+                  ({formatDuration(remainingSeconds)} restantes)
+                </span>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
       {/* Floating Action Button */}
       {showFab && (
         <button
@@ -558,6 +637,14 @@ export default function MeetingRecorderOverlay() {
               ? `${chunkUploader.pendingCount} pendente${chunkUploader.pendingCount > 1 ? 's' : ''}`
               : ''}
           </span>
+
+          {/* Network status */}
+          {isOffline && (
+            <div className="flex items-center gap-1.5 text-orange-500">
+              <WifiOff size={14} className="shrink-0 animate-pulse" />
+              <span className="text-xs font-medium hidden sm:inline">Sem rede</span>
+            </div>
+          )}
 
           {/* Divider */}
           <div className="w-px h-6 bg-border" />
