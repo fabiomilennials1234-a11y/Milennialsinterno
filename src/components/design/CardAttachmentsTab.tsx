@@ -15,12 +15,13 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { 
+import {
   CardAttachment,
   useUploadAttachment,
   useDeleteAttachment,
 } from '@/hooks/useDesignKanban';
 import { MAX_ATTACHMENTS_PER_CARD, getMaxFileSize, isAllowedFileType } from '@/hooks/useCardAttachments';
+import { downloadStorageFile } from '@/lib/storageUpload';
 
 interface CardAttachmentsTabProps {
   cardId: string;
@@ -117,16 +118,10 @@ export default function CardAttachmentsTab({
 
   const handleDownload = async (attachment: CardAttachment) => {
     try {
-      const response = await fetch(attachment.file_url);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = attachment.file_name;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      // Extract relative path from the full public URL stored in file_url
+      const path = attachment.file_url.split('/card-attachments/')[1];
+      if (!path) throw new Error('Caminho do arquivo inválido');
+      await downloadStorageFile('card-attachments', decodeURIComponent(path), attachment.file_name);
     } catch (error) {
       toast.error('Erro ao baixar arquivo');
     }

@@ -33,6 +33,7 @@ import {
   X,
   GitBranch,
   Pencil,
+  Download,
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -46,6 +47,7 @@ import { TimerButton } from './TimerButton';
 import { TagPicker } from './TagPicker';
 import { useProfileMap } from '../hooks/useProfiles';
 import { useTechAttachments, getAttachmentUrl } from '../hooks/useTechAttachments';
+import { downloadStorageFile } from '@/lib/storageUpload';
 import { useTechTimeTotals, formatTimeTotal } from '../hooks/useTechTimeTotals';
 import type { TechTask, TechTaskType, TechTaskPriority, ChecklistItem } from '../types';
 
@@ -269,25 +271,40 @@ export function TaskDetailModal({ taskId, open, onOpenChange, onClose }: TaskDet
                     const url = getAttachmentUrl(att.file_path);
                     const isImage = att.content_type?.startsWith('image/');
                     return (
-                      <a
+                      <div
                         key={att.id}
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block rounded-[var(--mtech-radius-sm)] border border-[var(--mtech-border)] bg-[var(--mtech-surface-elev)] overflow-hidden hover:border-[var(--mtech-accent)] transition-colors"
+                        className="group/att relative rounded-[var(--mtech-radius-sm)] border border-[var(--mtech-border)] bg-[var(--mtech-surface-elev)] overflow-hidden hover:border-[var(--mtech-accent)] transition-colors"
                         style={{ width: 96, height: 96 }}
                       >
-                        {isImage ? (
-                          <img src={url} alt={att.file_name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="flex flex-col items-center justify-center h-full p-2">
-                            <span className="text-lg">📎</span>
-                            <span className="text-[8px] text-[var(--mtech-text-subtle)] truncate w-full text-center mt-1">
-                              {att.file_name}
-                            </span>
-                          </div>
-                        )}
-                      </a>
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block w-full h-full"
+                        >
+                          {isImage ? (
+                            <img src={url} alt={att.file_name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="flex flex-col items-center justify-center h-full p-2">
+                              <span className="text-lg">📎</span>
+                              <span className="text-[8px] text-[var(--mtech-text-subtle)] truncate w-full text-center mt-1">
+                                {att.file_name}
+                              </span>
+                            </div>
+                          )}
+                        </a>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            downloadStorageFile('tech-attachments', att.file_path, att.file_name)
+                              .catch(() => toast.error('Erro ao baixar arquivo'));
+                          }}
+                          className="absolute bottom-1 right-1 p-1.5 rounded-md bg-black/60 hover:bg-black/80 text-white opacity-0 group-hover/att:opacity-100 transition-opacity"
+                          title="Baixar"
+                        >
+                          <Download className="h-3 w-3" />
+                        </button>
+                      </div>
                     );
                   })}
                 </div>
