@@ -249,28 +249,6 @@ export default function MeetingRecorderOverlay() {
     && recorder.durationSeconds >= WARNING_THRESHOLD_SECONDS;
   const remainingSeconds = Math.max(0, MAX_RECORDING_SECONDS - recorder.durationSeconds);
 
-  useEffect(() => {
-    const isActive = overlayState === 'recording' || overlayState === 'paused';
-    if (!isActive) return;
-
-    // Warning at 5min remaining
-    if (recorder.durationSeconds >= WARNING_THRESHOLD_SECONDS && !warningShownRef.current) {
-      warningShownRef.current = true;
-      toast.warning('Gravacao se aproximando do limite de 2 horas. Restam 5 minutos.', {
-        duration: 10000,
-      });
-    }
-
-    // Auto-stop at limit
-    if (recorder.durationSeconds >= MAX_RECORDING_SECONDS && !autoStopTriggeredRef.current) {
-      autoStopTriggeredRef.current = true;
-      toast.error('Limite de 2 horas atingido. Gravacao sendo salva automaticamente.', {
-        duration: 8000,
-      });
-      handleStop();
-    }
-  }, [recorder.durationSeconds, overlayState, handleStop]);
-
   // --- Network detection: warn when connection drops during recording ---
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const offlineToastShownRef = useRef(false);
@@ -406,6 +384,29 @@ export default function MeetingRecorderOverlay() {
       stoppingRef.current = false;
     }
   }, [activeSession, recorder, chunkUploader, sessionApi, assembly, queryClient]);
+
+  // --- 2h auto-stop effect (must be AFTER handleStop declaration to avoid TDZ) ---
+  useEffect(() => {
+    const isActive = overlayState === 'recording' || overlayState === 'paused';
+    if (!isActive) return;
+
+    // Warning at 5min remaining
+    if (recorder.durationSeconds >= WARNING_THRESHOLD_SECONDS && !warningShownRef.current) {
+      warningShownRef.current = true;
+      toast.warning('Gravacao se aproximando do limite de 2 horas. Restam 5 minutos.', {
+        duration: 10000,
+      });
+    }
+
+    // Auto-stop at limit
+    if (recorder.durationSeconds >= MAX_RECORDING_SECONDS && !autoStopTriggeredRef.current) {
+      autoStopTriggeredRef.current = true;
+      toast.error('Limite de 2 horas atingido. Gravacao sendo salva automaticamente.', {
+        duration: 8000,
+      });
+      handleStop();
+    }
+  }, [recorder.durationSeconds, overlayState, handleStop]);
 
   const handleCancel = useCallback(async () => {
     recorder.cancelRecording();
