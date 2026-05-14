@@ -29,6 +29,7 @@ import {
   CheckCircle2,
   AlertCircle,
   MonitorUp,
+  Clock,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
@@ -36,10 +37,16 @@ import { clearSession } from '@/lib/recordingIDB';
 
 type OverlayState = 'idle' | 'setup' | 'recording' | 'paused' | 'processing' | 'done' | 'error';
 
+/** Maximum recording duration: 2 hours */
+const MAX_RECORDING_SECONDS = 2 * 60 * 60; // 7200
+/** Warning threshold: 5 minutes before limit */
+const WARNING_THRESHOLD_SECONDS = MAX_RECORDING_SECONDS - 5 * 60; // 6900
+
 function formatDuration(seconds: number): string {
-  const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
   const s = (seconds % 60).toString().padStart(2, '0');
-  return `${m}:${s}`;
+  return h > 0 ? `${h}:${m}:${s}` : `${m}:${s}`;
 }
 
 export default function MeetingRecorderOverlay() {
@@ -64,6 +71,7 @@ export default function MeetingRecorderOverlay() {
   const totalBytesRef = useRef(0);
   const activeSessionRef = useRef<RecordingSession | null>(null);
   activeSessionRef.current = activeSession;
+  const stoppingRef = useRef(false);
 
   // Hooks
   const chunkUploader = useChunkUploader();
@@ -223,6 +231,45 @@ export default function MeetingRecorderOverlay() {
     };
   }, []);
 
+  // --- 2h limit: warning at 1h55, auto-stop at 2h ---
+  const warningShownRef = useRef(false);
+  const autoStopTriggeredRef = useRef(false);
+
+  // Reset flags when a new recording starts
+  useEffect(() => {
+    if (overlayState === 'idle') {
+      warningShownRef.current = false;
+      autoStopTriggeredRef.current = false;
+    }
+  }, [overlayState]);
+
+  // Track approaching limit
+  const isApproachingLimit = (overlayState === 'recording' || overlayState === 'paused')
+    && recorder.durationSeconds >= WARNING_THRESHOLD_SECONDS;
+  const remainingSeconds = Math.max(0, MAX_RECORDING_SECONDS - recorder.durationSeconds);
+
+  useEffect(() => {
+    const isActive = overlayState === 'recording' || overlayState === 'paused';
+    if (!isActive) return;
+
+    // Warning at 5min remaining
+    if (recorder.durationSeconds >= WARNING_THRESHOLD_SECONDS && !warningShownRef.current) {
+      warningShownRef.current = true;
+      toast.warning('Gravacao se aproximando do limite de 2 horas. Restam 5 minutos.', {
+        duration: 10000,
+      });
+    }
+
+    // Auto-stop at limit
+    if (recorder.durationSeconds >= MAX_RECORDING_SECONDS && !autoStopTriggeredRef.current) {
+      autoStopTriggeredRef.current = true;
+      toast.error('Limite de 2 horas atingido. Gravacao sendo salva automaticamente.', {
+        duration: 8000,
+      });
+      handleStop();
+    }
+  }, [recorder.durationSeconds, overlayState, handleStop]);
+
   const handleOpenSetup = useCallback(() => {
     if (!recorder.isSupported) {
       toast.error('Seu navegador nao suporta gravacao de tela');
@@ -270,7 +317,8 @@ export default function MeetingRecorderOverlay() {
   }, [title, folderId, clientId, sessionApi, recorder]);
 
   const handleStop = useCallback(async () => {
-    if (!activeSession) return;
+    if (!activeSession || stoppingRef.current) return;
+    stoppingRef.current = true;
 
     setPipelineState('processing');
 
@@ -314,6 +362,8 @@ export default function MeetingRecorderOverlay() {
       if (activeSession) {
         await sessionApi.markFailed(activeSession.id, msg);
       }
+    } finally {
+      stoppingRef.current = false;
     }
   }, [activeSession, recorder, chunkUploader, sessionApi, assembly, queryClient]);
 
@@ -329,6 +379,7 @@ export default function MeetingRecorderOverlay() {
     setPipelineState('idle');
     setPipelineError(null);
     setShowSetup(false);
+    stoppingRef.current = false;
   }, [recorder, activeSession, sessionApi]);
 
   const handleDismiss = useCallback(() => {
@@ -338,6 +389,7 @@ export default function MeetingRecorderOverlay() {
     setTitle('');
     setFolderId('');
     setClientId(null);
+    stoppingRef.current = false;
   }, []);
 
   // Computed visibility
@@ -468,7 +520,9 @@ export default function MeetingRecorderOverlay() {
 
       {/* Recording Bar */}
       {showRecordingBar && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 px-5 py-3 rounded-2xl bg-card border border-border shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200">
+        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 px-5 py-3 rounded-2xl bg-card border shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200 ${
+          isApproachingLimit ? 'border-amber-500/50' : 'border-border'
+        }`}>
           {/* Recording indicator */}
           <div className="flex items-center gap-2.5">
             <div className={`w-3 h-3 rounded-full ${
@@ -476,10 +530,22 @@ export default function MeetingRecorderOverlay() {
                 ? 'bg-red-500 animate-pulse'
                 : 'bg-yellow-500'
             }`} />
-            <span className="text-sm font-medium text-foreground tabular-nums min-w-[48px]">
+            <span className={`text-sm font-medium tabular-nums min-w-[48px] ${
+              isApproachingLimit ? 'text-amber-500' : 'text-foreground'
+            }`}>
               {formatDuration(recorder.durationSeconds)}
             </span>
           </div>
+
+          {/* Approaching limit warning */}
+          {isApproachingLimit && (
+            <div className="flex items-center gap-1.5 text-amber-500">
+              <Clock size={14} className="shrink-0" />
+              <span className="text-xs font-medium tabular-nums whitespace-nowrap">
+                {formatDuration(remainingSeconds)} restantes
+              </span>
+            </div>
+          )}
 
           {/* Title */}
           <span className="text-sm text-muted-foreground max-w-[200px] truncate hidden sm:block">
