@@ -725,49 +725,20 @@ export function useMoveClientDay() {
         console.error('[useMoveClientDay] No effectiveUserId found. targetUserId:', targetUserId, 'user?.id:', user?.id);
         throw new Error('Usuário não autenticado');
       }
-      
-      
-      // First check if tracking exists for this client
-      const { data: existing } = await supabase
-        .from('client_daily_tracking')
-        .select('id, ads_manager_id')
-        .eq('client_id', clientId)
-        .maybeSingle();
 
-      if (existing) {
-        // Update existing record - IMPORTANT: Also update ads_manager_id to ensure proper ownership
-        const { error } = await supabase
-          .from('client_daily_tracking')
-          .update({
-            current_day: newDay,
-            last_moved_at: new Date().toISOString(),
-            is_delayed: false,
-            ads_manager_id: effectiveUserId,
-          })
-          .eq('client_id', clientId);
-        
-        if (error) {
-          console.error('[useMoveClientDay] Error updating:', error);
-          throw error;
-        }
-      } else {
-        // Insert new record
-        const { error } = await supabase
-          .from('client_daily_tracking')
-          .insert({
-            client_id: clientId,
-            ads_manager_id: effectiveUserId,
-            current_day: newDay,
-            last_moved_at: new Date().toISOString(),
-            is_delayed: false,
-          });
-        
-        if (error) {
-          console.error('[useMoveClientDay] Error inserting:', error);
-          throw error;
-        }
+      // Use SECURITY DEFINER RPC for atomic upsert — avoids RLS mismatch
+      // when secondary manager or recently-reassigned manager moves a client
+      // whose tracking record is owned by a different user.
+      const { error } = await supabase.rpc('move_client_tracking_day', {
+        _client_id: clientId,
+        _ads_manager_id: effectiveUserId,
+        _new_day: newDay,
+      });
+
+      if (error) {
+        console.error('[useMoveClientDay] RPC error:', error);
+        throw error;
       }
-      
     },
     onSuccess: () => {
       // Invalidate with specific effectiveUserId
@@ -924,11 +895,11 @@ export function useUpsertClientDocumentation() {
 
       if (existing) {
         // Append to existing documentation
-        const updatedMetrics = existing.metrics 
-          ? `${existing.metrics}\n---\n${doc.metrics}` 
+        const updatedMetrics = existing.metrics
+          ? `${existing.metrics}\n---\n${doc.metrics}`
           : doc.metrics;
-        const updatedActions = existing.actions_done 
-          ? `${existing.actions_done}\n---\n${doc.actions_done}` 
+        const updatedActions = existing.actions_done
+          ? `${existing.actions_done}\n---\n${doc.actions_done}`
           : doc.actions_done;
         const updatedBudget = doc.client_budget || existing.client_budget;
 
@@ -941,23 +912,25 @@ export function useUpsertClientDocumentation() {
             updated_at: new Date().toISOString(),
           })
           .eq('id', existing.id);
-        
+
         if (error) {
           console.error('[useUpsertClientDocumentation] Error updating:', error);
           throw error;
         }
       } else {
-        // Create new documentation
+        // Create new documentation — pass documentation_date explicitly
+        // to avoid UTC vs Brazil timezone mismatch (CURRENT_DATE default is UTC)
         const { error } = await supabase
           .from('ads_daily_documentation')
           .insert({
             ads_manager_id: effectiveUserId,
             client_id: doc.clientId,
+            documentation_date: today,
             metrics: doc.metrics,
             actions_done: doc.actions_done,
             client_budget: doc.client_budget,
           });
-        
+
         if (error) {
           console.error('[useUpsertClientDocumentation] Error inserting:', error);
           throw error;

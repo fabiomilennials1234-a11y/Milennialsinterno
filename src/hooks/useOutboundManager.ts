@@ -666,36 +666,16 @@ export function useOutboundMoveClientDay() {
     mutationFn: async ({ clientId, newDay }: { clientId: string; newDay: string }) => {
       if (!effectiveUserId) throw new Error('Usuário não autenticado');
 
-      const { data: existing } = await supabase
-        .from('client_daily_tracking')
-        .select('id, ads_manager_id')
-        .eq('client_id', clientId)
-        .maybeSingle();
+      // Use SECURITY DEFINER RPC for atomic upsert — avoids RLS mismatch
+      const { error } = await supabase.rpc('move_client_tracking_day', {
+        _client_id: clientId,
+        _ads_manager_id: effectiveUserId,
+        _new_day: newDay,
+      });
 
-      if (existing) {
-        const { error } = await supabase
-          .from('client_daily_tracking')
-          .update({
-            current_day: newDay,
-            last_moved_at: new Date().toISOString(),
-            is_delayed: false,
-            ads_manager_id: effectiveUserId,
-          })
-          .eq('client_id', clientId);
-
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('client_daily_tracking')
-          .insert({
-            client_id: clientId,
-            ads_manager_id: effectiveUserId,
-            current_day: newDay,
-            last_moved_at: new Date().toISOString(),
-            is_delayed: false,
-          });
-
-        if (error) throw error;
+      if (error) {
+        console.error('[useOutboundMoveClientDay] RPC error:', error);
+        throw error;
       }
     },
     onSuccess: () => {

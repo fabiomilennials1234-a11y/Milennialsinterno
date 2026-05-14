@@ -166,22 +166,27 @@ export default function AdsAcompanhamentoSection({ compact }: Props) {
     setIsSaving(true);
     
     try {
-      
       // Build the actions_done content with combinado info if applicable
       let actionsContent = docForm.actions_done;
       if (docForm.has_combinado === 'sim' && docForm.combinado_description && docForm.combinado_deadline) {
         actionsContent += `\n\n📌 COMBINADO: ${docForm.combinado_description}\n📅 Prazo: ${format(docForm.combinado_deadline, 'dd/MM/yyyy')}`;
       }
-      
-      // Save documentation (upsert - one card per client per day)
-      await upsertDoc.mutateAsync({
-        clientId: docModal.clientId,
-        client_budget: docForm.client_budget,
-        metrics: docForm.metrics,
-        actions_done: actionsContent,
-      });
-      
-      // Create task if there was a combinado
+
+      // 1. Save documentation (upsert - one card per client per day)
+      try {
+        await upsertDoc.mutateAsync({
+          clientId: docModal.clientId,
+          client_budget: docForm.client_budget,
+          metrics: docForm.metrics,
+          actions_done: actionsContent,
+        });
+      } catch (docError) {
+        console.error('[AdsAcompanhamentoSection] Error saving documentation:', docError);
+        toast.error('Erro ao salvar documentação');
+        return;
+      }
+
+      // 2. Create task if there was a combinado (non-blocking)
       if (docForm.has_combinado === 'sim' && docForm.combinado_description && docForm.combinado_deadline) {
         try {
           await createCombinadoTask.mutateAsync({
@@ -196,7 +201,7 @@ export default function AdsAcompanhamentoSection({ compact }: Props) {
         }
       }
 
-      // Create automation task for gestor_crm if formulário was changed
+      // 3. Create automation task for gestor_crm if formulário was changed (non-blocking)
       if (
         docForm.formulario_changed === 'sim' &&
         docForm.formulario_name.trim() &&
@@ -222,21 +227,27 @@ export default function AdsAcompanhamentoSection({ compact }: Props) {
           toast.error('Erro ao criar tarefa de automação para CRM');
         }
       }
-      
-      // Move client to new day
-      await moveClient.mutateAsync({
-        clientId: docModal.clientId,
-        newDay: docModal.newDay,
-      });
-      
+
+      // 4. Move client to new day
+      try {
+        await moveClient.mutateAsync({
+          clientId: docModal.clientId,
+          newDay: docModal.newDay,
+        });
+      } catch (moveError) {
+        console.error('[AdsAcompanhamentoSection] Error moving client:', moveError);
+        toast.error('Erro ao mover cliente');
+        return;
+      }
+
       toast.success('Documentação salva e cliente movido!');
-      
+
       // Reset form and close modal
       setDocModal({ open: false });
       setDocForm(EMPTY_DOC_FORM);
     } catch (error) {
-      console.error('Error saving documentation:', error);
-      toast.error('Erro ao salvar documentação');
+      console.error('[AdsAcompanhamentoSection] Unexpected error:', error);
+      toast.error('Erro inesperado ao processar movimentação');
     } finally {
       setIsSaving(false);
     }
