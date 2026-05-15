@@ -36,6 +36,7 @@ export interface CSClient {
   client_label: 'otimo' | 'bom' | 'medio' | 'ruim' | null;
   distrato_step: string | null;
   cx_validation_status: string | null;
+  growth_onboarding_step: string | null;
 }
 
 export interface CSActionManual {
@@ -57,8 +58,10 @@ export type CSClassification = 'normal' | 'alerta' | 'critico' | 'encerrado';
 // =============================================
 
 export function useAdsManagers() {
+  const { user, isCEO, isAdminUser, userGroupId } = useAuth();
+
   return useQuery({
-    queryKey: ['ads-managers'],
+    queryKey: ['ads-managers', userGroupId],
     queryFn: async (): Promise<AdsManager[]> => {
       const { data, error } = await supabase.rpc('list_users_by_role_for_page', {
         _role: 'gestor_ads',
@@ -73,10 +76,26 @@ export function useAdsManagers() {
         throw error;
       }
 
-      return (data || []).map(p => ({
+      let managers = (data || []).map(p => ({
         user_id: p.user_id,
         name: p.name,
       }));
+
+      // Sucesso do Cliente users only see managers from their own group.
+      // CEO/admin see all managers across all groups.
+      if (!isCEO && !isAdminUser && userGroupId && user?.role === 'sucesso_cliente') {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, group_id')
+          .in('user_id', managers.map(m => m.user_id));
+
+        const sameGroupIds = new Set(
+          (profiles || []).filter(p => p.group_id === userGroupId).map(p => p.user_id)
+        );
+        managers = managers.filter(m => sameGroupIds.has(m.user_id));
+      }
+
+      return managers;
     },
   });
 }
@@ -86,16 +105,23 @@ export function useAdsManagers() {
 // =============================================
 
 export function useCSClientsByManager() {
+  const { user, isCEO, isAdminUser, userGroupId } = useAuth();
+
   return useQuery({
-    queryKey: ['cs-clients-by-manager'],
+    queryKey: ['cs-clients-by-manager', userGroupId],
     queryFn: async () => {
-      const { data: clients, error } = await supabase
+      let query = supabase
         .from('clients')
         .select('*')
         .eq('archived', false)
-        .neq('status', 'churned')
-        .order('name');
+        .neq('status', 'churned');
 
+      // Sucesso do Cliente users only see clients from their own group.
+      if (!isCEO && !isAdminUser && userGroupId && user?.role === 'sucesso_cliente') {
+        query = query.eq('group_id', userGroupId);
+      }
+
+      const { data: clients, error } = await query.order('name');
       if (error) throw error;
 
       return (clients || []) as CSClient[];

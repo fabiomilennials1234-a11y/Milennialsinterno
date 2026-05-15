@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import MainLayout from '@/layouts/MainLayout';
 import {
@@ -12,7 +12,10 @@ import {
   Users,
   Wrench,
   Gift,
-  Quote
+  Quote,
+  UserPlus,
+  Headphones,
+  Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import MeetingOneOnOneSection from '@/components/dash-gestores/MeetingOneOnOneSection';
@@ -24,17 +27,24 @@ import AdsFerramentasSection from '@/components/ads-manager/AdsFerramentasSectio
 import AdsBonusSection from '@/components/ads-manager/AdsBonusSection';
 import AdsLemasSection from '@/components/ads-manager/AdsLemasSection';
 import DepartmentTarefasSection from '@/components/department/DepartmentTarefasSection';
+import GrowthNovosClientesSection from '@/components/gestor-projetos/GrowthNovosClientesSection';
+import GrowthAcompanhamentoSection from '@/components/gestor-projetos/GrowthAcompanhamentoSection';
+import GrowthTeamSelectionModal from '@/components/gestor-projetos/GrowthTeamSelectionModal';
 import ProjectManagerWelcomeModal from '@/components/gestor-projetos/ProjectManagerWelcomeModal';
+import OracleSummarySection from '@/components/oracle/OracleSummarySection';
 import { useDailyMovementDelayCheck } from '@/hooks/useDailyMovementDelayCheck';
 
 // Colunas do Gestor de Projetos - Focado em Gestão de Squad por Departamento
 const COLUMNS = [
+  { id: 'oraculo', title: 'Oráculo IA', icon: Sparkles, headerClass: 'section-header-violet', iconColor: 'text-white' },
+  { id: 'novos-clientes-growth', title: 'Novos Clientes Growth', icon: UserPlus, headerClass: 'section-header-cyan', iconColor: 'text-white' },
   { id: 'metricas', title: 'Métricas por Área', icon: LayoutDashboard, headerClass: 'section-header-blue', iconColor: 'text-white' },
   { id: 'onboarding', title: 'Status Onboarding', icon: Clock, headerClass: 'section-header-purple', iconColor: 'text-white' },
   { id: 'atrasados', title: 'Atrasados por Área', icon: AlertTriangle, headerClass: 'section-header-danger', iconColor: 'text-white' },
   { id: 'atrasos-justificativas', title: 'Atrasos + Justificativas do Time', icon: ClipboardList, headerClass: 'section-header-orange', iconColor: 'text-white' },
   { id: 'tarefas-recorrentes', title: 'Tarefas Recorrentes', icon: CheckSquare, headerClass: 'section-header-sky', iconColor: 'text-white' },
-  { id: 'reuniao-1a1', title: 'Reunião 1 a 1', icon: Users, headerClass: 'section-header-cyan', iconColor: 'text-white' },
+  { id: 'reuniao-1a1', title: 'Reunião 1 a 1', icon: Users, headerClass: 'section-header-green', iconColor: 'text-white' },
+  { id: 'acompanhamento-growth', title: 'Acompanhamento Gestores', icon: Headphones, headerClass: 'section-header-teal', iconColor: 'text-white' },
   { id: 'ferramentas', title: 'Ferramentas PRO+', icon: Wrench, headerClass: 'section-header-purple', iconColor: 'text-white' },
   { id: 'bonus', title: 'Bônus Millennials', icon: Gift, headerClass: 'section-header-yellow', iconColor: 'text-foreground' },
   { id: 'lemas', title: 'Lemas', icon: Quote, headerClass: 'section-header-orange', iconColor: 'text-white' },
@@ -45,6 +55,12 @@ export default function GestorProjetosPage() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const [pendingTeamSelection, setPendingTeamSelection] = useState<string | null>(null);
+
+  const handleTeamSelectionNeeded = useCallback((clientId: string) => {
+    setPendingTeamSelection(clientId);
+  }, []);
 
   // Check for daily movement delays on page load
   useDailyMovementDelayCheck();
@@ -81,6 +97,17 @@ export default function GestorProjetosPage() {
 
   const renderColumnContent = (columnId: string) => {
     switch (columnId) {
+      case 'oraculo':
+        return (
+          <>
+            <OracleSummarySection type="group" groupId={user?.group_id} />
+            <div className="mt-4">
+              <OracleSummarySection type="individual" userId={user?.id} />
+            </div>
+          </>
+        );
+      case 'novos-clientes-growth':
+        return <GrowthNovosClientesSection onTeamSelectionNeeded={handleTeamSelectionNeeded} />;
       case 'metricas':
         return <SquadDepartmentMetricsSection />;
       case 'onboarding':
@@ -93,6 +120,8 @@ export default function GestorProjetosPage() {
         return <DepartmentTarefasSection department="gestor_projetos" type="daily" />;
       case 'reuniao-1a1':
         return <MeetingOneOnOneSection />;
+      case 'acompanhamento-growth':
+        return <GrowthAcompanhamentoSection />;
       case 'ferramentas':
         return <AdsFerramentasSection />;
       case 'bonus':
@@ -170,6 +199,15 @@ export default function GestorProjetosPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal de seleção de equipe Growth */}
+      {pendingTeamSelection && (
+        <GrowthTeamSelectionModal
+          clientId={pendingTeamSelection}
+          onClose={() => setPendingTeamSelection(null)}
+          onSuccess={() => setPendingTeamSelection(null)}
+        />
+      )}
 
       {/* Modal bloqueante de boas-vindas — apenas para gestor_projetos */}
       {user?.role === 'gestor_projetos' && <ProjectManagerWelcomeModal />}

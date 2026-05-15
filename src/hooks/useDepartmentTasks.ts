@@ -12,6 +12,7 @@ import {
   type CrmProduto,
 } from '@/hooks/useCrmKanban';
 import { resolveTaskOwner } from './utils/resolveTaskOwner';
+import { handleGrowthTaskCompletion } from './utils/growthTaskAutomation';
 
 // Map de department → page_slug correspondente em app_pages.
 // Mantido em paralelo aos slugs declarados em types/auth.ts ROLE_PAGE_MATRIX.
@@ -81,6 +82,11 @@ export function useDepartmentTasks(department: string, type: 'daily' | 'weekly' 
         .eq('archived', false)
         .is('related_project_id' as any, null)
         .order('created_at', { ascending: false });
+
+      // Exclude Growth tasks from the regular GP board — they live in their own section
+      if (department === 'gestor_projetos') {
+        baseQuery = baseQuery.not('description', 'ilike', 'growth:%');
+      }
 
       if (!seesAll) {
         baseQuery = baseQuery.eq('user_id', user?.id);
@@ -618,7 +624,19 @@ export function useUpdateDepartmentTaskStatus(department: string) {
         }
       }
 
-      return { _source: 'department' as const, status, financeiroCompleted, allClientTasksDone, mktplaceAdvanced, crmWelcomeAdvanced, crmConfigAdvanced, crmConfigFinalized, crmValidationBlocked };
+      // ===== GROWTH ONBOARDING AUTOMATION =====
+      // Extracted to pure function for testability and reuse.
+      let growthAdvanced = false;
+      let growthTeamSelectionNeeded: string | null = null;
+      let growthOnboardingComplete = false;
+      if (status === 'done') {
+        const growthResult = await handleGrowthTaskCompletion(supabase, taskId, user?.id);
+        growthAdvanced = growthResult.growthAdvanced;
+        growthTeamSelectionNeeded = growthResult.growthTeamSelectionNeeded;
+        growthOnboardingComplete = growthResult.growthOnboardingComplete;
+      }
+
+      return { _source: 'department' as const, status, financeiroCompleted, allClientTasksDone, mktplaceAdvanced, crmWelcomeAdvanced, crmConfigAdvanced, crmConfigFinalized, crmValidationBlocked, growthAdvanced, growthTeamSelectionNeeded, growthOnboardingComplete };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
@@ -668,6 +686,19 @@ export function useUpdateDepartmentTaskStatus(department: string) {
           toast.success('Tarefa concluída!');
         }
       }
+      if (result?.growthAdvanced || result?.growthOnboardingComplete) {
+        queryClient.invalidateQueries({ queryKey: ['growth-novos-clientes'] });
+        queryClient.invalidateQueries({ queryKey: ['growth-gp-tasks'] });
+        queryClient.invalidateQueries({ queryKey: ['growth-acompanhamento'] });
+        queryClient.invalidateQueries({ queryKey: ['client-tags'] });
+        queryClient.invalidateQueries({ queryKey: ['client-tags-batch'] });
+        if (result?.growthOnboardingComplete) {
+          toast.success('Onboarding Growth concluido!');
+        } else {
+          toast.success('Tarefa Growth concluida — proxima criada!');
+        }
+      }
+      // growthTeamSelectionNeeded is handled by the caller (page component)
     },
     onError: (error: any) => {
       toast.error('Erro ao atualizar tarefa', { description: error.message });
@@ -749,6 +780,10 @@ export function useArchivedDepartmentTasks(department: string, type: 'daily' | '
         .eq('archived', true)
         .is('related_project_id' as any, null)
         .order('archived_at', { ascending: false });
+
+      if (department === 'gestor_projetos') {
+        query = query.not('description', 'ilike', 'growth:%');
+      }
 
       if (!seesAll) {
         query = query.eq('user_id', user?.id);

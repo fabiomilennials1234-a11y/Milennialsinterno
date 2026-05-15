@@ -59,8 +59,13 @@ const STATUSES = [
   { id: 'done', label: 'Feitas', headerClass: 'kanban-header-done', borderClass: 'card-border-green' },
 ];
 
-/** Roles allowed to archive or delete tasks (CEO, CTO, Sucesso do Cliente). */
-const CAN_MANAGE_TASKS_ROLES = new Set(['ceo', 'cto', 'sucesso_cliente']);
+/** Roles allowed to archive or delete tasks in their own department. */
+const CAN_MANAGE_TASKS_ROLES = new Set([
+  'ceo', 'cto', 'sucesso_cliente',
+  'gestor_crm', 'gestor_ads', 'gestor_projetos',
+  'consultor_mktplace', 'consultor_comercial',
+  'financeiro', 'outbound', 'rh',
+]);
 
 export default function DepartmentTarefasSection({ department, type = 'daily' }: Props) {
   const { data: tasks = [], isLoading } = useDepartmentTasks(department, type);

@@ -59,8 +59,10 @@ const STATUSES = [
 
 // Labels legíveis para cada step do onboarding (usados no toast de conclusão)
 const STEP_LABELS: Record<string, string> = {
-  'call_1_marcada':          'Call #1 Marcada',
+  'dar_boas_vindas':         'Dar Boas Vindas',
   'criar_estrategia':        'Criar Estratégia',
+  'marcar_apresentacao_estrategia': 'Marcar Apresentação Estratégia',
+  'realizar_apresentacao_estrategia': 'Realizar Apresentação Estratégia',
   'brifar_criativos':        'Brifar Criativos',
   'elencar_otimizacoes':     'Elencar Otimizações',
   'configurar_conta_anuncios': 'Configurar Conta de Anúncios',
@@ -69,11 +71,14 @@ const STEP_LABELS: Record<string, string> = {
   'acompanhamento':          'Acompanhamento',
 };
 
-// Instant optimistic advancement: maps onboarding_task_type → the step/milestone the client
+// Instant optimistic advancement: maps onboarding_task_type -> the step/milestone the client
 // should land on in AdsOnboardingSection AFTER the task is completed.
 // Matches exactly the stepKeys defined in AdsOnboardingSection.tsx MILESTONE_CARDS.
 const ONBOARDING_TASK_ADVANCEMENT: Record<string, { step: string; milestone: number }> = {
-  'realizar_call_1':            { step: 'criar_estrategia',          milestone: 2 },
+  'dar_boas_vindas':            { step: 'criar_estrategia',          milestone: 2 },
+  'criar_estrategia':           { step: 'marcar_apresentacao_estrategia', milestone: 2 },
+  'marcar_apresentacao_estrategia': { step: 'realizar_apresentacao_estrategia', milestone: 2 },
+  'realizar_apresentacao_estrategia': { step: 'brifar_criativos',    milestone: 3 },
   'apresentar_estrategia':      { step: 'brifar_criativos',          milestone: 3 },
   'brifar_criativos':           { step: 'elencar_otimizacoes',       milestone: 4 },
   'brifar_otimizacoes_pendentes':{ step: 'configurar_conta_anuncios', milestone: 5 },
@@ -191,6 +196,10 @@ export default function AdsTarefasSection({ type, compact }: Props) {
   // Task types that have a visible ads_task entry in Tarefas Diárias.
   // The corresponding onboarding_tasks must be hidden to avoid duplicates.
   const HIDDEN_ONBOARDING_TASK_TYPES = [
+    'dar_boas_vindas',
+    'criar_estrategia',
+    'marcar_apresentacao_estrategia',
+    'realizar_apresentacao_estrategia',
     'marcar_call_1',
     'realizar_call_1',
     'apresentar_estrategia',

@@ -54,38 +54,50 @@ const DAY_OF_WEEK_MAP: Record<number, string> = {
 // IMPORTANT: Only tasks that ADVANCE the client in onboarding should have nextStep/nextMilestone
 // Auxiliary tasks (like anexar_link_consultoria, certificar_consultoria) should NOT be in this list
 // They are just parallel tasks that don't move the client to the next step
+//
+// NOTE: Marco 1 (Call 1) was removed — Call 1 is now GP's responsibility.
+// New flow starts with dar_boas_vindas in Marco 2.
 const ADVANCING_TASK_DEFINITIONS = {
-  marcar_call_1: {
-    title: 'Marcar call 1',
-    description: 'Agendar a primeira call com o cliente para alinhamento inicial.',
+  dar_boas_vindas: {
+    title: 'Dar boas vindas',
+    description: 'Dar boas vindas ao cliente.',
     dueDays: 1,
-    milestone: 1,
-    nextStep: 'call_1_marcada',
-    nextMilestone: 1,
-    nextTask: 'realizar_call_1',
-    createMultipleTasks: false,
-  },
-  realizar_call_1: {
-    title: 'Realizar call 1',
-    description: 'Realizar a Call 1 com o cliente. Alinhar expectativas e colher briefing.',
-    dueDays: 2,
-    milestone: 1,
+    milestone: 2,
     nextStep: 'criar_estrategia',
     nextMilestone: 2,
-    nextTask: null,
-    createMultipleTasks: true,
-    tasksGroup: 'post_call_1',
+    nextTask: 'criar_estrategia',
+    createMultipleTasks: false,
   },
-  enviar_estrategia: {
-    title: 'Enviar estratégia',
-    description: 'Enviar a estratégia desenvolvida para o cliente.',
+  criar_estrategia: {
+    title: 'Criar estratégia',
+    description: 'Criar a estratégia PRO+ para o cliente.',
+    dueDays: 3,
+    milestone: 2,
+    nextStep: 'marcar_apresentacao_estrategia',
+    nextMilestone: 2,
+    nextTask: 'marcar_apresentacao_estrategia',
+    createMultipleTasks: false,
+  },
+  marcar_apresentacao_estrategia: {
+    title: 'Marcar apresentação estratégia',
+    description: 'Agendar a apresentação da estratégia PRO+ para o cliente.',
+    dueDays: 2,
+    milestone: 2,
+    nextStep: 'realizar_apresentacao_estrategia',
+    nextMilestone: 2,
+    nextTask: 'realizar_apresentacao_estrategia',
+    createMultipleTasks: false,
+  },
+  realizar_apresentacao_estrategia: {
+    title: 'Realizar apresentação estratégia',
+    description: 'Realizar a apresentação da estratégia PRO+ para o cliente.',
     dueDays: 3,
     milestone: 2,
     nextStep: 'brifar_criativos',
     nextMilestone: 3,
     nextTask: null,
     createMultipleTasks: true,
-    tasksGroup: 'post_estrategia',
+    tasksGroup: 'post_apresentacao_estrategia',
   },
   // ONLY brifar_criativos advances to Marco 4 - the other Marco 3 tasks are auxiliary
   brifar_criativos: {
@@ -165,7 +177,7 @@ export function useCreateInitialOnboardingTask() {
         .from('onboarding_tasks')
         .select('id')
         .eq('client_id', clientId)
-        .eq('task_type', 'marcar_call_1')
+        .eq('task_type', 'dar_boas_vindas')
         .maybeSingle();
 
       if (existingTask) {
@@ -178,12 +190,12 @@ export function useCreateInitialOnboardingTask() {
         .select('assigned_ads_manager')
         .eq('id', clientId)
         .single();
-      
+
       // Use client's assigned_ads_manager first, then effectiveUserId, then logged-in user
       const assignedTo = client?.assigned_ads_manager || effectiveUserId || user?.id;
-      
 
-      const taskDef = ADVANCING_TASK_DEFINITIONS.marcar_call_1;
+
+      const taskDef = ADVANCING_TASK_DEFINITIONS.dar_boas_vindas;
       const dueDate = addDays(new Date(), taskDef.dueDays);
 
       const { data, error } = await supabase
@@ -191,8 +203,8 @@ export function useCreateInitialOnboardingTask() {
         .insert({
           client_id: clientId,
           assigned_to: assignedTo,
-          task_type: 'marcar_call_1',
-          title: `Marcar Call 1: ${clientName}`,
+          task_type: 'dar_boas_vindas',
+          title: `Dar boas vindas: ${clientName}`,
           description: `${taskDef.description} Cliente: ${clientName}.`,
           status: 'pending',
           due_date: dueDate.toISOString(),
@@ -207,8 +219,8 @@ export function useCreateInitialOnboardingTask() {
       }
 
       await duplicateTaskForSecondaryManager(clientId, {
-        task_type: 'marcar_call_1',
-        title: `Marcar Call 1: ${clientName}`,
+        task_type: 'dar_boas_vindas',
+        title: `Dar boas vindas: ${clientName}`,
         description: `${taskDef.description} Cliente: ${clientName}.`,
         status: 'pending',
         due_date: dueDate.toISOString(),
@@ -220,7 +232,7 @@ export function useCreateInitialOnboardingTask() {
     onSuccess: (data) => {
       if (data) {
         queryClient.invalidateQueries({ queryKey: ['onboarding-tasks'] });
-        toast.success('📋 Tarefa "Marcar call 1" criada automaticamente!');
+        toast.success('Tarefa "Dar boas vindas" criada automaticamente!');
       }
     },
     onError: (error) => {
@@ -390,9 +402,9 @@ export function useAutoCreateTaskForNewClients(clients: any[]) {
             .from('client_onboarding')
             .insert({
               client_id: client.id,
-              current_milestone: 1,
-              current_step: 'marcar_call_1',
-              milestone_1_started_at: new Date().toISOString(),
+              current_milestone: 2,
+              current_step: 'dar_boas_vindas',
+              milestone_2_started_at: new Date().toISOString(),
             });
 
           if (error) {

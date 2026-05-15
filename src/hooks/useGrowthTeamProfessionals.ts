@@ -1,0 +1,93 @@
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+
+export interface TeamProfessional {
+  user_id: string;
+  name: string;
+  client_count: number;
+}
+
+const MANAGER_LIMITS: Record<string, number> = {
+  gestor_ads: 25,
+  consultor_comercial: 80,
+  consultor_mktplace: 80,
+};
+
+export { MANAGER_LIMITS as GROWTH_TEAM_LIMITS };
+
+/**
+ * Fetch professionals of a given role that belong to a specific group,
+ * along with their active client count.
+ *
+ * Used by GrowthTeamSelectionModal to populate selects with portfolio info.
+ */
+export function useGroupProfessionalsByRole(role: string, groupId: string | null) {
+  return useQuery<TeamProfessional[]>({
+    queryKey: ['group-professionals', role, groupId],
+    queryFn: async () => {
+      if (!groupId) return [];
+
+      // 1. Get user_ids with this role
+      const { data: roleRows, error: roleErr } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', role as never);
+      if (roleErr) throw roleErr;
+
+      const roleIds = (roleRows || []).map(r => r.user_id);
+      if (roleIds.length === 0) return [];
+
+      // 2. Filter by group_id in profiles
+      const { data: profiles, error: profErr } = await supabase
+        .from('profiles')
+        .select('user_id, name')
+        .in('user_id', roleIds)
+        .eq('group_id', groupId);
+      if (profErr) throw profErr;
+
+      const filtered = (profiles || []).filter(p => !!p.name);
+      if (filtered.length === 0) return [];
+
+      const userIds = filtered.map(p => p.user_id);
+
+      // 3. Count active clients per professional
+      const countField = ROLE_TO_CLIENT_FIELD[role];
+      if (!countField) {
+        return filtered.map(p => ({ user_id: p.user_id, name: p.name, client_count: 0 }));
+      }
+
+      const { data: clients, error: clErr } = await supabase
+        .from('clients')
+        .select(countField)
+        .in(countField, userIds)
+        .eq('archived', false)
+        .neq('status', 'churned');
+      if (clErr) throw clErr;
+
+      const counts: Record<string, number> = {};
+      for (const id of userIds) counts[id] = 0;
+      for (const c of clients || []) {
+        const assignee = (c as Record<string, string>)[countField];
+        if (assignee && counts[assignee] !== undefined) {
+          counts[assignee]++;
+        }
+      }
+
+      return filtered
+        .map(p => ({
+          user_id: p.user_id,
+          name: p.name,
+          client_count: counts[p.user_id] || 0,
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+    },
+    enabled: !!groupId,
+    staleTime: 30_000,
+  });
+}
+
+const ROLE_TO_CLIENT_FIELD: Record<string, string> = {
+  gestor_ads: 'assigned_ads_manager',
+  consultor_comercial: 'assigned_comercial',
+  consultor_mktplace: 'assigned_mktplace',
+};

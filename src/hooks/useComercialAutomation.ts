@@ -9,6 +9,7 @@ import {
   hasActiveJustificationForDelay,
 } from './useComercialDelayNotifications';
 import { resolveTaskOwner } from './utils/resolveTaskOwner';
+import { TC_CYCLE_AUTO_TASK_TYPES, handleTCCycleTaskCompletion } from './useTCMonthlyCycle';
 
 // Legacy auto task types (kept for backward compatibility with existing tasks)
 export const AUTO_TASK_TYPES = {
@@ -17,69 +18,59 @@ export const AUTO_TASK_TYPES = {
 };
 
 // ============================================================
-// PADDOCK ONBOARDING: 9-step flow constants
+// PADDOCK ONBOARDING: 4-step flow constants
 // ============================================================
 
 export const PADDOCK_AUTO_TASK_TYPES = {
+  // Entry task (created automatically for new clients)
   MARCAR_ALINHAMENTO_INICIAL: 'marcar_alinhamento_inicial',
-  REALIZAR_ALINHAMENTO_INICIAL: 'realizar_alinhamento_inicial',
-  MARCAR_WAR1: 'marcar_war1',
-  REALIZAR_WAR1: 'realizar_war1',
+  // Step 1 → 2
+  APRESENTAR_DIAGNOSTICO: 'apresentar_diagnostico',
+  // Step 2 → 3
   ENVIAR_DIAGNOSTICO_COMERCIAL: 'enviar_diagnostico_comercial',
-  GERAR_TAREFA_CRM: 'gerar_tarefa_crm',
-  MARCAR_WAR2: 'marcar_war2',
-  CONSCIENTIZAR_CRM: 'conscientizar_crm',
-  REALIZAR_WAR2: 'realizar_war2',
-  GERAR_NOVO_DIAGNOSTICO: 'gerar_novo_diagnostico',
-  MARCAR_WAR3: 'marcar_war3',
-  REALIZAR_WAR3: 'realizar_war3',
+  // Step 3 → 4
+  ENVIAR_DATA_TREINAMENTOS: 'enviar_data_treinamentos',
+  // Step 4 → acompanhamento
+  CONFIRMAR_TREINAMENTOS: 'confirmar_treinamentos',
 };
 
-export const PADDOCK_STEPS = [
-  'alinhamento_inicial_marcado',
-  'alinhamento_inicial_realizado',
-  'war1_marcada',
-  'diagnostico_crm_criado',
-  'diagnostico_crm_enviado',
-  'tarefa_gestor_crm_gerada',
-  'crm_solicitado',
-  'war2_marcada',
+// Legacy task types kept for backward compatibility with existing tasks in DB
+export const LEGACY_PADDOCK_TASK_TYPES = [
+  'realizar_alinhamento_inicial',
+  'marcar_war1',
+  'realizar_war1',
+  'gerar_tarefa_crm',
+  'marcar_war2',
+  'conscientizar_crm',
+  'realizar_war2',
   'gerar_novo_diagnostico',
   'marcar_war3',
-  'war3_marcada',
+  'realizar_war3',
+];
+
+export const PADDOCK_STEPS = [
+  'diagnostico_marcado',
+  'diagnostico_apresentado',
+  'diagnostico_enviado',
+  'data_treinamentos_enviada',
 ] as const;
 
 export type PaddockStep = typeof PADDOCK_STEPS[number];
 
 export const PADDOCK_STEP_LABELS: Record<PaddockStep, string> = {
-  alinhamento_inicial_marcado: '[ 1 ] Alinhamento inicial cliente marcado',
-  alinhamento_inicial_realizado: '[ 2 ] Alinhamento inicial realizado',
-  war1_marcada: '[ 3 ] War #1 Marcada',
-  diagnostico_crm_criado: '[ 4 ] Diagnóstico Comercial Gerado',
-  diagnostico_crm_enviado: '[ 5 ] Diagnóstico comercial Enviado',
-  tarefa_gestor_crm_gerada: '[ 6 ] Tarefa Gestor de CRM gerada',
-  crm_solicitado: '[ 7 ] CRM solicitado',
-  war2_marcada: '[ 8 ] War #2 Marcada',
-  gerar_novo_diagnostico: '[ 9 ] Gerar novo Diagnóstico comercial',
-  marcar_war3: '[ 10 ] Marcar War #3',
-  war3_marcada: '[ 11 ] War #3 marcada',
+  diagnostico_marcado: '[ 1 ] Reunião de apresentação de diagnóstico marcada',
+  diagnostico_apresentado: '[ 2 ] Diagnóstico apresentado',
+  diagnostico_enviado: '[ 3 ] Diagnóstico comercial Enviado',
+  data_treinamentos_enviada: '[ 4 ] Enviar para o cliente data dos treinamentos semanais',
 };
 
 // Maps: when a task of type X completes → move client to step Y
 const TASK_TO_STEP: Record<string, PaddockStep | 'acompanhamento'> = {
-  [PADDOCK_AUTO_TASK_TYPES.MARCAR_ALINHAMENTO_INICIAL]: 'alinhamento_inicial_marcado',
-  [PADDOCK_AUTO_TASK_TYPES.REALIZAR_ALINHAMENTO_INICIAL]: 'alinhamento_inicial_realizado',
-  [PADDOCK_AUTO_TASK_TYPES.MARCAR_WAR1]: 'war1_marcada',
-  [PADDOCK_AUTO_TASK_TYPES.REALIZAR_WAR1]: 'diagnostico_crm_criado',
-  [PADDOCK_AUTO_TASK_TYPES.ENVIAR_DIAGNOSTICO_COMERCIAL]: 'diagnostico_crm_enviado',
-  [PADDOCK_AUTO_TASK_TYPES.GERAR_TAREFA_CRM]: 'crm_solicitado',
-  // dual tasks: both must complete before advancing from crm_solicitado → war2_marcada
-  [PADDOCK_AUTO_TASK_TYPES.MARCAR_WAR2]: 'war2_marcada',
-  [PADDOCK_AUTO_TASK_TYPES.CONSCIENTIZAR_CRM]: 'war2_marcada',
-  [PADDOCK_AUTO_TASK_TYPES.REALIZAR_WAR2]: 'gerar_novo_diagnostico',
-  [PADDOCK_AUTO_TASK_TYPES.GERAR_NOVO_DIAGNOSTICO]: 'marcar_war3',
-  [PADDOCK_AUTO_TASK_TYPES.MARCAR_WAR3]: 'war3_marcada',
-  [PADDOCK_AUTO_TASK_TYPES.REALIZAR_WAR3]: 'acompanhamento',
+  [PADDOCK_AUTO_TASK_TYPES.MARCAR_ALINHAMENTO_INICIAL]: 'diagnostico_marcado',
+  [PADDOCK_AUTO_TASK_TYPES.APRESENTAR_DIAGNOSTICO]: 'diagnostico_apresentado',
+  [PADDOCK_AUTO_TASK_TYPES.ENVIAR_DIAGNOSTICO_COMERCIAL]: 'diagnostico_enviado',
+  [PADDOCK_AUTO_TASK_TYPES.ENVIAR_DATA_TREINAMENTOS]: 'data_treinamentos_enviada',
+  [PADDOCK_AUTO_TASK_TYPES.CONFIRMAR_TREINAMENTOS]: 'acompanhamento',
 };
 
 // Maps: when client enters step X → create task(s) of type(s) with name and deadline
@@ -90,69 +81,27 @@ interface TaskTemplate {
 }
 
 const STEP_TASKS: Record<string, TaskTemplate[]> = {
-  alinhamento_inicial_marcado: [{
-    taskType: PADDOCK_AUTO_TASK_TYPES.REALIZAR_ALINHAMENTO_INICIAL,
-    titleFn: (n) => `Realizar alinhamento comercial ${n}`,
+  diagnostico_marcado: [{
+    taskType: PADDOCK_AUTO_TASK_TYPES.APRESENTAR_DIAGNOSTICO,
+    titleFn: (n) => `Apresentar diagnóstico ${n}`,
     deadlineDays: 1,
   }],
-  alinhamento_inicial_realizado: [{
-    taskType: PADDOCK_AUTO_TASK_TYPES.MARCAR_WAR1,
-    titleFn: (n) => `Marcar War #1 ${n}`,
-    deadlineDays: 3,
-  }],
-  war1_marcada: [{
-    taskType: PADDOCK_AUTO_TASK_TYPES.REALIZAR_WAR1,
-    titleFn: (n) => `Realizar War #1 ${n}`,
-    deadlineDays: 3,
-  }],
-  diagnostico_crm_criado: [{
+  diagnostico_apresentado: [{
     taskType: PADDOCK_AUTO_TASK_TYPES.ENVIAR_DIAGNOSTICO_COMERCIAL,
-    titleFn: (n) => `Enviar diagnóstico Comercial ${n}`,
+    titleFn: (n) => `Enviar diagnóstico comercial ${n}`,
     deadlineDays: 1,
   }],
-  diagnostico_crm_enviado: [{
-    taskType: PADDOCK_AUTO_TASK_TYPES.GERAR_TAREFA_CRM,
-    titleFn: (n) => `Gerar tarefa de implementação para Gestor de CRM ${n}`,
+  diagnostico_enviado: [{
+    taskType: PADDOCK_AUTO_TASK_TYPES.ENVIAR_DATA_TREINAMENTOS,
+    titleFn: (n) => `Enviar datas dos treinamentos semanais ${n}`,
     deadlineDays: 1,
   }],
-  crm_solicitado: [
-    {
-      taskType: PADDOCK_AUTO_TASK_TYPES.MARCAR_WAR2,
-      titleFn: (n) => `Marcar War #2 para daqui 7 dias ${n}`,
-      deadlineDays: 7,
-    },
-    {
-      taskType: PADDOCK_AUTO_TASK_TYPES.CONSCIENTIZAR_CRM,
-      titleFn: (n) => `Conscientizar o tempo de espera da criação do CRM ${n}`,
-      deadlineDays: 1,
-    },
-  ],
-  war2_marcada: [{
-    taskType: PADDOCK_AUTO_TASK_TYPES.REALIZAR_WAR2,
-    titleFn: (n) => `Realizar War #2 ${n}`,
-    deadlineDays: 7,
-  }],
-  gerar_novo_diagnostico: [{
-    taskType: PADDOCK_AUTO_TASK_TYPES.GERAR_NOVO_DIAGNOSTICO,
-    titleFn: (n) => `Gerar novo Diagnóstico comercial ${n}`,
-    deadlineDays: 7,
-  }],
-  marcar_war3: [{
-    taskType: PADDOCK_AUTO_TASK_TYPES.MARCAR_WAR3,
-    titleFn: (n) => `Marcar War #3 ${n}`,
-    deadlineDays: 7,
-  }],
-  war3_marcada: [{
-    taskType: PADDOCK_AUTO_TASK_TYPES.REALIZAR_WAR3,
-    titleFn: (n) => `Realizar War #3 ${n}`,
-    deadlineDays: 3,
+  data_treinamentos_enviada: [{
+    taskType: PADDOCK_AUTO_TASK_TYPES.CONFIRMAR_TREINAMENTOS,
+    titleFn: (n) => `Confirmar envio de datas de treinamentos ${n}`,
+    deadlineDays: 1,
   }],
 };
-
-// The dual-task step: crm_solicitado creates TWO tasks
-// Both must be completed before advancing to war2_marcada
-const DUAL_TASK_STEP = 'crm_solicitado';
-const DUAL_TASK_TYPES = [PADDOCK_AUTO_TASK_TYPES.MARCAR_WAR2, PADDOCK_AUTO_TASK_TYPES.CONSCIENTIZAR_CRM];
 
 // ============================================================
 // Helper: create auto-task for a client (with robust duplicate check)
@@ -253,12 +202,11 @@ export function useCompleteComercialTaskWithAutomation() {
       const actualTaskType = taskType || taskData?.auto_task_type;
 
       // -------------------------------------------------------
-      // PADDOCK 9-STEP AUTOMATION
+      // PADDOCK 4-STEP AUTOMATION
       // -------------------------------------------------------
       const allPaddockTypes = Object.values(PADDOCK_AUTO_TASK_TYPES);
 
       if (actualTaskType && allPaddockTypes.includes(actualTaskType) && clientId) {
-        // Get current client state
         const { data: client } = await supabase
           .from('clients')
           .select('comercial_status, paddock_onboarding_step, name, razao_social, assigned_ads_manager')
@@ -266,47 +214,12 @@ export function useCompleteComercialTaskWithAutomation() {
           .single();
 
         const cName = clientName || client?.razao_social || client?.name || 'Cliente';
-        const currentStep = client?.paddock_onboarding_step;
 
-        // Check for dual-task step (tarefa_gestor_crm_gerada → crm_solicitado)
-        // Both MARCAR_WAR2 and CONSCIENTIZAR_CRM must be done
-        if (currentStep === DUAL_TASK_STEP && DUAL_TASK_TYPES.includes(actualTaskType)) {
-          const { count } = await supabase
-            .from('comercial_tasks')
-            .select('id', { count: 'exact', head: true })
-            .eq('related_client_id', clientId)
-            .in('auto_task_type', DUAL_TASK_TYPES)
-            .neq('status', 'done');
-
-          // If there are still pending tasks, don't advance yet
-          if (count && count > 0) {
-            return { taskId, taskType: actualTaskType, clientId };
-          }
-
-          // Both done → advance to war2_marcada
-          const nextStep = 'war2_marcada' as PaddockStep;
-          await supabase
-            .from('clients')
-            .update({ paddock_onboarding_step: nextStep })
-            .eq('id', clientId);
-
-          // Create tasks for war2_marcada step
-          const templates = STEP_TASKS[nextStep];
-          if (templates && userId) {
-            for (const template of templates) {
-              await createPaddockTask(userId, clientId, template, cName);
-            }
-          }
-
-          return { taskId, taskType: actualTaskType, clientId };
-        }
-
-        // Normal flow: determine next step from task type
         let nextStep: PaddockStep | 'acompanhamento' | undefined;
 
         if (actualTaskType === PADDOCK_AUTO_TASK_TYPES.MARCAR_ALINHAMENTO_INICIAL) {
           // Entry from novo → onboarding_paddock
-          nextStep = 'alinhamento_inicial_marcado';
+          nextStep = 'diagnostico_marcado';
           const { error: clientErr } = await supabase
             .from('clients')
             .update({
@@ -319,7 +232,6 @@ export function useCompleteComercialTaskWithAutomation() {
             console.error('[Paddock] Failed to advance client status:', clientErr.message);
           }
         } else {
-          // Standard progression via map
           nextStep = TASK_TO_STEP[actualTaskType];
           if (nextStep && nextStep !== 'acompanhamento') {
             const { error: stepErr } = await supabase
@@ -342,7 +254,6 @@ export function useCompleteComercialTaskWithAutomation() {
             })
             .eq('id', clientId);
 
-          // Add to tracking
           const mId = managerId || client?.assigned_ads_manager;
           if (mId && userId) {
             const { data: profile } = await supabase
@@ -453,6 +364,14 @@ export function useCompleteComercialTaskWithAutomation() {
             }
           }
         }
+      }
+
+      // -------------------------------------------------------
+      // TC MONTHLY 30-DAY CYCLE AUTOMATION
+      // -------------------------------------------------------
+      const allTCCycleTypes = Object.values(TC_CYCLE_AUTO_TASK_TYPES);
+      if (actualTaskType && allTCCycleTypes.includes(actualTaskType) && clientId && userId) {
+        await handleTCCycleTaskCompletion(actualTaskType, clientId, clientName || 'Cliente', userId);
       }
 
       return { taskId, taskType: actualTaskType, clientId };
@@ -582,7 +501,7 @@ export function useAutoCreateTasksForNewClients() {
 
           const template: TaskTemplate = {
             taskType: PADDOCK_AUTO_TASK_TYPES.MARCAR_ALINHAMENTO_INICIAL,
-            titleFn: (n) => `Marcar alinhamento inicial ${n}`,
+            titleFn: (n) => `Marcar reunião de diagnóstico ${n}`,
             deadlineDays: 1,
           };
           await createPaddockTask(user.id, client.id, template, client.razao_social || client.name);

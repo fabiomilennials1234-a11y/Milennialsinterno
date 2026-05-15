@@ -78,7 +78,7 @@ export function useSetSecondaryManager() {
           .from('onboarding_tasks')
           .select('id')
           .eq('client_id', clientId)
-          .eq('task_type', 'marcar_call_1')
+          .eq('task_type', 'dar_boas_vindas')
           .eq('assigned_to', secondaryManagerId)
           .maybeSingle();
 
@@ -86,12 +86,12 @@ export function useSetSecondaryManager() {
           await supabase.from('onboarding_tasks').insert({
             client_id: clientId,
             assigned_to: secondaryManagerId,
-            task_type: 'marcar_call_1',
-            title: `Marcar Call 1: ${clientName}`,
-            description: 'Agendar a primeira call com o cliente para alinhamento inicial.',
+            task_type: 'dar_boas_vindas',
+            title: `Dar boas vindas: ${clientName}`,
+            description: `Dar boas vindas ao cliente ${clientName}.`,
             status: 'pending',
             due_date: dueDate.toISOString(),
-            milestone: 1,
+            milestone: 2,
           });
         }
 
@@ -100,19 +100,19 @@ export function useSetSecondaryManager() {
           .from('ads_tasks')
           .select('id')
           .eq('ads_manager_id', secondaryManagerId)
-          .contains('tags', [`client_id:${clientId}`, 'onboarding_task_type:marcar_call_1'])
+          .contains('tags', [`client_id:${clientId}`, 'onboarding_task_type:dar_boas_vindas'])
           .maybeSingle();
 
         if (!existingAdsTask) {
           await supabase.from('ads_tasks').insert({
             ads_manager_id: secondaryManagerId,
-            title: `Marcar Call 1: ${clientName}`,
-            description: `Agendar a primeira call com o cliente para alinhamento inicial. Cliente: ${clientName}.`,
+            title: `Dar boas vindas: ${clientName}`,
+            description: `Dar boas vindas ao cliente ${clientName}.`,
             task_type: 'daily',
             status: 'todo',
             priority: 'high',
             due_date: dueDate.toISOString(),
-            tags: [`client_id:${clientId}`, 'onboarding_task_type:marcar_call_1'],
+            tags: [`client_id:${clientId}`, 'onboarding_task_type:dar_boas_vindas'],
           });
         }
       }

@@ -5,22 +5,16 @@ import { toast } from 'sonner';
 import { useEffect } from 'react';
 import { fireCelebration } from '@/lib/confetti';
 import { getCurrentDayPortuguese, PADDOCK_AUTO_TASK_TYPES } from './useComercialAutomation';
+import { TC_CYCLE_AUTO_TASK_TYPES, handleTCCycleTaskCompletion } from './useTCMonthlyCycle';
 import { resolveTaskOwner } from './utils/resolveTaskOwner';
 
 // Paddock step progression maps (mirrored from useComercialAutomation)
 const PADDOCK_TASK_TO_STEP: Record<string, string> = {
-  [PADDOCK_AUTO_TASK_TYPES.MARCAR_ALINHAMENTO_INICIAL]: 'alinhamento_inicial_marcado',
-  [PADDOCK_AUTO_TASK_TYPES.REALIZAR_ALINHAMENTO_INICIAL]: 'alinhamento_inicial_realizado',
-  [PADDOCK_AUTO_TASK_TYPES.MARCAR_WAR1]: 'war1_marcada',
-  [PADDOCK_AUTO_TASK_TYPES.REALIZAR_WAR1]: 'diagnostico_crm_criado',
-  [PADDOCK_AUTO_TASK_TYPES.ENVIAR_DIAGNOSTICO_COMERCIAL]: 'diagnostico_crm_enviado',
-  [PADDOCK_AUTO_TASK_TYPES.GERAR_TAREFA_CRM]: 'crm_solicitado',
-  [PADDOCK_AUTO_TASK_TYPES.MARCAR_WAR2]: 'war2_marcada',
-  [PADDOCK_AUTO_TASK_TYPES.CONSCIENTIZAR_CRM]: 'war2_marcada',
-  [PADDOCK_AUTO_TASK_TYPES.REALIZAR_WAR2]: 'gerar_novo_diagnostico',
-  [PADDOCK_AUTO_TASK_TYPES.GERAR_NOVO_DIAGNOSTICO]: 'marcar_war3',
-  [PADDOCK_AUTO_TASK_TYPES.MARCAR_WAR3]: 'war3_marcada',
-  [PADDOCK_AUTO_TASK_TYPES.REALIZAR_WAR3]: 'acompanhamento',
+  [PADDOCK_AUTO_TASK_TYPES.MARCAR_ALINHAMENTO_INICIAL]: 'diagnostico_marcado',
+  [PADDOCK_AUTO_TASK_TYPES.APRESENTAR_DIAGNOSTICO]: 'diagnostico_apresentado',
+  [PADDOCK_AUTO_TASK_TYPES.ENVIAR_DIAGNOSTICO_COMERCIAL]: 'diagnostico_enviado',
+  [PADDOCK_AUTO_TASK_TYPES.ENVIAR_DATA_TREINAMENTOS]: 'data_treinamentos_enviada',
+  [PADDOCK_AUTO_TASK_TYPES.CONFIRMAR_TREINAMENTOS]: 'acompanhamento',
 };
 
 interface PaddockTaskTemplate {
@@ -30,23 +24,11 @@ interface PaddockTaskTemplate {
 }
 
 const PADDOCK_STEP_TASKS: Record<string, PaddockTaskTemplate[]> = {
-  alinhamento_inicial_marcado: [{ taskType: PADDOCK_AUTO_TASK_TYPES.REALIZAR_ALINHAMENTO_INICIAL, titleFn: (n) => `Realizar alinhamento comercial ${n}`, deadlineDays: 1 }],
-  alinhamento_inicial_realizado: [{ taskType: PADDOCK_AUTO_TASK_TYPES.MARCAR_WAR1, titleFn: (n) => `Marcar War #1 ${n}`, deadlineDays: 3 }],
-  war1_marcada: [{ taskType: PADDOCK_AUTO_TASK_TYPES.REALIZAR_WAR1, titleFn: (n) => `Realizar War #1 ${n}`, deadlineDays: 3 }],
-  diagnostico_crm_criado: [{ taskType: PADDOCK_AUTO_TASK_TYPES.ENVIAR_DIAGNOSTICO_COMERCIAL, titleFn: (n) => `Enviar diagnóstico Comercial ${n}`, deadlineDays: 1 }],
-  diagnostico_crm_enviado: [{ taskType: PADDOCK_AUTO_TASK_TYPES.GERAR_TAREFA_CRM, titleFn: (n) => `Gerar tarefa de implementação para Gestor de CRM ${n}`, deadlineDays: 1 }],
-  crm_solicitado: [
-    { taskType: PADDOCK_AUTO_TASK_TYPES.MARCAR_WAR2, titleFn: (n) => `Marcar War #2 para daqui 7 dias ${n}`, deadlineDays: 7 },
-    { taskType: PADDOCK_AUTO_TASK_TYPES.CONSCIENTIZAR_CRM, titleFn: (n) => `Conscientizar o tempo de espera da criação do CRM ${n}`, deadlineDays: 1 },
-  ],
-  war2_marcada: [{ taskType: PADDOCK_AUTO_TASK_TYPES.REALIZAR_WAR2, titleFn: (n) => `Realizar War #2 ${n}`, deadlineDays: 7 }],
-  gerar_novo_diagnostico: [{ taskType: PADDOCK_AUTO_TASK_TYPES.GERAR_NOVO_DIAGNOSTICO, titleFn: (n) => `Gerar novo Diagnóstico comercial ${n}`, deadlineDays: 7 }],
-  marcar_war3: [{ taskType: PADDOCK_AUTO_TASK_TYPES.MARCAR_WAR3, titleFn: (n) => `Marcar War #3 ${n}`, deadlineDays: 7 }],
-  war3_marcada: [{ taskType: PADDOCK_AUTO_TASK_TYPES.REALIZAR_WAR3, titleFn: (n) => `Realizar War #3 ${n}`, deadlineDays: 3 }],
+  diagnostico_marcado: [{ taskType: PADDOCK_AUTO_TASK_TYPES.APRESENTAR_DIAGNOSTICO, titleFn: (n) => `Apresentar diagnóstico ${n}`, deadlineDays: 1 }],
+  diagnostico_apresentado: [{ taskType: PADDOCK_AUTO_TASK_TYPES.ENVIAR_DIAGNOSTICO_COMERCIAL, titleFn: (n) => `Enviar diagnóstico comercial ${n}`, deadlineDays: 1 }],
+  diagnostico_enviado: [{ taskType: PADDOCK_AUTO_TASK_TYPES.ENVIAR_DATA_TREINAMENTOS, titleFn: (n) => `Enviar datas dos treinamentos semanais ${n}`, deadlineDays: 1 }],
+  data_treinamentos_enviada: [{ taskType: PADDOCK_AUTO_TASK_TYPES.CONFIRMAR_TREINAMENTOS, titleFn: (n) => `Confirmar envio de datas de treinamentos ${n}`, deadlineDays: 1 }],
 };
-
-const DUAL_TASK_STEP = 'crm_solicitado';
-const DUAL_TASK_TYPES = [PADDOCK_AUTO_TASK_TYPES.MARCAR_WAR2, PADDOCK_AUTO_TASK_TYPES.CONSCIENTIZAR_CRM];
 
 async function createPaddockTaskFromTemplate(userId: string, clientId: string, template: PaddockTaskTemplate, clientName: string) {
   const { data: existingList } = await supabase
@@ -212,7 +194,7 @@ export function useUpdateComercialTaskStatus() {
         const allPaddockTypes = Object.values(PADDOCK_AUTO_TASK_TYPES);
 
         // -------------------------------------------------------
-        // PADDOCK 9-STEP AUTOMATION
+        // PADDOCK 4-STEP AUTOMATION
         // -------------------------------------------------------
         if (allPaddockTypes.includes(task.auto_task_type) && clientId && user?.id) {
           const { data: client } = await supabase
@@ -222,43 +204,11 @@ export function useUpdateComercialTaskStatus() {
             .single();
 
           const cName = client?.razao_social || client?.name || clientName;
-          const currentStep = client?.paddock_onboarding_step;
 
-          // Dual-task check: tarefa_gestor_crm_gerada creates 2 tasks, both must be done
-          if (currentStep === DUAL_TASK_STEP && DUAL_TASK_TYPES.includes(task.auto_task_type)) {
-            const { count } = await supabase
-              .from('comercial_tasks')
-              .select('id', { count: 'exact', head: true })
-              .eq('related_client_id', clientId)
-              .in('auto_task_type', DUAL_TASK_TYPES)
-              .neq('status', 'done');
-
-            if (count && count > 0) {
-              // Other task still pending, don't advance yet
-              return { taskId, status, isAutoGenerated: true };
-            }
-
-            // Both done → advance to war2_marcada
-            const nextStep = 'war2_marcada';
-            await supabase
-              .from('clients')
-              .update({ paddock_onboarding_step: nextStep })
-              .eq('id', clientId);
-
-            const templates = PADDOCK_STEP_TASKS[nextStep];
-            if (templates) {
-              for (const tmpl of templates) {
-                await createPaddockTaskFromTemplate(user.id, clientId, tmpl, cName);
-              }
-            }
-            return { taskId, status, isAutoGenerated: true };
-          }
-
-          // Standard paddock progression
           let nextStep: string | undefined;
 
           if (task.auto_task_type === PADDOCK_AUTO_TASK_TYPES.MARCAR_ALINHAMENTO_INICIAL) {
-            nextStep = 'alinhamento_inicial_marcado';
+            nextStep = 'diagnostico_marcado';
             const { error: clientErr } = await supabase
               .from('clients')
               .update({
@@ -271,7 +221,6 @@ export function useUpdateComercialTaskStatus() {
               console.error('[Paddock] Failed to advance client status:', clientErr.message);
             }
           } else {
-            // Standard progression via map
             nextStep = PADDOCK_TASK_TO_STEP[task.auto_task_type];
             if (nextStep && nextStep !== 'acompanhamento') {
               const { error: stepErr } = await supabase
@@ -322,7 +271,6 @@ export function useUpdateComercialTaskStatus() {
               }
             }
           } else if (nextStep) {
-            // Create next task(s) for the new step
             const templates = PADDOCK_STEP_TASKS[nextStep];
             if (templates) {
               for (const tmpl of templates) {
@@ -458,6 +406,20 @@ export function useUpdateComercialTaskStatus() {
               } as any);
             }
           }
+        // -------------------------------------------------------
+        // TC MONTHLY 30-DAY CYCLE AUTOMATION
+        // -------------------------------------------------------
+        } else if (
+          Object.values(TC_CYCLE_AUTO_TASK_TYPES).includes(task.auto_task_type) &&
+          clientId &&
+          user?.id
+        ) {
+          await handleTCCycleTaskCompletion(
+            task.auto_task_type,
+            clientId,
+            clientName,
+            user.id,
+          );
         }
       }
 

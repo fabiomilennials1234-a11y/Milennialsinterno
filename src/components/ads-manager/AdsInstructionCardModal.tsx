@@ -13,31 +13,14 @@ interface InstructionContent {
 
 // Conteúdo fixo das instruções - texto simples para copiar e colar
 const INSTRUCTION_CONTENT: Record<string, InstructionContent> = {
-  'm1-2': {
-    title: 'PÓS CALL 1, VOCÊ DEVE:',
-    sections: [
-      {
-        items: [
-          { text: '1 - Solicitar estruturação DO CRM ao GESTOR DE CRM' },
-        ],
-      },
-      {
-        heading: 'Enviar e anexar no grupo:',
-        items: [
-          { text: '2 - Enviar e anexar no grupo o link do drive para subir fotos e identidade visual: [DRIVE]' },
-          { text: '3 - Link do acompanhamento comercial: [Link da Consultoria]' },
-        ],
-      },
-    ],
-  },
-  'm2-2': {
+  'm2-5': {
     title: 'O que enviar junto a estratégia? (Usar a exata ordem):',
     sections: [
       {
-        heading: '⚠️ LEMBRE: ANEXE NA DESCRICAO TUDO A BAIXO NO GRUPO DO CLIENTE.',
+        heading: 'LEMBRE: ANEXE NA DESCRICAO TUDO A BAIXO NO GRUPO DO CLIENTE.',
         items: [
           { text: 'Segue as copys para aprovar.' },
-          { text: '[COPY ANÚNCIOS]' },
+          { text: '[COPY ANUNCIOS]' },
           { text: '[COPY LP OU SITE INSTITUCIONAL]' },
           { text: 'PDF do Marco' },
           { text: 'Link do mapa mental: [Link]' },
@@ -47,11 +30,11 @@ const INSTRUCTION_CONTENT: Record<string, InstructionContent> = {
     ],
   },
   'm3-2': {
-    title: 'IMPORTANTE – NÃO ESQUECER',
+    title: 'IMPORTANTE -- NAO ESQUECER',
     sections: [
       {
         items: [
-          { text: 'Após brifar os criativos, avisar o cliente que os materiais já foram brifados e informar o prazo de entrega previsto (Data X).' },
+          { text: 'Apos brifar os criativos, avisar o cliente que os materiais ja foram brifados e informar o prazo de entrega previsto (Data X).' },
         ],
       },
     ],

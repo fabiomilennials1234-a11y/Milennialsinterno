@@ -48,10 +48,13 @@ import { useClientInfo, useClientCallForm, useSaveClientCallForm, useUpdateClien
 import StrategyBuilderSection from '@/components/strategy/StrategyBuilderSection';
 import MktplaceDiagnosticoSection from '@/components/mktplace/MktplaceDiagnosticoSection';
 import MktplaceRelatorioSection from '@/components/mktplace/MktplaceRelatorioSection';
+import CycleReportHistorySection from '@/components/mktplace/CycleReportHistorySection';
 import { isGestaoMktplace } from '@/hooks/useMktplaceKanban';
 import OutboundStrategyBuilderSection from '@/components/outbound-strategy/OutboundStrategyBuilderSection';
 import ResultsReportSection from '@/components/results-report/ResultsReportSection';
 import ResultsReportCountdownBadge from '@/components/results-report/ResultsReportCountdownBadge';
+import ManagementReportSection from '@/components/management-report/ManagementReportSection';
+import ClientNpsSection from '@/components/management-report/ClientNpsSection';
 import PaddockDiagnosticoSection from '@/components/comercial/PaddockDiagnosticoSection';
 import PaddockDiagnosticoListSection from '@/components/comercial/PaddockDiagnosticoListSection';
 import WarRoomSection from '@/components/comercial/WarRoomSection';
@@ -669,9 +672,30 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
                 />
               )}
 
+              {/* Cycle Report History Section */}
+              {clientInfo && mktplaceId && (
+                <CycleReportHistorySection clientId={clientId} />
+              )}
+
               {/* Results Report Section */}
               {clientInfo && (
                 <ResultsReportSection
+                  clientId={clientId}
+                  clientName={clientInfo.name}
+                />
+              )}
+
+              {/* Management Report Section (MENSAL) */}
+              {clientInfo && (
+                <ManagementReportSection
+                  clientId={clientId}
+                  clientName={clientInfo.name}
+                />
+              )}
+
+              {/* Client NPS Section */}
+              {clientInfo && (
+                <ClientNpsSection
                   clientId={clientId}
                   clientName={clientInfo.name}
                 />
@@ -690,7 +714,7 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
                 />
               )}
 
-              {/* Diagnóstico Comercial pós War #2 */}
+              {/* Diagnóstico Comercial */}
               {clientInfo && (clientInfo.contracted_products?.includes('millennials-growth') || clientInfo.contracted_products?.includes('millennials-paddock')) && (
                 <PaddockDiagnosticoListSection
                   clientId={clientId}

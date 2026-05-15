@@ -6,12 +6,12 @@ const TASK_PREFIX_GERAR = 'Gerar PDF de Resultados';
 const TASK_PREFIX_MARCAR = 'Marcar apresentação de resultado';
 
 /**
- * Auto-creates tasks at the 26-day mark of the report cycle.
+ * Auto-creates tasks at the 12-day mark of the 15-day report cycle.
  * Runs on page load for gestor_ads and gestor_projetos.
  *
- * At 26 days since last report:
- * 1. "Gerar PDF de Resultados [Client]" — due at day 29
- * 2. "Marcar apresentação de resultado [Client]" — due at day 30
+ * At 12 days since last report:
+ * 1. "Gerar PDF de Resultados [Client]" — due at day 14
+ * 2. "Marcar apresentação de resultado [Client]" — due at day 15
  */
 export function useResultsReportAutomation() {
   const { user } = useAuth();
@@ -68,16 +68,16 @@ async function checkAndCreateTasks(userId: string) {
     const ref = new Date(lastReportDate);
     const diffDays = Math.floor((now.getTime() - ref.getTime()) / (1000 * 60 * 60 * 24));
 
-    // Only create tasks at 26+ days
-    if (diffDays < 26) continue;
+    // Only create tasks at 12+ days
+    if (diffDays < 12) continue;
 
-    // Task 1: "Gerar PDF de Resultados [Client]" — due day 29
+    // Task 1: "Gerar PDF de Resultados [Client]" — due day 14
     const gerarTitle = `${TASK_PREFIX_GERAR} ${client.name}`;
-    await createTaskIfNotExists(userId, client.id, gerarTitle, addDaysToDate(ref, 29));
+    await createTaskIfNotExists(userId, client.id, gerarTitle, addDaysToDate(ref, 14));
 
-    // Task 2: "Marcar apresentação de resultado [Client]" — due day 30
+    // Task 2: "Marcar apresentação de resultado [Client]" — due day 15
     const marcarTitle = `${TASK_PREFIX_MARCAR} ${client.name}`;
-    await createTaskIfNotExists(userId, client.id, marcarTitle, addDaysToDate(ref, 30));
+    await createTaskIfNotExists(userId, client.id, marcarTitle, addDaysToDate(ref, 15));
   }
 }
 

@@ -39,6 +39,21 @@ export type Database = {
   }
   public: {
     Tables: {
+      _internal_config: {
+        Row: {
+          key: string
+          value: string
+        }
+        Insert: {
+          key: string
+          value: string
+        }
+        Update: {
+          key?: string
+          value?: string
+        }
+        Relationships: []
+      }
       ads_daily_documentation: {
         Row: {
           actions_done: string | null
@@ -1190,6 +1205,125 @@ export type Database = {
           },
         ]
       }
+      client_management_reports: {
+        Row: {
+          campanhas_veiculadas: string | null
+          client_id: string
+          client_logo_url: string | null
+          cpl_medio: string | null
+          cpl_num: number | null
+          created_at: string | null
+          created_by: string
+          criativos_performance: string | null
+          dica_eixo: string | null
+          dica_fonte: string | null
+          dica_texto: string | null
+          entregas_extra_escopo: string | null
+          frase_destaque: string | null
+          id: string
+          investimento_total: number | null
+          is_published: boolean | null
+          leads_gerados: string | null
+          leads_gerados_num: number | null
+          maior_resultado_mes: string | null
+          melhor_criativo_metrica: string | null
+          melhor_criativo_url: string | null
+          mudanca_estrategia: string | null
+          pdf_url: string | null
+          planejado_nao_executado: string | null
+          plano_30d: string | null
+          plano_60d: string | null
+          plano_90d: string | null
+          principal_desafio: string | null
+          proximo_passo: string | null
+          public_token: string | null
+          reference_month: string
+          responsaveis_acoes: Json | null
+          taxa_conversao: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          campanhas_veiculadas?: string | null
+          client_id: string
+          client_logo_url?: string | null
+          cpl_medio?: string | null
+          cpl_num?: number | null
+          created_at?: string | null
+          created_by: string
+          criativos_performance?: string | null
+          dica_eixo?: string | null
+          dica_fonte?: string | null
+          dica_texto?: string | null
+          entregas_extra_escopo?: string | null
+          frase_destaque?: string | null
+          id?: string
+          investimento_total?: number | null
+          is_published?: boolean | null
+          leads_gerados?: string | null
+          leads_gerados_num?: number | null
+          maior_resultado_mes?: string | null
+          melhor_criativo_metrica?: string | null
+          melhor_criativo_url?: string | null
+          mudanca_estrategia?: string | null
+          pdf_url?: string | null
+          planejado_nao_executado?: string | null
+          plano_30d?: string | null
+          plano_60d?: string | null
+          plano_90d?: string | null
+          principal_desafio?: string | null
+          proximo_passo?: string | null
+          public_token?: string | null
+          reference_month: string
+          responsaveis_acoes?: Json | null
+          taxa_conversao?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          campanhas_veiculadas?: string | null
+          client_id?: string
+          client_logo_url?: string | null
+          cpl_medio?: string | null
+          cpl_num?: number | null
+          created_at?: string | null
+          created_by?: string
+          criativos_performance?: string | null
+          dica_eixo?: string | null
+          dica_fonte?: string | null
+          dica_texto?: string | null
+          entregas_extra_escopo?: string | null
+          frase_destaque?: string | null
+          id?: string
+          investimento_total?: number | null
+          is_published?: boolean | null
+          leads_gerados?: string | null
+          leads_gerados_num?: number | null
+          maior_resultado_mes?: string | null
+          melhor_criativo_metrica?: string | null
+          melhor_criativo_url?: string | null
+          mudanca_estrategia?: string | null
+          pdf_url?: string | null
+          planejado_nao_executado?: string | null
+          plano_30d?: string | null
+          plano_60d?: string | null
+          plano_90d?: string | null
+          principal_desafio?: string | null
+          proximo_passo?: string | null
+          public_token?: string | null
+          reference_month?: string
+          responsaveis_acoes?: Json | null
+          taxa_conversao?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_management_reports_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_notes: {
         Row: {
           client_id: string
@@ -1221,6 +1355,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "client_notes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_nps_responses: {
+        Row: {
+          client_id: string
+          collected_at: string | null
+          collected_by: string
+          created_at: string | null
+          id: string
+          nps_score: number
+          public_token: string | null
+          reference_month: string
+          score_reason: string | null
+        }
+        Insert: {
+          client_id: string
+          collected_at?: string | null
+          collected_by: string
+          created_at?: string | null
+          id?: string
+          nps_score: number
+          public_token?: string | null
+          reference_month: string
+          score_reason?: string | null
+        }
+        Update: {
+          client_id?: string
+          collected_at?: string | null
+          collected_by?: string
+          created_at?: string | null
+          id?: string
+          nps_score?: number
+          public_token?: string | null
+          reference_month?: string
+          score_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_nps_responses_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
@@ -1391,6 +1569,9 @@ export type Database = {
         Row: {
           achievements: string | null
           actions_last_30_days: string | null
+          analise_crm_cliente: string | null
+          analise_estrategias_captacao: string | null
+          analise_funil_comercial: string | null
           client_id: string
           client_logo_url: string | null
           created_at: string
@@ -1400,6 +1581,7 @@ export type Database = {
           cycle_start_date: string
           id: string
           improvement_points: string | null
+          indicadores_dominio_gestor: string | null
           is_published: boolean | null
           key_metrics: string | null
           next_30_days: string | null
@@ -1407,13 +1589,19 @@ export type Database = {
           pdf_url: string | null
           public_token: string | null
           section_images: Json | null
+          ticket_medio_novos: string | null
           top_campaign: string | null
           traffic_results: string | null
           updated_at: string
+          valor_vendas_novos: string | null
+          vendas_novos_clientes: string | null
         }
         Insert: {
           achievements?: string | null
           actions_last_30_days?: string | null
+          analise_crm_cliente?: string | null
+          analise_estrategias_captacao?: string | null
+          analise_funil_comercial?: string | null
           client_id: string
           client_logo_url?: string | null
           created_at?: string
@@ -1423,6 +1611,7 @@ export type Database = {
           cycle_start_date: string
           id?: string
           improvement_points?: string | null
+          indicadores_dominio_gestor?: string | null
           is_published?: boolean | null
           key_metrics?: string | null
           next_30_days?: string | null
@@ -1430,13 +1619,19 @@ export type Database = {
           pdf_url?: string | null
           public_token?: string | null
           section_images?: Json | null
+          ticket_medio_novos?: string | null
           top_campaign?: string | null
           traffic_results?: string | null
           updated_at?: string
+          valor_vendas_novos?: string | null
+          vendas_novos_clientes?: string | null
         }
         Update: {
           achievements?: string | null
           actions_last_30_days?: string | null
+          analise_crm_cliente?: string | null
+          analise_estrategias_captacao?: string | null
+          analise_funil_comercial?: string | null
           client_id?: string
           client_logo_url?: string | null
           created_at?: string
@@ -1446,6 +1641,7 @@ export type Database = {
           cycle_start_date?: string
           id?: string
           improvement_points?: string | null
+          indicadores_dominio_gestor?: string | null
           is_published?: boolean | null
           key_metrics?: string | null
           next_30_days?: string | null
@@ -1453,9 +1649,12 @@ export type Database = {
           pdf_url?: string | null
           public_token?: string | null
           section_images?: Json | null
+          ticket_medio_novos?: string | null
           top_campaign?: string | null
           traffic_results?: string | null
           updated_at?: string
+          valor_vendas_novos?: string | null
+          vendas_novos_clientes?: string | null
         }
         Relationships: [
           {
@@ -1817,6 +2016,7 @@ export type Database = {
           finance_display_name: string | null
           general_info: string | null
           group_id: string | null
+          growth_onboarding_step: string | null
           id: string
           last_cs_contact_at: string | null
           mktplace_entered_at: string | null
@@ -1876,6 +2076,7 @@ export type Database = {
           finance_display_name?: string | null
           general_info?: string | null
           group_id?: string | null
+          growth_onboarding_step?: string | null
           id?: string
           last_cs_contact_at?: string | null
           mktplace_entered_at?: string | null
@@ -1935,6 +2136,7 @@ export type Database = {
           finance_display_name?: string | null
           general_info?: string | null
           group_id?: string | null
+          growth_onboarding_step?: string | null
           id?: string
           last_cs_contact_at?: string | null
           mktplace_entered_at?: string | null
@@ -2249,6 +2451,7 @@ export type Database = {
           last_moved_at: string | null
           manager_id: string
           manager_name: string
+          tc_cycle_started_at: string | null
           updated_at: string
         }
         Insert: {
@@ -2261,6 +2464,7 @@ export type Database = {
           last_moved_at?: string | null
           manager_id: string
           manager_name: string
+          tc_cycle_started_at?: string | null
           updated_at?: string
         }
         Update: {
@@ -2273,6 +2477,7 @@ export type Database = {
           last_moved_at?: string | null
           manager_id?: string
           manager_name?: string
+          tc_cycle_started_at?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -4441,6 +4646,125 @@ export type Database = {
         }
         Relationships: []
       }
+      mktplace_cycle_reports: {
+        Row: {
+          acoes_executadas: string | null
+          acos_medio: number | null
+          client_id: string
+          consultor_id: string
+          created_at: string
+          cumprimento_detalhamento: string | null
+          cumprimento_plano: string | null
+          cycle_end_date: string
+          cycle_start_date: string
+          dificuldades: string | null
+          id: string
+          is_published: boolean | null
+          marketplace_data: Json
+          plano_proximo_ciclo: string | null
+          plano_proximos_dias: string | null
+          proxima_reuniao_data: string | null
+          proxima_reuniao_horario: string | null
+          public_token: string | null
+          report_number: number
+          report_type: string
+          reuniao_data: string | null
+          reuniao_horario: string | null
+          reuniao_realizada: boolean | null
+          rms_abertas: number | null
+          rms_em_aberto: number | null
+          rms_resolvidas: number | null
+          skus_cadastrados_otimizados: string | null
+          skus_problematicos: string | null
+          tacos_medio: number | null
+          top5_skus: Json | null
+          updated_at: string
+          variacao_faturamento_pct: number | null
+          variacao_pedidos_pct: number | null
+          verba_ads: number | null
+        }
+        Insert: {
+          acoes_executadas?: string | null
+          acos_medio?: number | null
+          client_id: string
+          consultor_id: string
+          created_at?: string
+          cumprimento_detalhamento?: string | null
+          cumprimento_plano?: string | null
+          cycle_end_date: string
+          cycle_start_date: string
+          dificuldades?: string | null
+          id?: string
+          is_published?: boolean | null
+          marketplace_data?: Json
+          plano_proximo_ciclo?: string | null
+          plano_proximos_dias?: string | null
+          proxima_reuniao_data?: string | null
+          proxima_reuniao_horario?: string | null
+          public_token?: string | null
+          report_number?: number
+          report_type: string
+          reuniao_data?: string | null
+          reuniao_horario?: string | null
+          reuniao_realizada?: boolean | null
+          rms_abertas?: number | null
+          rms_em_aberto?: number | null
+          rms_resolvidas?: number | null
+          skus_cadastrados_otimizados?: string | null
+          skus_problematicos?: string | null
+          tacos_medio?: number | null
+          top5_skus?: Json | null
+          updated_at?: string
+          variacao_faturamento_pct?: number | null
+          variacao_pedidos_pct?: number | null
+          verba_ads?: number | null
+        }
+        Update: {
+          acoes_executadas?: string | null
+          acos_medio?: number | null
+          client_id?: string
+          consultor_id?: string
+          created_at?: string
+          cumprimento_detalhamento?: string | null
+          cumprimento_plano?: string | null
+          cycle_end_date?: string
+          cycle_start_date?: string
+          dificuldades?: string | null
+          id?: string
+          is_published?: boolean | null
+          marketplace_data?: Json
+          plano_proximo_ciclo?: string | null
+          plano_proximos_dias?: string | null
+          proxima_reuniao_data?: string | null
+          proxima_reuniao_horario?: string | null
+          public_token?: string | null
+          report_number?: number
+          report_type?: string
+          reuniao_data?: string | null
+          reuniao_horario?: string | null
+          reuniao_realizada?: boolean | null
+          rms_abertas?: number | null
+          rms_em_aberto?: number | null
+          rms_resolvidas?: number | null
+          skus_cadastrados_otimizados?: string | null
+          skus_problematicos?: string | null
+          tacos_medio?: number | null
+          top5_skus?: Json | null
+          updated_at?: string
+          variacao_faturamento_pct?: number | null
+          variacao_pedidos_pct?: number | null
+          verba_ads?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mktplace_cycle_reports_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mktplace_daily_documentation: {
         Row: {
           client_id: string | null
@@ -5144,6 +5468,60 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      oracle_summaries: {
+        Row: {
+          created_at: string | null
+          group_id: string | null
+          id: string
+          model_used: string | null
+          raw_data: Json | null
+          reference_date: string
+          summary_content: string
+          summary_type: string
+          tokens_used: number | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          group_id?: string | null
+          id?: string
+          model_used?: string | null
+          raw_data?: Json | null
+          reference_date: string
+          summary_content?: string
+          summary_type: string
+          tokens_used?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          group_id?: string | null
+          id?: string
+          model_used?: string | null
+          raw_data?: Json | null
+          reference_date?: string
+          summary_content?: string
+          summary_type?: string
+          tokens_used?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oracle_summaries_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "organization_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oracle_summaries_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -8654,6 +9032,7 @@ export type Database = {
           deleted_titles: string[]
         }[]
       }
+      cleanup_orphaned_recording_sessions: { Args: never; Returns: undefined }
       cleanup_user_references: {
         Args: { target_user_id: string }
         Returns: undefined
@@ -8687,6 +9066,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_mktplace_cycle_report: { Args: { p_payload: Json }; Returns: Json }
       create_weekly_gestor_tasks: { Args: never; Returns: undefined }
       delete_kanban_card_attachment: {
         Args: { _attachment_id: string }
@@ -8839,6 +9219,10 @@ export type Database = {
           user_role: string
         }[]
       }
+      get_public_mktplace_cycle_report: {
+        Args: { p_token: string }
+        Returns: Json
+      }
       get_public_mktplace_relatorio: { Args: { _token: string }; Returns: Json }
       get_team_users_in_scope: {
         Args: never
@@ -8864,6 +9248,16 @@ export type Database = {
           _user_id: string
         }
         Returns: number
+      }
+      growth_assign_team: {
+        Args: {
+          p_ads_manager_id: string
+          p_client_id: string
+          p_comercial_id?: string
+          p_has_mktplace?: boolean
+          p_mktplace_id?: string
+        }
+        Returns: Json
       }
       has_capability: {
         Args: { _key: string; _user_id: string }
@@ -9048,12 +9442,12 @@ export type Database = {
         }[]
       }
       log_page_access: { Args: { _page_slug: string }; Returns: undefined }
-      maybe_create_growth_onboarding_tag: {
+      maybe_create_mktplace_ads_block_tag: {
         Args: { p_client_id: string }
         Returns: undefined
       }
-      maybe_create_mktplace_ads_block_tag: {
-        Args: { p_client_id: string }
+      move_client_tracking_day: {
+        Args: { _ads_manager_id: string; _client_id: string; _new_day: string }
         Returns: undefined
       }
       nudge_user_for_justification: {
@@ -9161,6 +9555,7 @@ export type Database = {
         Returns: boolean
       }
       tech_unblock_task: { Args: { _task_id: string }; Returns: undefined }
+      trigger_oracle_summaries: { Args: never; Returns: undefined }
       unarchive_justification: { Args: { p_id: string }; Returns: undefined }
       upsert_client_design_profile: {
         Args: {

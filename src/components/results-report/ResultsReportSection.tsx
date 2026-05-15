@@ -52,7 +52,7 @@ export default function ResultsReportSection({ clientId, clientName }: Props) {
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-3">
               <BarChart3 size={18} className="text-white" />
-              <h3 className="font-semibold text-white">Relatório de Resultados</h3>
+              <h3 className="font-semibold text-white">Relatório de Resultados GESTÃO (QUINZENAL)</h3>
             </div>
             <Button
               size="sm"

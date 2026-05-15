@@ -164,7 +164,14 @@ export default function AdsAcompanhamentoSection({ compact }: Props) {
     }
     
     setIsSaving(true);
-    
+
+    // Safety timeout: if the entire flow takes longer than 30s, abort the
+    // loading state so the UI doesn't hang indefinitely (Bug 14 safeguard).
+    const safetyTimer = setTimeout(() => {
+      setIsSaving(false);
+      toast.error('A operação demorou demais. Tente novamente.');
+    }, 30_000);
+
     try {
       // Build the actions_done content with combinado info if applicable
       let actionsContent = docForm.actions_done;
@@ -249,6 +256,7 @@ export default function AdsAcompanhamentoSection({ compact }: Props) {
       console.error('[AdsAcompanhamentoSection] Unexpected error:', error);
       toast.error('Erro inesperado ao processar movimentação');
     } finally {
+      clearTimeout(safetyTimer);
       setIsSaving(false);
     }
   };

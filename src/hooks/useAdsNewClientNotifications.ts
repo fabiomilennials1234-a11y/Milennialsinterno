@@ -30,18 +30,18 @@ export async function createNewClientNotificationAndTask({
   createdBy: string;
   createdByName: string;
 }) {
-  // 1. Create the visible task in ads_tasks (named "Marcar Call 1: [nome]")
+  // 1. Create the visible task in ads_tasks (named "Dar boas vindas: [nome]")
   // The tag "client_id:uuid" links this task to the client for onboarding automation
   const { error: taskError } = await supabase
     .from('ads_tasks')
     .insert({
       ads_manager_id: adsManagerId,
-      title: `Marcar Call 1: ${clientName}`,
-      description: `Marcar a primeira call com o cliente ${clientName}. Ao concluir, o cliente será movido para Call #1 Marcada.`,
+      title: `Dar boas vindas: ${clientName}`,
+      description: `Dar boas vindas ao cliente ${clientName}. Ao concluir, o cliente sera movido para Criar Estrategia.`,
       task_type: 'daily',
       status: 'todo',
       priority: 'high',
-      tags: [`client_id:${clientId}`, `onboarding_task_type:marcar_call_1`],
+      tags: [`client_id:${clientId}`, `onboarding_task_type:dar_boas_vindas`],
     });
 
   if (taskError) {

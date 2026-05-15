@@ -83,10 +83,10 @@ export default function PaddockDiagnosticoListSection({ clientId, clientName }: 
           </div>
           <div className="flex-1">
             <h3 className="text-lg font-bold text-foreground">
-              Diagnóstico comercial pós War #2
+              Diagnóstico comercial
             </h3>
             <p className="text-sm text-muted-foreground">
-              Crie e gerencie diagnósticos comerciais pós War #2 para este cliente
+              Crie e gerencie diagnósticos comerciais para este cliente
             </p>
           </div>
           <Button onClick={() => setIsFormOpen(true)} className="gap-2">

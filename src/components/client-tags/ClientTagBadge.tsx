@@ -4,11 +4,17 @@ import { Clock, Hourglass, Tag } from 'lucide-react';
 
 export interface ClientTagBadgeProps {
   name: string;
+  createdAt?: string;
   expiresAt?: string | null;
   expiredAt?: string | null;
   dismissedAt?: string | null;
   size?: 'sm' | 'md' | 'lg';
   showHistory?: boolean;
+  /** Render with pulsating red glow — for tags that block user progress. */
+  blocking?: boolean;
+  /** 'countdown' (default): shows time remaining via expires_at.
+   *  'elapsed': shows days since created_at. <14d = blue, >=14d = red. */
+  counterMode?: 'countdown' | 'elapsed';
   className?: string;
 }
 
@@ -22,11 +28,14 @@ const BASE = 'inline-flex items-center rounded-full leading-[1.35] font-semibold
 
 export default function ClientTagBadge({
   name,
+  createdAt,
   expiresAt,
   expiredAt,
   dismissedAt,
   size = 'sm',
   showHistory = false,
+  blocking = false,
+  counterMode = 'countdown',
   className,
 }: ClientTagBadgeProps) {
   const s = SIZE_CLASS[size];
@@ -43,6 +52,10 @@ export default function ClientTagBadge({
         {name}
       </span>
     );
+  }
+
+  if (counterMode === 'elapsed') {
+    return <ElapsedBadge name={name} createdAt={createdAt ?? null} sizeClass={s} className={className} />;
   }
 
   if (expiredAt) {
@@ -71,7 +84,7 @@ export default function ClientTagBadge({
     );
   }
 
-  return <LiveBadge name={name} expiresAt={expiresAt ?? null} size={size} sizeClass={s} className={className} />;
+  return <LiveBadge name={name} expiresAt={expiresAt ?? null} size={size} sizeClass={s} blocking={blocking} className={className} />;
 }
 
 function LiveBadge({
@@ -79,12 +92,14 @@ function LiveBadge({
   expiresAt,
   size,
   sizeClass: s,
+  blocking = false,
   className,
 }: {
   name: string;
   expiresAt: string | null;
   size: NonNullable<ClientTagBadgeProps['size']>;
   sizeClass: (typeof SIZE_CLASS)[keyof typeof SIZE_CLASS];
+  blocking?: boolean;
   className?: string;
 }) {
   const { remaining, severity, isExpired } = useCountdown(expiresAt);
@@ -111,6 +126,25 @@ function LiveBadge({
   }
 
   if (!expiresAt) {
+    if (blocking) {
+      return (
+        <span
+          role="alert"
+          aria-label={`Etiqueta bloqueante: ${name}`}
+          className={cn(
+            BASE, s.pill,
+            'bg-danger/10 border border-danger/30 text-danger tag-blocking-pulse',
+            className,
+          )}
+        >
+          <span aria-hidden className="relative flex shrink-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-danger" />
+            <span className="absolute inset-0 w-1.5 h-1.5 rounded-full bg-danger animate-ping opacity-50" />
+          </span>
+          {name}
+        </span>
+      );
+    }
     return (
       <span
         role="status"
@@ -160,6 +194,45 @@ function LiveBadge({
         )}
       >
         {remaining}
+      </span>
+    </span>
+  );
+}
+
+const ELAPSED_THRESHOLD_DAYS = 14;
+
+function ElapsedBadge({
+  name,
+  createdAt,
+  sizeClass: s,
+  className,
+}: {
+  name: string;
+  createdAt: string | null;
+  sizeClass: (typeof SIZE_CLASS)[keyof typeof SIZE_CLASS];
+  className?: string;
+}) {
+  const daysElapsed = createdAt
+    ? Math.floor((Date.now() - new Date(createdAt).getTime()) / (24 * 60 * 60 * 1000))
+    : 0;
+  const isOverThreshold = daysElapsed >= ELAPSED_THRESHOLD_DAYS;
+
+  return (
+    <span
+      role="status"
+      aria-label={`${name}: ${daysElapsed} dias`}
+      className={cn(
+        BASE, s.pill,
+        isOverThreshold
+          ? 'bg-danger/10 border border-danger/30 text-danger animate-pulse'
+          : 'bg-blue-500/10 border border-blue-500/30 text-blue-400',
+        className,
+      )}
+    >
+      <Clock size={s.icon} className="shrink-0 opacity-60" />
+      {name}
+      <span className="font-mono tabular-nums normal-case tracking-normal font-bold">
+        {daysElapsed}d
       </span>
     </span>
   );

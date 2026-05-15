@@ -18,51 +18,50 @@ import { MKTPLACE_CONSULTORIA_STEPS, MKTPLACE_GESTAO_STEPS } from './useMktplace
 // ===================== ONBOARDING GROWTH =====================
 
 describe('buildOnboardingPipeline', () => {
-  it('milestone 1 → step 0 is current, rest upcoming', () => {
-    const p = buildOnboardingPipeline(1, null);
+  it('milestone 2 → step 0 is current, rest upcoming', () => {
+    const p = buildOnboardingPipeline(2, null);
     expect(p.currentStepIndex).toBe(0);
     expect(p.isCompleted).toBe(false);
     expect(p.steps[0].status).toBe('current');
     expect(p.steps[1].status).toBe('upcoming');
-    expect(p.steps[4].status).toBe('upcoming');
-  });
-
-  it('milestone 3 → steps 0-1 completed, step 2 current', () => {
-    const p = buildOnboardingPipeline(3, null);
-    expect(p.currentStepIndex).toBe(2);
-    expect(p.steps[0].status).toBe('completed');
-    expect(p.steps[1].status).toBe('completed');
-    expect(p.steps[2].status).toBe('current');
     expect(p.steps[3].status).toBe('upcoming');
   });
 
-  it('milestone 5 → step 4 is current (last milestone)', () => {
+  it('milestone 3 → step 0 completed, step 1 current', () => {
+    const p = buildOnboardingPipeline(3, null);
+    expect(p.currentStepIndex).toBe(1);
+    expect(p.steps[0].status).toBe('completed');
+    expect(p.steps[1].status).toBe('current');
+    expect(p.steps[2].status).toBe('upcoming');
+  });
+
+  it('milestone 5 → step 3 is current (last milestone)', () => {
     const p = buildOnboardingPipeline(5, null);
-    expect(p.currentStepIndex).toBe(4);
-    expect(p.steps[4].status).toBe('current');
+    expect(p.currentStepIndex).toBe(3);
+    expect(p.steps[3].status).toBe('current');
     expect(p.isCompleted).toBe(false);
   });
 
   it('completed (completed_at set) → all steps completed', () => {
     const p = buildOnboardingPipeline(5, '2026-01-01T00:00:00Z');
     expect(p.isCompleted).toBe(true);
-    expect(p.currentStepIndex).toBe(5); // beyond last
+    expect(p.currentStepIndex).toBe(4); // beyond last
     expect(p.steps.every(s => s.status === 'completed')).toBe(true);
   });
 
-  it('null milestone defaults to 1', () => {
+  it('null milestone defaults to 2', () => {
     const p = buildOnboardingPipeline(null, null);
     expect(p.currentStepIndex).toBe(0);
     expect(p.steps[0].status).toBe('current');
   });
 
-  it('always returns 5 steps', () => {
-    const p = buildOnboardingPipeline(1, null);
-    expect(p.steps).toHaveLength(5);
+  it('always returns 4 steps (M1 removed)', () => {
+    const p = buildOnboardingPipeline(2, null);
+    expect(p.steps).toHaveLength(4);
   });
 
   it('metadata is correct', () => {
-    const p = buildOnboardingPipeline(1, null);
+    const p = buildOnboardingPipeline(2, null);
     expect(p.id).toBe('onboarding');
     expect(p.icon).toBe('Rocket');
     expect(p.color).toBe('amber');
@@ -312,7 +311,7 @@ describe('buildCrmPhases', () => {
 
 describe('Edge cases', () => {
   it('buildOnboardingPipeline with completed_at but low milestone → still completed', () => {
-    const p = buildOnboardingPipeline(2, '2026-01-01T00:00:00Z');
+    const p = buildOnboardingPipeline(3, '2026-01-01T00:00:00Z');
     expect(p.isCompleted).toBe(true);
     expect(p.steps.every(s => s.status === 'completed')).toBe(true);
   });
@@ -332,7 +331,7 @@ describe('Edge cases', () => {
 
   it('every step has a non-empty label', () => {
     // Onboarding
-    const ob = buildOnboardingPipeline(1, null);
+    const ob = buildOnboardingPipeline(2, null);
     for (const s of ob.steps) expect(s.label.length).toBeGreaterThan(0);
 
     // Comercial

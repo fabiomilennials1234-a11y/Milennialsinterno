@@ -13,7 +13,7 @@ import ContractStatusBadge from '@/components/shared/ContractStatusBadge';
 import CXValidationBadge from '@/components/shared/CXValidationBadge';
 import ClientLabelBadge, { type ClientLabel } from '@/components/shared/ClientLabelBadge';
 import ProductBadges, { TorqueCRMProductBadges } from '@/components/shared/ProductBadges';
-import ClientTagsList, { TAG_ESPERAR_GROWTH } from '@/components/client-tags/ClientTagsList';
+import ClientTagsList, { TAG_TORQUE_BLOQUEADO } from '@/components/client-tags/ClientTagsList';
 import { useClientTagsBatch } from '@/hooks/useClientTags';
 
 export default function AdsNovoClienteSection() {
@@ -108,7 +108,7 @@ export default function AdsNovoClienteSection() {
                         <ClientTagsList
                           tags={tagsByClient?.get(client.id) ?? []}
                           size="sm"
-                          excludeNames={[TAG_ESPERAR_GROWTH]}
+                          excludeNames={[TAG_TORQUE_BLOQUEADO]}
                           className="mt-1.5"
                         />
                         {client.razao_social && (

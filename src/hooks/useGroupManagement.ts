@@ -41,6 +41,7 @@ export interface SquadInfo {
 export function useGroupsWithOccupancy() {
   return useQuery({
     queryKey: ['groups-with-occupancy'],
+    refetchOnWindowFocus: true,
     queryFn: async (): Promise<GroupWithOccupancy[]> => {
       // Fetch groups
       const { data: groups, error: groupsError } = await supabase
@@ -129,22 +130,37 @@ export function useCreateGroup() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (data: { 
-      name: string; 
+    mutationFn: async (data: {
+      name: string;
       description?: string;
       roleLimits: { role: UserRole; max_count: number }[];
     }) => {
-      const slug = data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-      
+      let slug = data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+
+      // Ensure slug uniqueness: check existing slugs and append suffix if needed
+      const { data: existing } = await supabase
+        .from('organization_groups')
+        .select('slug')
+        .like('slug', `${slug}%`);
+
+      if (existing && existing.length > 0) {
+        const takenSlugs = new Set(existing.map(g => g.slug));
+        if (takenSlugs.has(slug)) {
+          let suffix = 2;
+          while (takenSlugs.has(`${slug}-${suffix}`)) suffix++;
+          slug = `${slug}-${suffix}`;
+        }
+      }
+
       // Get next position
       const { data: groups } = await supabase
         .from('organization_groups')
         .select('position')
         .order('position', { ascending: false })
         .limit(1);
-      
+
       const nextPosition = (groups?.[0]?.position || 0) + 1;
-      
+
       // Insert group
       const { data: newGroup, error: groupError } = await supabase
         .from('organization_groups')
@@ -156,7 +172,7 @@ export function useCreateGroup() {
         })
         .select()
         .single();
-      
+
       if (groupError) throw groupError;
       
       // Insert role limits

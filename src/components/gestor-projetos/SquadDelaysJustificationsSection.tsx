@@ -4,10 +4,12 @@ import {
   useArchiveJustification,
   type TeamItem,
 } from '@/hooks/useJustificativas';
-import { Loader2, CheckCircle2, AlertTriangle, MessageSquare, Archive, ArchiveRestore } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertTriangle, MessageSquare, Archive, ArchiveRestore, Calendar as CalendarIcon, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { format } from 'date-fns';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { format, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 // Real task tables — exclui pseudo-tables (CRM/tags/stalled/inactive).
@@ -82,11 +84,18 @@ function toDisplay(item: TeamItem): DisplayItem {
 
 export default function SquadDelaysJustificationsSection() {
   const [showArchived, setShowArchived] = useState(false);
+  const [filterDate, setFilterDate] = useState<Date | undefined>(undefined);
   const { data: rows = [], isLoading } = useJustificativasTeam(false, REAL_TASK_TABLES);
   const archiveMutation = useArchiveJustification();
 
   const items = useMemo<DisplayItem[]>(() => {
-    const mapped = rows.map(toDisplay);
+    let mapped = rows.map(toDisplay);
+
+    // Filter by selected date (compares due date)
+    if (filterDate) {
+      mapped = mapped.filter(item => isSameDay(new Date(item.dueDate), filterDate));
+    }
+
     // Atrasados primeiro, depois requer_revisao, depois justificados; dentro
     // de cada grupo, mais antigos primeiro.
     const statusOrder: Record<DisplayItem['status'], number> = {
@@ -98,7 +107,7 @@ export default function SquadDelaysJustificationsSection() {
       if (a.status !== b.status) return statusOrder[a.status] - statusOrder[b.status];
       return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
     });
-  }, [rows]);
+  }, [rows, filterDate]);
 
   const handleArchive = useCallback((item: DisplayItem) => {
     if (!item.justificationId) {
@@ -238,6 +247,42 @@ export default function SquadDelaysJustificationsSection() {
           <p className="text-lg font-bold text-warning">{justificadosCount}</p>
           <p className="text-[10px] text-muted-foreground">Justificados</p>
         </div>
+      </div>
+
+      {/* Date filter */}
+      <div className="flex items-center gap-2">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full h-8 text-xs justify-start font-normal"
+            >
+              <CalendarIcon size={14} className="mr-2 text-muted-foreground" />
+              {filterDate
+                ? format(filterDate, "dd 'de' MMM, yyyy", { locale: ptBR })
+                : 'Filtrar por dia'}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={filterDate}
+              onSelect={setFilterDate}
+              locale={ptBR}
+            />
+          </PopoverContent>
+        </Popover>
+        {filterDate && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0"
+            onClick={() => setFilterDate(undefined)}
+          >
+            <X size={14} />
+          </Button>
+        )}
       </div>
 
       {archivedItems.length > 0 && (

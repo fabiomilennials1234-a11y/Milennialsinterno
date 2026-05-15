@@ -2,13 +2,19 @@ import { cn } from '@/lib/utils';
 import ClientTagBadge, { type ClientTagBadgeProps } from './ClientTagBadge';
 
 /** Canonical tag names — use these instead of raw strings to avoid typos. */
-export const TAG_ESPERAR_GROWTH = 'Esperar ser finalizado o Onboarding do Growth';
-export const TAG_ESPERAR_TORQUE = 'Esperar Torque ser finalizado';
+export const TAG_TORQUE_BLOQUEADO = 'TORQUE BLOQUEADO';
+export const TAG_ESPERAR_TORQUE = 'Esperar TORQUE';
 export const TAG_AGUARDANDO_ESTRATEGIA_ADS = 'Aguardando Estratégia de Tráfego';
+export const TAG_BLOQUEADO_CX = 'BLOQUEADO: ESPERAR LIGACAO CX';
+export const TAG_ESPERAR_BRIEFING = 'Esperar Briefing';
+
+/** Tags that visually block progress — rendered with pulsating red style. */
+export const BLOCKING_TAGS = new Set([TAG_BLOQUEADO_CX, TAG_ESPERAR_BRIEFING, TAG_ESPERAR_TORQUE]);
 
 export interface ClientTagItem {
   id: string;
   name: string;
+  created_at?: string;
   expires_at?: string | null;
   expired_at?: string | null;
   dismissed_at?: string | null;
@@ -68,11 +74,14 @@ export default function ClientTagsList({
         <ClientTagBadge
           key={tag.id}
           name={tag.name}
+          createdAt={tag.created_at}
           expiresAt={tag.expires_at}
           expiredAt={tag.expired_at}
           dismissedAt={tag.dismissed_at}
           size={size}
           showHistory={showHistory}
+          blocking={BLOCKING_TAGS.has(tag.name)}
+          counterMode={tag.name === TAG_TORQUE_BLOQUEADO ? 'elapsed' : 'countdown'}
         />
       ))}
     </div>

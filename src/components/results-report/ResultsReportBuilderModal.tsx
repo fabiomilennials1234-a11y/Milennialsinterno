@@ -31,6 +31,13 @@ interface FormData {
   improvementPoints: string;
   next30Days: string;
   nextSteps: string;
+  analiseFunilComercial: string;
+  indicadoresDominioGestor: string;
+  analiseCrmCliente: string;
+  analiseEstrategiasCaptacao: string;
+  vendasNovosClientes: string;
+  ticketMedioNovos: string;
+  valorVendasNovos: string;
 }
 
 const INITIAL_FORM: FormData = {
@@ -42,9 +49,16 @@ const INITIAL_FORM: FormData = {
   improvementPoints: '',
   next30Days: '',
   nextSteps: '',
+  analiseFunilComercial: '',
+  indicadoresDominioGestor: '',
+  analiseCrmCliente: '',
+  analiseEstrategiasCaptacao: '',
+  vendasNovosClientes: '',
+  ticketMedioNovos: '',
+  valorVendasNovos: '',
 };
 
-const FIELDS: { key: keyof FormData; label: string; placeholder: string }[] = [
+const REQUIRED_FIELDS: { key: keyof FormData; label: string; placeholder: string }[] = [
   { key: 'actionsLast30Days', label: 'Ações realizadas nos últimos 30 dias', placeholder: 'Descreva as ações executadas...' },
   { key: 'achievements', label: 'Conquistas importantes', placeholder: 'Número de leads, vendas, mensagens...' },
   { key: 'trafficResults', label: 'Resultados detalhados de tráfego pago', placeholder: 'Investimento, CPL, CPA, ROAS...' },
@@ -54,6 +68,18 @@ const FIELDS: { key: keyof FormData; label: string; placeholder: string }[] = [
   { key: 'next30Days', label: 'O que faremos nos próximos 30 dias', placeholder: 'Plano de ação...' },
   { key: 'nextSteps', label: 'Próximos passos', placeholder: 'Ações imediatas...' },
 ];
+
+const OPTIONAL_FIELDS: { key: keyof FormData; label: string; placeholder: string }[] = [
+  { key: 'analiseFunilComercial', label: 'Análise do funil comercial', placeholder: 'Mapeamento do funil, volume de leads, taxa de conversão por etapa, gargalos identificados...' },
+  { key: 'indicadoresDominioGestor', label: 'Indicadores de domínio do gestor', placeholder: 'CPL atual, meta CPL, variação vs mês anterior...' },
+  { key: 'analiseCrmCliente', label: 'Análise do CRM do cliente', placeholder: 'Volume de leads cadastrados, taxa de atualização, etapas com perda, tempo de resposta...' },
+  { key: 'analiseEstrategiasCaptacao', label: 'Análise das estratégias de captação', placeholder: 'O que funciona, o que foi testado, novas oportunidades...' },
+  { key: 'vendasNovosClientes', label: 'Vendas para novos clientes', placeholder: 'Quantidade de vendas fechadas com novos clientes no período...' },
+  { key: 'ticketMedioNovos', label: 'Ticket médio novos', placeholder: 'Valor médio por venda para novos clientes...' },
+  { key: 'valorVendasNovos', label: 'Valor em vendas novos', placeholder: 'Valor total em vendas para novos clientes...' },
+];
+
+const FIELDS = [...REQUIRED_FIELDS, ...OPTIONAL_FIELDS];
 
 const ACCEPTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
 const ACCEPTED_LOGO_TYPES = [...ACCEPTED_IMAGE_TYPES, 'image/svg+xml'];
@@ -105,9 +131,10 @@ export default function ResultsReportBuilderModal({ open, onClose, clientId, cli
   const userId = user?.id || 'anonymous';
 
   // --- Validation ---
-  const textsValid = FIELDS.every(f => form[f.key].trim().length > 0);
+  // Only the 8 original fields are required text + image; the 4 new fields are optional
+  const textsValid = REQUIRED_FIELDS.every(f => form[f.key].trim().length > 0);
   const logoReady = logoState.status === 'success' && !!logoState.uploadedUrl;
-  const allSectionImagesReady = FIELDS.every(f => sectionImages[f.key].status === 'success' && !!sectionImages[f.key].uploadedUrl);
+  const allSectionImagesReady = REQUIRED_FIELDS.every(f => sectionImages[f.key].status === 'success' && !!sectionImages[f.key].uploadedUrl);
   const anyUploading = logoState.status === 'uploading' || FIELDS.some(f => sectionImages[f.key].status === 'uploading');
   const canSubmit = textsValid && logoReady && allSectionImagesReady && !anyUploading && !isSubmitting;
 
@@ -195,7 +222,7 @@ export default function ResultsReportBuilderModal({ open, onClose, clientId, cli
       toast.error('A logo é obrigatória para criar o relatório.');
       return;
     }
-    for (const field of FIELDS) {
+    for (const field of REQUIRED_FIELDS) {
       if (!sectionImages[field.key].uploadedUrl) {
         toast.error(`Imagem obrigatória não enviada na seção "${field.label}".`);
         return;
@@ -205,8 +232,13 @@ export default function ResultsReportBuilderModal({ open, onClose, clientId, cli
     setIsSubmitting(true);
     try {
       const sectionImageUrls: Record<string, string[]> = {};
-      for (const field of FIELDS) {
+      for (const field of REQUIRED_FIELDS) {
         sectionImageUrls[field.key] = [sectionImages[field.key].uploadedUrl!];
+      }
+      // Include optional field images only if uploaded
+      for (const field of OPTIONAL_FIELDS) {
+        const url = sectionImages[field.key]?.uploadedUrl;
+        if (url) sectionImageUrls[field.key] = [url];
       }
 
       await createReport.mutateAsync({
@@ -222,6 +254,13 @@ export default function ResultsReportBuilderModal({ open, onClose, clientId, cli
         nextSteps: form.nextSteps,
         clientLogoUrl: logoState.uploadedUrl!,
         sectionImages: sectionImageUrls,
+        analiseFunilComercial: form.analiseFunilComercial || undefined,
+        indicadoresDominioGestor: form.indicadoresDominioGestor || undefined,
+        analiseCrmCliente: form.analiseCrmCliente || undefined,
+        analiseEstrategiasCaptacao: form.analiseEstrategiasCaptacao || undefined,
+        vendasNovosClientes: form.vendasNovosClientes || undefined,
+        ticketMedioNovos: form.ticketMedioNovos || undefined,
+        valorVendasNovos: form.valorVendasNovos || undefined,
       });
 
       // Reset only on success
@@ -245,10 +284,10 @@ export default function ResultsReportBuilderModal({ open, onClose, clientId, cli
     onClose();
   }
 
-  // --- Missing items summary ---
+  // --- Missing items summary (only required fields) ---
   const missingItems: string[] = [];
   if (!logoReady) missingItems.push('Logo do cliente');
-  FIELDS.forEach(f => {
+  REQUIRED_FIELDS.forEach(f => {
     if (!form[f.key].trim()) missingItems.push(`Texto: ${f.label}`);
     if (sectionImages[f.key].status !== 'success') missingItems.push(`Imagem: ${f.label}`);
   });
@@ -307,8 +346,8 @@ export default function ResultsReportBuilderModal({ open, onClose, clientId, cli
             />
           </div>
 
-          {/* Report fields + section images */}
-          {FIELDS.map(({ key, label, placeholder }) => {
+          {/* Required report fields + section images */}
+          {REQUIRED_FIELDS.map(({ key, label, placeholder }) => {
             const imgState = sectionImages[key];
             return (
               <div key={key} className="space-y-2 p-4 rounded-lg border border-subtle bg-muted/20">
@@ -363,6 +402,26 @@ export default function ResultsReportBuilderModal({ open, onClose, clientId, cli
               </div>
             );
           })}
+
+          {/* Optional analysis fields (gestor de trafego) — text only, no image required */}
+          {OPTIONAL_FIELDS.length > 0 && (
+            <div className="pt-2 border-t border-subtle">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Campos opcionais de analise</p>
+              {OPTIONAL_FIELDS.map(({ key, label, placeholder }) => (
+                <div key={key} className="space-y-2 p-4 rounded-lg border border-subtle bg-muted/10 mb-3 last:mb-0">
+                  <Label className="text-sm font-medium">
+                    {label} <span className="text-muted-foreground text-xs">(opcional)</span>
+                  </Label>
+                  <Textarea
+                    value={form[key]}
+                    onChange={(e) => setForm(prev => ({ ...prev, [key]: e.target.value }))}
+                    placeholder={placeholder}
+                    className="min-h-[80px] resize-none"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Summary of missing items */}
           {missingItems.length > 0 && (

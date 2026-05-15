@@ -80,8 +80,8 @@ const AVAILABLE_PRODUCTS = [
   { slug: 'gestor-mktplace', name: 'Gestor de MKT Place', requiresTeam: false },
 ];
 
-// Schema de validação com Zod
-const clientSchema = z.object({
+// Schema de validação com Zod — exported for unit testing
+export const clientSchema = z.object({
   name: z
     .string()
     .trim()
@@ -162,24 +162,24 @@ const clientSchema = z.object({
   message: 'Para Millennials Growth, Grupo e Squad são obrigatórios',
   path: ['contracted_products'],
 }).refine((data) => {
-  // Gestor de Ads é obrigatório apenas para Millennials Growth
+  // Growth path: team assigned post-registration via growth_assign_team RPC.
+  // Sucesso do Cliente is required for Growth clients.
   const hasGrowth = data.contracted_products.includes('millennials-growth');
-  if (hasGrowth) return !!data.assigned_ads_manager;
+  if (hasGrowth) return !!data.assigned_sucesso_cliente;
   return true;
 }, {
-  message: 'Selecione o Gestor de Ads responsável',
-  path: ['assigned_ads_manager'],
+  message: 'Selecione o Sucesso do Cliente responsável',
+  path: ['assigned_sucesso_cliente'],
 }).refine((data) => {
-  const needsMktplace = data.contracted_products.includes('millennials-growth') ||
-    data.contracted_products.includes('gestor-mktplace');
+  // Mktplace consulting question only for gestor-mktplace product (Growth no longer triggers)
+  const needsMktplace = data.contracted_products.includes('gestor-mktplace');
   if (!needsMktplace) return true;
   return data.has_mktplace_consulting !== null;
 }, {
   message: 'Indique se haverá consultoria de MKT Place',
   path: ['has_mktplace_consulting'],
 }).refine((data) => {
-  const needsMktplace = data.contracted_products.includes('millennials-growth') ||
-    data.contracted_products.includes('gestor-mktplace');
+  const needsMktplace = data.contracted_products.includes('gestor-mktplace');
   if (!needsMktplace) return true;
   if (data.has_mktplace_consulting !== 'sim') return true;
   return !!data.assigned_mktplace;
@@ -299,7 +299,10 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
     return Array.isArray(watchedProducts) && watchedProducts.includes('millennials-paddock');
   }, [watchedProducts]);
 
-  const showAdsManager = hasMillennialsGrowth;
+  // Growth path: team assignment (ads, comercial, crm, mktplace) handled
+  // post-registration via growth_assign_team RPC. Growth does NOT contribute
+  // to showing these fields — only other products do.
+  const showAdsManager = false;
   const hasTorqueCRM = useMemo(() => {
     return Array.isArray(watchedProducts) && watchedProducts.includes('torque-crm');
   }, [watchedProducts]);
@@ -316,8 +319,8 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
     return Array.isArray(watchedProducts) && watchedProducts.includes('gestor-mktplace');
   }, [watchedProducts]);
 
-  const showMktplace = hasMillennialsGrowth || hasGestorMktplace;
-  const showComercial = hasMillennialsGrowth || hasMillennialsPaddock || hasTorqueCRM;
+  const showMktplace = hasGestorMktplace;
+  const showComercial = hasMillennialsPaddock || hasTorqueCRM;
   const showCrmManager = hasTorqueCRM;
   const showRhUser = hasHunting;
   const showOutboundManager = hasOutbound;
@@ -376,12 +379,10 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
       const { [slug]: removed, ...rest } = currentValues;
       form.setValue('product_values', rest, { shouldValidate: true });
       
-      // If unchecking millennials-growth, clear team fields (group/squad only)
+      // If unchecking millennials-growth, clear group/squad fields
       if (slug === 'millennials-growth') {
         form.setValue('group_id', '');
         form.setValue('squad_id', '');
-        form.setValue('assigned_ads_manager', '');
-        form.setValue('assigned_comercial', '');
         setSelectedGroupId('');
         setSelectedSquadId('');
       }
@@ -446,12 +447,14 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
         payment_due_day: data.payment_due_day,
         group_id: hasMillennialsGrowth ? data.group_id : undefined,
         squad_id: hasMillennialsGrowth ? data.squad_id : undefined,
-        assigned_ads_manager: data.assigned_ads_manager || undefined,
-        assigned_comercial: data.assigned_comercial || undefined,
-        assigned_crm: data.assigned_crm || undefined,
+        // Growth path: team fields not shown at registration, sent as undefined
+        // so RPC detects v_is_growth_no_ads and defers assignment
+        assigned_ads_manager: showAdsManager ? (data.assigned_ads_manager || undefined) : undefined,
+        assigned_comercial: showComercial ? (data.assigned_comercial || undefined) : undefined,
+        assigned_crm: showCrmManager ? (data.assigned_crm || undefined) : undefined,
         assigned_rh: data.assigned_rh || undefined,
         assigned_outbound_manager: data.assigned_outbound_manager || undefined,
-        assigned_mktplace: data.assigned_mktplace || undefined,
+        assigned_mktplace: showMktplace ? (data.assigned_mktplace || undefined) : undefined,
         assigned_sucesso_cliente: data.assigned_sucesso_cliente || undefined,
         product_values: productValuesArray,
       });
@@ -1023,8 +1026,6 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
                               setSelectedGroupId(value);
                               setSelectedSquadId('');
                               form.setValue('squad_id', '');
-                              form.setValue('assigned_ads_manager', '');
-                              form.setValue('assigned_comercial', '');
                             }}
                           >
                             <option value="" disabled>
@@ -1066,9 +1067,6 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
                             onChange={(e) => {
                               field.onChange(e.target.value);
                               setSelectedSquadId(e.target.value);
-                              // Limpar responsáveis ao trocar de squad
-                              form.setValue('assigned_ads_manager', '');
-                              form.setValue('assigned_comercial', '');
                             }}
                           >
                             <option value="" disabled>
@@ -1112,7 +1110,7 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
                     name="assigned_sucesso_cliente"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Sucesso do Cliente</FormLabel>
+                        <FormLabel>Sucesso do Cliente{hasMillennialsGrowth ? ' *' : ''}</FormLabel>
                         <FormControl>
                           <UserPickerByRole
                             role="sucesso_cliente"
@@ -1347,10 +1345,10 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
                 <p className="text-sm font-medium text-info">Automação Ativada</p>
                 <p className="text-xs text-info/80 mt-1">
                   {hasMillennialsGrowth
-                    ? 'Cards serão criados nos kanbans: Gestor de Projetos, Gestor de Ads, Financeiro, Treinador Comercial e nos produtos selecionados.'
+                    ? 'Cards serão criados nos kanbans: Gestor de Projetos e Financeiro. A equipe operacional (Ads, Comercial, CRM) será atribuída depois pelo gestor.'
                     : watchedProducts.length > 0
-                      ? `Cards serão criados no kanban do Gestor de Ads e nos kanbans dos ${watchedProducts.length} produto(s) selecionado(s).`
-                      : 'O cliente aparecerá no kanban do Gestor de Ads selecionado.'
+                      ? `Cards serão criados nos kanbans dos ${watchedProducts.length} produto(s) selecionado(s).`
+                      : 'Nenhum card será criado automaticamente.'
                   }
                 </p>
               </div>

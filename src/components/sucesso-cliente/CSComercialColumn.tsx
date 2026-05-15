@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/collapsible';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import ClientTagsList from '@/components/client-tags/ClientTagsList';
+import ClientTagsList, { TAG_TORQUE_BLOQUEADO } from '@/components/client-tags/ClientTagsList';
 import { useClientTagsBatch } from '@/hooks/useClientTags';
 
 const STATUS_CONFIG: Record<string, { icon: typeof UserPlus; label: string; shortLabel: string; color: string; bgColor: string; step: number }> = {
@@ -264,6 +264,7 @@ export default function CSComercialColumn() {
                                     <ClientTagsList
                                       tags={tagsByClient?.get(client.id) ?? []}
                                       size="sm"
+                                      excludeNames={[TAG_TORQUE_BLOQUEADO]}
                                       className="mt-1.5"
                                     />
 

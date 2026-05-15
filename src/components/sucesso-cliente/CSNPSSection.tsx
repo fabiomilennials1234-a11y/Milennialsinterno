@@ -148,7 +148,7 @@ export default function CSNPSSection() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-purple-500" />
-              <CardTitle className="text-base">Pesquisa NPS</CardTitle>
+              <CardTitle className="text-base">NPS TIME + Bau de Ideias</CardTitle>
             </div>
             <Button size="sm" onClick={() => setShowCreateModal(true)}>
               <Plus className="h-4 w-4 mr-1" />

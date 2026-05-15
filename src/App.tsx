@@ -57,6 +57,8 @@ const PublicResultsReportPage = lazy(() => import("./pages/PublicResultsReportPa
 const PublicDiagnosticoPage = lazy(() => import("./pages/PublicDiagnosticoPage"));
 const PublicPaddockDiagnosticoPage = lazy(() => import("./pages/PublicPaddockDiagnosticoPage"));
 const PublicMktplaceRelatorioPage = lazy(() => import("./pages/PublicMktplaceRelatorioPage"));
+const PublicCycleReportPage = lazy(() => import("./pages/PublicCycleReportPage"));
+const PublicManagementReportPage = lazy(() => import("./pages/PublicManagementReportPage"));
 const WarRoom2Page = lazy(() => import("./pages/WarRoom2Page"));
 const WarRoom3Page = lazy(() => import("./pages/WarRoom3Page"));
 const UpsellsPage = lazy(() => import("./pages/UpsellsPage"));
@@ -530,6 +532,12 @@ function AppRoutes() {
 
       {/* Public MKT Place Report Page - accessible without authentication */}
       <Route path="/relatorio-mktplace/:token" element={<PublicMktplaceRelatorioPage />} />
+
+      {/* Public Cycle Report Page - accessible without authentication */}
+      <Route path="/relatorio-ciclo/:token" element={<PublicCycleReportPage />} />
+
+      {/* Public Management Report Page - accessible without authentication */}
+      <Route path="/relatorio-gestao/:token" element={<PublicManagementReportPage />} />
 
       {/* Public Paddock Diagnostic Page - accessible without authentication */}
       <Route path="/diagnostico-paddock/:token" element={<PublicPaddockDiagnosticoPage />} />

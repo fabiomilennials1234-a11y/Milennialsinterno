@@ -123,7 +123,25 @@ export default function CardAttachmentsTab({
       if (!path) throw new Error('Caminho do arquivo inválido');
       await downloadStorageFile('card-attachments', decodeURIComponent(path), attachment.file_name);
     } catch (error) {
-      toast.error('Erro ao baixar arquivo');
+      const msg = error instanceof Error ? error.message : 'Erro desconhecido';
+      console.error('[CardAttachments] Download failed:', msg, attachment.file_url);
+
+      // Fallback: bucket is public — open the file URL directly so the
+      // browser can still serve the file even when createSignedUrl fails
+      // (e.g. file was uploaded via TUS and the path encoding differs).
+      try {
+        const a = document.createElement('a');
+        a.href = attachment.file_url;
+        a.download = attachment.file_name;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => document.body.removeChild(a), 150);
+      } catch {
+        toast.error(`Erro ao baixar arquivo: ${msg}`);
+      }
     }
   };
 

@@ -15,6 +15,7 @@ export interface ComercialTracking {
   current_day: WeekDay;
   last_moved_at: string;
   is_delayed: boolean;
+  tc_cycle_started_at: string | null;
   created_at: string;
   updated_at: string;
   client?: {

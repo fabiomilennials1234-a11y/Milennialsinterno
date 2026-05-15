@@ -282,9 +282,12 @@ export function useCSComercialTasks() {
 
 // Onboarding step labels
 export const ONBOARDING_STEP_LABELS: Record<string, string> = {
+  'dar_boas_vindas': 'Dar Boas Vindas',
+  'criar_estrategia': 'Criar Estratégia',
+  'marcar_apresentacao_estrategia': 'Marcar Apresentação Estratégia',
+  'realizar_apresentacao_estrategia': 'Realizar Apresentação Estratégia',
   'marcar_call_1': 'Marcar Call 1',
   'realizar_call_1': 'Realizar Call 1',
-  'criar_estrategia': 'Criar Estratégia',
   'apresentar_estrategia': 'Apresentar Estratégia',
   'brifar_criativos': 'Brifar Criativos',
   'aguardar_criativos': 'Aguardar Criativos',

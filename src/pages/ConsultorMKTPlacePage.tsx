@@ -18,7 +18,7 @@ import MktplaceDocumentacaoSection from '@/components/mktplace/MktplaceDocumenta
 import ClientViewModal from '@/components/client/ClientViewModal';
 import { useCreateMktplaceInitialTask, isGestaoMktplace, useMktplaceProfiles } from '@/hooks/useMktplaceKanban';
 import { useClientTagsBatch } from '@/hooks/useClientTags';
-import ClientTagsList from '@/components/client-tags/ClientTagsList';
+import ClientTagsList, { TAG_TORQUE_BLOQUEADO } from '@/components/client-tags/ClientTagsList';
 
 const COLUMNS = [
   { id: 'novo-cliente', title: 'Novos Clientes', icon: UserPlus, headerClass: 'section-header-green', iconColor: 'text-white' },
@@ -139,6 +139,7 @@ function MktplaceNovoClienteSection() {
                   <ClientTagsList
                     tags={tagsByClient?.get(client.id) ?? []}
                     size="sm"
+                    excludeNames={[TAG_TORQUE_BLOQUEADO]}
                     className="mt-0"
                   />
                   {client.monthly_value && (

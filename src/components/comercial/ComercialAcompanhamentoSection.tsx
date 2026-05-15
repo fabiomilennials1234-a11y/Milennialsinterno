@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { Users, Eye, AlertTriangle, GripVertical, Calendar, HelpCircle, MessageSquare } from 'lucide-react';
+import { Users, Eye, AlertTriangle, GripVertical, Calendar, HelpCircle, MessageSquare, Timer } from 'lucide-react';
 import { useContractStatus } from '@/hooks/useContractStatus';
-import PaddockDiagnosticoBadge from './PaddockDiagnosticoBadge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { 
+import {
   useComercialTracking,
   useMoveClientToDay,
   DAY_LABELS,
@@ -20,6 +19,7 @@ import {
   isTrackingDelayed,
   ComercialTracking,
 } from '@/hooks/useComercialTracking';
+import { getTCCycleDaysRemaining } from '@/hooks/useTCMonthlyCycle';
 import { useUpsertComercialClientDoc, useCreateComercialCombinadoTask } from '@/hooks/useComercialClientDocumentation';
 import { useSquadManagers } from '@/hooks/useSquadManagers';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
@@ -50,6 +50,29 @@ const INITIAL_DOC_FORM: DocForm = {
   combinado_deadline: undefined,
 };
 
+function TCCycleBadge({ tracking }: { tracking: ComercialTracking }) {
+  const daysLeft = getTCCycleDaysRemaining(tracking.tc_cycle_started_at || tracking.created_at);
+  const isAlert = daysLeft <= 5;
+  const isOverdue = daysLeft === 0;
+
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium',
+        isOverdue
+          ? 'bg-destructive/15 text-destructive'
+          : isAlert
+            ? 'bg-amber-500/15 text-amber-600'
+            : 'bg-muted text-muted-foreground'
+      )}
+      title={`Ciclo mensal TC: ${daysLeft}d restantes`}
+    >
+      <Timer size={10} />
+      {daysLeft}d
+    </span>
+  );
+}
+
 function ClientItem({
   tracking,
   onViewClient
@@ -69,8 +92,6 @@ function ClientItem({
           : 'bg-card border-subtle'
       }`}
     >
-      {/* Diagnóstico Comercial 30 dias */}
-      <PaddockDiagnosticoBadge clientId={tracking.client_id} className="w-full justify-center mb-1" />
       {/* Overdue Invoice Badge - Full width at top */}
       <OverdueInvoiceBadge clientId={tracking.client_id} className="w-full justify-center mb-1" />
       {/* Contract Status Badge */}
@@ -96,6 +117,7 @@ function ClientItem({
           <ClientLabelBadge label={(tracking.client?.client_label ?? null) as ClientLabel} size="sm" />
           <ProductBadges products={tracking.client?.contracted_products} size="sm" maxVisible={3} />
           <TorqueCRMProductBadges products={tracking.client?.torque_crm_products} size="sm" />
+          <TCCycleBadge tracking={tracking} />
         </div>
         {isDelayed && <AlertTriangle size={12} className="text-destructive flex-shrink-0" />}
         <Button

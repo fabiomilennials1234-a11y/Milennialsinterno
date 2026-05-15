@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useMktplaceClients, MKTPLACE_CONSULTORIA_STEPS, MKTPLACE_GESTAO_STEPS } from '@/hooks/useMktplaceKanban';
 import { useClientTagsBatch } from '@/hooks/useClientTags';
-import ClientTagsList from '@/components/client-tags/ClientTagsList';
+import ClientTagsList, { TAG_TORQUE_BLOQUEADO } from '@/components/client-tags/ClientTagsList';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -129,6 +129,7 @@ export default function MktplaceOnboardingSection() {
                             <ClientTagsList
                               tags={tagsByClient?.get(client.id) ?? []}
                               size="sm"
+                              excludeNames={[TAG_TORQUE_BLOQUEADO]}
                               className="mt-0"
                             />
 

@@ -158,7 +158,7 @@ export default function PaddockDiagnosticoFormModal({ isOpen, onClose, clientId,
         <DialogHeader className="px-6 py-4 border-b border-border shrink-0">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-lg font-bold">
-              {editing ? 'Editar Diagnóstico Comercial' : 'Novo Diagnóstico Comercial pós War #2'}
+              {editing ? 'Editar Diagnóstico Comercial' : 'Novo Diagnóstico Comercial'}
             </DialogTitle>
             <Button onClick={handleSave} disabled={saveDiag.isPending} className="gap-2">
               {saveDiag.isPending ? (

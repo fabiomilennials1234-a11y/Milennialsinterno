@@ -52,7 +52,6 @@ export interface JourneyClientInfo {
 // ===================== ONBOARDING GROWTH MILESTONES =====================
 
 const ONBOARDING_MILESTONES = [
-  { id: 'milestone_1', label: 'Call #1' },
   { id: 'milestone_2', label: 'Estratégia PRO+' },
   { id: 'milestone_3', label: 'Criativos PRO+' },
   { id: 'milestone_4', label: 'Otimizações PRO+' },
@@ -85,10 +84,10 @@ export function buildOnboardingPipeline(
   completedAt: string | null,
 ): JourneyPipeline {
   const isCompleted = !!completedAt;
-  const milestone = currentMilestone ?? 1;
-  // currentStepIndex: 0-based. milestone 1 = index 0.
+  const milestone = currentMilestone ?? 2;
+  // currentStepIndex: 0-based. milestone 2 = index 0 (since M1 was removed).
   // If completed, index = total steps (beyond last).
-  const currentStepIndex = isCompleted ? ONBOARDING_MILESTONES.length : milestone - 1;
+  const currentStepIndex = isCompleted ? ONBOARDING_MILESTONES.length : Math.max(0, milestone - 2);
 
   const steps: JourneyStep[] = ONBOARDING_MILESTONES.map((m, i) => ({
     id: m.id,

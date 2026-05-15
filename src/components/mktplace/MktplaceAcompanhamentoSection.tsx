@@ -12,9 +12,12 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import ClientViewModal from '@/components/client/ClientViewModal';
 import MktplaceRelatorioCountdownBadge from '@/components/mktplace/MktplaceRelatorioCountdownBadge';
+import CycleReportCountdownBadge from '@/components/mktplace/CycleReportCountdownBadge';
+import CycleReportGenerateButton from '@/components/mktplace/CycleReportGenerateButton';
 import MktplaceReportBuilderModal from '@/components/mktplace/MktplaceReportBuilderModal';
+import CycleReportFormModal from '@/components/mktplace/CycleReportFormModal';
 import { Eye, GripVertical, Clock, Calendar as CalendarIcon, FileText } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -60,6 +63,9 @@ export default function MktplaceAcompanhamentoSection({ trackingType, title }: P
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [reportModal, setReportModal] = useState<{ open: boolean; clientId?: string; clientName?: string }>({ open: false });
+  const [pendingReportClientId, setPendingReportClientId] = useState<string | null>(null);
+
+  const cycleDays = trackingType === 'gestao' ? 15 : 30;
 
   const getClientsByDay = (day: string) => {
     return tracking
@@ -175,6 +181,9 @@ export default function MktplaceAcompanhamentoSection({ trackingType, title }: P
 
                     {dayClients.map((item: any, index: number) => {
                       const clientName = item.client?.razao_social || item.client?.name || 'Cliente';
+                      const anchorDate = item.created_at ? new Date(item.created_at) : new Date();
+                      const daysRemaining = cycleDays - differenceInDays(new Date(), anchorDate);
+
                       return (
                         <Draggable key={item.client_id} draggableId={item.client_id} index={index}>
                           {(dragProvided) => (
@@ -183,6 +192,13 @@ export default function MktplaceAcompanhamentoSection({ trackingType, title }: P
                               {...dragProvided.draggableProps}
                               className="bg-card rounded-lg border border-subtle p-2 mb-1.5 shadow-sm"
                             >
+                              {/* Cycle report countdown */}
+                              <CycleReportCountdownBadge
+                                daysRemaining={daysRemaining}
+                                totalDays={cycleDays}
+                                className="w-full justify-center mb-1.5"
+                              />
+
                               <div className="flex items-center gap-1.5">
                                 <div {...dragProvided.dragHandleProps} className="cursor-grab">
                                   <GripVertical size={12} className="text-muted-foreground" />
@@ -216,6 +232,14 @@ export default function MktplaceAcompanhamentoSection({ trackingType, title }: P
                                   </Badge>
                                 )}
                               </div>
+
+                              {/* Generate cycle report button */}
+                              <CycleReportGenerateButton
+                                trackingType={trackingType}
+                                onGenerate={() => setPendingReportClientId(item.client_id)}
+                                className="w-full mt-1.5"
+                              />
+
                               <MktplaceRelatorioCountdownBadge clientId={item.client_id} trackingType={trackingType} className="w-full justify-center" alwaysShow />
                             </div>
                           )}
@@ -388,6 +412,16 @@ export default function MktplaceAcompanhamentoSection({ trackingType, title }: P
           clientId={reportModal.clientId}
           clientName={reportModal.clientName || 'Cliente'}
           trackingType={trackingType}
+        />
+      )}
+
+      {/* Modal de relatório de ciclo */}
+      {pendingReportClientId && (
+        <CycleReportFormModal
+          isOpen={!!pendingReportClientId}
+          onClose={() => setPendingReportClientId(null)}
+          clientId={pendingReportClientId}
+          reportType={trackingType}
         />
       )}
     </>

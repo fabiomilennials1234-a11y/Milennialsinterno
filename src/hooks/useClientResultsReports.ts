@@ -23,6 +23,13 @@ export interface ResultsReport {
   pdf_url: string | null;
   cycle_start_date: string;
   cycle_end_date: string;
+  analise_funil_comercial: string | null;
+  indicadores_dominio_gestor: string | null;
+  analise_crm_cliente: string | null;
+  analise_estrategias_captacao: string | null;
+  vendas_novos_clientes: string | null;
+  ticket_medio_novos: string | null;
+  valor_vendas_novos: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -39,9 +46,16 @@ export interface CreateReportInput {
   nextSteps: string;
   clientLogoUrl: string;
   sectionImages: Record<string, string[]>;
+  analiseFunilComercial?: string;
+  indicadoresDominioGestor?: string;
+  analiseCrmCliente?: string;
+  analiseEstrategiasCaptacao?: string;
+  vendasNovosClientes?: string;
+  ticketMedioNovos?: string;
+  valorVendasNovos?: string;
 }
 
-const CYCLE_DAYS = 30;
+const CYCLE_DAYS = 15;
 
 /**
  * Data de corte para separar clientes antigos vs novos.
@@ -206,7 +220,7 @@ export function useResultsReportStatus(clientId: string): ReportCycleStatus {
 
     let status: ReportCycleStatus['status'] = 'normal';
     if (daysLeft === 0 && daysSince >= CYCLE_DAYS) status = 'overdue';
-    else if (daysLeft > 0 && daysLeft <= 4) status = 'alert';
+    else if (daysLeft > 0 && daysLeft <= 2) status = 'alert';
 
     return { daysSince, daysLeft, status, isLoading };
   }
@@ -238,7 +252,7 @@ export function useResultsReportStatus(clientId: string): ReportCycleStatus {
 
   let status: ReportCycleStatus['status'] = 'normal';
   if (daysLeft === 0 && daysSince >= CYCLE_DAYS) status = 'overdue';
-  else if (daysLeft > 0 && daysLeft <= 4) status = 'alert';
+  else if (daysLeft > 0 && daysLeft <= 2) status = 'alert';
 
   return { daysSince, daysLeft, status, isLoading };
 }
@@ -346,6 +360,13 @@ export function useCreateResultsReport() {
           is_published: true,
           cycle_start_date: now.toISOString().split('T')[0],
           cycle_end_date: cycleEnd.toISOString().split('T')[0],
+          analise_funil_comercial: input.analiseFunilComercial || null,
+          indicadores_dominio_gestor: input.indicadoresDominioGestor || null,
+          analise_crm_cliente: input.analiseCrmCliente || null,
+          analise_estrategias_captacao: input.analiseEstrategiasCaptacao || null,
+          vendas_novos_clientes: input.vendasNovosClientes || null,
+          ticket_medio_novos: input.ticketMedioNovos || null,
+          valor_vendas_novos: input.valorVendasNovos || null,
           custom_content: {
             ...(transformed.resumoExecutivo ? { resumoExecutivo: transformed.resumoExecutivo } : {}),
             sectionImages: input.sectionImages,

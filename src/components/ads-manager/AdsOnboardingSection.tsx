@@ -11,7 +11,7 @@ import ClientViewModal from '@/components/client/ClientViewModal';
 import OverdueInvoiceBadge from '@/components/shared/OverdueInvoiceBadge';
 import ContractStatusBadge from '@/components/shared/ContractStatusBadge';
 import ClientLabelBadge, { type ClientLabel } from '@/components/shared/ClientLabelBadge';
-import ClientTagsList, { TAG_ESPERAR_GROWTH } from '@/components/client-tags/ClientTagsList';
+import ClientTagsList, { TAG_TORQUE_BLOQUEADO } from '@/components/client-tags/ClientTagsList';
 
 interface MilestoneCard {
   id: string;
@@ -27,36 +27,28 @@ interface MilestoneCard {
 
 // Conteúdo de instrução para cards especiais
 const INSTRUCTION_CARD_CONTENT: Record<string, string> = {
-  'm1-2': `**PÓS CALL 1, VOCÊ DEVE:**
+  'm2-5': `**O que enviar junto a estratégia? (Usar a exata ordem):**
 
-1 - Solicitar estruturação DO CRM ao GESTOR DE CRM
-
-**Enviar ao Cliente E anexar na descrição do grupo:**
-
-📂 Link do drive para subir fotos e identidade visual: [DRIVE]
-
-📅 Link para iniciarem o acompanhamento comercial: https://calendar.app.google/eTa4J8LbFMD4eFNy6`,
-  'm2-2': `**O que enviar junto a estratégia? (Usar a exata ordem):**
-
-⚠️ LEMBRE: ANEXE NA DESCRICAO TUDO A BAIXO NO GRUPO DO CLIENTE.
+LEMBRE: ANEXE NA DESCRICAO TUDO A BAIXO NO GRUPO DO CLIENTE.
 
 Segue as copys para aprovar.
 
-[COPY ANÚNCIOS]
+[COPY ANUNCIOS]
 [COPY LP OU SITE INSTITUCIONAL]
 PDF do Marco
 Link do mapa mental: [Link]
 [AUDIO Lembrando que ele precisa aprovar o material]`,
-  'm3-2': `**IMPORTANTE – NÃO ESQUECER**
+  'm3-2': `**IMPORTANTE -- NAO ESQUECER**
 
-Após brifar os criativos, avisar o cliente que os materiais já foram brifados e informar o prazo de entrega previsto (Data X).`,
+Apos brifar os criativos, avisar o cliente que os materiais ja foram brifados e informar o prazo de entrega previsto (Data X).`,
 };
 
 // Mapeamento de step para card ID
 const STEP_TO_CARD_ID: Record<string, string> = {
-  'call_1_marcada': 'm1-1',
-  'call_1_realizada': 'm1-2',
-  'criar_estrategia': 'm2-1',
+  'dar_boas_vindas': 'm2-1',
+  'criar_estrategia': 'm2-2',
+  'marcar_apresentacao_estrategia': 'm2-3',
+  'realizar_apresentacao_estrategia': 'm2-4',
   'brifar_criativos': 'm3-1',
   'criativos_brifados': 'm3-2',
   'elencar_otimizacoes': 'm4-1',
@@ -66,14 +58,14 @@ const STEP_TO_CARD_ID: Record<string, string> = {
 };
 
 // Estrutura dos Marcos conforme especificado
+// Marco 1 (Call #1) removido — Call 1 agora e responsabilidade do GP
 const MILESTONE_CARDS: Record<number, MilestoneCard[]> = {
-  1: [
-    { id: 'm1-1', title: 'Call #1 Marcada', stepKey: 'call_1_marcada' },
-    { id: 'm1-2', title: 'Call #1 Realizada (LER ESSE CARD)', isInstructionCard: true, stepKey: 'call_1_realizada' },
-  ],
   2: [
-    { id: 'm2-1', title: 'Criar Estratégia', stepKey: 'criar_estrategia' },
-    { id: 'm2-2', title: '[ 2 ] Estratégia Apresentada [LER ESSE CARD]', isInstructionCard: true },
+    { id: 'm2-1', title: 'Dar Boas Vindas', stepKey: 'dar_boas_vindas' },
+    { id: 'm2-2', title: 'Criar Estratégia', stepKey: 'criar_estrategia' },
+    { id: 'm2-3', title: 'Marcar Apresentação Estratégia', stepKey: 'marcar_apresentacao_estrategia' },
+    { id: 'm2-4', title: 'Realizar Apresentação Estratégia', stepKey: 'realizar_apresentacao_estrategia' },
+    { id: 'm2-5', title: 'Estratégia Apresentada [LER ESSE CARD]', isInstructionCard: true },
   ],
   3: [
     { id: 'm3-1', title: 'Brifar Criativos', stepKey: 'brifar_criativos' },
@@ -90,8 +82,7 @@ const MILESTONE_CARDS: Record<number, MilestoneCard[]> = {
 };
 
 const MILESTONES = [
-  { number: 1, title: 'Call #1 [Marco 1]', maxDays: 3, emoji: '1️⃣', color: 'bg-info', borderColor: 'border-l-info' },
-  { number: 2, title: 'Estratégia PRO+ [Marco 2]', maxDays: 4, emoji: '2️⃣', color: 'bg-purple', borderColor: 'border-l-purple' },
+  { number: 2, title: 'Estratégia PRO+ [Marco 2]', maxDays: 7, emoji: '2️⃣', color: 'bg-purple', borderColor: 'border-l-purple' },
   { number: 3, title: 'Criativos PRO+ [Marco 3]', maxDays: 5, emoji: '3️⃣', color: 'bg-success', borderColor: 'border-l-success' },
   { number: 4, title: 'Otimizações PRO+ [Marco 4]', maxDays: 6, emoji: '4️⃣', color: 'bg-warning', borderColor: 'border-l-warning' },
   { number: 5, title: 'Início [Marco 5]', maxDays: 14, emoji: '5️⃣', color: 'bg-primary', borderColor: 'border-l-primary' },
@@ -230,7 +221,7 @@ export default function AdsOnboardingSection() {
                             <ClientTagsList
                               tags={tagsByClient?.get(client.id) ?? []}
                               size="sm"
-                              excludeNames={[TAG_ESPERAR_GROWTH]}
+                              excludeNames={[TAG_TORQUE_BLOQUEADO]}
                               className="mt-0"
                             />
 

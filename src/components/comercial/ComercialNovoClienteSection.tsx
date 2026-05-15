@@ -12,9 +12,8 @@ import OverdueInvoiceBadge from '@/components/shared/OverdueInvoiceBadge';
 import ContractStatusBadge from '@/components/shared/ContractStatusBadge';
 import ClientLabelBadge, { type ClientLabel } from '@/components/shared/ClientLabelBadge';
 import ProductBadges, { TorqueCRMProductBadges } from '@/components/shared/ProductBadges';
-import ClientTagsList, { TAG_ESPERAR_TORQUE } from '@/components/client-tags/ClientTagsList';
+import ClientTagsList, { TAG_ESPERAR_TORQUE, TAG_ESPERAR_BRIEFING, TAG_TORQUE_BLOQUEADO } from '@/components/client-tags/ClientTagsList';
 import { useClientTagsBatch, type ClientTag } from '@/hooks/useClientTags';
-import PaddockDiagnosticoBadge from './PaddockDiagnosticoBadge';
 import { fireCelebration } from '@/lib/confetti';
 
 function getTaskDeadlineInfo(dueDate?: string) {
@@ -50,8 +49,9 @@ function ClientCard({ client, tags = [] }: { client: any; tags?: ClientTag[] }) 
   
   const hours = getHoursSinceEntry(client.comercial_entered_at);
   const isDelayed = hours >= 24;
+  const isBlockedByBriefing = tags.some(t => t.name === TAG_ESPERAR_BRIEFING && !t.dismissed_at);
   const pendingTask = tasks.find(
-    t => t.status !== 'done' && (t.auto_task_type === AUTO_TASK_TYPES.MARCAR_CONSULTORIA || t.auto_task_type === PADDOCK_AUTO_TASK_TYPES.MARCAR_WAR1)
+    t => t.status !== 'done' && (t.auto_task_type === AUTO_TASK_TYPES.MARCAR_CONSULTORIA || t.auto_task_type === PADDOCK_AUTO_TASK_TYPES.MARCAR_ALINHAMENTO_INICIAL)
   );
 
   const handleCompleteTask = async () => {
@@ -75,8 +75,6 @@ function ClientCard({ client, tags = [] }: { client: any; tags?: ClientTag[] }) 
             : 'bg-card border-subtle hover:shadow-md'
         }`}
       >
-        {/* Diagnóstico Comercial 30 dias */}
-        <PaddockDiagnosticoBadge clientId={client.id} className="w-full justify-center mb-2" />
         {/* Overdue Invoice Badge */}
         <OverdueInvoiceBadge clientId={client.id} className="w-full justify-center mb-2" />
         {/* Contract Status Badge */}
@@ -91,7 +89,7 @@ function ClientCard({ client, tags = [] }: { client: any; tags?: ClientTag[] }) 
                 className="shrink-0"
               />
             </div>
-            <ClientTagsList tags={tags} size="sm" excludeNames={[TAG_ESPERAR_TORQUE]} className="mt-1.5" />
+            <ClientTagsList tags={tags} size="sm" excludeNames={[TAG_ESPERAR_TORQUE, TAG_TORQUE_BLOQUEADO]} className="mt-1.5" />
             {client.razao_social && (
               <p className="text-xs text-muted-foreground truncate">{client.razao_social}</p>
             )}
@@ -161,10 +159,11 @@ function ClientCard({ client, tags = [] }: { client: any; tags?: ClientTag[] }) 
                   variant="outline"
                   className="h-7 text-xs shrink-0"
                   onClick={handleCompleteTask}
-                  disabled={completeTask.isPending}
+                  disabled={completeTask.isPending || isBlockedByBriefing}
+                  title={isBlockedByBriefing ? 'Aguardando briefing do GP' : undefined}
                 >
                   <CheckCircle2 size={12} className="mr-1" />
-                  Concluir
+                  {isBlockedByBriefing ? 'Aguardando Briefing' : 'Concluir'}
                 </Button>
               </div>
             </div>

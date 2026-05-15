@@ -231,9 +231,12 @@ export function getDaysSinceCreation(createdAt: string): number {
 
 // Task type to human-readable step name
 export const TASK_TYPE_LABELS: Record<string, string> = {
+  'dar_boas_vindas': 'Dar Boas Vindas',
+  'criar_estrategia': 'Criar Estratégia',
+  'marcar_apresentacao_estrategia': 'Marcar Apresentação Estratégia',
+  'realizar_apresentacao_estrategia': 'Realizar Apresentação Estratégia',
   'marcar_call_1': 'Marcar Call 1',
   'realizar_call_1': 'Realizar Call 1',
-  'criar_estrategia': 'Criar Estratégia',
   'apresentar_estrategia': 'Apresentar Estratégia',
   'brifar_criativos': 'Brifar Criativos',
   'aguardar_criativos': 'Aguardar Criativos',
@@ -242,20 +245,24 @@ export const TASK_TYPE_LABELS: Record<string, string> = {
 
 // Onboarding step to column name mapping
 export const STEP_TO_COLUMN: Record<string, string> = {
-  'marcar_call_1': 'Novo Cliente',
-  'call_1_marcada': 'Call 1 Marcada',
-  'realizar_call_1': 'Call 1 Marcada',
-  'call_1_realizada': 'Call 1 Realizada',
-  'criar_estrategia': 'Call 1 Realizada',
-  'estrategia_criada': 'Estratégia Criada',
-  'apresentar_estrategia': 'Estratégia Criada',
-  'estrategia_apresentada': 'Estratégia Apresentada',
-  'brifar_criativos': 'Estratégia Apresentada',
+  'dar_boas_vindas': 'Novo Cliente',
+  'criar_estrategia': 'Boas Vindas Dada',
+  'marcar_apresentacao_estrategia': 'Estrategia Criada',
+  'realizar_apresentacao_estrategia': 'Apresentacao Marcada',
+  'brifar_criativos': 'Estrategia Apresentada',
   'criativos_brifados': 'Criativos Brifados',
   'aguardar_criativos': 'Criativos Brifados',
   'criativos_prontos': 'Criativos Prontos',
   'publicar_campanha': 'Criativos Prontos',
   'campanha_publicada': 'Campanha Publicada',
+  // Legacy mappings
+  'marcar_call_1': 'Novo Cliente',
+  'call_1_marcada': 'Boas Vindas Dada',
+  'realizar_call_1': 'Boas Vindas Dada',
+  'call_1_realizada': 'Boas Vindas Dada',
+  'estrategia_criada': 'Estrategia Criada',
+  'apresentar_estrategia': 'Estrategia Criada',
+  'estrategia_apresentada': 'Estrategia Apresentada',
 };
 
 // Archive an onboarding task
@@ -377,13 +384,12 @@ export function useCompleteLinkedOnboardingTask() {
 
   return useMutation({
     mutationFn: async (clientId: string) => {
-      // Use .limit(1) instead of .maybeSingle() to handle the case where
-      // multiple marcar_call_1 tasks exist for the same client (duplicate prevention)
+      // Try dar_boas_vindas first (new flow), fall back to marcar_call_1 (legacy)
       const { data: tasks } = await supabase
         .from('onboarding_tasks')
         .select('id')
         .eq('client_id', clientId)
-        .eq('task_type', 'marcar_call_1')
+        .in('task_type', ['dar_boas_vindas', 'marcar_call_1'])
         .neq('status', 'done')
         .order('created_at', { ascending: true })
         .limit(1);

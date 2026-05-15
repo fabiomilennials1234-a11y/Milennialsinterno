@@ -1,17 +1,19 @@
 import { useRef, useEffect, useState, useMemo } from 'react';
 import MainLayout from '@/layouts/MainLayout';
-import { ChevronLeft, ChevronRight, Loader2, LayoutGrid, ListTodo, CheckSquare } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, LayoutGrid, ListTodo, CheckSquare, Sparkles } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAdsManagers, useCSClientsByManager, useCSPermissions, CSClient } from '@/hooks/useSucessoCliente';
 import CSManagerColumn from '@/components/sucesso-cliente/CSManagerColumn';
 import CSClassificationColumn from '@/components/sucesso-cliente/CSClassificationColumn';
-import CSActionManualsColumn from '@/components/sucesso-cliente/CSActionManualsColumn';
 import CSExitReasonsColumn from '@/components/sucesso-cliente/CSExitReasonsColumn';
 import CSDashboardColumn from '@/components/sucesso-cliente/CSDashboardColumn';
 import CSHeaderStats from '@/components/sucesso-cliente/CSHeaderStats';
 import CSComercialColumn from '@/components/sucesso-cliente/CSComercialColumn';
 import CSNPSSection from '@/components/sucesso-cliente/CSNPSSection';
+import CSNPSPostReuniaoColumn from '@/components/sucesso-cliente/CSNPSPostReuniaoColumn';
+import CSGPClientsColumn from '@/components/sucesso-cliente/CSGPClientsColumn';
 import ClientViewModal from '@/components/client/ClientViewModal';
 import CSClientDetailModal from '@/components/sucesso-cliente/CSClientDetailModal';
 import CXValidationPopup from '@/components/sucesso-cliente/CXValidationPopup';
@@ -19,8 +21,10 @@ import CSPendenciaCXColumn from '@/components/sucesso-cliente/CSPendenciaCXColum
 import { useCXPendingClients } from '@/hooks/useCXValidation';
 import DepartmentTarefasSection from '@/components/department/DepartmentTarefasSection';
 import DepartmentTasksTab from '@/components/department/DepartmentTasksTab';
+import OracleSummarySection from '@/components/oracle/OracleSummarySection';
 
 export default function SucessoClientePage() {
+  const { user } = useAuth();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -192,6 +196,22 @@ export default function SucessoClientePage() {
               <div className="flex gap-6 h-full pr-12 pt-2" style={{
             minWidth: 'max-content'
           }}>
+                {/* Oracle column */}
+                <div className="w-[340px] h-full flex-shrink-0 flex flex-col bg-card rounded-2xl border border-subtle overflow-hidden shadow-apple">
+                  <div className="section-header section-header-violet">
+                    <div className="flex items-center gap-3">
+                      <Sparkles size={18} className="text-white" />
+                      <h2 className="font-semibold text-sm">Oráculo IA</h2>
+                    </div>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-4 scrollbar-apple bg-card">
+                    <OracleSummarySection type="group" groupId={user?.group_id} />
+                    <div className="mt-4">
+                      <OracleSummarySection type="individual" userId={user?.id} />
+                    </div>
+                  </div>
+                </div>
+
                 {/* Tarefas Recorrentes column */}
                 <div className="w-[340px] h-full flex-shrink-0 flex flex-col bg-card rounded-2xl border border-subtle overflow-hidden shadow-apple">
                   <div className="section-header section-header-green">
@@ -223,13 +243,16 @@ export default function SucessoClientePage() {
                 {/* Closed column - uses CSClientDetailModal */}
                 <CSClassificationColumn classification="encerrado" clients={closedClients} onClientClick={handleCSClientClick} />
 
+                {/* GP Clients column */}
+                <CSGPClientsColumn clients={clients} onClientClick={handleClientClick} />
+
                 {/* Exit Reasons column - replaces Insights */}
                 <CSExitReasonsColumn />
 
-                {/* Action Manuals column */}
-                <CSActionManualsColumn />
+                {/* NPS Pós Reunião */}
+                <CSNPSPostReuniaoColumn />
 
-                {/* NPS Survey Section */}
+                {/* NPS TIME + Baú de Ideias */}
                 <CSNPSSection />
 
                 {/* Dashboard column (only for authorized roles) */}

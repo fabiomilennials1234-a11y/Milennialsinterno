@@ -381,6 +381,12 @@
   .section-header-danger { color: hsl(0 84% 60%); }
   .section-header-danger * { color: hsl(var(--foreground)); }
 
+  .section-header-cyan { color: hsl(187 85% 43%); }
+  .section-header-cyan * { color: hsl(var(--foreground)); }
+
+  .section-header-teal { color: hsl(168 76% 42%); }
+  .section-header-teal * { color: hsl(var(--foreground)); }
+
   .section-header-gray { color: hsl(215 14% 45%); }
   .section-header-gray * { color: hsl(var(--foreground)); }
 
@@ -927,6 +933,22 @@
 
   .animate-pulse-border-orange {
     animation: pulse-border-orange 2s ease-in-out infinite;
+  }
+
+  /* Blocking tag pulse — red glow for tags that block progress */
+  @keyframes tag-blocking-pulse {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.3), 0 0 6px rgba(239, 68, 68, 0.1);
+      opacity: 1;
+    }
+    50% {
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15), 0 0 10px rgba(239, 68, 68, 0.2);
+      opacity: 0.9;
+    }
+  }
+
+  .tag-blocking-pulse {
+    animation: tag-blocking-pulse 2s ease-in-out infinite;
   }
   
   .animate-marquee-slow:hover {
