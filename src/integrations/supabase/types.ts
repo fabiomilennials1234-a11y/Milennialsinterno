@@ -1,3 +1,4 @@
+Initialising login role...
 export type Json =
   | string
   | number
@@ -1569,6 +1570,7 @@ export type Database = {
         Row: {
           achievements: string | null
           actions_last_30_days: string | null
+          agenda_treinamentos: string | null
           analise_crm_cliente: string | null
           analise_estrategias_captacao: string | null
           analise_funil_comercial: string | null
@@ -1579,6 +1581,7 @@ export type Database = {
           custom_content: Json | null
           cycle_end_date: string
           cycle_start_date: string
+          dica_comercial: string | null
           id: string
           improvement_points: string | null
           indicadores_dominio_gestor: string | null
@@ -1586,7 +1589,9 @@ export type Database = {
           key_metrics: string | null
           next_30_days: string | null
           next_steps: string | null
+          objetivos_curto_prazo: string | null
           pdf_url: string | null
+          projecao_funil_quinzena: string | null
           public_token: string | null
           section_images: Json | null
           ticket_medio_novos: string | null
@@ -1599,6 +1604,7 @@ export type Database = {
         Insert: {
           achievements?: string | null
           actions_last_30_days?: string | null
+          agenda_treinamentos?: string | null
           analise_crm_cliente?: string | null
           analise_estrategias_captacao?: string | null
           analise_funil_comercial?: string | null
@@ -1609,6 +1615,7 @@ export type Database = {
           custom_content?: Json | null
           cycle_end_date: string
           cycle_start_date: string
+          dica_comercial?: string | null
           id?: string
           improvement_points?: string | null
           indicadores_dominio_gestor?: string | null
@@ -1616,7 +1623,9 @@ export type Database = {
           key_metrics?: string | null
           next_30_days?: string | null
           next_steps?: string | null
+          objetivos_curto_prazo?: string | null
           pdf_url?: string | null
+          projecao_funil_quinzena?: string | null
           public_token?: string | null
           section_images?: Json | null
           ticket_medio_novos?: string | null
@@ -1629,6 +1638,7 @@ export type Database = {
         Update: {
           achievements?: string | null
           actions_last_30_days?: string | null
+          agenda_treinamentos?: string | null
           analise_crm_cliente?: string | null
           analise_estrategias_captacao?: string | null
           analise_funil_comercial?: string | null
@@ -1639,6 +1649,7 @@ export type Database = {
           custom_content?: Json | null
           cycle_end_date?: string
           cycle_start_date?: string
+          dica_comercial?: string | null
           id?: string
           improvement_points?: string | null
           indicadores_dominio_gestor?: string | null
@@ -1646,7 +1657,9 @@ export type Database = {
           key_metrics?: string | null
           next_30_days?: string | null
           next_steps?: string | null
+          objetivos_curto_prazo?: string | null
           pdf_url?: string | null
+          projecao_funil_quinzena?: string | null
           public_token?: string | null
           section_images?: Json | null
           ticket_medio_novos?: string | null
@@ -9891,3 +9904,4 @@ export const Constants = {
     },
   },
 } as const
+<claude-code-hint v="1" type="plugin" value="supabase@claude-plugins-official" />

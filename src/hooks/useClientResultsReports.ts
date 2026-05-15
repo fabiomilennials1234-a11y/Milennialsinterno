@@ -27,6 +27,10 @@ export interface ResultsReport {
   indicadores_dominio_gestor: string | null;
   analise_crm_cliente: string | null;
   analise_estrategias_captacao: string | null;
+  projecao_funil_quinzena: string | null;
+  objetivos_curto_prazo: string | null;
+  agenda_treinamentos: string | null;
+  dica_comercial: string | null;
   vendas_novos_clientes: string | null;
   ticket_medio_novos: string | null;
   valor_vendas_novos: string | null;
@@ -43,13 +47,17 @@ export interface CreateReportInput {
   topCampaign: string;
   improvementPoints: string;
   next30Days: string;
-  nextSteps: string;
+  nextSteps?: string;
   clientLogoUrl: string;
   sectionImages: Record<string, string[]>;
   analiseFunilComercial?: string;
   indicadoresDominioGestor?: string;
   analiseCrmCliente?: string;
   analiseEstrategiasCaptacao?: string;
+  projecaoFunilQuinzena?: string;
+  objetivosCurtoPrazo?: string;
+  agendaTreinamentos?: string;
+  dicaComercial?: string;
   vendasNovosClientes?: string;
   ticketMedioNovos?: string;
   valorVendasNovos?: string;
@@ -364,6 +372,10 @@ export function useCreateResultsReport() {
           indicadores_dominio_gestor: input.indicadoresDominioGestor || null,
           analise_crm_cliente: input.analiseCrmCliente || null,
           analise_estrategias_captacao: input.analiseEstrategiasCaptacao || null,
+          projecao_funil_quinzena: input.projecaoFunilQuinzena || null,
+          objetivos_curto_prazo: input.objetivosCurtoPrazo || null,
+          agenda_treinamentos: input.agendaTreinamentos || null,
+          dica_comercial: input.dicaComercial || null,
           vendas_novos_clientes: input.vendasNovosClientes || null,
           ticket_medio_novos: input.ticketMedioNovos || null,
           valor_vendas_novos: input.valorVendasNovos || null,

@@ -29,15 +29,15 @@ interface FormData {
   keyMetrics: string;
   topCampaign: string;
   improvementPoints: string;
-  next30Days: string;
-  nextSteps: string;
   analiseFunilComercial: string;
   indicadoresDominioGestor: string;
   analiseCrmCliente: string;
   analiseEstrategiasCaptacao: string;
-  vendasNovosClientes: string;
-  ticketMedioNovos: string;
-  valorVendasNovos: string;
+  projecaoFunilQuinzena: string;
+  objetivosCurtoPrazo: string;
+  agendaTreinamentos: string;
+  dicaComercial: string;
+  next30Days: string;
 }
 
 const INITIAL_FORM: FormData = {
@@ -47,37 +47,36 @@ const INITIAL_FORM: FormData = {
   keyMetrics: '',
   topCampaign: '',
   improvementPoints: '',
-  next30Days: '',
-  nextSteps: '',
   analiseFunilComercial: '',
   indicadoresDominioGestor: '',
   analiseCrmCliente: '',
   analiseEstrategiasCaptacao: '',
-  vendasNovosClientes: '',
-  ticketMedioNovos: '',
-  valorVendasNovos: '',
+  projecaoFunilQuinzena: '',
+  objetivosCurtoPrazo: '',
+  agendaTreinamentos: '',
+  dicaComercial: '',
+  next30Days: '',
 };
 
 const REQUIRED_FIELDS: { key: keyof FormData; label: string; placeholder: string }[] = [
-  { key: 'actionsLast30Days', label: 'Ações realizadas nos últimos 30 dias', placeholder: 'Descreva as ações executadas...' },
-  { key: 'achievements', label: 'Conquistas importantes', placeholder: 'Número de leads, vendas, mensagens...' },
-  { key: 'trafficResults', label: 'Resultados detalhados de tráfego pago', placeholder: 'Investimento, CPL, CPA, ROAS...' },
-  { key: 'keyMetrics', label: 'Principais métricas de desempenho', placeholder: 'Métricas mais relevantes do período...' },
-  { key: 'topCampaign', label: 'Campanha Top 1', placeholder: 'Descreva a campanha de melhor resultado...' },
-  { key: 'improvementPoints', label: 'Pontos a melhorar', placeholder: 'O que precisa ser ajustado...' },
-  { key: 'next30Days', label: 'O que faremos nos próximos 30 dias', placeholder: 'Plano de ação...' },
-  { key: 'nextSteps', label: 'Próximos passos', placeholder: 'Ações imediatas...' },
+  { key: 'actionsLast30Days', label: 'Ações realizadas nos últimos 30 dias', placeholder: 'Descreva as ações executadas no período' },
+  { key: 'achievements', label: 'Conquistas importantes', placeholder: 'Leads gerados, vendas realizadas, mensagens recebidas...' },
+  { key: 'trafficResults', label: 'Resultados detalhados de tráfego pago', placeholder: 'Investimento total, CPL, CPA, ROAS...' },
+  { key: 'keyMetrics', label: 'Principais métricas de desempenho', placeholder: 'Métricas mais relevantes do período' },
+  { key: 'topCampaign', label: 'Campanha Top 1', placeholder: 'Descreva a campanha de melhor resultado' },
+  { key: 'improvementPoints', label: 'O que precisa ser ajustado', placeholder: 'Pontos de melhoria identificados no período' },
+  { key: 'analiseFunilComercial', label: 'Análise do funil comercial', placeholder: 'Mapeamento do funil atual: volume de leads, taxa de conversão por etapa, gargalos identificados' },
+  { key: 'indicadoresDominioGestor', label: 'Indicadores de domínio do gestor', placeholder: 'CPL atual, meta de CPL, variação em relação ao mês anterior, outros indicadores relevantes da conta' },
+  { key: 'analiseCrmCliente', label: 'Análise do CRM do cliente', placeholder: 'Status atual do CRM: volume de leads cadastrados, taxa de atualização pelos vendedores, etapas com maior perda, tempo médio de resposta ao lead e principais pontos de atenção identificados na operação' },
+  { key: 'analiseEstrategiasCaptacao', label: 'Análise das estratégias de captação', placeholder: 'O que está funcionando, o que foi testado e o que precisa ser revisto nas estratégias de atração' },
+  { key: 'projecaoFunilQuinzena', label: 'Projeção do funil para a próxima quinzena', placeholder: 'Com base nos dados atuais, qual é a projeção de leads e conversões para os próximos 15 dias?' },
+  { key: 'objetivosCurtoPrazo', label: 'Objetivos de curto prazo', placeholder: 'Quais são as metas prioritárias para os próximos 30 dias? (volume, custo, canal, conversão)' },
+  { key: 'agendaTreinamentos', label: 'Agenda de treinamentos comerciais', placeholder: 'Sessões realizadas no mês, próximas datas agendadas e temas a serem trabalhados com o time' },
+  { key: 'dicaComercial', label: 'Dica comercial / operacional do mês', placeholder: 'Uma orientação prática sobre processo, abordagem ou ferramenta — eixo: ferramentas e dados' },
+  { key: 'next30Days', label: 'O que faremos nos próximos dias', placeholder: 'Ações planejadas para o próximo período' },
 ];
 
-const OPTIONAL_FIELDS: { key: keyof FormData; label: string; placeholder: string }[] = [
-  { key: 'analiseFunilComercial', label: 'Análise do funil comercial', placeholder: 'Mapeamento do funil, volume de leads, taxa de conversão por etapa, gargalos identificados...' },
-  { key: 'indicadoresDominioGestor', label: 'Indicadores de domínio do gestor', placeholder: 'CPL atual, meta CPL, variação vs mês anterior...' },
-  { key: 'analiseCrmCliente', label: 'Análise do CRM do cliente', placeholder: 'Volume de leads cadastrados, taxa de atualização, etapas com perda, tempo de resposta...' },
-  { key: 'analiseEstrategiasCaptacao', label: 'Análise das estratégias de captação', placeholder: 'O que funciona, o que foi testado, novas oportunidades...' },
-  { key: 'vendasNovosClientes', label: 'Vendas para novos clientes', placeholder: 'Quantidade de vendas fechadas com novos clientes no período...' },
-  { key: 'ticketMedioNovos', label: 'Ticket médio novos', placeholder: 'Valor médio por venda para novos clientes...' },
-  { key: 'valorVendasNovos', label: 'Valor em vendas novos', placeholder: 'Valor total em vendas para novos clientes...' },
-];
+const OPTIONAL_FIELDS: { key: keyof FormData; label: string; placeholder: string }[] = [];
 
 const FIELDS = [...REQUIRED_FIELDS, ...OPTIONAL_FIELDS];
 
@@ -131,12 +130,11 @@ export default function ResultsReportBuilderModal({ open, onClose, clientId, cli
   const userId = user?.id || 'anonymous';
 
   // --- Validation ---
-  // Only the 8 original fields are required text + image; the 4 new fields are optional
+  // All 15 text fields are required. Logo is required. Section images are OPTIONAL.
   const textsValid = REQUIRED_FIELDS.every(f => form[f.key].trim().length > 0);
   const logoReady = logoState.status === 'success' && !!logoState.uploadedUrl;
-  const allSectionImagesReady = REQUIRED_FIELDS.every(f => sectionImages[f.key].status === 'success' && !!sectionImages[f.key].uploadedUrl);
   const anyUploading = logoState.status === 'uploading' || FIELDS.some(f => sectionImages[f.key].status === 'uploading');
-  const canSubmit = textsValid && logoReady && allSectionImagesReady && !anyUploading && !isSubmitting;
+  const canSubmit = textsValid && logoReady && !anyUploading && !isSubmitting;
 
   // --- Upload helper ---
   async function uploadFile(file: File, path: string): Promise<string> {
@@ -222,21 +220,12 @@ export default function ResultsReportBuilderModal({ open, onClose, clientId, cli
       toast.error('A logo é obrigatória para criar o relatório.');
       return;
     }
-    for (const field of REQUIRED_FIELDS) {
-      if (!sectionImages[field.key].uploadedUrl) {
-        toast.error(`Imagem obrigatória não enviada na seção "${field.label}".`);
-        return;
-      }
-    }
 
     setIsSubmitting(true);
     try {
+      // Collect section images -- only include fields that were uploaded
       const sectionImageUrls: Record<string, string[]> = {};
-      for (const field of REQUIRED_FIELDS) {
-        sectionImageUrls[field.key] = [sectionImages[field.key].uploadedUrl!];
-      }
-      // Include optional field images only if uploaded
-      for (const field of OPTIONAL_FIELDS) {
+      for (const field of FIELDS) {
         const url = sectionImages[field.key]?.uploadedUrl;
         if (url) sectionImageUrls[field.key] = [url];
       }
@@ -251,16 +240,16 @@ export default function ResultsReportBuilderModal({ open, onClose, clientId, cli
         topCampaign: form.topCampaign,
         improvementPoints: form.improvementPoints,
         next30Days: form.next30Days,
-        nextSteps: form.nextSteps,
         clientLogoUrl: logoState.uploadedUrl!,
         sectionImages: sectionImageUrls,
-        analiseFunilComercial: form.analiseFunilComercial || undefined,
-        indicadoresDominioGestor: form.indicadoresDominioGestor || undefined,
-        analiseCrmCliente: form.analiseCrmCliente || undefined,
-        analiseEstrategiasCaptacao: form.analiseEstrategiasCaptacao || undefined,
-        vendasNovosClientes: form.vendasNovosClientes || undefined,
-        ticketMedioNovos: form.ticketMedioNovos || undefined,
-        valorVendasNovos: form.valorVendasNovos || undefined,
+        analiseFunilComercial: form.analiseFunilComercial,
+        indicadoresDominioGestor: form.indicadoresDominioGestor,
+        analiseCrmCliente: form.analiseCrmCliente,
+        analiseEstrategiasCaptacao: form.analiseEstrategiasCaptacao,
+        projecaoFunilQuinzena: form.projecaoFunilQuinzena,
+        objetivosCurtoPrazo: form.objetivosCurtoPrazo,
+        agendaTreinamentos: form.agendaTreinamentos,
+        dicaComercial: form.dicaComercial,
       });
 
       // Reset only on success
@@ -284,12 +273,11 @@ export default function ResultsReportBuilderModal({ open, onClose, clientId, cli
     onClose();
   }
 
-  // --- Missing items summary (only required fields) ---
+  // --- Missing items summary (required: logo + all 15 text fields) ---
   const missingItems: string[] = [];
   if (!logoReady) missingItems.push('Logo do cliente');
   REQUIRED_FIELDS.forEach(f => {
     if (!form[f.key].trim()) missingItems.push(`Texto: ${f.label}`);
-    if (sectionImages[f.key].status !== 'success') missingItems.push(`Imagem: ${f.label}`);
   });
 
   return (
@@ -298,10 +286,10 @@ export default function ResultsReportBuilderModal({ open, onClose, clientId, cli
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText size={20} className="text-primary" />
-            Criar Relatório de Resultados
+            Criar Relatório de Resultados GESTÃO (QUINZENAL)
           </DialogTitle>
           <DialogDescription>
-            Relatório de resultados dos últimos 30 dias para <strong>{clientName}</strong>
+            Relatório quinzenal de gestão para <strong>{clientName}</strong>
           </DialogDescription>
         </DialogHeader>
 
@@ -365,7 +353,7 @@ export default function ResultsReportBuilderModal({ open, onClose, clientId, cli
                 {/* Section image */}
                 <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1 mt-2">
                   <ImageIcon size={12} />
-                  Imagem desta seção <span className="text-destructive">*</span>
+                  Imagem desta seção <span className="text-muted-foreground text-[10px]">(opcional)</span>
                 </Label>
                 {imgState.preview ? (
                   <div className="flex items-center gap-3 p-2 bg-card rounded-lg border">
@@ -382,10 +370,10 @@ export default function ResultsReportBuilderModal({ open, onClose, clientId, cli
                   <button
                     type="button"
                     onClick={() => sectionInputRefs.current[key]?.click()}
-                    className="w-full p-3 border border-dashed border-destructive/20 rounded-lg hover:border-primary/30 transition-colors flex items-center gap-2 text-muted-foreground text-xs"
+                    className="w-full p-3 border border-dashed border-muted-foreground/20 rounded-lg hover:border-primary/30 transition-colors flex items-center gap-2 text-muted-foreground text-xs"
                   >
                     <Upload size={14} />
-                    <span>Enviar imagem <span className="text-destructive">(obrigatório)</span></span>
+                    <span>Enviar imagem <span className="text-muted-foreground">(opcional)</span></span>
                     <span className="ml-auto text-[10px]">PNG, JPG, WebP (máx. 5MB)</span>
                   </button>
                 )}
