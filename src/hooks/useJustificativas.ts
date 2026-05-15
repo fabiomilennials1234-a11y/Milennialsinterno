@@ -108,22 +108,31 @@ export function useJustificativasDoneMine() {
 export function useJustificativasTeam(
   onlyPending = false,
   taskTables?: readonly string[],
+  opts?: { groupId?: string | null; refetchInterval?: number },
 ) {
   const { user } = useAuth();
   // Stable cache key: sort to ignore param ordering.
   const tablesKey = taskTables ? [...taskTables].sort().join(',') : null;
+  const groupId = opts?.groupId ?? null;
   return useQuery({
-    queryKey: ['justif-team', user?.id, onlyPending, tablesKey],
+    queryKey: ['justif-team', user?.id, onlyPending, tablesKey, groupId],
     queryFn: async (): Promise<TeamItem[]> => {
-      const args: { p_only_pending: boolean; p_task_tables?: string[] } = {
+      const args: {
+        p_only_pending: boolean;
+        p_task_tables?: string[];
+        p_group_id?: string;
+      } = {
         p_only_pending: onlyPending,
       };
       if (taskTables && taskTables.length > 0) {
         args.p_task_tables = [...taskTables];
       }
+      if (groupId) {
+        args.p_group_id = groupId;
+      }
       const { data, error } = await supabase.rpc(
         'get_justifications_team_grouped',
-        // Cast: types regen pendente — RPC já aceita p_task_tables na DB.
+        // Cast: types regen pendente — RPC aceita p_task_tables + p_group_id na DB.
         args as never,
       );
       if (error) throw error;
@@ -131,6 +140,7 @@ export function useJustificativasTeam(
     },
     enabled: !!user?.id,
     ...COMMON_QUERY_OPTS,
+    ...(opts?.refetchInterval != null ? { refetchInterval: opts.refetchInterval } : {}),
   });
 }
 

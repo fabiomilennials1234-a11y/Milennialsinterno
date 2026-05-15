@@ -28,15 +28,14 @@ export const PADDOCK_AUTO_TASK_TYPES = {
   APRESENTAR_DIAGNOSTICO: 'apresentar_diagnostico',
   // Step 2 → 3
   ENVIAR_DIAGNOSTICO_COMERCIAL: 'enviar_diagnostico_comercial',
-  // Step 3 → 4
+  // Step 3 → 4 (last task — completing transitions to acompanhamento)
   ENVIAR_DATA_TREINAMENTOS: 'enviar_data_treinamentos',
-  // Step 4 → acompanhamento
-  CONFIRMAR_TREINAMENTOS: 'confirmar_treinamentos',
 };
 
 // Legacy task types kept for backward compatibility with existing tasks in DB
 export const LEGACY_PADDOCK_TASK_TYPES = [
   'realizar_alinhamento_inicial',
+  'confirmar_treinamentos',
   'marcar_war1',
   'realizar_war1',
   'gerar_tarefa_crm',
@@ -70,7 +69,6 @@ const TASK_TO_STEP: Record<string, PaddockStep | 'acompanhamento'> = {
   [PADDOCK_AUTO_TASK_TYPES.APRESENTAR_DIAGNOSTICO]: 'diagnostico_apresentado',
   [PADDOCK_AUTO_TASK_TYPES.ENVIAR_DIAGNOSTICO_COMERCIAL]: 'diagnostico_enviado',
   [PADDOCK_AUTO_TASK_TYPES.ENVIAR_DATA_TREINAMENTOS]: 'data_treinamentos_enviada',
-  [PADDOCK_AUTO_TASK_TYPES.CONFIRMAR_TREINAMENTOS]: 'acompanhamento',
 };
 
 // Maps: when client enters step X → create task(s) of type(s) with name and deadline
@@ -96,11 +94,8 @@ const STEP_TASKS: Record<string, TaskTemplate[]> = {
     titleFn: (n) => `Enviar datas dos treinamentos semanais ${n}`,
     deadlineDays: 1,
   }],
-  data_treinamentos_enviada: [{
-    taskType: PADDOCK_AUTO_TASK_TYPES.CONFIRMAR_TREINAMENTOS,
-    titleFn: (n) => `Confirmar envio de datas de treinamentos ${n}`,
-    deadlineDays: 1,
-  }],
+  // data_treinamentos_enviada has no next task — it's the last step.
+  // Reaching it triggers transition to acompanhamento.
 };
 
 // ============================================================
@@ -244,8 +239,11 @@ export function useCompleteComercialTaskWithAutomation() {
           }
         }
 
-        // Handle acompanhamento transition
-        if (nextStep === 'acompanhamento') {
+        // Last step has no next tasks → transition to acompanhamento
+        const isLastStep = nextStep === PADDOCK_STEPS[PADDOCK_STEPS.length - 1];
+        const templates = nextStep && nextStep !== 'acompanhamento' ? STEP_TASKS[nextStep] : undefined;
+
+        if (isLastStep && !templates) {
           await supabase
             .from('clients')
             .update({
@@ -286,12 +284,9 @@ export function useCompleteComercialTaskWithAutomation() {
         }
 
         // Create next tasks for the new step
-        if (nextStep && nextStep !== 'acompanhamento') {
-          const templates = STEP_TASKS[nextStep];
-          if (templates && userId) {
-            for (const template of templates) {
-              await createPaddockTask(userId, clientId, template, cName);
-            }
+        if (templates && userId) {
+          for (const template of templates) {
+            await createPaddockTask(userId, clientId, template, cName);
           }
         }
 

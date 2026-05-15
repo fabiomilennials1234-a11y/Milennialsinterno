@@ -12,7 +12,7 @@ import OverdueInvoiceBadge from '@/components/shared/OverdueInvoiceBadge';
 import ContractStatusBadge from '@/components/shared/ContractStatusBadge';
 import ClientLabelBadge, { type ClientLabel } from '@/components/shared/ClientLabelBadge';
 import ProductBadges, { TorqueCRMProductBadges } from '@/components/shared/ProductBadges';
-import ClientTagsList, { TAG_ESPERAR_TORQUE, TAG_ESPERAR_BRIEFING, TAG_TORQUE_BLOQUEADO } from '@/components/client-tags/ClientTagsList';
+import ClientTagsList, { TAG_ESPERAR_BRIEFING, TAG_TORQUE_BLOQUEADO } from '@/components/client-tags/ClientTagsList';
 import { useClientTagsBatch, type ClientTag } from '@/hooks/useClientTags';
 import { fireCelebration } from '@/lib/confetti';
 
@@ -89,7 +89,7 @@ function ClientCard({ client, tags = [] }: { client: any; tags?: ClientTag[] }) 
                 className="shrink-0"
               />
             </div>
-            <ClientTagsList tags={tags} size="sm" excludeNames={[TAG_ESPERAR_TORQUE, TAG_TORQUE_BLOQUEADO]} className="mt-1.5" />
+            <ClientTagsList tags={tags} size="sm" excludeNames={[TAG_TORQUE_BLOQUEADO]} className="mt-1.5" />
             {client.razao_social && (
               <p className="text-xs text-muted-foreground truncate">{client.razao_social}</p>
             )}

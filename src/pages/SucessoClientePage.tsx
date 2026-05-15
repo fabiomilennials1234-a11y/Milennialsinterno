@@ -234,6 +234,9 @@ export default function SucessoClientePage() {
                 {/* Comercial column - right after managers */}
                 <CSComercialColumn />
 
+                {/* GP Clients column - after managers, before classification */}
+                <CSGPClientsColumn clients={clients} onClientClick={handleClientClick} />
+
                 {/* Alert column - uses CSClientDetailModal */}
                 <CSClassificationColumn classification="alerta" clients={alertClients} onClientClick={handleCSClientClick} />
 
@@ -242,9 +245,6 @@ export default function SucessoClientePage() {
 
                 {/* Closed column - uses CSClientDetailModal */}
                 <CSClassificationColumn classification="encerrado" clients={closedClients} onClientClick={handleCSClientClick} />
-
-                {/* GP Clients column */}
-                <CSGPClientsColumn clients={clients} onClientClick={handleClientClick} />
 
                 {/* Exit Reasons column - replaces Insights */}
                 <CSExitReasonsColumn />

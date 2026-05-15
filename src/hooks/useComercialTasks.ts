@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useEffect } from 'react';
 import { fireCelebration } from '@/lib/confetti';
-import { getCurrentDayPortuguese, PADDOCK_AUTO_TASK_TYPES } from './useComercialAutomation';
+import { getCurrentDayPortuguese, PADDOCK_AUTO_TASK_TYPES, PADDOCK_STEPS } from './useComercialAutomation';
 import { TC_CYCLE_AUTO_TASK_TYPES, handleTCCycleTaskCompletion } from './useTCMonthlyCycle';
 import { resolveTaskOwner } from './utils/resolveTaskOwner';
 
@@ -14,7 +14,6 @@ const PADDOCK_TASK_TO_STEP: Record<string, string> = {
   [PADDOCK_AUTO_TASK_TYPES.APRESENTAR_DIAGNOSTICO]: 'diagnostico_apresentado',
   [PADDOCK_AUTO_TASK_TYPES.ENVIAR_DIAGNOSTICO_COMERCIAL]: 'diagnostico_enviado',
   [PADDOCK_AUTO_TASK_TYPES.ENVIAR_DATA_TREINAMENTOS]: 'data_treinamentos_enviada',
-  [PADDOCK_AUTO_TASK_TYPES.CONFIRMAR_TREINAMENTOS]: 'acompanhamento',
 };
 
 interface PaddockTaskTemplate {
@@ -27,7 +26,7 @@ const PADDOCK_STEP_TASKS: Record<string, PaddockTaskTemplate[]> = {
   diagnostico_marcado: [{ taskType: PADDOCK_AUTO_TASK_TYPES.APRESENTAR_DIAGNOSTICO, titleFn: (n) => `Apresentar diagnóstico ${n}`, deadlineDays: 1 }],
   diagnostico_apresentado: [{ taskType: PADDOCK_AUTO_TASK_TYPES.ENVIAR_DIAGNOSTICO_COMERCIAL, titleFn: (n) => `Enviar diagnóstico comercial ${n}`, deadlineDays: 1 }],
   diagnostico_enviado: [{ taskType: PADDOCK_AUTO_TASK_TYPES.ENVIAR_DATA_TREINAMENTOS, titleFn: (n) => `Enviar datas dos treinamentos semanais ${n}`, deadlineDays: 1 }],
-  data_treinamentos_enviada: [{ taskType: PADDOCK_AUTO_TASK_TYPES.CONFIRMAR_TREINAMENTOS, titleFn: (n) => `Confirmar envio de datas de treinamentos ${n}`, deadlineDays: 1 }],
+  // data_treinamentos_enviada has no next task — last step triggers acompanhamento
 };
 
 async function createPaddockTaskFromTemplate(userId: string, clientId: string, template: PaddockTaskTemplate, clientName: string) {
@@ -233,8 +232,11 @@ export function useUpdateComercialTaskStatus() {
             }
           }
 
-          // Handle transition to acompanhamento
-          if (nextStep === 'acompanhamento') {
+          // Last step with no next tasks → transition to acompanhamento
+          const isLastStep = nextStep === PADDOCK_STEPS[PADDOCK_STEPS.length - 1];
+          const templates = nextStep ? PADDOCK_STEP_TASKS[nextStep] : undefined;
+
+          if (isLastStep && !templates) {
             await supabase
               .from('clients')
               .update({
@@ -270,12 +272,9 @@ export function useUpdateComercialTaskStatus() {
                   });
               }
             }
-          } else if (nextStep) {
-            const templates = PADDOCK_STEP_TASKS[nextStep];
-            if (templates) {
-              for (const tmpl of templates) {
-                await createPaddockTaskFromTemplate(user.id, clientId, tmpl, cName);
-              }
+          } else if (templates) {
+            for (const tmpl of templates) {
+              await createPaddockTaskFromTemplate(user.id, clientId, tmpl, cName);
             }
           }
 

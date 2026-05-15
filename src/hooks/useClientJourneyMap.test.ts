@@ -90,14 +90,14 @@ describe('buildComercialPipeline', () => {
     expect(p.steps[1].status).toBe('upcoming');
   });
 
-  it('onboarding_paddock at step 5 → steps 0-4 completed, step 5 current', () => {
-    const p = buildComercialPipeline('onboarding_paddock', PADDOCK_STEPS[5])!;
-    expect(p.currentStepIndex).toBe(5);
-    for (let i = 0; i < 5; i++) {
+  it('onboarding_paddock at last step → previous steps completed, last step current', () => {
+    const lastIdx = PADDOCK_STEPS.length - 1;
+    const p = buildComercialPipeline('onboarding_paddock', PADDOCK_STEPS[lastIdx])!;
+    expect(p.currentStepIndex).toBe(lastIdx);
+    for (let i = 0; i < lastIdx; i++) {
       expect(p.steps[i].status).toBe('completed');
     }
-    expect(p.steps[5].status).toBe('current');
-    expect(p.steps[6].status).toBe('upcoming');
+    expect(p.steps[lastIdx].status).toBe('current');
   });
 
   it('em_acompanhamento → all completed', () => {

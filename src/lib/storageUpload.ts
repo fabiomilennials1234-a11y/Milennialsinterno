@@ -72,13 +72,19 @@ function uploadBlobWithTus(
   });
 }
 
+/** Signed URL lifetime — 1 hour to accommodate large video downloads. */
+const SIGNED_URL_EXPIRY_SECONDS = 3600;
+
 /**
- * Download a file from Supabase Storage using a short-lived signed URL.
+ * Download a file from Supabase Storage using a signed URL.
  *
  * Uses `createSignedUrl` with `download: fileName` so Supabase injects
  * `Content-Disposition: attachment; filename="..."`, which:
  *   1. Bypasses CORS issues that plague `fetch()` + `createObjectURL`.
  *   2. Forces the browser to save (not display) the file.
+ *
+ * Opens in a new tab so the browser manages the download natively —
+ * more reliable than an injected `<a>` click for large files (60MB+ videos).
  *
  * @param bucket   Storage bucket name (e.g. 'card-attachments')
  * @param filePath Object path inside the bucket (no leading slash)
@@ -91,20 +97,13 @@ export async function downloadStorageFile(
 ): Promise<void> {
   const { data, error } = await supabase.storage
     .from(bucket)
-    .createSignedUrl(filePath, 60, { download: fileName });
+    .createSignedUrl(filePath, SIGNED_URL_EXPIRY_SECONDS, { download: fileName });
 
   if (error || !data?.signedUrl) {
     throw new Error(error?.message ?? 'Não foi possível gerar link de download');
   }
 
-  const a = document.createElement('a');
-  a.href = data.signedUrl;
-  a.download = fileName;
-  a.style.display = 'none';
-  document.body.appendChild(a);
-  a.click();
-  // Small delay so browser starts the download before we remove the node
-  setTimeout(() => document.body.removeChild(a), 150);
+  window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
 }
 
 /**

@@ -5,7 +5,7 @@ import { parseDateOnly } from '@/lib/dateUtils';
 import { format, isPast, isToday } from 'date-fns';
 import { KanbanCard } from '@/hooks/useKanban';
 import { CardAttachment } from '@/hooks/useDesignKanban';
-import { supabase } from '@/integrations/supabase/client';
+import { downloadStorageFile } from '@/lib/storageUpload';
 
 interface DesignCardItemProps {
   card: KanbanCard;
@@ -50,20 +50,15 @@ export default function DesignCardItem({
   const handleDownload = async (e: React.MouseEvent, attachment: CardAttachment) => {
     e.stopPropagation();
     e.preventDefault();
-    
+
     try {
-      const response = await fetch(attachment.file_url);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = attachment.file_name;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      const path = attachment.file_url.split('/card-attachments/')[1];
+      if (!path) throw new Error('Caminho do arquivo inválido');
+      await downloadStorageFile('card-attachments', decodeURIComponent(path), attachment.file_name);
     } catch (error) {
-      console.error('Erro ao baixar arquivo:', error);
+      console.error('[DesignCardItem] Download failed:', error, attachment.file_url);
+      // Fallback: open public URL directly
+      window.open(attachment.file_url, '_blank', 'noopener,noreferrer');
     }
   };
 

@@ -4,6 +4,7 @@ import {
   useArchiveJustification,
   type TeamItem,
 } from '@/hooks/useJustificativas';
+import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, CheckCircle2, AlertTriangle, MessageSquare, Archive, ArchiveRestore, Calendar as CalendarIcon, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -83,9 +84,14 @@ function toDisplay(item: TeamItem): DisplayItem {
 }
 
 export default function SquadDelaysJustificationsSection() {
+  const { user } = useAuth();
   const [showArchived, setShowArchived] = useState(false);
   const [filterDate, setFilterDate] = useState<Date | undefined>(undefined);
-  const { data: rows = [], isLoading } = useJustificativasTeam(false, REAL_TASK_TABLES);
+  const { data: rows = [], isLoading } = useJustificativasTeam(
+    false,
+    REAL_TASK_TABLES,
+    { groupId: user?.group_id, refetchInterval: 30_000 },
+  );
   const archiveMutation = useArchiveJustification();
 
   const items = useMemo<DisplayItem[]>(() => {

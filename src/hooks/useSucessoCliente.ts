@@ -37,6 +37,8 @@ export interface CSClient {
   distrato_step: string | null;
   cx_validation_status: string | null;
   growth_onboarding_step: string | null;
+  growth_gp_step: string | null;
+  growth_counter_started_at: string | null;
 }
 
 export interface CSActionManual {

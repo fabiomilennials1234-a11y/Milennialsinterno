@@ -3,13 +3,12 @@ import ClientTagBadge, { type ClientTagBadgeProps } from './ClientTagBadge';
 
 /** Canonical tag names — use these instead of raw strings to avoid typos. */
 export const TAG_TORQUE_BLOQUEADO = 'TORQUE BLOQUEADO';
-export const TAG_ESPERAR_TORQUE = 'Esperar TORQUE';
 export const TAG_AGUARDANDO_ESTRATEGIA_ADS = 'Aguardando Estratégia de Tráfego';
 export const TAG_BLOQUEADO_CX = 'BLOQUEADO: ESPERAR LIGACAO CX';
 export const TAG_ESPERAR_BRIEFING = 'Esperar Briefing';
 
 /** Tags that visually block progress — rendered with pulsating red style. */
-export const BLOCKING_TAGS = new Set([TAG_BLOQUEADO_CX, TAG_ESPERAR_BRIEFING, TAG_ESPERAR_TORQUE]);
+export const BLOCKING_TAGS = new Set([TAG_BLOQUEADO_CX, TAG_ESPERAR_BRIEFING]);
 
 export interface ClientTagItem {
   id: string;

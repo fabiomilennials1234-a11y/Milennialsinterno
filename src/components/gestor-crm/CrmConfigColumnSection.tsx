@@ -202,7 +202,7 @@ export default function CrmConfigColumnSection({ produto }: Props) {
                               <AlertTriangle size={11} className="text-destructive" />
                             )}
                           </div>
-                          {/* Blocking tags (Esperar Briefing, Esperar TORQUE) */}
+                          {/* Blocking tags (Esperar Briefing, BLOQUEADO CX, etc.) */}
                           <ClientTagsList
                             tags={tagsByClient?.get(cfg.client_id) ?? []}
                             size="sm"

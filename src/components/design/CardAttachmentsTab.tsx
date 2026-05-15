@@ -130,15 +130,7 @@ export default function CardAttachmentsTab({
       // browser can still serve the file even when createSignedUrl fails
       // (e.g. file was uploaded via TUS and the path encoding differs).
       try {
-        const a = document.createElement('a');
-        a.href = attachment.file_url;
-        a.download = attachment.file_name;
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-        a.style.display = 'none';
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => document.body.removeChild(a), 150);
+        window.open(attachment.file_url, '_blank', 'noopener,noreferrer');
       } catch {
         toast.error(`Erro ao baixar arquivo: ${msg}`);
       }
