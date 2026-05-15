@@ -10,6 +10,7 @@ export interface ClientCallForm {
   // Bloco 1 — Empresa, Produto e Margem
   historia_empresa: string | null;
   produto_servico: string | null;
+  beneficios_produto: string | null;
   principais_produtos_margem: string | null;
   produto_carro_chefe: string | null;
   ticket_medio: string | null;

@@ -12,6 +12,7 @@ import OKRCreateModal from '@/components/dash-gestores/OKRCreateModal';
 import OKRProgressModal from '@/components/dash-gestores/OKRProgressModal';
 import MeetingOneOnOneModal from '@/components/dash-gestores/MeetingOneOnOneModal';
 import WeeklySummarySection from '@/components/dash-gestores/WeeklySummarySection';
+import NPSTeamOKRSection from '@/components/dash-gestores/NPSTeamOKRSection';
 
 export default function DashGestoresPage() {
   const { data: gestores, isLoading: gestoresLoading } = useDashGestores();
@@ -373,6 +374,9 @@ export default function DashGestoresPage() {
           {/* Resumo com IA */}
           <WeeklySummarySection problems={problemsStats?.problems || []} />
         </section>
+
+        {/* NPS TIME + Baú de Ideias */}
+        <NPSTeamOKRSection />
 
         {/* Modais */}
         <OKRCreateModal 

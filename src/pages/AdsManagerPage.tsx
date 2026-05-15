@@ -18,7 +18,8 @@ import {
   ChevronRight,
   UserX,
   LayoutGrid,
-  ListTodo
+  ListTodo,
+  BookOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -206,6 +207,22 @@ export default function AdsManagerPage() {
               <ChevronRight size={18} className="text-muted-foreground" />
             </Button>
           )}
+
+          {/* Feature 15: Manual de Conduta banner */}
+          <div className="px-8 pt-4 pb-0 shrink-0">
+            <a
+              href="https://drive.google.com/file/d/1NrqcJCcq-UuOvPyjsp-kyWpugWJIsilX/view?usp=sharing"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/15 hover:border-amber-500/50 transition-all group"
+            >
+              <BookOpen size={18} className="text-amber-600 shrink-0" />
+              <span className="text-sm font-semibold text-amber-700 dark:text-amber-400">
+                Manual de Conduta dos Gestores
+              </span>
+              <span className="text-xs text-amber-600/70 ml-auto hidden sm:inline">Abrir documento</span>
+            </a>
+          </div>
 
           {/* Scrollable Container */}
           <div

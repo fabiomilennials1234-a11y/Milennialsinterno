@@ -78,6 +78,10 @@ export interface DailyDocumentation {
   metrics: string | null;
   actions_done: string | null;
   client_budget: string | null;
+  leads_gerados: string | null;
+  leads_cadastrados_crm: string | null;
+  leads_incompletos: string | null;
+  etapa_crm_parados: string | null;
   created_at: string;
 }
 
@@ -870,11 +874,15 @@ export function useUpsertClientDocumentation() {
   const effectiveUserId = targetUserId || user?.id;
 
   return useMutation({
-    mutationFn: async (doc: { 
-      clientId: string; 
-      metrics: string; 
-      actions_done: string; 
+    mutationFn: async (doc: {
+      clientId: string;
+      metrics: string;
+      actions_done: string;
       client_budget: string;
+      leads_gerados?: string;
+      leads_cadastrados_crm?: string;
+      leads_incompletos?: string;
+      etapa_crm_parados?: string;
     }) => {
       if (!effectiveUserId) {
         console.error('[useUpsertClientDocumentation] No effectiveUserId found. targetUserId:', targetUserId, 'user?.id:', user?.id);
@@ -909,6 +917,10 @@ export function useUpsertClientDocumentation() {
             metrics: updatedMetrics,
             actions_done: updatedActions,
             client_budget: updatedBudget,
+            leads_gerados: doc.leads_gerados || null,
+            leads_cadastrados_crm: doc.leads_cadastrados_crm || null,
+            leads_incompletos: doc.leads_incompletos || null,
+            etapa_crm_parados: doc.etapa_crm_parados || null,
             updated_at: new Date().toISOString(),
           })
           .eq('id', existing.id);
@@ -929,6 +941,10 @@ export function useUpsertClientDocumentation() {
             metrics: doc.metrics,
             actions_done: doc.actions_done,
             client_budget: doc.client_budget,
+            leads_gerados: doc.leads_gerados || null,
+            leads_cadastrados_crm: doc.leads_cadastrados_crm || null,
+            leads_incompletos: doc.leads_incompletos || null,
+            etapa_crm_parados: doc.etapa_crm_parados || null,
           });
 
         if (error) {

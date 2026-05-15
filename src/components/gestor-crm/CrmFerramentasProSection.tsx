@@ -25,6 +25,17 @@ const TOOLS: ToolCard[] = [
       },
     ],
   },
+  {
+    id: 'tutorial_make_pro_torque',
+    title: 'Tutorial do Make Pro Torque',
+    description: 'Link pendente — será atualizado pelo fundador.',
+    links: [
+      {
+        label: 'Tutorial Make Pro Torque',
+        url: '#',
+      },
+    ],
+  },
 ];
 
 export default function CrmFerramentasProSection() {

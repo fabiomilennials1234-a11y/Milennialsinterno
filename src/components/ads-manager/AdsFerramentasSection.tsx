@@ -158,6 +158,15 @@ export default function AdsFerramentasSection() {
       });
     }
 
+    // Feature 18: Tutorial Make Pro Torque (placeholder — link pendente)
+    tools.push({
+      id: 'tutorial_make_pro_torque',
+      title: 'Tutorial do Make Pro Torque',
+      icon: '⚙️',
+      content: 'Link pendente — será atualizado pelo fundador.',
+      link: '#',
+    });
+
     tools.push(
       {
         id: 'acesso_cursos',

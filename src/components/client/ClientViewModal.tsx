@@ -31,13 +31,14 @@ import {
   Loader2,
   Save,
   CheckCircle2,
-  AlertTriangle,
   StickyNote,
-  AlertTriangle as AlertTriangleIcon,
   Rocket,
   Handshake,
   Store,
   Settings,
+  Link2,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 import ClientNotesSection from './ClientNotesSection';
 import ClientCallFormSection from './ClientCallFormSection';
@@ -76,12 +77,6 @@ interface ClientViewModalProps {
   onClose: () => void;
   clientId: string;
 }
-
-const LINKS = {
-  tiposVideos: 'https://www.figma.com/proto/nHb8ohFWe2chaaeYmNZWRa/Central-Swipe-File-Milennials?page-id=0%3A1&node-id=2-3&viewport=1345%2C-195%2C0.16&t=apqxeXuy7XuizXrt-1&scaling=min-zoom&content-scaling=fixed&starting-point-node-id=2%3A266',
-  estrategias: 'https://drive.google.com/drive/folders/1YTtNJ7k2TyhgjDJscngf8gs2GqDzlHV0?usp=sharing',
-  marcoCliente: 'https://drive.google.com/drive/folders/1IKZrSflht2JSWZ1KRfG-wMVqpI-hp6XM',
-};
 
 const formatCurrency = (value: number | null) => {
   if (!value) return 'Não informado';
@@ -153,6 +148,7 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
     // Bloco 1
     historia_empresa: '',
     produto_servico: '',
+    beneficios_produto: '',
     principais_produtos_margem: '',
     produto_carro_chefe: '',
     ticket_medio: '',
@@ -207,6 +203,58 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
 
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
 
+  // Feature 17: Client links
+  interface ClientLink { id: string; label: string; url: string }
+  const [clientLinks, setClientLinks] = useState<ClientLink[]>([]);
+  const [newLinkLabel, setNewLinkLabel] = useState('');
+  const [newLinkUrl, setNewLinkUrl] = useState('');
+  const [linksSaving, setLinksSaving] = useState(false);
+
+  // Load links from clientInfo
+  useEffect(() => {
+    if (clientInfo) {
+      const raw = (clientInfo as Record<string, unknown>).links;
+      if (Array.isArray(raw)) {
+        setClientLinks(raw as ClientLink[]);
+      }
+    }
+  }, [clientInfo]);
+
+  const handleAddLink = () => {
+    if (!newLinkUrl.trim()) return;
+    const link: ClientLink = {
+      id: crypto.randomUUID(),
+      label: newLinkLabel.trim() || newLinkUrl.trim(),
+      url: newLinkUrl.trim().startsWith('http') ? newLinkUrl.trim() : `https://${newLinkUrl.trim()}`,
+    };
+    const updated = [...clientLinks, link];
+    setClientLinks(updated);
+    setNewLinkLabel('');
+    setNewLinkUrl('');
+    saveClientLinks(updated);
+  };
+
+  const handleRemoveLink = (linkId: string) => {
+    const updated = clientLinks.filter(l => l.id !== linkId);
+    setClientLinks(updated);
+    saveClientLinks(updated);
+  };
+
+  const saveClientLinks = async (links: ClientLink[]) => {
+    setLinksSaving(true);
+    try {
+      const { error } = await supabase
+        .from('clients')
+        .update({ links, updated_at: new Date().toISOString() })
+        .eq('id', clientId);
+      if (error) throw error;
+    } catch (err) {
+      console.error('[ClientViewModal] Error saving links:', err);
+    } finally {
+      setLinksSaving(false);
+    }
+  };
+
   // Load existing client info data
   useEffect(() => {
     if (clientInfo) {
@@ -226,6 +274,7 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
         // Bloco 1
         historia_empresa: callForm.historia_empresa || '',
         produto_servico: callForm.produto_servico || '',
+        beneficios_produto: callForm.beneficios_produto || '',
         principais_produtos_margem: callForm.principais_produtos_margem || '',
         produto_carro_chefe: callForm.produto_carro_chefe || '',
         ticket_medio: callForm.ticket_medio || '',
@@ -532,78 +581,72 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
                 />
               </div>
 
+              {/* Feature 17: Links do cliente */}
+              <div className="bg-muted/20 rounded-xl p-4 border border-border">
+                <div className="flex items-center gap-2 mb-3">
+                  <Link2 className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-semibold text-foreground">Links do Cliente</span>
+                  {linksSaving && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
+                </div>
+
+                {clientLinks.length > 0 && (
+                  <div className="space-y-1.5 mb-3">
+                    {clientLinks.map(link => (
+                      <div key={link.id} className="flex items-center gap-2 group">
+                        <a
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 min-w-0 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-background border border-border hover:border-primary/40 transition-colors text-sm"
+                        >
+                          <ExternalLink className="w-3 h-3 text-muted-foreground shrink-0" />
+                          <span className="font-medium text-foreground truncate">{link.label}</span>
+                          <span className="text-[10px] text-muted-foreground truncate ml-auto">{link.url}</span>
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveLink(link.id)}
+                          className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all shrink-0"
+                          title="Remover link"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Nome do link"
+                    value={newLinkLabel}
+                    onChange={e => setNewLinkLabel(e.target.value)}
+                    className="h-8 text-sm flex-1"
+                  />
+                  <Input
+                    placeholder="URL (https://...)"
+                    value={newLinkUrl}
+                    onChange={e => setNewLinkUrl(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleAddLink()}
+                    className="h-8 text-sm flex-[2]"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAddLink}
+                    disabled={!newLinkUrl.trim()}
+                    className="h-8 px-3 gap-1"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Adicionar
+                  </Button>
+                </div>
+              </div>
+
               <Separator />
 
               {/* Formulário da Call — 7 blocos com chip-index sticky */}
               <ClientCallFormSection formData={formData} handleChange={handleChange} />
-
-              <Separator />
-
-              {/* IMPORTANT LINKS - At the end for showing in the meeting */}
-              <div className="space-y-4">
-                <div className="bg-gradient-to-r from-warning/20 to-orange-500/20 rounded-xl p-5 border-2 border-warning/50">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-full bg-warning/30 flex items-center justify-center">
-                      <AlertTriangle className="w-5 h-5 text-warning" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-warning">
-                        ⚠️ LINKS OBRIGATÓRIOS - NÃO ESQUEÇA!
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        Mostre esses links durante a reunião com o cliente
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <a
-                      href={LINKS.tiposVideos}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-3 p-4 bg-background hover:bg-muted rounded-xl border-2 border-warning/30 hover:border-warning transition-all group"
-                    >
-                      <div className="w-10 h-10 rounded-lg bg-warning/20 flex items-center justify-center group-hover:bg-warning/30 transition-colors">
-                        <ExternalLink className="w-5 h-5 text-warning" />
-                      </div>
-                      <div>
-                        <span className="text-sm font-bold text-foreground block">Tipos de Vídeos</span>
-                        <span className="text-xs text-muted-foreground">Figma - Swipe File</span>
-                      </div>
-                    </a>
-
-                    <a
-                      href={LINKS.estrategias}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-3 p-4 bg-background hover:bg-muted rounded-xl border-2 border-warning/30 hover:border-warning transition-all group"
-                    >
-                      <div className="w-10 h-10 rounded-lg bg-warning/20 flex items-center justify-center group-hover:bg-warning/30 transition-colors">
-                        <ExternalLink className="w-5 h-5 text-warning" />
-                      </div>
-                      <div>
-                        <span className="text-sm font-bold text-foreground block">Estratégias Prováveis</span>
-                        <span className="text-xs text-muted-foreground">Google Drive</span>
-                      </div>
-                    </a>
-
-                    <a
-                      href={LINKS.marcoCliente}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-3 p-4 bg-background hover:bg-muted rounded-xl border-2 border-warning/30 hover:border-warning transition-all group"
-                    >
-                      <div className="w-10 h-10 rounded-lg bg-warning/20 flex items-center justify-center group-hover:bg-warning/30 transition-colors">
-                        <ExternalLink className="w-5 h-5 text-warning" />
-                      </div>
-                      <div>
-                        <span className="text-sm font-bold text-foreground block">Marco do Cliente</span>
-                        <span className="text-xs text-muted-foreground">Google Drive</span>
-                      </div>
-                    </a>
-                  </div>
-                </div>
-              </div>
 
               <Separator />
 

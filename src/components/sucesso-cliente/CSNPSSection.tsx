@@ -3,42 +3,50 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { 
-  Plus, 
-  ExternalLink, 
-  Copy, 
-  Eye, 
-  BarChart3, 
-  TrendingUp, 
-  TrendingDown,
-  Users
+import {
+  Plus,
+  ExternalLink,
+  Copy,
+  Eye,
+  BarChart3,
+  Star,
+  Users,
+  Check,
 } from 'lucide-react';
-import { useNPSSurveys, useNPSResponses, calculateNPSStats, NPSSurvey } from '@/hooks/useNPSSurveys';
+import {
+  useNPSSurveys,
+  useNPSTeamResponses,
+  calculateTeamStats,
+  NPSSurvey,
+} from '@/hooks/useNPSSurveys';
 import { toast } from 'sonner';
 import NPSCreateModal from './NPSCreateModal';
 import NPSResponsesModal from './NPSResponsesModal';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-function SurveyCard({ survey }: { survey: NPSSurvey }) {
+function TeamSurveyCard({ survey }: { survey: NPSSurvey }) {
   const [showResponses, setShowResponses] = useState(false);
-  const { data: responses = [] } = useNPSResponses(survey.id);
-  const stats = calculateNPSStats(responses);
-  
+  const [copied, setCopied] = useState(false);
+  const { data: responses = [] } = useNPSTeamResponses(survey.id);
+  const stats = calculateTeamStats(responses);
+
   const publicUrl = `${window.location.origin}/nps/${survey.public_token}`;
 
   const copyLink = () => {
     navigator.clipboard.writeText(publicUrl);
+    setCopied(true);
     toast.success('Link copiado!');
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const openLink = () => {
     window.open(publicUrl, '_blank');
   };
 
-  const getNPSColor = (score: number) => {
-    if (score >= 50) return 'text-green-600';
-    if (score >= 0) return 'text-yellow-600';
+  const getExperienceColor = (avg: number) => {
+    if (avg >= 4) return 'text-green-600';
+    if (avg >= 3) return 'text-yellow-600';
     return 'text-red-600';
   };
 
@@ -50,7 +58,7 @@ function SurveyCard({ survey }: { survey: NPSSurvey }) {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <h3 className="font-medium text-sm truncate">{survey.title}</h3>
-                <Badge 
+                <Badge
                   variant={survey.is_active ? 'default' : 'secondary'}
                   className="shrink-0"
                 >
@@ -74,27 +82,24 @@ function SurveyCard({ survey }: { survey: NPSSurvey }) {
             </div>
             <div className="bg-muted/50 rounded-lg p-2.5 text-center">
               <div className="flex items-center justify-center gap-1">
-                {stats.npsScore >= 0 ? (
-                  <TrendingUp className={`h-3.5 w-3.5 ${getNPSColor(stats.npsScore)}`} />
-                ) : (
-                  <TrendingDown className={`h-3.5 w-3.5 ${getNPSColor(stats.npsScore)}`} />
-                )}
-                <span className={`text-lg font-bold ${getNPSColor(stats.npsScore)}`}>
-                  {stats.npsScore}
+                <Star className={`h-3.5 w-3.5 ${getExperienceColor(stats.averageExperience)} fill-current`} />
+                <span className={`text-lg font-bold ${getExperienceColor(stats.averageExperience)}`}>
+                  {stats.averageExperience || '-'}
                 </span>
               </div>
-              <p className="text-xs text-muted-foreground">NPS Score</p>
+              <p className="text-xs text-muted-foreground">Média</p>
             </div>
           </div>
 
-          {/* NPS Breakdown */}
+          {/* Efficiency Breakdown */}
           {stats.totalResponses > 0 && (
             <div className="mt-3 flex items-center gap-1.5 text-xs">
-              <span className="text-green-600 font-medium">{stats.promoters} promotores</span>
-              <span className="text-muted-foreground">•</span>
-              <span className="text-yellow-600 font-medium">{stats.passives} neutros</span>
-              <span className="text-muted-foreground">•</span>
-              <span className="text-red-600 font-medium">{stats.detractors} detratores</span>
+              <span className="text-muted-foreground">Eficiência:</span>
+              <span className="text-green-600 font-medium">{stats.efficiencyBreakdown.sim} sim</span>
+              <span className="text-muted-foreground">&middot;</span>
+              <span className="text-yellow-600 font-medium">{stats.efficiencyBreakdown.parcialmente} parc.</span>
+              <span className="text-muted-foreground">&middot;</span>
+              <span className="text-red-600 font-medium">{stats.efficiencyBreakdown.nao} não</span>
             </div>
           )}
 
@@ -106,7 +111,11 @@ function SurveyCard({ survey }: { survey: NPSSurvey }) {
               className="flex-1"
               onClick={copyLink}
             >
-              <Copy className="h-3.5 w-3.5 mr-1.5" />
+              {copied ? (
+                <Check className="h-3.5 w-3.5 mr-1.5 text-green-500" />
+              ) : (
+                <Copy className="h-3.5 w-3.5 mr-1.5" />
+              )}
               Copiar Link
             </Button>
             <Button
@@ -139,7 +148,7 @@ function SurveyCard({ survey }: { survey: NPSSurvey }) {
 
 export default function CSNPSSection() {
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const { data: surveys, isLoading } = useNPSSurveys();
+  const { data: surveys, isLoading } = useNPSSurveys('team');
 
   return (
     <div className="flex-1 min-w-[320px] max-w-[400px]">
@@ -156,13 +165,13 @@ export default function CSNPSSection() {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Crie e gerencie pesquisas de satisfação
+            Pesquisas quinzenais de satisfação da equipe
           </p>
         </CardHeader>
 
         <CardContent
           className="space-y-3 max-h-[calc(100vh-280px)] overflow-y-auto pr-4 scrollbar-apple"
-          style={{ scrollbarGutter: 'stable' } as any}
+          style={{ scrollbarGutter: 'stable' } as React.CSSProperties}
         >
           {isLoading ? (
             <>
@@ -171,7 +180,7 @@ export default function CSNPSSection() {
             </>
           ) : surveys && surveys.length > 0 ? (
             surveys.map(survey => (
-              <SurveyCard key={survey.id} survey={survey} />
+              <TeamSurveyCard key={survey.id} survey={survey} />
             ))
           ) : (
             <div className="text-center py-8 text-muted-foreground">

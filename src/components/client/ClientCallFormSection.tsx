@@ -53,6 +53,14 @@ const BLOCKS: BlockDef[] = [
         minHeight: 80,
       },
       {
+        key: 'beneficios_produto',
+        label: 'Quais os benefícios principais do produto?',
+        hint: 'Custo baixo? Boa margem? Adendo: Benefício não é atendimento diferenciador.',
+        placeholder: 'Liste os principais benefícios do produto…',
+        type: 'textarea',
+        minHeight: 80,
+      },
+      {
         key: 'principais_produtos_margem',
         label: 'Quais são os 3 principais produtos ou serviços?',
         hint: 'E qual deles tem maior margem.',

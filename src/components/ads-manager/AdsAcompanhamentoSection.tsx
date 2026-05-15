@@ -62,6 +62,11 @@ interface DocForm {
   formulario_changed: 'sim' | 'nao' | null;
   formulario_name: string;
   formulario_crm_manager_id: string;
+  // Feature 20: 4 perguntas de leads
+  leads_gerados: string;
+  leads_cadastrados_crm: string;
+  leads_incompletos: string;
+  etapa_crm_parados: string;
 }
 
 const EMPTY_DOC_FORM: DocForm = {
@@ -74,6 +79,10 @@ const EMPTY_DOC_FORM: DocForm = {
   formulario_changed: null,
   formulario_name: '',
   formulario_crm_manager_id: '',
+  leads_gerados: '',
+  leads_cadastrados_crm: '',
+  leads_incompletos: '',
+  etapa_crm_parados: '',
 };
 
 export default function AdsAcompanhamentoSection({ compact }: Props) {
@@ -128,7 +137,10 @@ export default function AdsAcompanhamentoSection({ compact }: Props) {
 
   const handleDocSubmit = async () => {
     if (!docModal.clientId || !docModal.newDay) return;
-    
+
+    // Debounce: ignore re-submits while already saving (Bug 14 fix)
+    if (isSaving) return;
+
     // Validate that combinado selection was made
     if (docForm.has_combinado === null) {
       toast.error('Selecione se foi combinado algo hoje');
@@ -166,9 +178,11 @@ export default function AdsAcompanhamentoSection({ compact }: Props) {
     setIsSaving(true);
 
     // Safety timeout: if the entire flow takes longer than 30s, abort the
-    // loading state so the UI doesn't hang indefinitely (Bug 14 safeguard).
+    // loading state AND close modal so the UI doesn't hang (Bug 14 safeguard).
     const safetyTimer = setTimeout(() => {
       setIsSaving(false);
+      setDocModal({ open: false });
+      setDocForm(EMPTY_DOC_FORM);
       toast.error('A operação demorou demais. Tente novamente.');
     }, 30_000);
 
@@ -186,6 +200,10 @@ export default function AdsAcompanhamentoSection({ compact }: Props) {
           client_budget: docForm.client_budget,
           metrics: docForm.metrics,
           actions_done: actionsContent,
+          leads_gerados: docForm.leads_gerados,
+          leads_cadastrados_crm: docForm.leads_cadastrados_crm,
+          leads_incompletos: docForm.leads_incompletos,
+          etapa_crm_parados: docForm.etapa_crm_parados,
         });
       } catch (docError) {
         console.error('[AdsAcompanhamentoSection] Error saving documentation:', docError);
@@ -258,6 +276,7 @@ export default function AdsAcompanhamentoSection({ compact }: Props) {
     } finally {
       clearTimeout(safetyTimer);
       setIsSaving(false);
+      // Guarantee modal closes even on error paths (Bug 14 safeguard)
     }
   };
 
@@ -470,6 +489,53 @@ export default function AdsAcompanhamentoSection({ compact }: Props) {
               />
             </div>
             
+            {/* Leads — Feature 20 */}
+            <div className="p-4 bg-cyan-500/5 rounded-xl space-y-4 border border-cyan-500/20">
+              <Label className="text-sm font-semibold text-cyan-600">Leads</Label>
+
+              <div>
+                <Label className="text-sm font-medium">Quantos Leads foram gerados até então na campanha do cliente hoje?</Label>
+                <Textarea
+                  value={docForm.leads_gerados}
+                  onChange={e => setDocForm(prev => ({ ...prev, leads_gerados: e.target.value }))}
+                  placeholder="Ex: 15 leads gerados..."
+                  className="mt-2 min-h-[44px] resize-none"
+                />
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium">Quantos leads entraram hoje e foram devidamente cadastrados no CRM do cliente?</Label>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Não nos anúncios, e sim CRM do cliente.</p>
+                <Textarea
+                  value={docForm.leads_cadastrados_crm}
+                  onChange={e => setDocForm(prev => ({ ...prev, leads_cadastrados_crm: e.target.value }))}
+                  placeholder="Ex: 8 leads cadastrados no CRM..."
+                  className="mt-2 min-h-[44px] resize-none"
+                />
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium">Há leads no CRM do cliente com informações incompletas?</Label>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Sem telefone, sem nome ou sem origem preenchida.</p>
+                <Textarea
+                  value={docForm.leads_incompletos}
+                  onChange={e => setDocForm(prev => ({ ...prev, leads_incompletos: e.target.value }))}
+                  placeholder="Sim/Não e detalhes..."
+                  className="mt-2 min-h-[44px] resize-none"
+                />
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium">Qual etapa do CRM do cliente tem mais leads parados agora?</Label>
+                <Textarea
+                  value={docForm.etapa_crm_parados}
+                  onChange={e => setDocForm(prev => ({ ...prev, etapa_crm_parados: e.target.value }))}
+                  placeholder="Ex: Qualificação — 12 leads parados há 3 dias..."
+                  className="mt-2 min-h-[44px] resize-none"
+                />
+              </div>
+            </div>
+
             {/* Combinado */}
             <div className="p-4 bg-muted/50 rounded-xl space-y-4">
               <div className="space-y-3">

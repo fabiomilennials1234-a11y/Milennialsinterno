@@ -13,31 +13,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       _internal_config: {
@@ -5365,6 +5340,7 @@ export type Database = {
           id: string
           is_active: boolean
           public_token: string
+          survey_type: string
           title: string
           updated_at: string
         }
@@ -5375,6 +5351,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           public_token?: string
+          survey_type?: string
           title?: string
           updated_at?: string
         }
@@ -5385,10 +5362,96 @@ export type Database = {
           id?: string
           is_active?: boolean
           public_token?: string
+          survey_type?: string
           title?: string
           updated_at?: string
         }
         Relationships: []
+      }
+      nps_team_responses: {
+        Row: {
+          efficiency_assessment: string
+          experience_rating: number
+          id: string
+          ideas_suggestions: string
+          improvement_area: string
+          positive_highlight: string
+          respondent_name: string | null
+          submitted_at: string
+          survey_id: string
+        }
+        Insert: {
+          efficiency_assessment: string
+          experience_rating: number
+          id?: string
+          ideas_suggestions?: string
+          improvement_area?: string
+          positive_highlight?: string
+          respondent_name?: string | null
+          submitted_at?: string
+          survey_id: string
+        }
+        Update: {
+          efficiency_assessment?: string
+          experience_rating?: number
+          id?: string
+          ideas_suggestions?: string
+          improvement_area?: string
+          positive_highlight?: string
+          respondent_name?: string | null
+          submitted_at?: string
+          survey_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nps_team_responses_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "nps_surveys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nps_team_summaries: {
+        Row: {
+          generated_at: string
+          generated_by: string | null
+          id: string
+          model_used: string | null
+          summary_content: string
+          summary_type: string
+          survey_id: string | null
+          tokens_used: number | null
+        }
+        Insert: {
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          model_used?: string | null
+          summary_content: string
+          summary_type?: string
+          survey_id?: string | null
+          tokens_used?: number | null
+        }
+        Update: {
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          model_used?: string | null
+          summary_content?: string
+          summary_type?: string
+          survey_id?: string | null
+          tokens_used?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nps_team_summaries_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "nps_surveys"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       okrs: {
         Row: {
@@ -9229,25 +9292,53 @@ export type Database = {
           task_title: string
         }[]
       }
-      get_justifications_team_grouped: {
-        Args: { p_only_pending?: boolean }
-        Returns: {
-          archived: boolean
-          created_at: string
-          justification_id: string
-          justification_text: string
-          master_comment: string
-          notification_id: string
-          requires_revision: boolean
-          task_due_date: string
-          task_id: string
-          task_table: string
-          task_title: string
-          user_id: string
-          user_name: string
-          user_role: string
-        }[]
-      }
+      get_justifications_team_grouped:
+        | {
+            Args: { p_only_pending?: boolean }
+            Returns: {
+              archived: boolean
+              created_at: string
+              justification_id: string
+              justification_text: string
+              master_comment: string
+              notification_id: string
+              requires_revision: boolean
+              task_due_date: string
+              task_id: string
+              task_table: string
+              task_title: string
+              user_id: string
+              user_name: string
+              user_role: string
+            }[]
+          }
+        | {
+            Args: {
+              p_group_id?: string
+              p_only_pending?: boolean
+              p_task_tables?: string[]
+            }
+            Returns: {
+              archived: boolean
+              client_name: string
+              created_at: string
+              department: string
+              justification_at: string
+              justification_id: string
+              justification_text: string
+              master_comment: string
+              notification_id: string
+              requires_revision: boolean
+              task_archived: boolean
+              task_due_date: string
+              task_id: string
+              task_table: string
+              task_title: string
+              user_id: string
+              user_name: string
+              user_role: string
+            }[]
+          }
       get_kanban_action_permissions: {
         Args: { _board_id: string }
         Returns: Json
@@ -9873,9 +9964,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       tech_sprint_status: ["PLANNING", "ACTIVE", "COMPLETED"],

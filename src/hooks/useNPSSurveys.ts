@@ -11,6 +11,7 @@ export interface NPSSurvey {
   updated_at: string;
   is_active: boolean;
   public_token: string;
+  survey_type: 'client' | 'team';
 }
 
 export interface NPSResponse {
@@ -28,6 +29,29 @@ export interface NPSResponse {
   submitted_at: string;
 }
 
+export interface NPSTeamResponse {
+  id: string;
+  survey_id: string;
+  experience_rating: number;
+  efficiency_assessment: 'sim' | 'parcialmente' | 'nao';
+  positive_highlight: string;
+  improvement_area: string;
+  ideas_suggestions: string;
+  respondent_name: string | null;
+  submitted_at: string;
+}
+
+export interface NPSTeamSummary {
+  id: string;
+  survey_id: string | null;
+  summary_content: string;
+  summary_type: 'single' | 'all';
+  model_used: string | null;
+  tokens_used: number | null;
+  generated_at: string;
+  generated_by: string | null;
+}
+
 export interface NPSStats {
   totalResponses: number;
   averageScore: number;
@@ -37,15 +61,28 @@ export interface NPSStats {
   npsScore: number;
 }
 
-export function useNPSSurveys() {
+export interface NPSTeamStats {
+  totalResponses: number;
+  averageExperience: number;
+  efficiencyBreakdown: { sim: number; parcialmente: number; nao: number };
+}
+
+// ---------- Surveys ----------
+
+export function useNPSSurveys(surveyType?: 'client' | 'team') {
   return useQuery({
-    queryKey: ['nps-surveys'],
+    queryKey: ['nps-surveys', surveyType],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('nps_surveys')
-        .select('*')
+        .select('id, title, description, created_by, created_at, updated_at, is_active, public_token, survey_type')
         .order('created_at', { ascending: false });
 
+      if (surveyType) {
+        query = query.eq('survey_type', surveyType);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data as NPSSurvey[];
     },
@@ -58,7 +95,7 @@ export function useNPSSurvey(surveyId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('nps_surveys')
-        .select('*')
+        .select('id, title, description, created_by, created_at, updated_at, is_active, public_token, survey_type')
         .eq('id', surveyId)
         .single();
 
@@ -75,7 +112,7 @@ export function useNPSSurveyByToken(token: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('nps_surveys')
-        .select('*')
+        .select('id, title, description, created_by, created_at, updated_at, is_active, public_token, survey_type')
         .eq('public_token', token)
         .eq('is_active', true)
         .single();
@@ -86,6 +123,8 @@ export function useNPSSurveyByToken(token: string) {
     enabled: !!token,
   });
 }
+
+// ---------- Client NPS Responses ----------
 
 export function useNPSResponses(surveyId: string) {
   return useQuery({
@@ -133,11 +172,89 @@ export function calculateNPSStats(responses: NPSResponse[]): NPSStats {
   };
 }
 
+// ---------- Team NPS Responses ----------
+
+export function useNPSTeamResponses(surveyId: string) {
+  return useQuery({
+    queryKey: ['nps-team-responses', surveyId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('nps_team_responses')
+        .select('id, survey_id, experience_rating, efficiency_assessment, positive_highlight, improvement_area, ideas_suggestions, respondent_name, submitted_at')
+        .eq('survey_id', surveyId)
+        .order('submitted_at', { ascending: false });
+
+      if (error) throw error;
+      return data as NPSTeamResponse[];
+    },
+    enabled: !!surveyId,
+  });
+}
+
+export function useAllNPSTeamResponses() {
+  return useQuery({
+    queryKey: ['nps-team-responses-all'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('nps_team_responses')
+        .select('id, survey_id, experience_rating, efficiency_assessment, positive_highlight, improvement_area, ideas_suggestions, submitted_at')
+        .order('submitted_at', { ascending: false });
+
+      if (error) throw error;
+      return data as Omit<NPSTeamResponse, 'respondent_name'>[];
+    },
+  });
+}
+
+export function calculateTeamStats(responses: Pick<NPSTeamResponse, 'experience_rating' | 'efficiency_assessment'>[]): NPSTeamStats {
+  if (responses.length === 0) {
+    return {
+      totalResponses: 0,
+      averageExperience: 0,
+      efficiencyBreakdown: { sim: 0, parcialmente: 0, nao: 0 },
+    };
+  }
+
+  const avg = responses.reduce((acc, r) => acc + r.experience_rating, 0) / responses.length;
+
+  return {
+    totalResponses: responses.length,
+    averageExperience: Math.round(avg * 10) / 10,
+    efficiencyBreakdown: {
+      sim: responses.filter(r => r.efficiency_assessment === 'sim').length,
+      parcialmente: responses.filter(r => r.efficiency_assessment === 'parcialmente').length,
+      nao: responses.filter(r => r.efficiency_assessment === 'nao').length,
+    },
+  };
+}
+
+// ---------- Team Summaries ----------
+
+export function useLatestTeamSummary() {
+  return useQuery({
+    queryKey: ['nps-team-summary-latest'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('nps_team_summaries')
+        .select('id, summary_content, summary_type, generated_at, model_used')
+        .eq('summary_type', 'all')
+        .order('generated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data as NPSTeamSummary | null;
+    },
+  });
+}
+
+// ---------- Mutations ----------
+
 export function useCreateNPSSurvey() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ title, description }: { title?: string; description?: string }) => {
+    mutationFn: async ({ title, description, surveyType }: { title?: string; description?: string; surveyType?: 'client' | 'team' }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
@@ -147,6 +264,7 @@ export function useCreateNPSSurvey() {
           title: title || 'Pesquisa NPS | Millennials',
           description,
           created_by: user.id,
+          survey_type: surveyType || 'client',
         })
         .select()
         .single();
@@ -158,7 +276,7 @@ export function useCreateNPSSurvey() {
       queryClient.invalidateQueries({ queryKey: ['nps-surveys'] });
       toast.success('Pesquisa NPS criada com sucesso!');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error('Erro ao criar pesquisa', { description: error.message });
     },
   });
@@ -179,7 +297,28 @@ export function useSubmitNPSResponse() {
     onSuccess: () => {
       toast.success('Resposta enviada com sucesso!');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
+      toast.error('Erro ao enviar resposta', { description: error.message });
+    },
+  });
+}
+
+export function useSubmitNPSTeamResponse() {
+  return useMutation({
+    mutationFn: async (response: Omit<NPSTeamResponse, 'id' | 'submitted_at'>) => {
+      const { data, error } = await supabase
+        .from('nps_team_responses')
+        .insert(response)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast.success('Resposta enviada com sucesso!');
+    },
+    onError: (error: Error) => {
       toast.error('Erro ao enviar resposta', { description: error.message });
     },
   });
@@ -201,8 +340,37 @@ export function useToggleSurveyActive() {
       queryClient.invalidateQueries({ queryKey: ['nps-surveys'] });
       toast.success('Status da pesquisa atualizado!');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error('Erro ao atualizar pesquisa', { description: error.message });
+    },
+  });
+}
+
+export function useGenerateTeamSummary() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Sessão expirada');
+
+      const response = await supabase.functions.invoke('summarize-nps-team', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+      if (response.error) throw response.error;
+      return response.data as { summary: string; cached?: boolean };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['nps-team-summary-latest'] });
+      if (data.cached) {
+        toast.info('Resumo carregado do cache.');
+      } else {
+        toast.success('Resumo inteligente gerado!');
+      }
+    },
+    onError: (error: Error) => {
+      toast.error('Erro ao gerar resumo', { description: error.message });
     },
   });
 }
