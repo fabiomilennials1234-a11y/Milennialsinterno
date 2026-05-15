@@ -52,10 +52,10 @@ export interface JourneyClientInfo {
 // ===================== ONBOARDING GROWTH MILESTONES =====================
 
 const ONBOARDING_MILESTONES = [
-  { id: 'milestone_2', label: 'Estratégia PRO+' },
-  { id: 'milestone_3', label: 'Criativos PRO+' },
-  { id: 'milestone_4', label: 'Otimizações PRO+' },
-  { id: 'milestone_5', label: 'Início (Publicação)' },
+  { id: 'milestone_2', label: 'Estratégia PRO+ [Marco 2]' },
+  { id: 'milestone_3', label: 'Criativos PRO+ [Marco 3]' },
+  { id: 'milestone_4', label: 'Otimizações PRO+ [Marco 4]' },
+  { id: 'milestone_5', label: 'Início [Marco 5]' },
 ] as const;
 
 // ===================== MKTPLACE STEP LABELS =====================
