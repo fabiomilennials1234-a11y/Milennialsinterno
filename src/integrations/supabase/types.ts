@@ -1,4 +1,3 @@
-Initialising login role...
 export type Json =
   | string
   | number
@@ -12,6 +11,31 @@ export type Database = {
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.1"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -1342,10 +1366,10 @@ export type Database = {
         Row: {
           client_id: string
           collected_at: string | null
-          collected_by: string
+          collected_by: string | null
           created_at: string | null
           id: string
-          nps_score: number
+          nps_score: number | null
           public_token: string | null
           reference_month: string
           score_reason: string | null
@@ -1353,10 +1377,10 @@ export type Database = {
         Insert: {
           client_id: string
           collected_at?: string | null
-          collected_by: string
+          collected_by?: string | null
           created_at?: string | null
           id?: string
-          nps_score: number
+          nps_score?: number | null
           public_token?: string | null
           reference_month: string
           score_reason?: string | null
@@ -1364,10 +1388,10 @@ export type Database = {
         Update: {
           client_id?: string
           collected_at?: string | null
-          collected_by?: string
+          collected_by?: string | null
           created_at?: string | null
           id?: string
-          nps_score?: number
+          nps_score?: number | null
           public_token?: string | null
           reference_month?: string
           score_reason?: string | null
@@ -8975,6 +8999,7 @@ export type Database = {
       _cron_generate_project_daily_tasks: { Args: never; Returns: undefined }
       _cron_generate_project_weekly_tasks: { Args: never; Returns: undefined }
       _cron_generate_recurring_tasks: { Args: never; Returns: number }
+      _nps_map_label: { Args: { p_score: number }; Returns: string }
       admin_reconcile_user_page_grants: {
         Args: {
           _additional_pages?: string[]
@@ -9513,6 +9538,10 @@ export type Database = {
         Args: { _ads_manager_id: string; _client_id: string; _new_day: string }
         Returns: undefined
       }
+      nps_auto_update_label: {
+        Args: { p_client_id: string; p_score: number }
+        Returns: undefined
+      }
       nudge_user_for_justification: {
         Args: { p_notification_id: string }
         Returns: undefined
@@ -9564,6 +9593,10 @@ export type Database = {
       submit_justification: {
         Args: { p_notification_id: string; p_text: string }
         Returns: string
+      }
+      submit_public_nps: {
+        Args: { p_reason?: string; p_score: number; p_token: string }
+        Returns: Json
       }
       tech_add_comment: {
         Args: { _task_id: string; _text: string }
@@ -9827,6 +9860,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       tech_sprint_status: ["PLANNING", "ACTIVE", "COMPLETED"],
@@ -9855,4 +9891,3 @@ export const Constants = {
     },
   },
 } as const
-<claude-code-hint v="1" type="plugin" value="supabase@claude-plugins-official" />

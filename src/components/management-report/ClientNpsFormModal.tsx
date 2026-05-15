@@ -9,9 +9,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Loader2, Check, ThumbsUp } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { Loader2, Check, ThumbsUp, Link2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useCreateClientNps, getNpsClassification, getNpsColor, getNpsLabel } from '@/hooks/useClientNps';
+import { toast } from 'sonner';
+import { useCreateClientNps, useCreateClientNpsLink, getNpsClassification, getNpsColor, getNpsLabel } from '@/hooks/useClientNps';
 
 interface ClientNpsFormModalProps {
   isOpen: boolean;
@@ -29,8 +31,25 @@ export default function ClientNpsFormModal({
   const [score, setScore] = useState<number | null>(null);
   const [reason, setReason] = useState('');
   const createNps = useCreateClientNps();
+  const createLink = useCreateClientNpsLink();
 
   const referenceMonth = new Date().toISOString().slice(0, 7);
+
+  const handleGenerateLink = useCallback(async () => {
+    try {
+      const result = await createLink.mutateAsync({
+        client_id: clientId,
+        reference_month: referenceMonth,
+      });
+      if (result?.public_token) {
+        const url = `${window.location.origin}/nps-cliente/${result.public_token}`;
+        await navigator.clipboard.writeText(url);
+        toast.success('Link copiado! Envie para o cliente.');
+      }
+    } catch {
+      // Error handled by mutation
+    }
+  }, [clientId, createLink, referenceMonth]);
 
   const handleSubmit = useCallback(async () => {
     if (score === null) return;
@@ -131,7 +150,7 @@ export default function ClientNpsFormModal({
             </p>
           </div>
 
-          {/* Submit */}
+          {/* Submit — GP registra direto */}
           <Button
             className="w-full gap-1.5 bg-teal-600 hover:bg-teal-700 text-white"
             onClick={handleSubmit}
@@ -143,6 +162,23 @@ export default function ClientNpsFormModal({
               <Check size={14} />
             )}
             Registrar NPS
+          </Button>
+
+          <Separator className="my-1" />
+
+          {/* Gerar Link — cliente responde pela pagina publica */}
+          <Button
+            variant="outline"
+            className="w-full gap-1.5 text-sm"
+            onClick={handleGenerateLink}
+            disabled={createLink.isPending}
+          >
+            {createLink.isPending ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <Link2 size={14} />
+            )}
+            Gerar Link para Cliente
           </Button>
         </div>
       </DialogContent>

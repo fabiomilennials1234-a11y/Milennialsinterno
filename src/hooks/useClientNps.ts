@@ -156,6 +156,42 @@ export function useCreateClientNps() {
   });
 }
 
+// ─── useCreateClientNpsLink: INSERT with NULL score (generates public link) ───
+
+export function useCreateClientNpsLink() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (input: { client_id: string; reference_month: string }) => {
+      if (!user?.id) throw new Error('Usuario nao autenticado');
+
+      const { data, error } = await supabase
+        .from('client_nps_responses')
+        .insert({
+          client_id: input.client_id,
+          reference_month: input.reference_month,
+          collected_by: user.id,
+          nps_score: null,
+          score_reason: null,
+        })
+        .select('id, public_token')
+        .single();
+
+      if (error) throw error;
+      return data as { id: string; public_token: string | null };
+    },
+    onSuccess: (_, input) => {
+      queryClient.invalidateQueries({ queryKey: ['client-nps', input.client_id] });
+      queryClient.invalidateQueries({ queryKey: ['client-nps-latest', input.client_id] });
+      queryClient.invalidateQueries({ queryKey: ['all-client-nps'] });
+    },
+    onError: (error: Error) => {
+      toast.error('Erro ao gerar link NPS', { description: error.message });
+    },
+  });
+}
+
 // ─── useDeleteClientNps: mutation DELETE ───
 
 export function useDeleteClientNps() {

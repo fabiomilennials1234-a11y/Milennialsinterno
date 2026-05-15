@@ -58,6 +58,7 @@ const PublicDiagnosticoPage = lazy(() => import("./pages/PublicDiagnosticoPage")
 const PublicPaddockDiagnosticoPage = lazy(() => import("./pages/PublicPaddockDiagnosticoPage"));
 const PublicMktplaceRelatorioPage = lazy(() => import("./pages/PublicMktplaceRelatorioPage"));
 const PublicCycleReportPage = lazy(() => import("./pages/PublicCycleReportPage"));
+const PublicClientNpsPage = lazy(() => import("./pages/PublicClientNpsPage"));
 const PublicManagementReportPage = lazy(() => import("./pages/PublicManagementReportPage"));
 const UpsellsPage = lazy(() => import("./pages/UpsellsPage"));
 const ComissoesPage = lazy(() => import("./pages/ComissoesPage"));
@@ -533,6 +534,9 @@ function AppRoutes() {
 
       {/* Public Cycle Report Page - accessible without authentication */}
       <Route path="/relatorio-ciclo/:token" element={<PublicCycleReportPage />} />
+
+      {/* Public Client NPS Page - accessible without authentication */}
+      <Route path="/nps-cliente/:token" element={<PublicClientNpsPage />} />
 
       {/* Public Management Report Page - accessible without authentication */}
       <Route path="/relatorio-gestao/:token" element={<PublicManagementReportPage />} />

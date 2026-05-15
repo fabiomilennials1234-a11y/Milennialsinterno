@@ -684,22 +684,6 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
                 />
               )}
 
-              {/* Management Report Section (MENSAL) */}
-              {clientInfo && (
-                <ManagementReportSection
-                  clientId={clientId}
-                  clientName={clientInfo.name}
-                />
-              )}
-
-              {/* Client NPS Section */}
-              {clientInfo && (
-                <ClientNpsSection
-                  clientId={clientId}
-                  clientName={clientInfo.name}
-                />
-              )}
-
               {/* Paddock Diagnóstico Comercial Section */}
               {clientInfo && (clientInfo.contracted_products?.includes('millennials-growth') || clientInfo.contracted_products?.includes('millennials-paddock')) && (
                 <PaddockDiagnosticoSection
@@ -711,6 +695,22 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
               {/* Diagnóstico Comercial */}
               {clientInfo && (clientInfo.contracted_products?.includes('millennials-growth') || clientInfo.contracted_products?.includes('millennials-paddock')) && (
                 <PaddockDiagnosticoListSection
+                  clientId={clientId}
+                  clientName={clientInfo.name}
+                />
+              )}
+
+              {/* Management Report Section (MENSAL) */}
+              {clientInfo && (
+                <ManagementReportSection
+                  clientId={clientId}
+                  clientName={clientInfo.name}
+                />
+              )}
+
+              {/* Client NPS Section */}
+              {clientInfo && (
+                <ClientNpsSection
                   clientId={clientId}
                   clientName={clientInfo.name}
                 />
