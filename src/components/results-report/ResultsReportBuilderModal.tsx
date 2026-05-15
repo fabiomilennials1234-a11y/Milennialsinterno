@@ -37,6 +37,9 @@ interface FormData {
   objetivosCurtoPrazo: string;
   agendaTreinamentos: string;
   dicaComercial: string;
+  vendasNovosClientes: string;
+  ticketMedioNovos: string;
+  valorVendasNovos: string;
   next30Days: string;
 }
 
@@ -55,6 +58,9 @@ const INITIAL_FORM: FormData = {
   objetivosCurtoPrazo: '',
   agendaTreinamentos: '',
   dicaComercial: '',
+  vendasNovosClientes: '',
+  ticketMedioNovos: '',
+  valorVendasNovos: '',
   next30Days: '',
 };
 
@@ -73,6 +79,9 @@ const REQUIRED_FIELDS: { key: keyof FormData; label: string; placeholder: string
   { key: 'objetivosCurtoPrazo', label: 'Objetivos de curto prazo', placeholder: 'Quais são as metas prioritárias para os próximos 30 dias? (volume, custo, canal, conversão)' },
   { key: 'agendaTreinamentos', label: 'Agenda de treinamentos comerciais', placeholder: 'Sessões realizadas no mês, próximas datas agendadas e temas a serem trabalhados com o time' },
   { key: 'dicaComercial', label: 'Dica comercial / operacional do mês', placeholder: 'Uma orientação prática sobre processo, abordagem ou ferramenta — eixo: ferramentas e dados' },
+  { key: 'vendasNovosClientes', label: 'Vendas para novos clientes', placeholder: 'Quantidade de vendas realizadas para novos clientes no período' },
+  { key: 'ticketMedioNovos', label: 'Ticket médio novos', placeholder: 'Valor médio por venda para novos clientes' },
+  { key: 'valorVendasNovos', label: 'Valor em vendas novos', placeholder: 'Valor total em vendas para novos clientes no período' },
   { key: 'next30Days', label: 'O que faremos nos próximos dias', placeholder: 'Ações planejadas para o próximo período' },
 ];
 
@@ -250,6 +259,9 @@ export default function ResultsReportBuilderModal({ open, onClose, clientId, cli
         objetivosCurtoPrazo: form.objetivosCurtoPrazo,
         agendaTreinamentos: form.agendaTreinamentos,
         dicaComercial: form.dicaComercial,
+        vendasNovosClientes: form.vendasNovosClientes,
+        ticketMedioNovos: form.ticketMedioNovos,
+        valorVendasNovos: form.valorVendasNovos,
       });
 
       // Reset only on success

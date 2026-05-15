@@ -760,6 +760,25 @@ export default function GroupsPage() {
     );
   }
 
+  if (error) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
+          <div className="text-center space-y-3">
+            <h2 className="font-display text-xl font-bold">Erro ao carregar grupos</h2>
+            <p className="text-muted-foreground">{error instanceof Error ? error.message : 'Erro desconhecido'}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-semibold"
+            >
+              Tentar novamente
+            </button>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
   return (
     <MainLayout>
       <div className="p-6 space-y-6 animate-fade-in">

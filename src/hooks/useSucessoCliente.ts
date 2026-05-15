@@ -83,9 +83,9 @@ export function useAdsManagers() {
         name: p.name,
       }));
 
-      // Sucesso do Cliente users only see managers from their own group.
+      // Non-executive users only see managers from their own group.
       // CEO/admin see all managers across all groups.
-      if (!isCEO && !isAdminUser && userGroupId && user?.role === 'sucesso_cliente') {
+      if (!isCEO && !isAdminUser && userGroupId) {
         const { data: profiles } = await supabase
           .from('profiles')
           .select('user_id, group_id')
@@ -118,8 +118,8 @@ export function useCSClientsByManager() {
         .eq('archived', false)
         .neq('status', 'churned');
 
-      // Sucesso do Cliente users only see clients from their own group.
-      if (!isCEO && !isAdminUser && userGroupId && user?.role === 'sucesso_cliente') {
+      // Non-executive users only see clients from their own group.
+      if (!isCEO && !isAdminUser && userGroupId) {
         query = query.eq('group_id', userGroupId);
       }
 

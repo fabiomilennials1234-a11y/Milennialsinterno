@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -132,12 +133,15 @@ export function useCSClientTracking(managerId?: string) {
   return query;
 }
 
-// Fetch all comercial consultants via SECURITY DEFINER RPC.
+// Fetch comercial consultants via SECURITY DEFINER RPC.
 // Direct SELECT on user_roles is restricted to own-row + admin (security wave 1).
 // The RPC bypasses RLS and gates on page access (sucesso-cliente grant).
+// Non-executive users only see consultants from their own group.
 export function useComercialConsultants() {
+  const { isCEO, isAdminUser, userGroupId } = useAuth();
+
   return useQuery({
-    queryKey: ['comercial-consultants'],
+    queryKey: ['comercial-consultants', userGroupId],
     queryFn: async () => {
       const { data, error } = await supabase.rpc('list_users_by_role_for_page', {
         _role: 'consultor_comercial',
@@ -145,8 +149,6 @@ export function useComercialConsultants() {
       });
 
       if (error) {
-        // 42501 = insufficient_privilege (no page grant). Return empty
-        // instead of crashing — column shows "Nenhum consultor" gracefully.
         if (error.code === '42501') {
           console.warn('[useComercialConsultants] RPC grant denied — returning empty', error.message);
           return [];
@@ -154,28 +156,49 @@ export function useComercialConsultants() {
         throw error;
       }
 
-      return (data || []).map(p => ({
+      let consultants = (data || []).map(p => ({
         user_id: p.user_id,
         name: p.name,
       }));
+
+      // Non-executive users only see consultants from their own group.
+      if (!isCEO && !isAdminUser && userGroupId) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, group_id')
+          .in('user_id', consultants.map(c => c.user_id));
+
+        const sameGroupIds = new Set(
+          (profiles || []).filter(p => p.group_id === userGroupId).map(p => p.user_id)
+        );
+        consultants = consultants.filter(c => sameGroupIds.has(c.user_id));
+      }
+
+      return consultants;
     },
   });
 }
 
-// Fetch clients by comercial with status info
+// Fetch clients by comercial with status info.
+// Non-executive users only see clients from their own group.
 export function useCSComercialClients() {
+  const { isCEO, isAdminUser, userGroupId } = useAuth();
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: ['cs-comercial-clients'],
+    queryKey: ['cs-comercial-clients', userGroupId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from('clients')
         .select('*')
         .eq('archived', false)
-        .not('assigned_comercial', 'is', null)
-        .order('updated_at', { ascending: false });
+        .not('assigned_comercial', 'is', null);
 
+      if (!isCEO && !isAdminUser && userGroupId) {
+        q = q.eq('group_id', userGroupId);
+      }
+
+      const { data, error } = await q.order('updated_at', { ascending: false });
       if (error) throw error;
       return data || [];
     },
@@ -206,12 +229,14 @@ export function useCSComercialClients() {
   return query;
 }
 
-// Fetch comercial tracking for all comercial users
+// Fetch comercial tracking. Non-executive users only see tracking
+// for consultants from their own group.
 export function useCSComercialTracking() {
+  const { isCEO, isAdminUser, userGroupId } = useAuth();
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: ['cs-comercial-tracking'],
+    queryKey: ['cs-comercial-tracking', userGroupId],
     queryFn: async (): Promise<CSComercialTracking[]> => {
       const { data, error } = await supabase
         .from('comercial_tracking')
@@ -219,7 +244,23 @@ export function useCSComercialTracking() {
         .order('manager_name', { ascending: true });
 
       if (error) throw error;
-      return (data || []) as CSComercialTracking[];
+      let tracking = (data || []) as CSComercialTracking[];
+
+      // Filter tracking to same-group consultants for non-executive users.
+      if (!isCEO && !isAdminUser && userGroupId && tracking.length > 0) {
+        const consultantIds = [...new Set(tracking.map(t => t.comercial_user_id))];
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, group_id')
+          .in('user_id', consultantIds);
+
+        const sameGroupIds = new Set(
+          (profiles || []).filter(p => p.group_id === userGroupId).map(p => p.user_id)
+        );
+        tracking = tracking.filter(t => sameGroupIds.has(t.comercial_user_id));
+      }
+
+      return tracking;
     },
   });
 

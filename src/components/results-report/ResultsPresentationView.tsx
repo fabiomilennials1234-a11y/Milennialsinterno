@@ -19,6 +19,9 @@ import {
   Lightbulb,
   CalendarCheck,
   Sparkles,
+  ShoppingCart,
+  Receipt,
+  DollarSign,
 } from 'lucide-react';
 import mgrowthLogo from '@/assets/mgrowth-logo.png';
 import type { ResultsReport } from '@/hooks/useClientResultsReports';
@@ -285,7 +288,46 @@ function buildSlides(report: ResultsReport, clientName: string): SlideData[] {
     });
   }
 
-  // 17. Proximos Dias
+  // 17. Vendas Novos Clientes
+  if (report.vendas_novos_clientes) {
+    slides.push({
+      id: 'vendas-novos',
+      title: 'Vendas para Novos Clientes',
+      icon: ShoppingCart,
+      content: report.vendas_novos_clientes,
+      imageUrl: imgs.vendasNovosClientes?.[0],
+      type: 'content',
+      accentColor: ACCENT_EMERALD,
+    });
+  }
+
+  // 18. Ticket Medio Novos
+  if (report.ticket_medio_novos) {
+    slides.push({
+      id: 'ticket-novos',
+      title: 'Ticket Medio Novos',
+      icon: Receipt,
+      content: report.ticket_medio_novos,
+      imageUrl: imgs.ticketMedioNovos?.[0],
+      type: 'content',
+      accentColor: ACCENT_FUCHSIA,
+    });
+  }
+
+  // 19. Valor Vendas Novos
+  if (report.valor_vendas_novos) {
+    slides.push({
+      id: 'valor-vendas-novos',
+      title: 'Valor em Vendas Novos',
+      icon: DollarSign,
+      content: report.valor_vendas_novos,
+      imageUrl: imgs.valorVendasNovos?.[0],
+      type: 'content',
+      accentColor: ACCENT_LIME,
+    });
+  }
+
+  // 20. Proximos Dias
   if (report.next_30_days) {
     slides.push({
       id: 'proximos',

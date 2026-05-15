@@ -137,6 +137,9 @@ function buildSections(report: ResultsReport): Section[] {
     { title: 'Objetivos de Curto Prazo', content: report.objetivos_curto_prazo, imageUrl: imgs.objetivosCurtoPrazo?.[0] },
     { title: 'Agenda de Treinamentos Comerciais', content: report.agenda_treinamentos, imageUrl: imgs.agendaTreinamentos?.[0] },
     { title: 'Dica Comercial / Operacional', content: report.dica_comercial, imageUrl: imgs.dicaComercial?.[0] },
+    { title: 'Vendas para Novos Clientes', content: report.vendas_novos_clientes, imageUrl: imgs.vendasNovosClientes?.[0] },
+    { title: 'Ticket Médio Novos', content: report.ticket_medio_novos, imageUrl: imgs.ticketMedioNovos?.[0] },
+    { title: 'Valor em Vendas Novos', content: report.valor_vendas_novos, imageUrl: imgs.valorVendasNovos?.[0] },
     { title: 'O que Faremos nos Próximos Dias', content: report.next_30_days, imageUrl: imgs.next30Days?.[0] },
   ];
 

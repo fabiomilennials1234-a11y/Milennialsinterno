@@ -46,32 +46,29 @@ export function useGroupsWithOccupancy() {
       // Fetch groups
       const { data: groups, error: groupsError } = await supabase
         .from('organization_groups')
-        .select('*')
+        .select('id, name, slug, description, position')
         .order('position');
       
       if (groupsError) throw groupsError;
       if (!groups) return [];
 
-      // Fetch squads
-      const { data: squads } = await supabase
-        .from('squads')
-        .select('*')
-        .order('position');
+      // Fetch squads, role limits, profiles, and user roles in parallel
+      const [squadsRes, roleLimitsRes, profilesRes, userRolesRes] = await Promise.all([
+        supabase.from('squads').select('id, name, slug, group_id, position').order('position'),
+        supabase.from('group_role_limits').select('id, group_id, role, max_count'),
+        supabase.from('profiles').select('id, group_id, squad_id, user_id'),
+        supabase.from('user_roles').select('user_id, role'),
+      ]);
 
-      // Fetch role limits
-      const { data: roleLimits } = await supabase
-        .from('group_role_limits')
-        .select('*');
+      if (squadsRes.error) console.error('[useGroupsWithOccupancy] squads error:', squadsRes.error);
+      if (roleLimitsRes.error) console.error('[useGroupsWithOccupancy] group_role_limits error:', roleLimitsRes.error);
+      if (profilesRes.error) console.error('[useGroupsWithOccupancy] profiles error:', profilesRes.error);
+      if (userRolesRes.error) console.error('[useGroupsWithOccupancy] user_roles error:', userRolesRes.error);
 
-      // Fetch profiles to count members per group
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, group_id, squad_id, user_id');
-
-      // Fetch user roles
-      const { data: userRoles } = await supabase
-        .from('user_roles')
-        .select('user_id, role');
+      const squads = squadsRes.data;
+      const roleLimits = roleLimitsRes.data;
+      const profiles = profilesRes.data;
+      const userRoles = userRolesRes.data;
 
       // Map profiles with roles
       const profilesWithRoles = profiles?.map(p => ({
@@ -170,7 +167,7 @@ export function useCreateGroup() {
           description: data.description || null,
           position: nextPosition,
         })
-        .select()
+        .select('id, name, slug, description, position')
         .single();
 
       if (groupError) throw groupError;
@@ -192,7 +189,7 @@ export function useCreateGroup() {
       
       return newGroup;
     },
-    onSuccess: () => {
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['groups-with-occupancy'] });
       queryClient.invalidateQueries({ queryKey: ['organization-groups'] });
     },
@@ -250,7 +247,7 @@ export function useUpdateGroup() {
         }
       }
     },
-    onSuccess: () => {
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['groups-with-occupancy'] });
       queryClient.invalidateQueries({ queryKey: ['organization-groups'] });
     },
@@ -282,7 +279,7 @@ export function useDeleteGroup() {
 
       return response.data;
     },
-    onSuccess: () => {
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['groups-with-occupancy'] });
       queryClient.invalidateQueries({ queryKey: ['organization-groups'] });
       queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -321,13 +318,13 @@ export function useCreateSquad() {
           description: data.description || null,
           position: nextPosition,
         })
-        .select()
+        .select('id, name, slug, group_id, position')
         .single();
       
       if (error) throw error;
       return newSquad;
     },
-    onSuccess: () => {
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['groups-with-occupancy'] });
       queryClient.invalidateQueries({ queryKey: ['organization-groups'] });
       queryClient.invalidateQueries({ queryKey: ['squads'] });
@@ -348,7 +345,7 @@ export function useDeleteSquad() {
       
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['groups-with-occupancy'] });
       queryClient.invalidateQueries({ queryKey: ['organization-groups'] });
       queryClient.invalidateQueries({ queryKey: ['squads'] });
@@ -371,7 +368,7 @@ export function useUpdateSquad() {
       
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['groups-with-occupancy'] });
       queryClient.invalidateQueries({ queryKey: ['organization-groups'] });
       queryClient.invalidateQueries({ queryKey: ['squads'] });

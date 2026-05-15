@@ -17,22 +17,27 @@ export interface CXPendingClient {
 }
 
 /**
- * Busca todos os clientes que precisam de validação CX.
- * Retorna clientes com status 'aguardando_validacao' ou 'pendente_aprovacao'.
+ * Busca clientes que precisam de validação CX.
+ * Non-executive users only see clients from their own group.
  */
 export function useCXPendingClients() {
+  const { isCEO, isAdminUser, userGroupId } = useAuth();
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: ['cx-pending-clients'],
+    queryKey: ['cx-pending-clients', userGroupId],
     queryFn: async (): Promise<CXPendingClient[]> => {
-      const { data, error } = await supabase
+      let q = supabase
         .from('clients')
         .select('id, name, razao_social, niche, expected_investment, cx_validation_status, created_at')
         .in('cx_validation_status', ['aguardando_validacao', 'pendente_aprovacao'])
-        .eq('archived', false)
-        .order('created_at', { ascending: false });
+        .eq('archived', false);
 
+      if (!isCEO && !isAdminUser && userGroupId) {
+        q = q.eq('group_id', userGroupId);
+      }
+
+      const { data, error } = await q.order('created_at', { ascending: false });
       if (error) throw error;
       return (data || []) as CXPendingClient[];
     },
