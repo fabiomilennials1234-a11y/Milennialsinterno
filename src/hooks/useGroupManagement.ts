@@ -132,7 +132,13 @@ export function useCreateGroup() {
       description?: string;
       roleLimits: { role: UserRole; max_count: number }[];
     }) => {
-      let slug = data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      let slug = data.name
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-]/g, '')
+        .replace(/-+$/g, '');     // strip trailing dashes
+
+      if (!slug) slug = 'grupo';  // fallback for empty-after-sanitize
 
       // Ensure slug uniqueness: check existing slugs and append suffix if needed
       const { data: existing } = await supabase
@@ -162,7 +168,7 @@ export function useCreateGroup() {
       const { data: newGroup, error: groupError } = await supabase
         .from('organization_groups')
         .insert({
-          name: data.name,
+          name: data.name.trim(),
           slug,
           description: data.description || null,
           position: nextPosition,
@@ -171,7 +177,7 @@ export function useCreateGroup() {
         .single();
 
       if (groupError) throw groupError;
-      
+
       // Insert role limits
       if (data.roleLimits.length > 0) {
         const { error: limitsError } = await supabase
@@ -183,15 +189,20 @@ export function useCreateGroup() {
               max_count: rl.max_count,
             }))
           );
-        
+
         if (limitsError) throw limitsError;
       }
-      
+
       return newGroup;
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['groups-with-occupancy'] });
-      queryClient.invalidateQueries({ queryKey: ['organization-groups'] });
+    onSuccess: async () => {
+      // Await all invalidations to ensure the UI reflects the new state
+      // before the mutation promise resolves.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['groups-with-occupancy'] }),
+        queryClient.invalidateQueries({ queryKey: ['organization-groups'] }),
+        queryClient.invalidateQueries({ queryKey: ['registration-groups'] }),
+      ]);
     },
   });
 }
@@ -210,8 +221,13 @@ export function useUpdateGroup() {
       // Update group
       const updates: Record<string, unknown> = {};
       if (data.name) {
-        updates.name = data.name;
-        updates.slug = data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        updates.name = data.name.trim();
+        updates.slug = data.name
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, '-')
+          .replace(/[^a-z0-9-]/g, '')
+          .replace(/-+$/g, '') || 'grupo';
       }
       if (data.description !== undefined) updates.description = data.description;
       
@@ -247,9 +263,12 @@ export function useUpdateGroup() {
         }
       }
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['groups-with-occupancy'] });
-      queryClient.invalidateQueries({ queryKey: ['organization-groups'] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['groups-with-occupancy'] }),
+        queryClient.invalidateQueries({ queryKey: ['organization-groups'] }),
+        queryClient.invalidateQueries({ queryKey: ['registration-groups'] }),
+      ]);
     },
   });
 }
@@ -279,10 +298,13 @@ export function useDeleteGroup() {
 
       return response.data;
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['groups-with-occupancy'] });
-      queryClient.invalidateQueries({ queryKey: ['organization-groups'] });
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['groups-with-occupancy'] }),
+        queryClient.invalidateQueries({ queryKey: ['organization-groups'] }),
+        queryClient.invalidateQueries({ queryKey: ['registration-groups'] }),
+        queryClient.invalidateQueries({ queryKey: ['users'] }),
+      ]);
     },
   });
 }
@@ -297,8 +319,12 @@ export function useCreateSquad() {
       group_id: string;
       description?: string;
     }) => {
-      const slug = data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-      
+      const slug = data.name
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-]/g, '')
+        .replace(/-+$/g, '') || 'squad';
+
       // Get next position in group
       const { data: squads } = await supabase
         .from('squads')
@@ -306,13 +332,13 @@ export function useCreateSquad() {
         .eq('group_id', data.group_id)
         .order('position', { ascending: false })
         .limit(1);
-      
+
       const nextPosition = (squads?.[0]?.position || 0) + 1;
-      
+
       const { data: newSquad, error } = await supabase
         .from('squads')
         .insert({
-          name: data.name,
+          name: data.name.trim(),
           slug,
           group_id: data.group_id,
           description: data.description || null,
@@ -320,14 +346,16 @@ export function useCreateSquad() {
         })
         .select('id, name, slug, group_id, position')
         .single();
-      
+
       if (error) throw error;
       return newSquad;
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['groups-with-occupancy'] });
-      queryClient.invalidateQueries({ queryKey: ['organization-groups'] });
-      queryClient.invalidateQueries({ queryKey: ['squads'] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['groups-with-occupancy'] }),
+        queryClient.invalidateQueries({ queryKey: ['organization-groups'] }),
+        queryClient.invalidateQueries({ queryKey: ['squads'] }),
+      ]);
     },
   });
 }
@@ -335,20 +363,22 @@ export function useCreateSquad() {
 // Delete squad
 export function useDeleteSquad() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (squadId: string) => {
       const { error } = await supabase
         .from('squads')
         .delete()
         .eq('id', squadId);
-      
+
       if (error) throw error;
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['groups-with-occupancy'] });
-      queryClient.invalidateQueries({ queryKey: ['organization-groups'] });
-      queryClient.invalidateQueries({ queryKey: ['squads'] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['groups-with-occupancy'] }),
+        queryClient.invalidateQueries({ queryKey: ['organization-groups'] }),
+        queryClient.invalidateQueries({ queryKey: ['squads'] }),
+      ]);
     },
   });
 }
@@ -356,22 +386,29 @@ export function useDeleteSquad() {
 // Update squad
 export function useUpdateSquad() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (data: { id: string; name: string }) => {
-      const slug = data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-      
+      const slug = data.name
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-]/g, '')
+        .replace(/-+$/g, '') || 'squad';
+
       const { error } = await supabase
         .from('squads')
-        .update({ name: data.name, slug })
+        .update({ name: data.name.trim(), slug })
         .eq('id', data.id);
-      
+
       if (error) throw error;
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['groups-with-occupancy'] });
-      queryClient.invalidateQueries({ queryKey: ['organization-groups'] });
-      queryClient.invalidateQueries({ queryKey: ['squads'] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['groups-with-occupancy'] }),
+        queryClient.invalidateQueries({ queryKey: ['organization-groups'] }),
+        queryClient.invalidateQueries({ queryKey: ['squads'] }),
+      ]);
     },
   });
 }

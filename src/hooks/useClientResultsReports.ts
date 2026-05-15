@@ -63,7 +63,7 @@ export interface CreateReportInput {
   valorVendasNovos?: string;
 }
 
-const CYCLE_DAYS = 15;
+export const CYCLE_DAYS = 15;
 
 /**
  * Data de corte para separar clientes antigos vs novos.

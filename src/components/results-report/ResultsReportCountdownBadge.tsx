@@ -1,6 +1,6 @@
 import { Clock, AlertTriangle, BarChart3, FileQuestion } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { useResultsReportStatus } from '@/hooks/useClientResultsReports';
+import { useResultsReportStatus, CYCLE_DAYS } from '@/hooks/useClientResultsReports';
 
 interface Props {
   clientId: string;
@@ -35,7 +35,7 @@ export default function ResultsReportCountdownBadge({ clientId, className, alway
         className={`text-[10px] px-2 py-0.5 gap-1 ${className || ''}`}
       >
         <AlertTriangle size={10} />
-        Relatório vencido (+{daysSince - 30}d)
+        Relatório vencido (+{daysSince - CYCLE_DAYS}d)
       </Badge>
     );
   }

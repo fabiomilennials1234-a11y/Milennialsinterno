@@ -28,6 +28,8 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import CreateMeetingModal from '@/components/recorded-meetings/CreateMeetingModal';
+import { downloadStorageFile } from '@/lib/storageUpload';
+import { toast } from 'sonner';
 import { useAllActiveClients } from '@/hooks/useAllActiveClients';
 import {
   DropdownMenu,
@@ -151,6 +153,26 @@ ${bodyContent}
     a.download = fileName;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  const handleDownloadVideo = async (meeting: RecordedMeeting) => {
+    const path = meeting.video_url.split('/recorded-meetings/')[1];
+    if (!path) {
+      toast.error('Não foi possível identificar o arquivo de vídeo');
+      return;
+    }
+    try {
+      await downloadStorageFile(
+        'recorded-meetings',
+        decodeURIComponent(path),
+        meeting.video_filename || 'video.webm',
+      );
+    } catch (err) {
+      toast.error(
+        'Erro ao baixar vídeo',
+        { description: err instanceof Error ? err.message : 'Tente novamente' },
+      );
+    }
   };
 
   const handleCreateFolder = () => {
@@ -500,7 +522,23 @@ ${bodyContent}
                         <div className="border-t border-border px-4 py-4 space-y-4 bg-muted/30">
                           {/* Video */}
                           <div>
-                            <p className="text-xs font-medium text-muted-foreground uppercase mb-2">Vídeo da Reunião</p>
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-xs font-medium text-muted-foreground uppercase">Vídeo da Reunião</p>
+                              {meeting.video_url.includes('/recorded-meetings/') && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 text-xs gap-1.5"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDownloadVideo(meeting);
+                                  }}
+                                >
+                                  <Download size={12} />
+                                  Baixar vídeo
+                                </Button>
+                              )}
+                            </div>
                             {meeting.video_url.includes('supabase') || meeting.video_url.endsWith('.mp4') || meeting.video_url.endsWith('.webm') ? (
                               <video
                                 src={meeting.video_url}

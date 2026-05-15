@@ -5,6 +5,7 @@ import {
   useClientResultsReports,
   useDeleteResultsReport,
   useResultsReportStatus,
+  CYCLE_DAYS,
 } from '@/hooks/useClientResultsReports';
 import ResultsReportBuilderModal from './ResultsReportBuilderModal';
 import { BarChart3, Plus, Eye, Trash2, Loader2, Clock, AlertTriangle, FileQuestion } from 'lucide-react';
@@ -110,7 +111,7 @@ export default function ResultsReportSection({ clientId, clientName }: Props) {
                 variant={isOverdue ? 'destructive' : 'secondary'}
                 className="text-sm font-bold px-3"
               >
-                {isOverdue ? `+${daysSince - 30}d` : `${daysLeft}d`}
+                {isOverdue ? `+${daysSince - CYCLE_DAYS}d` : `${daysLeft}d`}
               </Badge>
             </div>
           )}
