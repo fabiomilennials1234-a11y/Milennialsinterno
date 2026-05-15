@@ -20,6 +20,7 @@ import {
   ShieldCheck,
   ClipboardList,
   ArrowRight,
+  MessageCircle,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,6 +28,16 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { generateRelatorioPdf } from '@/lib/generateRelatorioPdf';
 import { toast } from 'sonner';
 import mgrowthLogo from '@/assets/mgrowth-logo.png';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  Cell,
+} from 'recharts';
 
 // ── Types ──
 
@@ -118,7 +129,7 @@ function formatDateBR(dateStr: string): string {
 }
 
 function formatPeriod(start: string, end: string): string {
-  return `${formatDateBR(start)} - ${formatDateBR(end)}`;
+  return `${formatDateBR(start)} — ${formatDateBR(end)}`;
 }
 
 function reportTypeLabel(type: string): string {
@@ -127,6 +138,12 @@ function reportTypeLabel(type: string): string {
 
 function formatCurrency(value: number): string {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+function formatCurrencyCompact(value: number): string {
+  if (value >= 1_000_000) return `R$ ${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `R$ ${(value / 1_000).toFixed(1)}K`;
+  return formatCurrency(value);
 }
 
 function formatNumber(value: number): string {
@@ -194,10 +211,10 @@ function Section({
   return (
     <div
       ref={ref}
-      className={`transition-all duration-300 ease-out ${
-        visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
+      className={`transition-all duration-500 ease-out ${
+        visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
       } ${className}`}
-      style={delay > 0 ? { transitionDelay: `${Math.min(delay, 200)}ms` } : undefined}
+      style={delay > 0 ? { transitionDelay: `${Math.min(delay, 300)}ms` } : undefined}
     >
       {children}
     </div>
@@ -216,9 +233,9 @@ function SectionHeading({
   accent?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-3 mb-5">
+    <div className="flex items-center gap-3 mb-6">
       <div
-        className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+        className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
           accent ? 'bg-[#FFD600]/15' : 'bg-white/[0.06]'
         }`}
       >
@@ -229,8 +246,7 @@ function SectionHeading({
         />
       </div>
       <h2
-        className="text-[15px] font-semibold text-white/90"
-        style={{ letterSpacing: '-0.01em' }}
+        className="text-base font-bold text-white/90 tracking-tight"
       >
         {label}
       </h2>
@@ -249,7 +265,7 @@ function GlassCard({
 }) {
   return (
     <div
-      className={`rounded-2xl border border-white/[0.06] bg-white/[0.025] backdrop-blur-sm ${className}`}
+      className={`rounded-2xl border border-white/[0.07] bg-white/[0.025] backdrop-blur-sm ${className}`}
     >
       {children}
     </div>
@@ -272,11 +288,11 @@ function TextList({
   }
 
   return (
-    <ul className="space-y-2.5" role="list">
+    <ul className="space-y-3" role="list">
       {items.map((item, i) => (
-        <li key={i} className="flex items-start gap-2.5 text-sm text-white/60 leading-relaxed">
+        <li key={i} className="flex items-start gap-3 text-sm text-white/60 leading-relaxed">
           <span
-            className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${bulletColor} bg-current`}
+            className={`mt-2 w-1.5 h-1.5 rounded-full shrink-0 ${bulletColor} bg-current`}
             aria-hidden="true"
           />
           <span>{item}</span>
@@ -298,9 +314,9 @@ function CumprimentoBadge({ value }: { value: 'tudo' | 'parcial' | 'nao' }) {
   const Icon = config.icon;
 
   return (
-    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border ${config.bg}`}>
-      <Icon size={14} className={config.color} />
-      <span className={`text-xs font-medium ${config.color}`}>{config.label}</span>
+    <div className={`inline-flex items-center gap-2.5 px-4 py-2 rounded-xl border ${config.bg}`}>
+      <Icon size={16} className={config.color} />
+      <span className={`text-sm font-semibold ${config.color}`}>{config.label}</span>
     </div>
   );
 }
@@ -312,11 +328,68 @@ function VariationIndicator({ label, value }: { label: string; value: number }) 
   const isZero = value === 0;
   const color = isZero ? 'text-white/40' : isPositive ? 'text-emerald-400' : 'text-red-400';
   const bg = isZero ? 'bg-white/[0.03]' : isPositive ? 'bg-emerald-400/5' : 'bg-red-400/5';
+  const border = isZero ? 'border-white/[0.06]' : isPositive ? 'border-emerald-400/15' : 'border-red-400/15';
 
   return (
-    <div className={`rounded-xl border border-white/[0.06] ${bg} px-4 py-3`}>
-      <p className="text-[11px] font-medium text-white/30 uppercase tracking-wider mb-1">{label}</p>
-      <p className={`text-lg font-bold tabular-nums ${color}`}>{formatPercent(value)}</p>
+    <div className={`rounded-xl border ${border} ${bg} px-5 py-4`}>
+      <p className="text-[11px] font-semibold text-white/30 uppercase tracking-wider mb-1.5">{label}</p>
+      <p className={`text-2xl font-black tabular-nums tracking-tight ${color}`}>{formatPercent(value)}</p>
+    </div>
+  );
+}
+
+// ── Marketplace faturamento chart ──
+
+const CHART_COLORS = ['#FFD600', '#FFC107', '#FF9800', '#FF5722', '#E91E63', '#9C27B0', '#673AB7', '#3F51B5'];
+
+function MarketplaceChart({ data }: { data: MarketplaceEntry[] }) {
+  if (!data || data.length === 0) return null;
+
+  const chartData = data
+    .map((entry) => ({
+      name: entry.marketplace,
+      faturamento: entry.faturamento,
+      pedidos: entry.pedidos,
+    }))
+    .sort((a, b) => b.faturamento - a.faturamento);
+
+  return (
+    <div className="w-full h-[260px] mt-2">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={chartData} margin={{ top: 8, right: 0, left: 0, bottom: 0 }} barCategoryGap="20%">
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+          <XAxis
+            dataKey="name"
+            tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.4)' }}
+            axisLine={false}
+            tickLine={false}
+          />
+          <YAxis
+            tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.3)' }}
+            axisLine={false}
+            tickLine={false}
+            tickFormatter={(v: number) => formatCurrencyCompact(v)}
+            width={70}
+          />
+          <RechartsTooltip
+            cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+            contentStyle={{
+              background: 'rgba(0,0,0,0.9)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '12px',
+              padding: '12px 16px',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+            }}
+            labelStyle={{ color: 'rgba(255,255,255,0.8)', fontWeight: 700, marginBottom: 4, fontSize: 13 }}
+            formatter={(value: number) => [formatCurrency(value), 'Faturamento']}
+          />
+          <Bar dataKey="faturamento" radius={[6, 6, 0, 0]} maxBarSize={48}>
+            {chartData.map((_, index) => (
+              <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} fillOpacity={0.85} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   );
 }
@@ -419,10 +492,25 @@ function FloatingActions({
     }
   }, [contentRef, clientName]);
 
+  const handleWhatsApp = useCallback(() => {
+    const text = encodeURIComponent(
+      `Confira o relatorio de ciclo: ${clientName}\n${url}`
+    );
+    window.open(`https://wa.me/?text=${text}`, '_blank', 'noopener');
+  }, [url, clientName]);
+
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
       {open && (
         <div className="flex flex-col gap-2 animate-fade-in">
+          <button
+            onClick={handleWhatsApp}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 text-sm font-medium backdrop-blur-md transition-colors duration-150 hover:bg-emerald-500/25 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+            aria-label="Compartilhar via WhatsApp"
+          >
+            <MessageCircle size={14} />
+            WhatsApp
+          </button>
           <button
             onClick={handlePdf}
             disabled={generatingPdf}
@@ -448,10 +536,10 @@ function FloatingActions({
       )}
       <button
         onClick={() => setOpen(!open)}
-        className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#FFD600]/40 ${
+        className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 shadow-lg focus:outline-none focus:ring-2 focus:ring-[#FFD600]/40 ${
           open
             ? 'bg-white/[0.1] border border-white/[0.15] rotate-45'
-            : 'bg-[#FFD600] text-black hover:bg-[#FFD600]/90'
+            : 'bg-[#FFD600] text-black hover:bg-[#FFD600]/90 shadow-[0_4px_24px_rgba(255,214,0,0.3)]'
         }`}
         aria-label={open ? 'Fechar opcoes' : 'Opcoes do relatorio'}
         aria-expanded={open}
@@ -467,24 +555,27 @@ function FloatingActions({
 function MarketplaceTable({ data }: { data: MarketplaceEntry[] }) {
   if (!data || data.length === 0) return null;
 
+  const totalFaturamento = data.reduce((sum, e) => sum + e.faturamento, 0);
+  const totalPedidos = data.reduce((sum, e) => sum + e.pedidos, 0);
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-white/[0.06]">
-            <th className="text-left py-3 px-4 text-[11px] font-semibold text-white/30 uppercase tracking-wider">
+          <tr className="border-b border-white/[0.08]">
+            <th className="text-left py-3.5 px-4 text-[11px] font-bold text-white/40 uppercase tracking-wider">
               Marketplace
             </th>
-            <th className="text-right py-3 px-4 text-[11px] font-semibold text-white/30 uppercase tracking-wider">
+            <th className="text-right py-3.5 px-4 text-[11px] font-bold text-white/40 uppercase tracking-wider">
               Faturamento
             </th>
-            <th className="text-right py-3 px-4 text-[11px] font-semibold text-white/30 uppercase tracking-wider">
+            <th className="text-right py-3.5 px-4 text-[11px] font-bold text-white/40 uppercase tracking-wider">
               Pedidos
             </th>
-            <th className="text-center py-3 px-4 text-[11px] font-semibold text-white/30 uppercase tracking-wider">
+            <th className="text-center py-3.5 px-4 text-[11px] font-bold text-white/40 uppercase tracking-wider">
               Reputacao
             </th>
-            <th className="text-right py-3 px-4 text-[11px] font-semibold text-white/30 uppercase tracking-wider">
+            <th className="text-right py-3.5 px-4 text-[11px] font-bold text-white/40 uppercase tracking-wider">
               Ticket Medio
             </th>
           </tr>
@@ -493,24 +584,33 @@ function MarketplaceTable({ data }: { data: MarketplaceEntry[] }) {
           {data.map((entry, i) => (
             <tr
               key={i}
-              className="border-b border-white/[0.03] transition-colors hover:bg-white/[0.02]"
+              className="border-b border-white/[0.04] transition-colors hover:bg-white/[0.03]"
             >
-              <td className="py-3 px-4 text-white/70 font-medium">{entry.marketplace}</td>
-              <td className="py-3 px-4 text-right text-white/60 tabular-nums">
+              <td className="py-3.5 px-4 text-white/80 font-semibold">{entry.marketplace}</td>
+              <td className="py-3.5 px-4 text-right text-white/70 tabular-nums font-medium">
                 {formatCurrency(entry.faturamento)}
               </td>
-              <td className="py-3 px-4 text-right text-white/60 tabular-nums">
+              <td className="py-3.5 px-4 text-right text-white/70 tabular-nums">
                 {formatNumber(entry.pedidos)}
               </td>
-              <td className="py-3 px-4 text-center">
+              <td className="py-3.5 px-4 text-center">
                 <ReputacaoBadge value={entry.reputacao} />
               </td>
-              <td className="py-3 px-4 text-right text-white/60 tabular-nums">
+              <td className="py-3.5 px-4 text-right text-white/70 tabular-nums">
                 {entry.ticket_medio != null ? formatCurrency(entry.ticket_medio) : '—'}
               </td>
             </tr>
           ))}
         </tbody>
+        <tfoot>
+          <tr className="border-t border-white/[0.1]">
+            <td className="py-3.5 px-4 text-white/90 font-bold text-xs uppercase tracking-wider">Total</td>
+            <td className="py-3.5 px-4 text-right text-[#FFD600] tabular-nums font-bold">{formatCurrency(totalFaturamento)}</td>
+            <td className="py-3.5 px-4 text-right text-[#FFD600] tabular-nums font-bold">{formatNumber(totalPedidos)}</td>
+            <td />
+            <td />
+          </tr>
+        </tfoot>
       </table>
     </div>
   );
@@ -519,17 +619,17 @@ function MarketplaceTable({ data }: { data: MarketplaceEntry[] }) {
 function ReputacaoBadge({ value }: { value: string }) {
   const lower = value?.toLowerCase() || '';
   const colorMap: Record<string, string> = {
-    verde: 'text-emerald-400 bg-emerald-400/10',
-    amarelo: 'text-amber-400 bg-amber-400/10',
-    amarela: 'text-amber-400 bg-amber-400/10',
-    vermelho: 'text-red-400 bg-red-400/10',
-    vermelha: 'text-red-400 bg-red-400/10',
-    laranja: 'text-orange-400 bg-orange-400/10',
+    verde: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20',
+    amarelo: 'text-amber-400 bg-amber-400/10 border-amber-400/20',
+    amarela: 'text-amber-400 bg-amber-400/10 border-amber-400/20',
+    vermelho: 'text-red-400 bg-red-400/10 border-red-400/20',
+    vermelha: 'text-red-400 bg-red-400/10 border-red-400/20',
+    laranja: 'text-orange-400 bg-orange-400/10 border-orange-400/20',
   };
-  const color = colorMap[lower] || 'text-white/50 bg-white/[0.05]';
+  const color = colorMap[lower] || 'text-white/50 bg-white/[0.05] border-white/[0.1]';
 
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${color}`}>
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold border ${color}`}>
       {value}
     </span>
   );
@@ -544,17 +644,17 @@ function Top5SkusTable({ data }: { data: Top5SkuEntry[] }) {
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-white/[0.06]">
-            <th className="text-center py-3 px-3 text-[11px] font-semibold text-white/30 uppercase tracking-wider w-10">
+          <tr className="border-b border-white/[0.08]">
+            <th className="text-center py-3.5 px-3 text-[11px] font-bold text-white/40 uppercase tracking-wider w-10">
               #
             </th>
-            <th className="text-left py-3 px-3 text-[11px] font-semibold text-white/30 uppercase tracking-wider">
+            <th className="text-left py-3.5 px-3 text-[11px] font-bold text-white/40 uppercase tracking-wider">
               SKU
             </th>
-            <th className="text-right py-3 px-3 text-[11px] font-semibold text-white/30 uppercase tracking-wider">
+            <th className="text-right py-3.5 px-3 text-[11px] font-bold text-white/40 uppercase tracking-wider">
               Faturamento
             </th>
-            <th className="text-right py-3 px-3 text-[11px] font-semibold text-white/30 uppercase tracking-wider">
+            <th className="text-right py-3.5 px-3 text-[11px] font-bold text-white/40 uppercase tracking-wider">
               Quantidade
             </th>
           </tr>
@@ -563,20 +663,20 @@ function Top5SkusTable({ data }: { data: Top5SkuEntry[] }) {
           {data.map((entry) => (
             <tr
               key={entry.posicao}
-              className="border-b border-white/[0.03] transition-colors hover:bg-white/[0.02]"
+              className="border-b border-white/[0.04] transition-colors hover:bg-white/[0.03]"
             >
-              <td className="py-3 px-3 text-center">
-                <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-[#FFD600]/10 text-[#FFD600] text-xs font-bold">
+              <td className="py-3.5 px-3 text-center">
+                <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-[#FFD600]/10 text-[#FFD600] text-xs font-black">
                   {entry.posicao}
                 </span>
               </td>
-              <td className="py-3 px-3 text-white/70 font-medium font-mono text-xs">
+              <td className="py-3.5 px-3 text-white/80 font-semibold font-mono text-xs">
                 {entry.sku}
               </td>
-              <td className="py-3 px-3 text-right text-white/60 tabular-nums">
+              <td className="py-3.5 px-3 text-right text-white/70 tabular-nums font-medium">
                 {formatCurrency(entry.faturamento)}
               </td>
-              <td className="py-3 px-3 text-right text-white/60 tabular-nums">
+              <td className="py-3.5 px-3 text-right text-white/70 tabular-nums">
                 {formatNumber(entry.quantidade)}
               </td>
             </tr>
@@ -591,11 +691,24 @@ function Top5SkusTable({ data }: { data: Top5SkuEntry[] }) {
 
 function StatCard({ label, value, unit }: { label: string; value: string | number; unit?: string }) {
   return (
-    <div className="rounded-xl bg-white/[0.03] border border-white/[0.05] px-4 py-3">
-      <p className="text-[11px] font-medium text-white/30 uppercase tracking-wider mb-1">{label}</p>
-      <p className="text-lg font-bold text-white/80 tabular-nums">
+    <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-5 py-4">
+      <p className="text-[11px] font-bold text-white/30 uppercase tracking-wider mb-2">{label}</p>
+      <p className="text-xl font-black text-white/85 tabular-nums tracking-tight">
         {value}
-        {unit && <span className="text-xs font-normal text-white/40 ml-1">{unit}</span>}
+        {unit && <span className="text-sm font-normal text-white/40 ml-1">{unit}</span>}
+      </p>
+    </div>
+  );
+}
+
+// ── Executive summary metric card ──
+
+function MetricCard({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
+  return (
+    <div className={`rounded-xl border px-5 py-4 ${accent ? 'bg-[#FFD600]/5 border-[#FFD600]/20' : 'bg-white/[0.03] border-white/[0.06]'}`}>
+      <p className="text-[11px] font-bold text-white/30 uppercase tracking-wider mb-2">{label}</p>
+      <p className={`text-lg font-black tabular-nums tracking-tight ${accent ? 'text-[#FFD600]' : 'text-white/85'}`}>
+        {value}
       </p>
     </div>
   );
@@ -656,8 +769,14 @@ export default function PublicCycleReportPage() {
     isGestao &&
     (report.rms_abertas != null || report.rms_resolvidas != null || report.rms_em_aberto != null);
 
+  // Compute summary metrics
+  const totalFaturamento = report.marketplace_data?.reduce((s, e) => s + e.faturamento, 0) ?? 0;
+  const totalPedidos = report.marketplace_data?.reduce((s, e) => s + e.pedidos, 0) ?? 0;
+  const marketplaceCount = report.marketplace_data?.length ?? 0;
+
   const sectionCount = [
-    true, // identification always
+    true, // hero always
+    true, // summary always
     hasMarketplace || hasVariations,
     acoesLines.length > 0 || skusCadastradosLines.length > 0,
     report.cumprimento_plano || dificuldadesLines.length > 0,
@@ -671,18 +790,22 @@ export default function PublicCycleReportPage() {
       {/* Ambient gradient */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
         <div
-          className="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full blur-[120px] opacity-[0.04]"
+          className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full blur-[150px] opacity-[0.05]"
           style={{ background: '#FFD600' }}
         />
         <div
-          className="absolute -bottom-40 -right-40 w-[600px] h-[600px] rounded-full blur-[140px] opacity-[0.025]"
+          className="absolute top-1/2 -right-60 w-[500px] h-[500px] rounded-full blur-[140px] opacity-[0.025]"
           style={{ background: '#FFD600' }}
+        />
+        <div
+          className="absolute -bottom-40 left-1/3 w-[400px] h-[400px] rounded-full blur-[120px] opacity-[0.02]"
+          style={{ background: '#fff' }}
         />
       </div>
 
       {/* Header */}
       <header className="relative z-10 border-b border-white/[0.06]">
-        <div className="max-w-4xl mx-auto px-6 md:px-10 py-4 flex items-center justify-between">
+        <div className="max-w-4xl mx-auto px-6 md:px-10 py-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img
               src={mgrowthLogo}
@@ -690,11 +813,11 @@ export default function PublicCycleReportPage() {
               className="h-7 w-auto object-contain"
             />
             <div className="h-4 w-px bg-white/10" aria-hidden="true" />
-            <span className="text-[11px] font-medium text-white/30 uppercase tracking-widest">
+            <span className="text-[11px] font-bold text-white/30 uppercase tracking-widest">
               Relatorio de Ciclo
             </span>
           </div>
-          <span className="text-[11px] text-white/20 tabular-nums">
+          <span className="text-[11px] text-white/20 tabular-nums font-medium">
             {formatDateBR(report.created_at.split('T')[0])}
           </span>
         </div>
@@ -702,19 +825,19 @@ export default function PublicCycleReportPage() {
 
       {/* Content */}
       <main className="relative z-10 max-w-4xl mx-auto px-6 md:px-10">
-        {/* Hero */}
+        {/* ── Hero / Capa ── */}
         <Section delay={0}>
-          <div className="pt-16 pb-12 md:pt-32 md:pb-20 text-center">
+          <div className="pt-20 pb-16 md:pt-36 md:pb-24 text-center">
             {/* Report type + number pills */}
-            <div className="flex items-center justify-center gap-2 mb-6">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFD600]/10 border border-[#FFD600]/15">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#FFD600]" aria-hidden="true" />
-                <span className="text-[11px] font-semibold text-[#FFD600]/80 uppercase tracking-wider">
+            <div className="flex items-center justify-center gap-2.5 mb-8">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#FFD600]/10 border border-[#FFD600]/20">
+                <span className="w-2 h-2 rounded-full bg-[#FFD600] animate-pulse" aria-hidden="true" />
+                <span className="text-[11px] font-black text-[#FFD600]/90 uppercase tracking-widest">
                   {reportTypeLabel(report.report_type)}
                 </span>
               </div>
-              <div className="inline-flex items-center px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08]">
-                <span className="text-[11px] font-semibold text-white/40 uppercase tracking-wider">
+              <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08]">
+                <span className="text-[11px] font-black text-white/50 uppercase tracking-widest">
                   Ciclo #{report.report_number}
                 </span>
               </div>
@@ -722,24 +845,24 @@ export default function PublicCycleReportPage() {
 
             {/* Client name */}
             <h1
-              className="text-3xl md:text-5xl font-black text-white leading-tight"
+              className="text-4xl md:text-6xl font-black text-white leading-[1.05]"
               style={{
                 fontFamily: "'Archivo Black', 'Inter', sans-serif",
-                letterSpacing: '-0.03em',
+                letterSpacing: '-0.04em',
               }}
             >
               {clientDisplay}
             </h1>
 
             {/* Meta row */}
-            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mt-6 text-xs text-white/30">
+            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mt-8 text-xs text-white/30 font-medium">
               <span className="tabular-nums">
                 {formatPeriod(report.cycle_start_date, report.cycle_end_date)}
               </span>
               {report.consultor_name && (
                 <>
-                  <span className="hidden sm:inline" aria-hidden="true">
-                    /
+                  <span className="hidden sm:inline text-white/10" aria-hidden="true">
+                    |
                   </span>
                   <span>Consultor: {report.consultor_name}</span>
                 </>
@@ -748,83 +871,99 @@ export default function PublicCycleReportPage() {
 
             {/* Scroll hint */}
             {sectionCount > 2 && (
-              <div className="mt-10 flex flex-col items-center gap-1 text-white/15 animate-bounce">
-                <ChevronDown size={16} aria-hidden="true" />
+              <div className="mt-12 flex flex-col items-center gap-1 text-white/15 animate-bounce">
+                <ChevronDown size={18} aria-hidden="true" />
               </div>
             )}
           </div>
         </Section>
 
-        <div className="space-y-6 pb-20">
-          {/* 1. Identificacao / Reuniao */}
+        <div className="space-y-8 pb-24">
+          {/* ── Resumo Executivo (metric cards) ── */}
           <Section delay={60}>
             <GlassCard className="p-6 md:p-8">
-              <SectionHeading icon={Calendar} label="Identificacao do ciclo" accent />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="rounded-xl bg-white/[0.03] border border-white/[0.05] px-4 py-3">
-                  <p className="text-[11px] font-medium text-white/30 uppercase tracking-wider mb-1">
-                    Reuniao
-                  </p>
-                  <p className="text-sm text-white/70">
-                    {report.reuniao_realizada ? (
-                      <>
-                        <span className="text-emerald-400 font-medium">Realizada</span>
-                        {report.reuniao_data && (
-                          <span className="text-white/40">
-                            {' '}
-                            — {formatDateBR(report.reuniao_data)}
-                            {report.reuniao_horario && ` as ${report.reuniao_horario}`}
-                          </span>
-                        )}
-                      </>
-                    ) : (
-                      <span className="text-white/40">Nao realizada</span>
-                    )}
-                  </p>
-                </div>
-                <div className="rounded-xl bg-white/[0.03] border border-white/[0.05] px-4 py-3">
-                  <p className="text-[11px] font-medium text-white/30 uppercase tracking-wider mb-1">
-                    Periodo
-                  </p>
-                  <p className="text-sm text-white/70 tabular-nums">
-                    {formatPeriod(report.cycle_start_date, report.cycle_end_date)}
-                  </p>
-                </div>
+              <SectionHeading icon={BarChart3} label="Resumo executivo" accent />
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {totalFaturamento > 0 && (
+                  <MetricCard label="Faturamento total" value={formatCurrency(totalFaturamento)} accent />
+                )}
+                {totalPedidos > 0 && (
+                  <MetricCard label="Total pedidos" value={formatNumber(totalPedidos)} />
+                )}
+                {marketplaceCount > 0 && (
+                  <MetricCard label="Marketplaces" value={String(marketplaceCount)} />
+                )}
+                {report.reuniao_realizada && (
+                  <MetricCard
+                    label="Reuniao"
+                    value={report.reuniao_data ? formatDateBR(report.reuniao_data) : 'Realizada'}
+                  />
+                )}
+                {report.variacao_faturamento_pct != null && (
+                  <MetricCard
+                    label="Var. faturamento"
+                    value={formatPercent(report.variacao_faturamento_pct)}
+                    accent={report.variacao_faturamento_pct > 0}
+                  />
+                )}
+                {report.variacao_pedidos_pct != null && (
+                  <MetricCard
+                    label="Var. pedidos"
+                    value={formatPercent(report.variacao_pedidos_pct)}
+                    accent={report.variacao_pedidos_pct > 0}
+                  />
+                )}
+                {hasAds && report.verba_ads != null && (
+                  <MetricCard label="Verba Ads" value={formatCurrency(report.verba_ads)} />
+                )}
+                {report.cumprimento_plano && (
+                  <MetricCard
+                    label="Plano"
+                    value={report.cumprimento_plano === 'tudo' ? 'Cumprido' : report.cumprimento_plano === 'parcial' ? 'Parcial' : 'Nao cumprido'}
+                  />
+                )}
               </div>
             </GlassCard>
           </Section>
 
-          {/* 2. Performance — marketplace data + variations */}
+          {/* ── Performance marketplace (table + chart) ── */}
           {(hasMarketplace || hasVariations) && (
             <Section delay={100}>
               <GlassCard className="p-6 md:p-8">
-                <SectionHeading icon={TrendingUp} label="Performance de marketplace" accent />
+                <SectionHeading icon={TrendingUp} label="Performance por marketplace" accent />
 
                 {/* Variation indicators */}
                 {hasVariations && (
-                  <div className="grid grid-cols-2 gap-3 mb-6">
+                  <div className="grid grid-cols-2 gap-3 mb-8">
                     {report.variacao_faturamento_pct != null && (
                       <VariationIndicator
-                        label="Var. faturamento"
+                        label="Variacao faturamento"
                         value={report.variacao_faturamento_pct}
                       />
                     )}
                     {report.variacao_pedidos_pct != null && (
                       <VariationIndicator
-                        label="Var. pedidos"
+                        label="Variacao pedidos"
                         value={report.variacao_pedidos_pct}
                       />
                     )}
                   </div>
                 )}
 
-                {/* Marketplace table */}
-                {hasMarketplace && <MarketplaceTable data={report.marketplace_data!} />}
+                {/* Faturamento chart */}
+                {hasMarketplace && (
+                  <>
+                    <MarketplaceChart data={report.marketplace_data!} />
+                    <div className="mt-6">
+                      <MarketplaceTable data={report.marketplace_data!} />
+                    </div>
+                  </>
+                )}
               </GlassCard>
             </Section>
           )}
 
-          {/* 3. Top 5 SKUs */}
+          {/* ── Top 5 SKUs ── */}
           {hasTop5 && (
             <Section>
               <GlassCard className="p-6 md:p-8">
@@ -834,15 +973,15 @@ export default function PublicCycleReportPage() {
             </Section>
           )}
 
-          {/* 4. Execucao — acoes + SKUs cadastrados */}
+          {/* ── Execucao do ciclo ── */}
           {(acoesLines.length > 0 || skusCadastradosLines.length > 0) && (
             <Section>
               <GlassCard className="p-6 md:p-8">
-                <SectionHeading icon={ClipboardList} label="Execucao do ciclo" />
-                <div className="space-y-5">
+                <SectionHeading icon={ClipboardList} label="Trabalho executado" />
+                <div className="space-y-6">
                   {acoesLines.length > 0 && (
                     <div>
-                      <p className="text-[11px] font-semibold text-white/30 uppercase tracking-wider mb-3">
+                      <p className="text-[11px] font-bold text-white/35 uppercase tracking-wider mb-4">
                         Acoes executadas
                       </p>
                       <TextList items={acoesLines} bulletColor="text-blue-400/60" />
@@ -850,7 +989,7 @@ export default function PublicCycleReportPage() {
                   )}
                   {skusCadastradosLines.length > 0 && (
                     <div>
-                      <p className="text-[11px] font-semibold text-white/30 uppercase tracking-wider mb-3">
+                      <p className="text-[11px] font-bold text-white/35 uppercase tracking-wider mb-4">
                         SKUs cadastrados / otimizados
                       </p>
                       <TextList items={skusCadastradosLines} bulletColor="text-emerald-400/60" />
@@ -861,17 +1000,17 @@ export default function PublicCycleReportPage() {
             </Section>
           )}
 
-          {/* 5. Cumprimento do plano + dificuldades */}
+          {/* ── Cumprimento do plano + dificuldades ── */}
           {(report.cumprimento_plano || dificuldadesLines.length > 0) && (
             <Section>
               <GlassCard className="p-6 md:p-8">
                 <SectionHeading icon={Target} label="Cumprimento do plano" />
-                <div className="space-y-5">
+                <div className="space-y-6">
                   {report.cumprimento_plano && (
                     <div>
                       <CumprimentoBadge value={report.cumprimento_plano} />
                       {cumprimentoLines.length > 0 && (
-                        <div className="mt-4">
+                        <div className="mt-5">
                           <TextList items={cumprimentoLines} bulletColor="text-white/30" />
                         </div>
                       )}
@@ -879,7 +1018,7 @@ export default function PublicCycleReportPage() {
                   )}
                   {dificuldadesLines.length > 0 && (
                     <div>
-                      <p className="text-[11px] font-semibold text-white/30 uppercase tracking-wider mb-3">
+                      <p className="text-[11px] font-bold text-white/35 uppercase tracking-wider mb-4">
                         Dificuldades encontradas
                       </p>
                       <TextList items={dificuldadesLines} bulletColor="text-red-400/50" />
@@ -890,55 +1029,13 @@ export default function PublicCycleReportPage() {
             </Section>
           )}
 
-          {/* 6. Proximo ciclo */}
-          {(planoProximoLines.length > 0 || report.proxima_reuniao_data) && (
-            <Section>
-              <GlassCard className="p-6 md:p-8">
-                <SectionHeading icon={ArrowRight} label="Proximo ciclo" accent />
-                <div className="space-y-5">
-                  {planoProximoLines.length > 0 && (
-                    <div className="space-y-3">
-                      {planoProximoLines.map((step, i) => (
-                        <div
-                          key={i}
-                          className="flex items-start gap-3 rounded-xl bg-white/[0.025] border border-white/[0.04] px-4 py-3.5 transition-colors duration-150 hover:bg-white/[0.04]"
-                        >
-                          <div className="w-6 h-6 rounded-md bg-[#FFD600]/10 flex items-center justify-center shrink-0 mt-0.5">
-                            <ArrowRight
-                              size={12}
-                              className="text-[#FFD600]/70"
-                              aria-hidden="true"
-                            />
-                          </div>
-                          <p className="text-sm text-white/60 leading-relaxed">{step}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {report.proxima_reuniao_data && (
-                    <div className="rounded-xl bg-white/[0.03] border border-white/[0.05] px-4 py-3">
-                      <p className="text-[11px] font-medium text-white/30 uppercase tracking-wider mb-1">
-                        Proxima reuniao
-                      </p>
-                      <p className="text-sm text-white/70 tabular-nums">
-                        {formatDateBR(report.proxima_reuniao_data)}
-                        {report.proxima_reuniao_horario &&
-                          ` as ${report.proxima_reuniao_horario}`}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </GlassCard>
-            </Section>
-          )}
-
-          {/* 7. Ads — gestao only */}
+          {/* ── Ads — gestao only ── */}
           {hasAds && (
             <Section>
               <div className="space-y-6">
                 <div className="flex items-center gap-3">
                   <div className="h-px flex-1 bg-white/[0.06]" aria-hidden="true" />
-                  <span className="text-[10px] font-semibold text-white/20 uppercase tracking-widest">
+                  <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.15em]">
                     Gestao de Ads
                   </span>
                   <div className="h-px flex-1 bg-white/[0.06]" aria-hidden="true" />
@@ -965,14 +1062,14 @@ export default function PublicCycleReportPage() {
             </Section>
           )}
 
-          {/* 8. Qualidade — gestao only (RMs + SKUs problematicos + plano proximos dias) */}
+          {/* ── Qualidade — RMs + SKUs problematicos + plano proximos dias ── */}
           {(hasRMs || skusProblematicosLines.length > 0 || planoProximosDiasLines.length > 0) && (
             <Section>
               <div className="space-y-6">
                 {!hasAds && (
                   <div className="flex items-center gap-3">
                     <div className="h-px flex-1 bg-white/[0.06]" aria-hidden="true" />
-                    <span className="text-[10px] font-semibold text-white/20 uppercase tracking-widest">
+                    <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.15em]">
                       Qualidade e Operacional
                     </span>
                     <div className="h-px flex-1 bg-white/[0.06]" aria-hidden="true" />
@@ -1012,21 +1109,97 @@ export default function PublicCycleReportPage() {
               </div>
             </Section>
           )}
+
+          {/* ── Plano de acoes / Proximo ciclo ── */}
+          {(planoProximoLines.length > 0 || report.proxima_reuniao_data) && (
+            <Section>
+              <GlassCard className="p-6 md:p-8">
+                <SectionHeading icon={ArrowRight} label="Plano de acoes — proximo ciclo" accent />
+                <div className="space-y-5">
+                  {planoProximoLines.length > 0 && (
+                    <div className="space-y-3">
+                      {planoProximoLines.map((step, i) => (
+                        <div
+                          key={i}
+                          className="flex items-start gap-3.5 rounded-xl bg-white/[0.025] border border-white/[0.05] px-5 py-4 transition-colors duration-150 hover:bg-white/[0.04]"
+                        >
+                          <div className="w-7 h-7 rounded-lg bg-[#FFD600]/10 flex items-center justify-center shrink-0 mt-0.5">
+                            <span className="text-[#FFD600]/80 text-xs font-black">{i + 1}</span>
+                          </div>
+                          <p className="text-sm text-white/65 leading-relaxed">{step}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {report.proxima_reuniao_data && (
+                    <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-5 py-4">
+                      <p className="text-[11px] font-bold text-white/30 uppercase tracking-wider mb-2">
+                        Proxima reuniao
+                      </p>
+                      <p className="text-sm text-white/75 tabular-nums font-medium">
+                        {formatDateBR(report.proxima_reuniao_data)}
+                        {report.proxima_reuniao_horario &&
+                          ` as ${report.proxima_reuniao_horario}`}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </GlassCard>
+            </Section>
+          )}
+
+          {/* ── Identificacao do ciclo ── */}
+          <Section>
+            <GlassCard className="p-6 md:p-8">
+              <SectionHeading icon={Calendar} label="Identificacao do ciclo" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-5 py-4">
+                  <p className="text-[11px] font-bold text-white/30 uppercase tracking-wider mb-2">
+                    Reuniao
+                  </p>
+                  <p className="text-sm text-white/75">
+                    {report.reuniao_realizada ? (
+                      <>
+                        <span className="text-emerald-400 font-semibold">Realizada</span>
+                        {report.reuniao_data && (
+                          <span className="text-white/45">
+                            {' '}
+                            — {formatDateBR(report.reuniao_data)}
+                            {report.reuniao_horario && ` as ${report.reuniao_horario}`}
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-white/45">Nao realizada</span>
+                    )}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-5 py-4">
+                  <p className="text-[11px] font-bold text-white/30 uppercase tracking-wider mb-2">
+                    Periodo
+                  </p>
+                  <p className="text-sm text-white/75 tabular-nums font-medium">
+                    {formatPeriod(report.cycle_start_date, report.cycle_end_date)}
+                  </p>
+                </div>
+              </div>
+            </GlassCard>
+          </Section>
         </div>
 
-        {/* Footer */}
+        {/* ── Footer institucional ── */}
         <Section>
-          <footer className="border-t border-white/[0.06] py-12 text-center space-y-4">
+          <footer className="border-t border-white/[0.06] py-16 text-center space-y-5">
             <img
               src={mgrowthLogo}
               alt="Milennials Growth B2B"
-              className="h-8 w-auto mx-auto opacity-40"
+              className="h-9 w-auto mx-auto opacity-50"
             />
-            <p className="text-[11px] text-white/20">
+            <p className="text-xs text-white/25 font-medium">
               Relatorio gerado em {formatDateBR(report.created_at.split('T')[0])}
             </p>
-            <p className="text-[10px] text-white/10">
-              Milennials Growth B2B — Marketing B2B
+            <p className="text-[11px] text-white/15">
+              Milennials Growth B2B — Marketing B2B para Marketplaces
             </p>
           </footer>
         </Section>

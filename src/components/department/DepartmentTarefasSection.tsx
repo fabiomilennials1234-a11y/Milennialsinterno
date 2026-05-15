@@ -223,10 +223,12 @@ export default function DepartmentTarefasSection({ department, type = 'daily' }:
                       const needsJustification = isOverdue && !hasJustification;
                       const clientName = task.clients?.razao_social || task.clients?.name || null;
 
-                      return (
-                        <Draggable 
-                          key={task.id} 
-                          draggableId={task.id} 
+                        const isHighPriority = task.priority === 'high' || task.priority === 'urgent';
+
+                    return (
+                        <Draggable
+                          key={task.id}
+                          draggableId={task.id}
                           index={index}
                           isDragDisabled={isDone}
                         >
@@ -240,17 +242,31 @@ export default function DepartmentTarefasSection({ department, type = 'daily' }:
                                 status.borderClass,
                                 isDone && 'opacity-60',
                                 isOverdue && 'border-l-danger bg-danger/5',
+                                !isOverdue && !isDone && isHighPriority && 'border-l-amber-500 bg-amber-500/5 ring-1 ring-amber-500/20',
+                                !isOverdue && !isDone && isHighPriority && task.status === 'todo' && 'animate-pulse',
                                 snapshot.isDragging && 'dragging'
                               )}
                             >
                               <div className="flex items-start justify-between">
                                 <div className="flex-1 min-w-0 pr-2">
-                                  <p className={cn(
-                                    "text-sm font-medium",
-                                    isDone && "line-through text-muted-foreground"
-                                  )}>
-                                    {task.title}
-                                  </p>
+                                  <div className="flex items-center gap-1.5">
+                                    {isHighPriority && !isDone && (
+                                      <span className={cn(
+                                        "shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide",
+                                        task.priority === 'urgent'
+                                          ? 'bg-red-500/15 text-red-400 border border-red-500/25'
+                                          : 'bg-amber-500/15 text-amber-400 border border-amber-500/25'
+                                      )}>
+                                        {task.priority === 'urgent' ? 'Urgente' : 'Alta'}
+                                      </span>
+                                    )}
+                                    <p className={cn(
+                                      "text-sm font-medium",
+                                      isDone && "line-through text-muted-foreground"
+                                    )}>
+                                      {task.title}
+                                    </p>
+                                  </div>
 
                                   {clientName && (
                                     <div className="flex items-center gap-1.5 mt-1">

@@ -60,6 +60,7 @@ const RECURRENCE_OPTIONS = [
   { value: 'weekly_wednesday', label: 'Quarta-feira' },
   { value: 'weekly_thursday', label: 'Quinta-feira' },
   { value: 'weekly_friday', label: 'Sexta-feira' },
+  { value: 'biweekly', label: 'Quinzenal (a cada 2 semanas)' },
 ] as const;
 
 const RECURRENCE_LABELS: Record<string, string> = {
@@ -71,6 +72,7 @@ const RECURRENCE_LABELS: Record<string, string> = {
   weekly_wednesday: 'Quarta-feira',
   weekly_thursday: 'Quinta-feira',
   weekly_friday: 'Sexta-feira',
+  biweekly: 'Quinzenal',
 };
 
 const PRIORITY_OPTIONS = [
