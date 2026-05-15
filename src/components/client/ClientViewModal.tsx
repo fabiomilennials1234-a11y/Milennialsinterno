@@ -57,7 +57,6 @@ import ManagementReportSection from '@/components/management-report/ManagementRe
 import ClientNpsSection from '@/components/management-report/ClientNpsSection';
 import PaddockDiagnosticoSection from '@/components/comercial/PaddockDiagnosticoSection';
 import PaddockDiagnosticoListSection from '@/components/comercial/PaddockDiagnosticoListSection';
-import WarRoomSection from '@/components/comercial/WarRoomSection';
 import CrmGerarTarefaSection from '@/components/gestor-crm/CrmGerarTarefaSection';
 import ClientTierBadge, { ClientCreativesLimit } from '@/components/shared/ClientTierBadge';
 import ClientCreativesHistory from '@/components/shared/ClientCreativesHistory';
@@ -701,12 +700,7 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
                 />
               )}
 
-              {/* War Room Guides - only for Paddock clients */}
-              {clientInfo && (clientInfo.contracted_products?.includes('millennials-growth') || clientInfo.contracted_products?.includes('millennials-paddock')) && (
-                <WarRoomSection clientId={clientId} />
-              )}
-
-              {/* Paddock Diagnóstico Comercial Section - after War Rooms */}
+              {/* Paddock Diagnóstico Comercial Section */}
               {clientInfo && (clientInfo.contracted_products?.includes('millennials-growth') || clientInfo.contracted_products?.includes('millennials-paddock')) && (
                 <PaddockDiagnosticoSection
                   clientId={clientId}

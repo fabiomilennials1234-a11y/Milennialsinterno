@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAdsTasks, useCreateTask, useUpdateTaskStatus, useUpdateTask, useArchiveTask, useDeleteTask, AdsTask } from '@/hooks/useAdsManager';
 import {
@@ -12,7 +12,9 @@ import {
 } from '@/hooks/useOnboardingTasks';
 
 import { useCompleteOnboardingTaskWithAutomation } from '@/hooks/useOnboardingAutomation';
-import { Plus, MoreHorizontal, Calendar, Target, Timer, Archive, CheckCircle, Trash2, ArchiveRestore, Eye, AlertTriangle, ChevronDown } from 'lucide-react';
+import { useClientTagsBatch } from '@/hooks/useClientTags';
+import { TAG_ESPERAR_BRIEFING } from '@/components/client-tags/ClientTagsList';
+import { Plus, MoreHorizontal, Calendar, Target, Timer, Archive, CheckCircle, Trash2, ArchiveRestore, Eye, AlertTriangle, ChevronDown, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -103,6 +105,28 @@ export default function AdsTarefasSection({ type, compact }: Props) {
   const deleteOnboardingTask = useDeleteOnboardingTask();
   const unarchiveOnboardingTask = useUnarchiveOnboardingTask();
   const canArchive = useCanArchiveTasks();
+
+  // Collect client IDs from both onboarding tasks AND regular ADS tasks (via client_id: tags)
+  // so blocking checks work for all task types
+  const allClientIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const t of onboardingTasks) {
+      if (t.client_id) ids.add(t.client_id);
+    }
+    for (const t of tasks) {
+      const tag = t.tags?.find(tag => tag.startsWith('client_id:'));
+      if (tag) ids.add(tag.replace('client_id:', ''));
+    }
+    return [...ids];
+  }, [onboardingTasks, tasks]);
+  const { data: tagsByClient } = useClientTagsBatch(allClientIds);
+
+  // Check if a client is blocked by "Esperar Briefing" tag
+  const isBlockedByBriefing = (clientId: string): boolean => {
+    const tags = tagsByClient?.get(clientId);
+    return !!tags?.some(t => t.name === TAG_ESPERAR_BRIEFING && !t.dismissed_at);
+  };
+
   // Instantly advance the client in the Onboarding pipeline via optimistic cache update.
   // This runs SYNCHRONOUSLY on the same click — no waiting for DB triggers or realtime.
   const advanceClientOnboardingInstantly = (completedTask: AdsTask) => {
@@ -250,9 +274,15 @@ export default function AdsTarefasSection({ type, compact }: Props) {
       const mappedStatus = statusMap[newStatus];
       if (mappedStatus) {
         if (mappedStatus === 'done') {
-          // Use automation hook to trigger next task creation + client advancement
           const task = onboardingTasks.find(t => t.id === actualId);
           if (task) {
+            // Block completion when "Esperar Briefing" tag is active
+            if (isBlockedByBriefing(task.client_id)) {
+              toast.error('Aguardando Briefing do GP', {
+                description: 'Esta tarefa so pode ser concluida apos o GP finalizar o briefing.',
+              });
+              return;
+            }
             completeOnboardingWithAutomation.mutate({
               taskId: actualId,
               taskType: task.task_type,
@@ -269,8 +299,23 @@ export default function AdsTarefasSection({ type, compact }: Props) {
     
     // Regular task - fire confetti when moving to done
     if (newStatus === 'done' && result.source.droppableId !== 'done') {
-      fireCelebration();
       const completedTask = tasks.find(t => t.id === taskId);
+
+      // Block ADS onboarding tasks when "Esperar Briefing" is active
+      if (completedTask) {
+        const clientTag = completedTask.tags?.find(tag => tag.startsWith('client_id:'));
+        if (clientTag) {
+          const clientIdFromTag = clientTag.replace('client_id:', '');
+          if (isBlockedByBriefing(clientIdFromTag)) {
+            toast.error('Aguardando Briefing do GP', {
+              description: 'Esta tarefa so pode ser concluida apos o GP finalizar o briefing.',
+            });
+            return;
+          }
+        }
+      }
+
+      fireCelebration();
       if (completedTask) {
         advanceClientOnboardingInstantly(completedTask);
         // Toast rico: se é tarefa de onboarding, mostrar para onde o cliente avançou
@@ -307,7 +352,13 @@ export default function AdsTarefasSection({ type, compact }: Props) {
       const mappedStatus = statusMap[newStatus];
       if (mappedStatus) {
         if (mappedStatus === 'done' && onboardingTask) {
-          // Use automation hook to trigger next task creation + client advancement
+          // Block completion when "Esperar Briefing" tag is active
+          if (isBlockedByBriefing(onboardingTask.client_id)) {
+            toast.error('Aguardando Briefing do GP', {
+              description: 'Esta tarefa so pode ser concluida apos o GP finalizar o briefing.',
+            });
+            return;
+          }
           completeOnboardingWithAutomation.mutate({
             taskId,
             taskType: onboardingTask.task_type,
@@ -323,8 +374,23 @@ export default function AdsTarefasSection({ type, compact }: Props) {
 
     // Fire confetti when completing a task
     if (newStatus === 'done') {
-      fireCelebration();
       const completedTask = tasks.find(t => t.id === taskId);
+
+      // Block ADS onboarding tasks when "Esperar Briefing" is active
+      if (completedTask) {
+        const clientTag = completedTask.tags?.find(tag => tag.startsWith('client_id:'));
+        if (clientTag) {
+          const clientIdFromTag = clientTag.replace('client_id:', '');
+          if (isBlockedByBriefing(clientIdFromTag)) {
+            toast.error('Aguardando Briefing do GP', {
+              description: 'Esta tarefa so pode ser concluida apos o GP finalizar o briefing.',
+            });
+            return;
+          }
+        }
+      }
+
+      fireCelebration();
       if (completedTask) {
         advanceClientOnboardingInstantly(completedTask);
         const typeTag = completedTask.tags?.find(t => t.startsWith('onboarding_task_type:'));
@@ -539,17 +605,18 @@ export default function AdsTarefasSection({ type, compact }: Props) {
                       {/* Onboarding Tasks */}
                       {getOnboardingTasksForColumn(status.id).map((task, index) => {
                         const isOverdue = task.due_date && isPast(new Date(task.due_date)) && task.status === 'pending';
-                        const clientDays = task.client?.created_at 
+                        const clientDays = task.client?.created_at
                           ? differenceInDays(new Date(), new Date(task.client.created_at))
                           : 0;
                         const isDone = task.status === 'done';
+                        const taskBlocked = !isDone && isBlockedByBriefing(task.client_id);
 
                         return (
-                          <Draggable 
-                            key={`onboarding-${task.id}`} 
-                            draggableId={`onboarding-${task.id}`} 
+                          <Draggable
+                            key={`onboarding-${task.id}`}
+                            draggableId={`onboarding-${task.id}`}
                             index={index}
-                            isDragDisabled={isDone}
+                            isDragDisabled={isDone || taskBlocked}
                           >
                             {(provided, snapshot) => (
                               <div
@@ -592,7 +659,16 @@ export default function AdsTarefasSection({ type, compact }: Props) {
                                         Cliente: {task.client.name}
                                       </p>
                                     )}
-                                    
+
+                                    {taskBlocked && (
+                                      <div className="flex items-center gap-1.5 mt-1.5 px-2 py-1 bg-danger/10 border border-danger/20 rounded-md animate-pulse">
+                                        <ShieldAlert size={11} className="text-danger shrink-0" />
+                                        <span className="text-[10px] font-bold text-danger uppercase tracking-wider">
+                                          Aguardando Briefing
+                                        </span>
+                                      </div>
+                                    )}
+
                                     {task.due_date && !isDone && (
                                       <div className={cn(
                                         "flex items-center gap-1.5 mt-2 text-xs",

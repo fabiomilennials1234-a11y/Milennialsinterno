@@ -59,8 +59,6 @@ const PublicPaddockDiagnosticoPage = lazy(() => import("./pages/PublicPaddockDia
 const PublicMktplaceRelatorioPage = lazy(() => import("./pages/PublicMktplaceRelatorioPage"));
 const PublicCycleReportPage = lazy(() => import("./pages/PublicCycleReportPage"));
 const PublicManagementReportPage = lazy(() => import("./pages/PublicManagementReportPage"));
-const WarRoom2Page = lazy(() => import("./pages/WarRoom2Page"));
-const WarRoom3Page = lazy(() => import("./pages/WarRoom3Page"));
 const UpsellsPage = lazy(() => import("./pages/UpsellsPage"));
 const ComissoesPage = lazy(() => import("./pages/ComissoesPage"));
 const ProvasSociaisPage = lazy(() => import("./pages/ProvasSociaisPage"));
@@ -542,9 +540,6 @@ function AppRoutes() {
       {/* Public Paddock Diagnostic Page - accessible without authentication */}
       <Route path="/diagnostico-paddock/:token" element={<PublicPaddockDiagnosticoPage />} />
 
-      {/* War Room pages - accessible without authentication */}
-      <Route path="/war-room-2" element={<WarRoom2Page />} />
-      <Route path="/war-room-3" element={<WarRoom3Page />} />
 
       {/* Default Redirect baseado no cargo */}
       <Route path="/" element={

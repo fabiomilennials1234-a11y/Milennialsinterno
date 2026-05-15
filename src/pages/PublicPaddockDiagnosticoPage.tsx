@@ -32,7 +32,7 @@ import {
   type PaddockAreaScore,
 } from '@/hooks/usePaddockDiagnostico';
 
-// ── Design system (same as WarRoom2Page) ──────────────────────────
+// ── Design system ──────────────────────────────────────────────────
 const COLORS = {
   chaoFabrica: '#3A2E2C',
   farolCarga: '#FFD400',
@@ -342,9 +342,9 @@ const QUESTION_LABELS: Record<string, string> = {
   erro_aceita_nao: 'Aceita o "nao" facil demais',
   erro_nao_agenda: 'Nao agenda proximo passo',
   erro_nao_segue: 'Nao segue o processo definido',
-  evol_melhorou: 'Melhorou no geral apos War #2',
+  evol_melhorou: 'Melhorou no geral apos o treinamento',
   evol_gestor_percebe: 'Gestor percebe a evolucao',
-  evol_aplicou: 'Aplicou o que aprendeu no War #2',
+  evol_aplicou: 'Aplicou o que aprendeu no treinamento',
   evol_aumento_reunioes: 'Aumento no numero de reunioes',
   evol_qualidade_leads: 'Melhoria na qualidade dos leads',
   evol_mais_organizado: 'Vendedor mais organizado',
@@ -558,7 +558,7 @@ export default function PublicPaddockDiagnosticoPage() {
           >
             <MgrowthLogo className="w-40 mx-auto mb-6" />
             <p className="text-sm font-semibold tracking-widest uppercase mb-2" style={{ color: COLORS.farolCarga }}>
-              Diagnostico Comercial Pos War #2
+              Diagnostico Comercial
             </p>
             <h1 className="text-4xl md:text-5xl font-black mb-4" style={{ color: COLORS.luzGalpao }}>
               {clientName}
@@ -733,7 +733,7 @@ export default function PublicPaddockDiagnosticoPage() {
 
         {/* ── EVOLUTION ────────────────────────────────────────── */}
         {(improved.length > 0 || notImproved.length > 0) && (
-          <Section title="Evolucao Pos War #2" icon={<TrendingUp className="w-5 h-5" style={{ color: COLORS.farolCarga }} />} delay={0.3}>
+          <Section title="Evolucao Pos Treinamento" icon={<TrendingUp className="w-5 h-5" style={{ color: COLORS.farolCarga }} />} delay={0.3}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {improved.length > 0 && (
                 <div>
@@ -904,7 +904,7 @@ export default function PublicPaddockDiagnosticoPage() {
                       <p className="text-sm" style={{ color: COLORS.luzGalpao }}>{detail.comoResolver}</p>
                     </div>
                     <div className="rounded-lg p-3" style={{ backgroundColor: '#ffffff06' }}>
-                      <p className="text-xs font-bold mb-1" style={{ color: '#8B5CF6' }}>Referencia War Room #2:</p>
+                      <p className="text-xs font-bold mb-1" style={{ color: '#8B5CF6' }}>Referencia do treinamento:</p>
                       <p className="text-sm" style={{ color: COLORS.luzGalpao }}>{detail.referenciaWar2}</p>
                     </div>
 
@@ -1036,12 +1036,12 @@ export default function PublicPaddockDiagnosticoPage() {
           </div>
         </Section>
 
-        {/* ── ERRORS FROM WAR #2 THAT PERSIST ─────────────────── */}
+        {/* ── ERRORS FROM TRAINING THAT PERSIST ─────────────────── */}
         {criticalErrors.length > 0 && (
-          <Section title="Erros da War #2 que Continuam" icon={<Zap className="w-5 h-5" style={{ color: '#EF4444' }} />} delay={0.55}>
+          <Section title="Erros do Treinamento que Continuam" icon={<Zap className="w-5 h-5" style={{ color: '#EF4444' }} />} delay={0.55}>
             <div className="rounded-xl p-5 border" style={{ backgroundColor: '#EF444409', borderColor: '#EF444433' }}>
               <p className="text-sm mb-4" style={{ color: COLORS.acoIndustrial }}>
-                Os seguintes erros identificados no Bloco 8 da War Room #2 ainda persistem na operacao:
+                Os seguintes erros identificados no treinamento ainda persistem na operacao:
               </p>
               <div className="space-y-2 mb-4">
                 {criticalErrors.map((err, i) => (
@@ -1166,7 +1166,7 @@ export default function PublicPaddockDiagnosticoPage() {
                 },
                 {
                   step: 3,
-                  text: 'Eliminar erros da War #2 — Acao: Revisao individual de cada erro persistente',
+                  text: 'Eliminar erros do treinamento — Acao: Revisao individual de cada erro persistente',
                   color: '#EF4444',
                   show: criticalErrors.length > 0,
                 },
@@ -1178,7 +1178,7 @@ export default function PublicPaddockDiagnosticoPage() {
                 },
                 {
                   step: 5,
-                  text: 'Agendar War Room #3 — Prazo: 15 dias',
+                  text: 'Agendar sessao de revisao — Prazo: 15 dias',
                   color: COLORS.farolCarga,
                   show: true,
                 },

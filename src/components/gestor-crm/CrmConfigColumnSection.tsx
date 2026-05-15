@@ -14,6 +14,8 @@ import {
   type CrmProduto,
 } from '@/hooks/useCrmKanban';
 import { useStepValidations, type StepValidation } from '@/hooks/useCrmStepValidation';
+import { useClientTagsBatch } from '@/hooks/useClientTags';
+import ClientTagsList from '@/components/client-tags/ClientTagsList';
 import CrmConfigViewModal from './CrmConfigViewModal';
 import CrmDeadlineBadge from './CrmDeadlineBadge';
 import CrmValidationGate from './CrmValidationGate';
@@ -38,6 +40,13 @@ export default function CrmConfigColumnSection({ produto }: Props) {
   const { data: configs = [], isLoading } = useCrmConfiguracoes({ produto, finalizado: false });
   const { data: validations = [] } = useStepValidations(produto);
   const [selectedConfig, setSelectedConfig] = useState<any | null>(null);
+
+  // Fetch client tags for all configs' clients (show blocking labels)
+  const configClientIds = useMemo(
+    () => [...new Set((configs as any[]).map(c => c.client_id).filter(Boolean))],
+    [configs],
+  );
+  const { data: tagsByClient } = useClientTagsBatch(configClientIds);
 
   const label = CRM_PRODUTO_LABEL[produto];
   const color = CRM_PRODUTO_COLOR[produto];
@@ -193,6 +202,12 @@ export default function CrmConfigColumnSection({ produto }: Props) {
                               <AlertTriangle size={11} className="text-destructive" />
                             )}
                           </div>
+                          {/* Blocking tags (Esperar Briefing, Esperar TORQUE) */}
+                          <ClientTagsList
+                            tags={tagsByClient?.get(cfg.client_id) ?? []}
+                            size="sm"
+                            className="mt-0"
+                          />
                           {/* Compact validation gate: shows blocker count + advance button */}
                           <div className="pt-1 border-t border-border/30">
                             <CrmValidationGate

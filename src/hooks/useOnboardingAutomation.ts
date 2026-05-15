@@ -5,6 +5,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTargetAdsManager } from '@/contexts/AdsManagerContext';
 import { toast } from 'sonner';
 import { addDays, getDay } from 'date-fns';
+import {
+  isGrowthClient,
+  callGrowthOnAdsPublicarCampanha,
+  callGrowthOnAdsDailyTracking,
+} from '@/hooks/useGrowthCrossKanban';
 
 async function duplicateTaskForSecondaryManager(clientId: string, taskData: {
   task_type: string;
@@ -345,13 +350,29 @@ export function useCompleteOnboardingTaskWithAutomation() {
       console.error('Error completing task with automation:', error);
       toast.error('Erro ao concluir tarefa');
     },
-    onSuccess: (result) => {
+    onSuccess: (result, variables) => {
       if (result.taskCompleted) {
         if ((result as any).isAuxiliaryTask) {
           toast.success('Tarefa concluída!');
         } else if ((result as any).onboardingCompleted) {
           const dayName = (result as any).dayOfWeek || 'hoje';
           toast.success(`Onboarding concluído! Cliente movido para Acompanhamento - ${dayName.charAt(0).toUpperCase() + dayName.slice(1)}.`);
+
+          // Growth cross-kanban: fire RPCs for Growth clients on publicar_campanha
+          // Fire-and-forget — primary flow must not fail because of Growth side-effects
+          if (variables.taskType === 'publicar_campanha') {
+            (async () => {
+              const { data: client } = await supabase
+                .from('clients')
+                .select('contracted_products')
+                .eq('id', variables.clientId)
+                .single();
+              if (client && isGrowthClient(client as { contracted_products?: string[] | null })) {
+                await callGrowthOnAdsPublicarCampanha(variables.clientId);
+                await callGrowthOnAdsDailyTracking(variables.clientId);
+              }
+            })();
+          }
         } else {
           toast.success(`Tarefa concluída! Cliente avançou para Marco ${result.nextMilestone}.`);
         }
@@ -365,6 +386,9 @@ export function useCompleteOnboardingTaskWithAutomation() {
       queryClient.invalidateQueries({ queryKey: ['cards'] });
       queryClient.invalidateQueries({ queryKey: ['client-tracking'] });
       queryClient.invalidateQueries({ queryKey: ['ads-tasks'] });
+      // Growth cross-kanban RPCs may create/dismiss client_tags
+      queryClient.invalidateQueries({ queryKey: ['client-tags'] });
+      queryClient.invalidateQueries({ queryKey: ['client-tags-batch'] });
     },
   });
 }

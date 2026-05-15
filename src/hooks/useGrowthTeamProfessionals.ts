@@ -11,6 +11,8 @@ const MANAGER_LIMITS: Record<string, number> = {
   gestor_ads: 25,
   consultor_comercial: 80,
   consultor_mktplace: 80,
+  gestor_crm: 80,
+  sucesso_cliente: 50,
 };
 
 export { MANAGER_LIMITS as GROWTH_TEAM_LIMITS };
@@ -90,4 +92,6 @@ const ROLE_TO_CLIENT_FIELD: Record<string, string> = {
   gestor_ads: 'assigned_ads_manager',
   consultor_comercial: 'assigned_comercial',
   consultor_mktplace: 'assigned_mktplace',
+  gestor_crm: 'assigned_crm',
+  sucesso_cliente: 'assigned_sucesso_cliente',
 };

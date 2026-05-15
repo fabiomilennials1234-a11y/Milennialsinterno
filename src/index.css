@@ -950,7 +950,33 @@
   .tag-blocking-pulse {
     animation: tag-blocking-pulse 2s ease-in-out infinite;
   }
-  
+
+  /* Growth blocking labels — danger variant */
+  @keyframes growth-blocking-pulse-danger {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.25), 0 0 8px rgba(239, 68, 68, 0.1);
+    }
+    50% {
+      box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12), 0 0 16px rgba(239, 68, 68, 0.18);
+    }
+  }
+  .growth-blocking-pulse-danger {
+    animation: growth-blocking-pulse-danger 2s ease-in-out infinite;
+  }
+
+  /* Growth blocking labels — warning variant */
+  @keyframes growth-blocking-pulse-warning {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.2), 0 0 6px rgba(245, 158, 11, 0.08);
+    }
+    50% {
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1), 0 0 12px rgba(245, 158, 11, 0.14);
+    }
+  }
+  .growth-blocking-pulse-warning {
+    animation: growth-blocking-pulse-warning 2s ease-in-out infinite;
+  }
+
   .animate-marquee-slow:hover {
     animation-play-state: paused;
   }

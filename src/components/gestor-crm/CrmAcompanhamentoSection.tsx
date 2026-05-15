@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useCrmTracking, useMoveClientCrm, useSaveCrmDoc, useCrmTodayDocumentedClients, CRM_DAYS, getTorqueCrmProducts } from '@/hooks/useCrmKanban';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import ClientViewModal from '@/components/client/ClientViewModal';
 import ProductBadges, { TorqueCRMProductBadges } from '@/components/shared/ProductBadges';
+import { useClientTagsBatch } from '@/hooks/useClientTags';
+import ClientTagsList from '@/components/client-tags/ClientTagsList';
 import { Eye, GripVertical, Clock, Calendar as CalendarIcon, AlertTriangle, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -56,6 +58,13 @@ export default function CrmAcompanhamentoSection() {
   const [docForm, setDocForm] = useState<DocForm>({ ...emptyForm });
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Batch-fetch blocking tags for all tracked clients
+  const trackingClientIds = useMemo(
+    () => [...new Set((tracking as any[]).map((t: any) => t.client_id).filter(Boolean))],
+    [tracking],
+  );
+  const { data: tagsByClient } = useClientTagsBatch(trackingClientIds);
 
   const getClientsByDay = (day: string) => {
     return tracking
@@ -242,6 +251,14 @@ export default function CrmAcompanhamentoSection() {
                                 {torqueProducts.length > 0 && (
                                   <TorqueCRMProductBadges products={torqueProducts} size="sm" />
                                 )}
+                              </div>
+
+                              <div className="pl-4">
+                                <ClientTagsList
+                                  tags={tagsByClient?.get(item.client_id) ?? []}
+                                  size="sm"
+                                  className="mt-0"
+                                />
                               </div>
                             </div>
                           )}

@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import type { CrmProduto } from './useCrmKanban';
+import { isGrowthClient, callGrowthOnCrmFinalizado } from './useGrowthCrossKanban';
 
 // =============================================================
 // Hook: useCrmStepValidation
@@ -35,6 +36,7 @@ export interface RequiredField {
 
 export interface CrmConfigState {
   id: string;
+  client_id: string;
   produto: CrmProduto;
   current_step: string;
   checklist_state: Record<string, boolean>;
@@ -82,7 +84,7 @@ export function useCrmConfigState(configId: string | undefined) {
       if (!configId) return null;
       const { data, error } = await (supabase as any)
         .from('crm_configuracoes')
-        .select('id, produto, current_step, checklist_state, field_values, step_entered_at, blocked_until, activation_at, training_at, reset_count, is_finalizado, delay_justification, delay_justified_at, delay_justification_category')
+        .select('id, client_id, produto, current_step, checklist_state, field_values, step_entered_at, blocked_until, activation_at, training_at, reset_count, is_finalizado, delay_justification, delay_justified_at, delay_justification_category')
         .eq('id', configId)
         .single();
       if (error) throw error;
@@ -243,9 +245,27 @@ export function useCrmStepValidation(configId: string | undefined, produto: CrmP
       queryClient.invalidateQueries({ queryKey: ['crm-config-state', configId] });
       queryClient.invalidateQueries({ queryKey: ['crm-configuracoes'] });
       queryClient.invalidateQueries({ queryKey: ['crm-configs-for-client'] });
+      queryClient.invalidateQueries({ queryKey: ['client-tags'] });
+      queryClient.invalidateQueries({ queryKey: ['client-tags-batch'] });
 
       if (result?.finalized) {
         toast.success('CRM finalizado!');
+
+        // Growth cross-kanban: dismiss "Esperar TORQUE%" tags when CRM finalizes
+        if (configState?.client_id) {
+          (async () => {
+            const { data: client } = await supabase
+              .from('clients')
+              .select('contracted_products')
+              .eq('id', configState.client_id)
+              .single();
+            if (client && isGrowthClient(client as { contracted_products?: string[] | null })) {
+              await callGrowthOnCrmFinalizado(configState.client_id);
+              queryClient.invalidateQueries({ queryKey: ['client-tags'] });
+              queryClient.invalidateQueries({ queryKey: ['client-tags-batch'] });
+            }
+          })();
+        }
       } else if (result?.allowed) {
         toast.success('Etapa concluida!');
       } else if (result?.blockers) {

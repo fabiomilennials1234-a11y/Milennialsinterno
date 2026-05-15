@@ -1,6 +1,14 @@
 import { useState, useMemo } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import { Users, Loader2, Megaphone, MessageSquare, ShoppingBag } from 'lucide-react';
+import {
+  Users,
+  Loader2,
+  Megaphone,
+  MessageSquare,
+  ShoppingBag,
+  BarChart3,
+  HeartHandshake,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -25,7 +33,6 @@ import {
   useGroupProfessionalsByRole,
   GROWTH_TEAM_LIMITS,
 } from '@/hooks/useGrowthTeamProfessionals';
-import { GROWTH_TASK_PREFIX } from '@/hooks/useGrowthOnboarding';
 
 interface GrowthTeamSelectionModalProps {
   clientId: string;
@@ -43,10 +50,11 @@ export default function GrowthTeamSelectionModal({
 
   const [adsManagerId, setAdsManagerId] = useState('');
   const [comercialId, setComercialId] = useState('');
+  const [crmId, setCrmId] = useState('');
+  const [cxId, setCxId] = useState('');
   const [hasMktplace, setHasMktplace] = useState(false);
   const [mktplaceId, setMktplaceId] = useState('');
 
-  // Fetch client data to get group_id and name
   const { data: client, isLoading: clientLoading } = useQuery({
     queryKey: ['growth-client-detail', clientId],
     queryFn: async () => {
@@ -62,64 +70,45 @@ export default function GrowthTeamSelectionModal({
 
   const groupId = client?.group_id ?? null;
 
-  // Fetch professionals by role filtered to client's group
-  const { data: adsManagers = [], isLoading: adsLoading } = useGroupProfessionalsByRole('gestor_ads', groupId);
-  const { data: comerciais = [], isLoading: comercialLoading } = useGroupProfessionalsByRole('consultor_comercial', groupId);
-  const { data: mktplaceConsultants = [], isLoading: mktplaceLoading } = useGroupProfessionalsByRole('consultor_mktplace', groupId);
+  const { data: adsManagers = [], isLoading: adsLoading } =
+    useGroupProfessionalsByRole('gestor_ads', groupId);
+  const { data: comerciais = [], isLoading: comercialLoading } =
+    useGroupProfessionalsByRole('consultor_comercial', groupId);
+  const { data: crmManagers = [], isLoading: crmLoading } =
+    useGroupProfessionalsByRole('gestor_crm', groupId);
+  const { data: cxProfessionals = [], isLoading: cxLoading } =
+    useGroupProfessionalsByRole('sucesso_cliente', groupId);
+  const { data: mktplaceConsultants = [], isLoading: mktplaceLoading } =
+    useGroupProfessionalsByRole('consultor_mktplace', groupId);
 
   const canSubmit = useMemo(() => {
-    if (!adsManagerId || !comercialId) return false;
+    if (!adsManagerId || !comercialId || !crmId || !cxId) return false;
     if (hasMktplace && !mktplaceId) return false;
     return true;
-  }, [adsManagerId, comercialId, hasMktplace, mktplaceId]);
+  }, [adsManagerId, comercialId, crmId, cxId, hasMktplace, mktplaceId]);
 
   const assignTeam = useMutation({
     mutationFn: async () => {
       if (!user?.id) throw new Error('auth required');
       if (!client) throw new Error('client not loaded');
 
-      // 1. Call RPC
-      const { error: rpcError } = await supabase.rpc('growth_assign_team', {
+      // 1. Assign full team via RPC
+      const { error: rpcError } = await supabase.rpc('growth_assign_full_team', {
         p_client_id: clientId,
-        p_ads_manager_id: adsManagerId,
-        p_comercial_id: comercialId,
-        p_has_mktplace: hasMktplace,
-        p_mktplace_id: hasMktplace ? mktplaceId : undefined,
+        p_ads: adsManagerId,
+        p_comercial: comercialId,
+        p_crm: crmId,
+        p_cx: cxId,
+        p_mktplace: hasMktplace ? mktplaceId : undefined,
       });
       if (rpcError) throw rpcError;
 
-      // 2. Build "Alinhar Projeto" task title with professional names
-      const selectedNames: string[] = [];
-      const adsName = adsManagers.find(m => m.user_id === adsManagerId)?.name;
-      if (adsName) selectedNames.push(adsName);
-      const comercialName = comerciais.find(m => m.user_id === comercialId)?.name;
-      if (comercialName) selectedNames.push(comercialName);
-      if (hasMktplace) {
-        const mktName = mktplaceConsultants.find(m => m.user_id === mktplaceId)?.name;
-        if (mktName) selectedNames.push(mktName);
-      }
-
-      const taskTitle = `${GROWTH_TASK_PREFIX.align_project}${client.name} os profissionais: ${selectedNames.join(', ')}`;
-      const dueDate = addBusinessDays(new Date(), 1);
-
-      const taskPayload = {
-        user_id: user.id,
-        title: taskTitle,
-        description: 'growth:align_project',
-        task_type: 'daily' as const,
-        status: 'todo' as const,
-        priority: 'high',
-        department: 'gestor_projetos',
-        related_client_id: clientId,
-        due_date: dueDate.toISOString(),
-      };
-      const { error: taskError } = await supabase
-        .from('department_tasks')
-        .insert(taskPayload as never);
-
-      if (taskError) {
-        console.error('[GrowthTeamSelection] Failed to create align task:', taskError);
-      }
+      // 2. Advance GP step to acompanhamento_gestores
+      const { error: stepError } = await supabase.rpc('growth_advance_gp_step', {
+        p_client_id: clientId,
+        p_new_step: 'acompanhamento_gestores',
+      });
+      if (stepError) throw stepError;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
@@ -140,7 +129,8 @@ export default function GrowthTeamSelectionModal({
     },
   });
 
-  const isLoading = clientLoading || adsLoading || comercialLoading;
+  const isLoading =
+    clientLoading || adsLoading || comercialLoading || crmLoading || cxLoading;
 
   return (
     <Dialog open onOpenChange={() => {}}>
@@ -156,7 +146,7 @@ export default function GrowthTeamSelectionModal({
             </div>
             <div>
               <DialogTitle className="text-lg font-bold">
-                ESCOLHER EQUIPE GROWTH
+                ESCOLHER EQUIPE GROWTH:
               </DialogTitle>
               {client && (
                 <p className="text-sm text-muted-foreground mt-0.5">
@@ -166,7 +156,7 @@ export default function GrowthTeamSelectionModal({
             </div>
           </div>
           <DialogDescription className="text-sm mt-3 leading-relaxed">
-            Selecione os profissionais que acompanharao este cliente Growth.
+            Selecione os profissionais que acompanharão este cliente Growth.
           </DialogDescription>
         </DialogHeader>
 
@@ -175,8 +165,8 @@ export default function GrowthTeamSelectionModal({
             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="space-y-6 mt-2">
-            {/* Section 1: Gestor de ADS */}
+          <div className="space-y-5 mt-2">
+            {/* 1. Gestor de ADS */}
             <ProfessionalSelect
               icon={<Megaphone size={16} className="text-blue-400" />}
               label="Gestor de ADS"
@@ -188,7 +178,7 @@ export default function GrowthTeamSelectionModal({
               placeholder="Selecionar Gestor de ADS..."
             />
 
-            {/* Section 2: Treinador Comercial */}
+            {/* 2. Treinador Comercial */}
             <ProfessionalSelect
               icon={<MessageSquare size={16} className="text-emerald-400" />}
               label="Treinador Comercial"
@@ -200,12 +190,38 @@ export default function GrowthTeamSelectionModal({
               placeholder="Selecionar Treinador Comercial..."
             />
 
-            {/* Section 3: Consultoria de MKT Place */}
+            {/* 3. Gestor de CRM */}
+            <ProfessionalSelect
+              icon={<BarChart3 size={16} className="text-amber-400" />}
+              label="Gestor de CRM"
+              required
+              professionals={crmManagers}
+              limit={GROWTH_TEAM_LIMITS.gestor_crm}
+              value={crmId}
+              onChange={setCrmId}
+              placeholder="Selecionar Gestor de CRM..."
+            />
+
+            {/* 4. Sucesso do Cliente / CX */}
+            <ProfessionalSelect
+              icon={<HeartHandshake size={16} className="text-rose-400" />}
+              label="Sucesso do Cliente"
+              required
+              professionals={cxProfessionals}
+              limit={GROWTH_TEAM_LIMITS.sucesso_cliente}
+              value={cxId}
+              onChange={setCxId}
+              placeholder="Selecionar Sucesso do Cliente..."
+            />
+
+            {/* 5. Consultoria de MKT Place (opcional) */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <ShoppingBag size={16} className="text-purple-400" />
-                  <Label className="text-sm font-semibold">Consultoria de MKT Place</Label>
+                  <Label className="text-sm font-semibold">
+                    Consultoria de MKT Place
+                  </Label>
                 </div>
                 <Switch
                   checked={hasMktplace}
@@ -220,18 +236,21 @@ export default function GrowthTeamSelectionModal({
                 <div className="animate-fade-in">
                   <Select value={mktplaceId} onValueChange={setMktplaceId}>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder={
-                        mktplaceLoading
-                          ? 'Carregando...'
-                          : mktplaceConsultants.length === 0
-                            ? 'Nenhum consultor no grupo'
-                            : 'Selecionar Consultor MKT Place...'
-                      } />
+                      <SelectValue
+                        placeholder={
+                          mktplaceLoading
+                            ? 'Carregando...'
+                            : mktplaceConsultants.length === 0
+                              ? 'Nenhum consultor no grupo'
+                              : 'Selecionar Consultor MKT Place...'
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
-                      {mktplaceConsultants.map(p => (
+                      {mktplaceConsultants.map((p) => (
                         <SelectItem key={p.user_id} value={p.user_id}>
-                          {p.name} — {p.client_count}/{GROWTH_TEAM_LIMITS.consultor_mktplace}
+                          {p.name} — {p.client_count}/
+                          {GROWTH_TEAM_LIMITS.consultor_mktplace}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -265,7 +284,7 @@ export default function GrowthTeamSelectionModal({
   );
 }
 
-// ── Internal components ──────────────────────────────────────────────────────
+// -- Internal components -------------------------------------------------------
 
 interface ProfessionalSelectProps {
   icon: React.ReactNode;
@@ -298,14 +317,16 @@ function ProfessionalSelect({
       </div>
       <Select value={value} onValueChange={onChange}>
         <SelectTrigger className="w-full">
-          <SelectValue placeholder={
-            professionals.length === 0
-              ? 'Nenhum profissional no grupo'
-              : placeholder
-          } />
+          <SelectValue
+            placeholder={
+              professionals.length === 0
+                ? 'Nenhum profissional no grupo'
+                : placeholder
+            }
+          />
         </SelectTrigger>
         <SelectContent>
-          {professionals.map(p => (
+          {professionals.map((p) => (
             <SelectItem key={p.user_id} value={p.user_id}>
               {p.name} — {p.client_count}/{limit}
             </SelectItem>
@@ -314,17 +335,4 @@ function ProfessionalSelect({
       </Select>
     </div>
   );
-}
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-function addBusinessDays(date: Date, days: number): Date {
-  const result = new Date(date);
-  let added = 0;
-  while (added < days) {
-    result.setDate(result.getDate() + 1);
-    const dow = result.getDay();
-    if (dow !== 0 && dow !== 6) added++;
-  }
-  return result;
 }

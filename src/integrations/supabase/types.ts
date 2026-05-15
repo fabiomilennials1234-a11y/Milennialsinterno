@@ -1,3 +1,4 @@
+Initialising login role...
 export type Json =
   | string
   | number
@@ -11,31 +12,6 @@ export type Database = {
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.1"
-  }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
   }
   public: {
     Tables: {
@@ -2016,7 +1992,11 @@ export type Database = {
           finance_display_name: string | null
           general_info: string | null
           group_id: string | null
+          growth_counter_ended_at: string | null
+          growth_counter_started_at: string | null
+          growth_gp_step: string | null
           growth_onboarding_step: string | null
+          growth_torque_unblocked_at: string | null
           id: string
           last_cs_contact_at: string | null
           mktplace_entered_at: string | null
@@ -2076,7 +2056,11 @@ export type Database = {
           finance_display_name?: string | null
           general_info?: string | null
           group_id?: string | null
+          growth_counter_ended_at?: string | null
+          growth_counter_started_at?: string | null
+          growth_gp_step?: string | null
           growth_onboarding_step?: string | null
+          growth_torque_unblocked_at?: string | null
           id?: string
           last_cs_contact_at?: string | null
           mktplace_entered_at?: string | null
@@ -2136,7 +2120,11 @@ export type Database = {
           finance_display_name?: string | null
           general_info?: string | null
           group_id?: string | null
+          growth_counter_ended_at?: string | null
+          growth_counter_started_at?: string | null
+          growth_gp_step?: string | null
           growth_onboarding_step?: string | null
+          growth_torque_unblocked_at?: string | null
           id?: string
           last_cs_contact_at?: string | null
           mktplace_entered_at?: string | null
@@ -4549,6 +4537,54 @@ export type Database = {
             columns: ["board_id"]
             isOneToOne: false
             referencedRelation: "kanban_boards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      management_reports: {
+        Row: {
+          client_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          public_token: string
+          report_data: Json
+          report_month: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          public_token?: string
+          report_data?: Json
+          report_month: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          public_token?: string
+          report_data?: Json
+          report_month?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "management_reports_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "management_reports_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -9015,6 +9051,7 @@ export type Database = {
       check_department_tasks_stalled: { Args: never; Returns: undefined }
       check_expired_client_tags: { Args: never; Returns: undefined }
       check_financeiro_clients_stalled: { Args: never; Returns: undefined }
+      check_growth_counter_alerts: { Args: never; Returns: Json }
       check_mktplace_relatorio_deadlines: { Args: never; Returns: number }
       check_no_clients_moved_today: { Args: never; Returns: undefined }
       check_onboarding_tasks_stuck: { Args: never; Returns: undefined }
@@ -9219,6 +9256,7 @@ export type Database = {
           user_role: string
         }[]
       }
+      get_public_management_report: { Args: { _token: string }; Returns: Json }
       get_public_mktplace_cycle_report: {
         Args: { p_token: string }
         Returns: Json
@@ -9249,6 +9287,21 @@ export type Database = {
         }
         Returns: number
       }
+      growth_advance_gp_step: {
+        Args: { p_client_id: string; p_new_step: string }
+        Returns: Json
+      }
+      growth_assign_full_team: {
+        Args: {
+          p_ads: string
+          p_client_id: string
+          p_comercial: string
+          p_crm: string
+          p_cx: string
+          p_mktplace?: string
+        }
+        Returns: Json
+      }
       growth_assign_team: {
         Args: {
           p_ads_manager_id: string
@@ -9259,6 +9312,16 @@ export type Database = {
         }
         Returns: Json
       }
+      growth_complete_briefing: { Args: { p_client_id: string }; Returns: Json }
+      growth_on_ads_daily_tracking: {
+        Args: { p_client_id: string }
+        Returns: Json
+      }
+      growth_on_ads_publicar_campanha: {
+        Args: { p_client_id: string }
+        Returns: Json
+      }
+      growth_on_crm_finalizado: { Args: { p_client_id: string }; Returns: Json }
       has_capability: {
         Args: { _key: string; _user_id: string }
         Returns: boolean
@@ -9764,9 +9827,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       tech_sprint_status: ["PLANNING", "ACTIVE", "COMPLETED"],
@@ -9795,3 +9855,4 @@ export const Constants = {
     },
   },
 } as const
+<claude-code-hint v="1" type="plugin" value="supabase@claude-plugins-official" />

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Eye } from 'lucide-react';
@@ -6,6 +6,8 @@ import ClientViewModal from '@/components/client/ClientViewModal';
 import ProductBadges, { TorqueCRMProductBadges } from '@/components/shared/ProductBadges';
 import ClientLabelBadge, { type ClientLabel } from '@/components/shared/ClientLabelBadge';
 import { useCrmBoasVindasClientes, getTorqueCrmProducts } from '@/hooks/useCrmKanban';
+import { useClientTagsBatch } from '@/hooks/useClientTags';
+import ClientTagsList from '@/components/client-tags/ClientTagsList';
 
 /**
  * Coluna "Boas-vindas — Novos clientes".
@@ -18,6 +20,8 @@ import { useCrmBoasVindasClientes, getTorqueCrmProducts } from '@/hooks/useCrmKa
 export default function CrmBoasVindasSection() {
   const { data: clients = [], isLoading } = useCrmBoasVindasClientes();
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const clientIds = useMemo(() => (clients as any[]).map((c: any) => c.id), [clients]);
+  const { data: tagsByClient } = useClientTagsBatch(clientIds);
 
   if (isLoading) {
     return (
@@ -74,6 +78,12 @@ export default function CrmBoasVindasSection() {
                       <TorqueCRMProductBadges products={torqueProducts} size="sm" />
                     )}
                   </div>
+
+                  <ClientTagsList
+                    tags={tagsByClient?.get(client.id) ?? []}
+                    size="sm"
+                    className="mt-0"
+                  />
 
                   <div className="text-[10px] text-muted-foreground flex items-center gap-1">
                     <Sparkles size={10} className="text-emerald-500" />

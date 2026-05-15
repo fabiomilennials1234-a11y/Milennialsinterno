@@ -191,7 +191,7 @@ export default function PaddockDiagnosticoFormModal({ isOpen, onClose, clientId,
                 <Radio3 id="exec_consistencia_diaria" label="Existe consistência diária ou os dias variam muito?" value={form.exec_consistencia_diaria} onChange={(v) => set('exec_consistencia_diaria', v)} />
                 <Radio3 id="exec_comeca_pelo_crm" label="Os vendedores começam o dia pelo CRM ou por WhatsApp?" value={form.exec_comeca_pelo_crm} onChange={(v) => set('exec_comeca_pelo_crm', v)} />
                 <Radio3 id="exec_blocos_ligacao" label="O time está fazendo blocos de ligação sem distração?" value={form.exec_blocos_ligacao} onChange={(v) => set('exec_blocos_ligacao', v)} />
-                <Radio2 id="exec_volume_caiu" label="O volume caiu depois da War #2?" value={form.exec_volume_caiu} onChange={(v) => set('exec_volume_caiu', v)} />
+                <Radio2 id="exec_volume_caiu" label="O volume caiu depois do treinamento?" value={form.exec_volume_caiu} onChange={(v) => set('exec_volume_caiu', v)} />
                 <Radio2 id="exec_alguem_nao_performa" label="Existe alguém no time que não está performando o mínimo?" value={form.exec_alguem_nao_performa} onChange={(v) => set('exec_alguem_nao_performa', v)} />
                 <Radio3 id="exec_followup_diario" label="O time executa follow-up todos os dias ou deixa acumular?" value={form.exec_followup_diario} onChange={(v) => set('exec_followup_diario', v)} />
                 <Radio2 id="exec_leads_sem_atividade" label="Leads estão ficando sem próxima atividade?" value={form.exec_leads_sem_atividade} onChange={(v) => set('exec_leads_sem_atividade', v)} />
@@ -307,7 +307,7 @@ export default function PaddockDiagnosticoFormModal({ isOpen, onClose, clientId,
             </FormBlock>
 
             {/* ── Bloco 8: Erros Críticos ── */}
-            <FormBlock title="Erros Críticos (Baseado na War #2)" number={8}>
+            <FormBlock title="Erros Críticos (Baseado no Treinamento)" number={8}>
               <div className="space-y-3">
                 <Radio2 id="erro_liga_pouco" label="O time ainda liga pouco?" value={form.erro_liga_pouco} onChange={(v) => set('erro_liga_pouco', v)} />
                 <Radio2 id="erro_comeca_whatsapp" label="Ainda começa pelo WhatsApp?" value={form.erro_comeca_whatsapp} onChange={(v) => set('erro_comeca_whatsapp', v)} />
@@ -327,7 +327,7 @@ export default function PaddockDiagnosticoFormModal({ isOpen, onClose, clientId,
             {/* ── Bloco 9: Evolução Real ── */}
             <FormBlock title="Evolução Real Pós Treinamento" number={9}>
               <div className="space-y-3">
-                <Radio3 id="evol_melhorou" label="O time melhorou depois da War #2?" value={form.evol_melhorou} onChange={(v) => set('evol_melhorou', v)} />
+                <Radio3 id="evol_melhorou" label="O time melhorou depois do treinamento?" value={form.evol_melhorou} onChange={(v) => set('evol_melhorou', v)} />
                 <Radio3 id="evol_gestor_percebe" label="O gestor percebe evolução real?" value={form.evol_gestor_percebe} onChange={(v) => set('evol_gestor_percebe', v)} />
                 <Radio3 id="evol_aplicou" label="O time aplicou o que foi ensinado?" value={form.evol_aplicou} onChange={(v) => set('evol_aplicou', v)} />
                 <Radio3 id="evol_aumento_reunioes" label="Houve aumento de reuniões?" value={form.evol_aumento_reunioes} onChange={(v) => set('evol_aumento_reunioes', v)} />
@@ -337,7 +337,7 @@ export default function PaddockDiagnosticoFormModal({ isOpen, onClose, clientId,
                 <Radio3 id="evol_processo_claro" label="O processo está mais claro?" value={form.evol_processo_claro} onChange={(v) => set('evol_processo_claro', v)} />
               </div>
               <div className="space-y-4">
-                <div><Label className="text-sm font-medium">O que melhorou após a War #2?</Label><Textarea rows={3} value={form.evol_o_que_melhorou} onChange={(e) => set('evol_o_que_melhorou', e.target.value)} /></div>
+                <div><Label className="text-sm font-medium">O que melhorou após o treinamento?</Label><Textarea rows={3} value={form.evol_o_que_melhorou} onChange={(e) => set('evol_o_que_melhorou', e.target.value)} /></div>
                 <div><Label className="text-sm font-medium">O que NÃO melhorou?</Label><Textarea rows={3} value={form.evol_o_que_nao_melhorou} onChange={(e) => set('evol_o_que_nao_melhorou', e.target.value)} /></div>
                 <div><Label className="text-sm font-medium">Top 3 gargalos atuais</Label><Textarea rows={3} value={form.evol_top3_gargalos} onChange={(e) => set('evol_top3_gargalos', e.target.value)} /></div>
                 <div><Label className="text-sm font-medium">Top 3 ações imediatas</Label><Textarea rows={3} value={form.evol_top3_acoes} onChange={(e) => set('evol_top3_acoes', e.target.value)} /></div>

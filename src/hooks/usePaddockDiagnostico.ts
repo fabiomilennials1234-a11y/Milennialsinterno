@@ -403,9 +403,9 @@ const QUESTION_LABELS: Record<string, string> = {
   erro_nao_agenda: 'Não agenda próximo passo',
   erro_nao_segue: 'Não segue o processo definido',
   // Evolução Real (Block 9)
-  evol_melhorou: 'Melhorou no geral após War #2',
+  evol_melhorou: 'Melhorou no geral após o treinamento',
   evol_gestor_percebe: 'Gestor percebe a evolução',
-  evol_aplicou: 'Aplicou o que aprendeu no War #2',
+  evol_aplicou: 'Aplicou o que aprendeu no treinamento',
   evol_aumento_reunioes: 'Aumento no número de reuniões',
   evol_qualidade_leads: 'Melhoria na qualidade dos leads',
   evol_mais_organizado: 'Vendedor mais organizado',
@@ -413,7 +413,7 @@ const QUESTION_LABELS: Record<string, string> = {
   evol_processo_claro: 'Processo comercial mais claro',
 };
 
-// ── Detalhamento por área: por quê, como resolver, referência War #2 ──
+// ── Detalhamento por área: por quê, como resolver, referência do treinamento ──
 const AREA_DETAIL: Record<string, {
   porQue: string;
   comoResolver: string;
@@ -743,9 +743,9 @@ export function generatePaddockReport(
     if (val === 'sim') errosDetectados.push(QUESTION_LABELS[q] || q);
   }
 
-  // ── Evolução pós War #2 (Bloco 9) ──
+  // ── Evolução pós treinamento (Bloco 9) ──
   const evolucaoKeys = [
-    { key: 'evol_melhorou', label: 'Melhorou no geral após War #2' },
+    { key: 'evol_melhorou', label: 'Melhorou no geral após o treinamento' },
     { key: 'evol_gestor_percebe', label: 'Gestor percebe evolução real' },
     { key: 'evol_aplicou', label: 'Time aplicou o que foi ensinado' },
     { key: 'evol_aumento_reunioes', label: 'Aumento no número de reuniões' },
@@ -767,18 +767,18 @@ export function generatePaddockReport(
   let resumo = '';
   const clienteNome = data.cliente_nome || 'o cliente';
   if (criticas.length >= 4) {
-    resumo = `A operação comercial de ${clienteNome} apresenta falhas estruturais graves em ${criticas.length} das 7 áreas avaliadas após o treinamento da War Room #2. Isso indica que o conteúdo ensinado não foi absorvido ou executado pela equipe. Antes de qualquer estratégia de crescimento, é fundamental corrigir a base: volume de atividades, uso correto do CRM, abordagem estruturada e disciplina diária. Sem essas correções, investir em marketing ou escala vai gerar custo sem retorno.\n\nAs áreas mais críticas são: ${criticas.map(a => a.label).join(', ')}. Cada uma dessas áreas precisa de intervenção imediata nas próximas 48 horas.`;
+    resumo = `A operação comercial de ${clienteNome} apresenta falhas estruturais graves em ${criticas.length} das 7 áreas avaliadas após o treinamento. Isso indica que o conteúdo ensinado não foi absorvido ou executado pela equipe. Antes de qualquer estratégia de crescimento, é fundamental corrigir a base: volume de atividades, uso correto do CRM, abordagem estruturada e disciplina diária. Sem essas correções, investir em marketing ou escala vai gerar custo sem retorno.\n\nAs áreas mais críticas são: ${criticas.map(a => a.label).join(', ')}. Cada uma dessas áreas precisa de intervenção imediata nas próximas 48 horas.`;
   } else if (criticas.length >= 2 || atencao.length >= 3) {
-    resumo = `A operação comercial de ${clienteNome} possui uma base parcialmente estruturada após a War Room #2. O time demonstrou absorção parcial do conteúdo, mas ainda existem ${criticas.length} área(s) crítica(s) e ${atencao.length} área(s) em atenção que estão limitando o desempenho. Há oportunidades concretas de melhoria que, se executadas nas próximas 2 semanas, podem destravar resultados significativos.\n\nPontos que precisam de atenção prioritária: ${[...criticas, ...atencao].map(a => a.label).join(', ')}.`;
+    resumo = `A operação comercial de ${clienteNome} possui uma base parcialmente estruturada após o treinamento. O time demonstrou absorção parcial do conteúdo, mas ainda existem ${criticas.length} área(s) crítica(s) e ${atencao.length} área(s) em atenção que estão limitando o desempenho. Há oportunidades concretas de melhoria que, se executadas nas próximas 2 semanas, podem destravar resultados significativos.\n\nPontos que precisam de atenção prioritária: ${[...criticas, ...atencao].map(a => a.label).join(', ')}.`;
   } else if (atencao.length >= 1) {
-    resumo = `A operação comercial de ${clienteNome} está bem encaminhada após a War Room #2. A equipe demonstrou boa absorção do conteúdo com ${saudaveis.length} área(s) saudável(eis). Existem ${atencao.length} ponto(s) de atenção que podem ser otimizados para acelerar os resultados e chegar no próximo nível de performance.\n\nFoco de otimização: ${atencao.map(a => a.label).join(', ')}.`;
+    resumo = `A operação comercial de ${clienteNome} está bem encaminhada após o treinamento. A equipe demonstrou boa absorção do conteúdo com ${saudaveis.length} área(s) saudável(eis). Existem ${atencao.length} ponto(s) de atenção que podem ser otimizados para acelerar os resultados e chegar no próximo nível de performance.\n\nFoco de otimização: ${atencao.map(a => a.label).join(', ')}.`;
   } else {
-    resumo = `A operação comercial de ${clienteNome} está saudável e bem estruturada após a War Room #2. Todas as 7 áreas avaliadas estão em bom estado, indicando que o time absorveu e executou o conteúdo do treinamento de forma consistente. O foco agora deve ser em otimização contínua, aumento progressivo de metas e estratégias de escala para maximizar resultados.`;
+    resumo = `A operação comercial de ${clienteNome} está saudável e bem estruturada após o treinamento. Todas as 7 áreas avaliadas estão em bom estado, indicando que o time absorveu e executou o conteúdo do treinamento de forma consistente. O foco agora deve ser em otimização contínua, aumento progressivo de metas e estratégias de escala para maximizar resultados.`;
   }
 
   // ── Montar texto final ──
   const L: string[] = [];
-  L.push(`DIAGNÓSTICO COMERCIAL PÓS WAR #2 — ${clienteNome}`);
+  L.push(`DIAGNÓSTICO COMERCIAL — ${clienteNome}`);
   L.push(`Data: ${data.data_consultoria || 'Não informada'}`);
   L.push(`Responsável: ${data.responsavel_diagnostico || 'Não informado'}`);
   L.push(`Nota geral: ${nota}/10`);
@@ -825,13 +825,13 @@ export function generatePaddockReport(
     L.push('');
   }
 
-  // ── ERROS CRÍTICOS DA WAR #2 ──
+  // ── ERROS CRÍTICOS DO TREINAMENTO ──
   if (errosDetectados.length > 0) {
     L.push('═══════════════════════════════════════════════');
-    L.push('  ERROS DA WAR #2 QUE CONTINUAM ACONTECENDO');
+    L.push('  ERROS DO TREINAMENTO QUE CONTINUAM ACONTECENDO');
     L.push('═══════════════════════════════════════════════');
     L.push('');
-    L.push('  Estes erros foram explicados e treinados na War Room #2,');
+    L.push('  Estes erros foram explicados e treinados,');
     L.push('  mas continuam sendo cometidos pela equipe:');
     L.push('');
     for (const e of errosDetectados) L.push(`  ⚠️ ${e}`);
@@ -842,9 +842,9 @@ export function generatePaddockReport(
     L.push('');
   }
 
-  // ── EVOLUÇÃO PÓS WAR #2 ──
+  // ── EVOLUÇÃO PÓS TREINAMENTO ──
   L.push('═══════════════════════════════════════════════');
-  L.push('  EVOLUÇÃO REAL APÓS WAR ROOM #2');
+  L.push('  EVOLUÇÃO REAL APÓS TREINAMENTO');
   L.push('═══════════════════════════════════════════════');
   L.push('');
   if (melhorou.length > 0) {
@@ -889,7 +889,7 @@ export function generatePaddockReport(
     L.push(`  Como resolver:`);
     L.push(`  ${detail.comoResolver}`);
     L.push('');
-    L.push(`  Referência War #2:`);
+    L.push(`  Referência do treinamento:`);
     L.push(`  ${detail.referenciaWar2}`);
     L.push('');
 
@@ -988,7 +988,7 @@ export function generatePaddockReport(
     stepNum++;
   }
   if (errosDetectados.length > 0) {
-    L.push(`  ${stepNum}. Eliminar erros recorrentes da War #2 que ainda persistem`);
+    L.push(`  ${stepNum}. Eliminar erros recorrentes do treinamento que ainda persistem`);
     L.push(`     → Ação: Revisão individual com cada vendedor sobre os erros identificados`);
     stepNum++;
   }
@@ -997,7 +997,7 @@ export function generatePaddockReport(
     L.push(`     → Prazo: Revisar progresso em 7 dias`);
     stepNum++;
   }
-  L.push(`  ${stepNum}. Agendar War Room #3 para revisão de progresso`);
+  L.push(`  ${stepNum}. Agendar sessão de revisão de progresso`);
   L.push(`     → Prazo: 15 dias a partir de hoje`);
   stepNum++;
   L.push(`  ${stepNum}. Refazer este diagnóstico em 30 dias para medir evolução real`);
@@ -1016,7 +1016,7 @@ export function generatePaddockReport(
 
   L.push('───────────────────────────────────────────────');
   L.push('Documento gerado automaticamente — Millennials Growth B2B');
-  L.push('Diagnóstico Comercial Pós War Room #2');
+  L.push('Diagnóstico Comercial');
 
   return L.join('\n');
 }

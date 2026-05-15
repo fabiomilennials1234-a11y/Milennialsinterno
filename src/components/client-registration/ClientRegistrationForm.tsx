@@ -162,15 +162,6 @@ export const clientSchema = z.object({
   message: 'Para Millennials Growth, Grupo e Squad são obrigatórios',
   path: ['contracted_products'],
 }).refine((data) => {
-  // Growth path: team assigned post-registration via growth_assign_team RPC.
-  // Sucesso do Cliente is required for Growth clients.
-  const hasGrowth = data.contracted_products.includes('millennials-growth');
-  if (hasGrowth) return !!data.assigned_sucesso_cliente;
-  return true;
-}, {
-  message: 'Selecione o Sucesso do Cliente responsável',
-  path: ['assigned_sucesso_cliente'],
-}).refine((data) => {
   // Mktplace consulting question only for gestor-mktplace product (Growth no longer triggers)
   const needsMktplace = data.contracted_products.includes('gestor-mktplace');
   if (!needsMktplace) return true;
@@ -325,7 +316,17 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
   const showRhUser = hasHunting;
   const showOutboundManager = hasOutbound;
 
+  // Growth V2: all team assignments happen post-registration via growth_assign_team.
+  // Hide Sucesso do Cliente when Growth is selected — CS is assigned later by GP.
+  const showSucessoCliente = !hasMillennialsGrowth;
+
   const watchedConsulting = form.watch('has_mktplace_consulting');
+
+  useEffect(() => {
+    if (!showSucessoCliente && form.getValues('assigned_sucesso_cliente')) {
+      form.setValue('assigned_sucesso_cliente', '');
+    }
+  }, [showSucessoCliente, form]);
 
   useEffect(() => {
     if (!showMktplace && watchedConsulting !== null) {
@@ -455,7 +456,7 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
         assigned_rh: data.assigned_rh || undefined,
         assigned_outbound_manager: data.assigned_outbound_manager || undefined,
         assigned_mktplace: showMktplace ? (data.assigned_mktplace || undefined) : undefined,
-        assigned_sucesso_cliente: data.assigned_sucesso_cliente || undefined,
+        assigned_sucesso_cliente: showSucessoCliente ? (data.assigned_sucesso_cliente || undefined) : undefined,
         product_values: productValuesArray,
       });
 
@@ -1093,24 +1094,22 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
               </div>
             )}
 
-            {/* Section: Responsáveis - Sempre visível (Sucesso do Cliente sempre,
-                outros aparecem condicionalmente conforme produto) */}
+            {/* Section: Responsáveis — hidden entirely for Growth-only clients
+                (team assigned post-registration via growth_assign_team RPC) */}
+            {(showSucessoCliente || showAdsManager || showComercial || showCrmManager || showMktplace) && (
             <div className="space-y-4 pt-4 border-t border-border">
-              <>
-                <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                  Responsáveis
-                </div>
+              <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                Responsáveis
+              </div>
 
+              {showSucessoCliente && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Sucesso do Cliente — sempre visível, todo cliente tem um
-                      responsável de CS (necessário pra fluxo de cobrança coletiva
-                      de justificativa CRM e pra triagem CX). */}
                   <FormField
                     control={form.control}
                     name="assigned_sucesso_cliente"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Sucesso do Cliente{hasMillennialsGrowth ? ' *' : ''}</FormLabel>
+                        <FormLabel>Sucesso do Cliente</FormLabel>
                         <FormControl>
                           <UserPickerByRole
                             role="sucesso_cliente"
@@ -1124,7 +1123,7 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
                     )}
                   />
                 </div>
-              </>
+              )}
               {(showAdsManager || showComercial || showCrmManager || showMktplace) && (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1337,6 +1336,7 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
                 </>
               )}
             </div>
+            )}
 
             {/* Info box */}
             <div className="bg-info/10 border border-info/20 rounded-xl p-4 flex items-start gap-3">
