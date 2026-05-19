@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { fireCelebration } from '@/lib/confetti';
+import { handleGrowthTaskCompletion } from './utils/growthTaskAutomation';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -251,6 +252,7 @@ export function useGrowthAdvanceStep() {
  */
 export function useCompleteGrowthGPTask() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({ taskId }: { taskId: string }) => {
@@ -260,12 +262,23 @@ export function useCompleteGrowthGPTask() {
         .eq('id', taskId);
 
       if (error) throw error;
+
+      const result = await handleGrowthTaskCompletion(supabase, taskId, user?.id);
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       fireCelebration();
-      toast.success('Tarefa concluida!');
+      if (result?.growthOnboardingComplete) {
+        toast.success('Onboarding concluído — cliente movido para Acompanhamento!');
+      } else {
+        toast.success('Tarefa concluida!');
+      }
       queryClient.invalidateQueries({ queryKey: ['growth-gp-v2-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['growth-gp-novos'] });
+      queryClient.invalidateQueries({ queryKey: ['growth-gp-acompanhamento'] });
       queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['client-tags'] });
+      queryClient.invalidateQueries({ queryKey: ['client-tags-batch'] });
     },
     onError: (error: Error) => {
       toast.error('Erro ao concluir tarefa', { description: error.message });

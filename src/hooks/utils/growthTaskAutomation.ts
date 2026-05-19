@@ -133,6 +133,15 @@ export async function handleGrowthTaskCompletion(
           .update({ growth_onboarding_step: null } as any)
           .eq('id', clientId);
       }
+
+      // Dismiss "Esperar Briefing" tag — briefing is done
+      await supabase
+        .from('client_tags')
+        .update({ dismissed_at: new Date().toISOString() } as never)
+        .eq('client_id', clientId)
+        .eq('name', 'Esperar Briefing')
+        .is('dismissed_at', null);
+
       return { growthAdvanced: false, growthTeamSelectionNeeded: null, growthOnboardingComplete: true };
     }
     default:
