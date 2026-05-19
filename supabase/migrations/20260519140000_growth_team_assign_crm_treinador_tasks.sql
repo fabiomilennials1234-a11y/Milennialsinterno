@@ -155,33 +155,9 @@ BEGIN
         now() + interval '1 day';
     END IF;
 
-    -- 6. Create auto-task for Gestor de CRM
-    INSERT INTO public.department_tasks (
-      user_id, title, description, task_type, status, priority,
-      department, related_client_id, due_date
-    ) VALUES (
-      p_crm,
-      format('Novo cliente Growth: %s — Iniciar onboarding CRM', v_client_name),
-      'growth:crm_onboarding',
-      'daily', 'todo', 'high',
-      'gestor_crm', p_client_id,
-      now() + interval '2 days'
-    );
-
-    -- 7. Create auto-task for Treinador Comercial
-    INSERT INTO public.department_tasks (
-      user_id, title, description, task_type, status, priority,
-      department, related_client_id, due_date
-    ) VALUES (
-      p_comercial,
-      format('Novo cliente Growth: %s — Iniciar treinamento comercial', v_client_name),
-      'growth:comercial_onboarding',
-      'daily', 'todo', 'high',
-      'consultor_comercial', p_client_id,
-      now() + interval '2 days'
-    );
-
-    -- 8. Notifications to each assigned professional
+    -- 6. Notifications to each assigned professional
+    -- (CRM and Treinador tasks are auto-created by their own kanban views
+    --  when the client appears — CrmNovoClienteSection + useAutoCreateTaskForNewClients)
     -- ADS
     INSERT INTO public.system_notifications (
       recipient_id, recipient_role, notification_type,
