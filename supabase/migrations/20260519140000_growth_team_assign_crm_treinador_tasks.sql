@@ -69,7 +69,7 @@ BEGIN
 
   v_effective_cx := COALESCE(p_cx, v_client.assigned_sucesso_cliente);
 
-  -- Assign full team + initialize CRM status
+  -- Assign full team + initialize department statuses
   UPDATE public.clients
      SET assigned_ads_manager     = p_ads,
          assigned_comercial       = p_comercial,
@@ -78,6 +78,8 @@ BEGIN
          assigned_mktplace        = p_mktplace,
          crm_status               = CASE WHEN crm_status IS NULL THEN 'novo' ELSE crm_status END,
          crm_entered_at           = CASE WHEN crm_status IS NULL THEN now() ELSE crm_entered_at END,
+         mktplace_status          = CASE WHEN p_mktplace IS NOT NULL AND mktplace_status IS NULL THEN 'novo' ELSE mktplace_status END,
+         mktplace_entered_at      = CASE WHEN p_mktplace IS NOT NULL AND mktplace_status IS NULL THEN now() ELSE mktplace_entered_at END,
          updated_at               = now()
    WHERE id = p_client_id;
 
@@ -242,6 +244,15 @@ UPDATE public.clients
        updated_at = now()
  WHERE assigned_crm IS NOT NULL
    AND crm_status IS NULL
+   AND archived = false;
+
+-- Backfill: clients with mktplace assigned but no mktplace_status
+UPDATE public.clients
+   SET mktplace_status = 'novo',
+       mktplace_entered_at = now(),
+       updated_at = now()
+ WHERE assigned_mktplace IS NOT NULL
+   AND mktplace_status IS NULL
    AND archived = false;
 
 COMMIT;
