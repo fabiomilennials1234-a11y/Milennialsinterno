@@ -32,12 +32,12 @@ export default function GrowthBlockingLabel({
     <div
       role="alert"
       className={cn(
-        'flex items-center gap-2 px-3 py-2 rounded-lg border font-bold text-xs uppercase tracking-wider leading-tight select-none',
+        'inline-flex items-center gap-1.5 px-2 py-1 rounded-md border font-bold text-[10px] uppercase tracking-wider leading-tight select-none',
         styles.container,
         pulsing && styles.pulseClass,
       )}
     >
-      <Icon size={14} className={cn(styles.icon, 'shrink-0')} />
+      <Icon size={12} className={cn(styles.icon, 'shrink-0')} />
       <span className="truncate">{text}</span>
     </div>
   );
