@@ -2008,6 +2008,7 @@ export type Database = {
           growth_counter_started_at: string | null
           growth_gp_step: string | null
           growth_onboarding_step: string | null
+          growth_team_added_to_groups: boolean
           growth_torque_unblocked_at: string | null
           id: string
           last_cs_contact_at: string | null
@@ -2072,6 +2073,7 @@ export type Database = {
           growth_counter_started_at?: string | null
           growth_gp_step?: string | null
           growth_onboarding_step?: string | null
+          growth_team_added_to_groups?: boolean
           growth_torque_unblocked_at?: string | null
           id?: string
           last_cs_contact_at?: string | null
@@ -2136,6 +2138,7 @@ export type Database = {
           growth_counter_started_at?: string | null
           growth_gp_step?: string | null
           growth_onboarding_step?: string | null
+          growth_team_added_to_groups?: boolean
           growth_torque_unblocked_at?: string | null
           id?: string
           last_cs_contact_at?: string | null

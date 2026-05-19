@@ -20,6 +20,7 @@ export interface GrowthGPClient {
   growth_counter_started_at: string | null;
   growth_counter_ended_at: string | null;
   assigned_ads_manager: string | null;
+  growth_team_added_to_groups: boolean;
   group_id: string | null;
   created_at: string;
 }
@@ -51,7 +52,7 @@ export function isGrowthV2Task(task: { description?: string | null }): boolean {
 // ── Queries ────────────────────────────────────────────────────────────────
 
 const SELECT_COLS =
-  'id, name, razao_social, growth_gp_step, growth_counter_started_at, growth_counter_ended_at, assigned_ads_manager, group_id, created_at';
+  'id, name, razao_social, growth_gp_step, growth_counter_started_at, growth_counter_ended_at, assigned_ads_manager, growth_team_added_to_groups, group_id, created_at';
 
 /**
  * Novos Clientes column: clients in the first 3 GP steps.
