@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   Loader2,
@@ -434,7 +433,7 @@ export default function ManagementReportFormModal({
 
           {/* ── Block content ── */}
           <div className="flex-1 flex flex-col min-h-0">
-            <ScrollArea className="flex-1">
+            <div className="flex-1 overflow-y-auto scrollbar-apple">
               <div className="p-6 md:p-8 space-y-6 md:mt-0 mt-10">
                 {blockErrors[activeStep.id] && (
                   <div className="rounded-lg bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">
@@ -465,7 +464,7 @@ export default function ManagementReportFormModal({
                   <BlockOnePage form={form} updateField={updateField} />
                 )}
               </div>
-            </ScrollArea>
+            </div>
 
             {/* ── Footer buttons ── */}
             <div className="border-t border-border px-6 py-4 flex items-center justify-between shrink-0">
