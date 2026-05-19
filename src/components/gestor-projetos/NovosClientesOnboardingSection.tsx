@@ -114,15 +114,6 @@ export default function NovosClientesOnboardingSection({ onTeamSelectionNeeded }
     );
   }
 
-  if (clients.length === 0) {
-    return (
-      <div className="text-center py-8 text-muted-foreground">
-        <CheckCircle2 className="mx-auto mb-2 opacity-50" size={32} />
-        <p className="font-medium text-sm">Nenhum cliente em onboarding</p>
-      </div>
-    );
-  }
-
   const isPending = advanceStep.isPending || markAddedToGroups.isPending;
 
   return (
