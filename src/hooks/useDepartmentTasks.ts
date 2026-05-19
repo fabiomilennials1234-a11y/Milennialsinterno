@@ -84,9 +84,12 @@ export function useDepartmentTasks(department: string, type: 'daily' | 'weekly' 
         .is('related_project_id' as any, null)
         .order('created_at', { ascending: false });
 
-      // Exclude Growth tasks from the regular GP board — they live in their own section
+      // Exclude Growth onboarding step tasks from the regular GP board — they live
+      // in GrowthAcompanhamentoSection. Operational tasks like "Brifar CRM" stay.
       if (department === 'gestor_projetos') {
-        baseQuery = baseQuery.not('description', 'ilike', 'growth:%');
+        baseQuery = baseQuery.or(
+          'description.is.null,description.not.ilike.growth:%,description.ilike.growth:brifar_%',
+        );
       }
 
       if (!seesAll) {
@@ -811,7 +814,9 @@ export function useArchivedDepartmentTasks(department: string, type: 'daily' | '
         .order('archived_at', { ascending: false });
 
       if (department === 'gestor_projetos') {
-        query = query.not('description', 'ilike', 'growth:%');
+        query = query.or(
+          'description.is.null,description.not.ilike.growth:%,description.ilike.growth:brifar_%',
+        );
       }
 
       if (!seesAll) {
