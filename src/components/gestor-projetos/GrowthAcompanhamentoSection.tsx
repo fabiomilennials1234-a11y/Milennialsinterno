@@ -212,10 +212,10 @@ function AcompanhamentoCard({
           {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </span>
         <div className="flex-1 min-w-0 space-y-2">
-          <div className="flex items-center gap-2">
-            <p className="text-sm font-medium text-foreground truncate">{displayName}</p>
+          <div className="flex items-start gap-2">
+            <p className="text-sm font-medium text-foreground line-clamp-2 flex-1 min-w-0">{displayName}</p>
             <button
-              className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+              className="shrink-0 mt-0.5 text-muted-foreground hover:text-foreground transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
                 onViewClient(client.id);
@@ -226,17 +226,19 @@ function AcompanhamentoCard({
             </button>
           </div>
 
-          {/* Counter badge */}
-          {client.growth_counter_started_at && (
-            <GrowthCounterBadge
-              counterStartedAt={client.growth_counter_started_at}
-              counterEndedAt={client.growth_counter_ended_at}
-            />
-          )}
-
-          {/* TORQUE BLOQUEADO label */}
-          {hasTorqueBlock && (
-            <GrowthBlockingLabel text="TORQUE BLOQUEADO" variant="danger" />
+          {/* Counter + TORQUE BLOQUEADO inline */}
+          {(client.growth_counter_started_at || hasTorqueBlock) && (
+            <div className="flex items-center gap-2 flex-wrap">
+              {client.growth_counter_started_at && (
+                <GrowthCounterBadge
+                  counterStartedAt={client.growth_counter_started_at}
+                  counterEndedAt={client.growth_counter_ended_at}
+                />
+              )}
+              {hasTorqueBlock && (
+                <GrowthBlockingLabel text="TORQUE BLOQUEADO" variant="danger" />
+              )}
+            </div>
           )}
 
           {/* Other tags */}

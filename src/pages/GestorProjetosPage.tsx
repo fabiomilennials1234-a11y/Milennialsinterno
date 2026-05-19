@@ -36,7 +36,7 @@ export const COLUMNS = [
   { id: 'oraculo', title: 'Oráculo IA', icon: Sparkles, headerClass: 'section-header-violet', iconColor: 'text-white' },
   { id: 'tarefas-diarias', title: 'Tarefas Diárias', icon: CheckSquare, headerClass: 'section-header-sky', iconColor: 'text-white' },
   { id: 'novos-clientes-onboarding', title: 'Novos Clientes + Onboarding', icon: UserPlus, headerClass: 'section-header-cyan', iconColor: 'text-white', width: 400 },
-  { id: 'acompanhamento-growth', title: 'Acompanhamento Gestores', icon: Headphones, headerClass: 'section-header-teal', iconColor: 'text-white', width: 400 },
+  { id: 'acompanhamento-growth', title: 'Acompanhamento Gestores', icon: Headphones, headerClass: 'section-header-teal', iconColor: 'text-white', width: 500 },
   { id: 'metricas', title: 'Métricas por Área', icon: LayoutDashboard, headerClass: 'section-header-blue', iconColor: 'text-white' },
   { id: 'atrasados', title: 'Atrasados por Área', icon: AlertTriangle, headerClass: 'section-header-danger', iconColor: 'text-white' },
   { id: 'atrasos-justificativas', title: 'Atrasos + Justificativas do Time', icon: ClipboardList, headerClass: 'section-header-orange', iconColor: 'text-white' },
