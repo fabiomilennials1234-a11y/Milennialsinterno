@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { Loader2, CheckCircle2, Phone, Users as UsersIcon, MessageSquare, Rocket, ArrowRight } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Loader2, CheckCircle2, Phone, Users as UsersIcon, MessageSquare, Rocket, ArrowRight, Eye } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +15,7 @@ import { useClientTagsBatch } from '@/hooks/useClientTags';
 import { TAG_BLOQUEADO_CX } from '@/components/client-tags/ClientTagsList';
 import ClientTagsList from '@/components/client-tags/ClientTagsList';
 import GrowthBlockingLabel from './GrowthBlockingLabel';
+import ClientViewModal from '@/components/client/ClientViewModal';
 import { getOnboardingProgress } from '@/lib/growthOnboardingProgress';
 import { supabase } from '@/integrations/supabase/client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -136,6 +137,7 @@ export default function NovosClientesOnboardingSection({ onTeamSelectionNeeded }
   const advanceStep = useGrowthAdvanceStep();
   const completeTask = useCompleteGrowthGPTask();
   const queryClient = useQueryClient();
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
 
   const markAddedToGroups = useMutation({
     mutationFn: async (clientId: string) => {
@@ -261,6 +263,7 @@ export default function NovosClientesOnboardingSection({ onTeamSelectionNeeded }
                         }}
                         onTeamSelectionNeeded={onTeamSelectionNeeded}
                         onTaskComplete={(taskId) => completeTask.mutate({ taskId })}
+                        onViewClient={setSelectedClientId}
                       />
                     );
                   })
@@ -328,6 +331,7 @@ export default function NovosClientesOnboardingSection({ onTeamSelectionNeeded }
                             }}
                             onTeamSelectionNeeded={onTeamSelectionNeeded}
                             onMarkAddedToGroups={(clientId) => markAddedToGroups.mutate(clientId)}
+                            onViewClient={setSelectedClientId}
                           />
                         );
                       })
@@ -341,6 +345,15 @@ export default function NovosClientesOnboardingSection({ onTeamSelectionNeeded }
 
         {/* Empty state removed — V2 sections always visible with per-step empty state */}
       </div>
+
+      {selectedClientId && (
+        <ClientViewModal
+          key={selectedClientId}
+          isOpen={true}
+          onClose={() => setSelectedClientId(null)}
+          clientId={selectedClientId}
+        />
+      )}
     </ScrollArea>
   );
 }
@@ -357,6 +370,7 @@ interface V2StepClientCardProps {
   onAdvance: (clientId: string, nextStep: string) => void;
   onTeamSelectionNeeded?: (clientId: string) => void;
   onTaskComplete: (taskId: string) => void;
+  onViewClient: (clientId: string) => void;
 }
 
 function V2StepClientCard({
@@ -369,6 +383,7 @@ function V2StepClientCard({
   onAdvance,
   onTeamSelectionNeeded,
   onTaskComplete,
+  onViewClient,
 }: V2StepClientCardProps) {
   const displayName = client.razao_social || client.name;
   const pendingTasks = tasks.filter(t => isGrowthV2Task(t) && t.status !== 'done');
@@ -381,7 +396,18 @@ function V2StepClientCard({
         hasCXBlock && 'border-danger bg-danger/5',
       )}
     >
-      <h4 className="text-sm font-medium text-foreground truncate">{displayName}</h4>
+      <div className="flex items-center justify-between gap-2">
+        <h4 className="text-sm font-medium text-foreground truncate">{displayName}</h4>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 px-1.5 text-[10px] gap-1 shrink-0"
+          onClick={() => onViewClient(client.id)}
+        >
+          <Eye size={12} />
+          Ver
+        </Button>
+      </div>
 
       {hasCXBlock && (
         <GrowthBlockingLabel text="BLOQUEADO: ESPERAR LIGACAO DO CX" variant="danger" />
@@ -460,6 +486,7 @@ interface V1StepClientCardProps {
   onAdvanceCall1: (clientId: string) => void;
   onTeamSelectionNeeded?: (clientId: string) => void;
   onMarkAddedToGroups: (clientId: string) => void;
+  onViewClient: (clientId: string) => void;
 }
 
 function V1StepClientCard({
@@ -472,6 +499,7 @@ function V1StepClientCard({
   onAdvanceCall1,
   onTeamSelectionNeeded,
   onMarkAddedToGroups,
+  onViewClient,
 }: V1StepClientCardProps) {
   const displayName = client.razao_social || client.name;
 
@@ -483,7 +511,18 @@ function V1StepClientCard({
         hasCXBlock && 'border-danger bg-danger/5',
       )}
     >
-      <h4 className="text-sm font-medium text-foreground truncate">{displayName}</h4>
+      <div className="flex items-center justify-between gap-2">
+        <h4 className="text-sm font-medium text-foreground truncate">{displayName}</h4>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 px-1.5 text-[10px] gap-1 shrink-0"
+          onClick={() => onViewClient(client.id)}
+        >
+          <Eye size={12} />
+          Ver
+        </Button>
+      </div>
 
       {hasCXBlock && (
         <GrowthBlockingLabel text="BLOQUEADO: ESPERAR LIGACAO DO CX" variant="danger" />

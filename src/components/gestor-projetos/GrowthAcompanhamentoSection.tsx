@@ -1,7 +1,8 @@
 import { useMemo, useState, useCallback } from 'react';
-import { Loader2, Users, CheckCircle2, ChevronDown, ChevronRight, Circle } from 'lucide-react';
+import { Loader2, Users, CheckCircle2, ChevronDown, ChevronRight, Circle, Eye } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
   useGrowthGPAcompanhamento,
@@ -15,6 +16,7 @@ import { TAG_TORQUE_BLOQUEADO, BLOCKING_TAGS } from '@/components/client-tags/Cl
 import ClientTagBadge from '@/components/client-tags/ClientTagBadge';
 import GrowthBlockingLabel from './GrowthBlockingLabel';
 import GrowthCounterBadge from './GrowthCounterBadge';
+import ClientViewModal from '@/components/client/ClientViewModal';
 import type { GrowthGPClient, GrowthGPTask } from '@/hooks/useGrowthGPKanban';
 import type { ClientTag } from '@/hooks/useClientTags';
 
@@ -37,6 +39,7 @@ export default function GrowthAcompanhamentoSection() {
 
   const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
 
   const toggleExpand = useCallback((clientId: string) => {
     setExpandedClients(prev => {
@@ -143,6 +146,7 @@ export default function GrowthAcompanhamentoSection() {
                         onToggleExpand={() => toggleExpand(client.id)}
                         onTaskComplete={(taskId) => completeTask.mutate({ taskId })}
                         isCompletingTask={completeTask.isPending}
+                        onViewClient={setSelectedClientId}
                       />
                     );
                   })}
@@ -152,6 +156,15 @@ export default function GrowthAcompanhamentoSection() {
           );
         })}
       </div>
+
+      {selectedClientId && (
+        <ClientViewModal
+          key={selectedClientId}
+          isOpen={true}
+          onClose={() => setSelectedClientId(null)}
+          clientId={selectedClientId}
+        />
+      )}
     </ScrollArea>
   );
 }
@@ -166,6 +179,7 @@ interface AcompanhamentoCardProps {
   onToggleExpand: () => void;
   onTaskComplete: (taskId: string) => void;
   isCompletingTask: boolean;
+  onViewClient: (clientId: string) => void;
 }
 
 function AcompanhamentoCard({
@@ -176,6 +190,7 @@ function AcompanhamentoCard({
   onToggleExpand,
   onTaskComplete,
   isCompletingTask,
+  onViewClient,
 }: AcompanhamentoCardProps) {
   const displayName = client.razao_social || client.name;
   const hasTorqueBlock = tags.some(t => t.name === TAG_TORQUE_BLOQUEADO);
@@ -198,7 +213,21 @@ function AcompanhamentoCard({
           {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </span>
         <div className="flex-1 min-w-0 space-y-2">
-          <p className="text-sm font-medium text-foreground truncate">{displayName}</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-medium text-foreground truncate">{displayName}</p>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-1.5 text-[10px] gap-1 shrink-0"
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewClient(client.id);
+              }}
+            >
+              <Eye size={12} />
+              Ver
+            </Button>
+          </div>
 
           {/* Counter badge */}
           {client.growth_counter_started_at && (

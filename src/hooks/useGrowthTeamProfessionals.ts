@@ -18,16 +18,29 @@ const MANAGER_LIMITS: Record<string, number> = {
 export { MANAGER_LIMITS as GROWTH_TEAM_LIMITS };
 
 /**
- * Fetch professionals of a given role that belong to a specific group,
- * along with their active client count.
+ * Roles that are org-wide (not scoped to a group).
+ * These professionals have group_id = NULL in profiles and must be listed
+ * regardless of the client's group.
+ */
+const ORG_WIDE_ROLES = new Set(['consultor_comercial', 'gestor_crm']);
+
+/**
+ * Fetch professionals of a given role along with their active client count.
+ *
+ * For group-scoped roles (e.g. gestor_ads): filters by the client's group_id.
+ * For org-wide roles (consultor_comercial, gestor_crm): lists ALL professionals
+ * with that role, ignoring group_id.
  *
  * Used by GrowthTeamSelectionModal to populate selects with portfolio info.
  */
 export function useGroupProfessionalsByRole(role: string, groupId: string | null) {
+  const isOrgWide = ORG_WIDE_ROLES.has(role);
+
   return useQuery<TeamProfessional[]>({
     queryKey: ['group-professionals', role, groupId],
     queryFn: async () => {
-      if (!groupId) return [];
+      // Group-scoped roles need a groupId; org-wide roles don't.
+      if (!isOrgWide && !groupId) return [];
 
       // 1. Get user_ids with this role
       const { data: roleRows, error: roleErr } = await supabase
@@ -39,12 +52,17 @@ export function useGroupProfessionalsByRole(role: string, groupId: string | null
       const roleIds = (roleRows || []).map(r => r.user_id);
       if (roleIds.length === 0) return [];
 
-      // 2. Filter by group_id in profiles
-      const { data: profiles, error: profErr } = await supabase
+      // 2. Filter profiles — by group_id for group-scoped, all for org-wide
+      let profileQuery = supabase
         .from('profiles')
         .select('user_id, name')
-        .in('user_id', roleIds)
-        .eq('group_id', groupId);
+        .in('user_id', roleIds);
+
+      if (!isOrgWide && groupId) {
+        profileQuery = profileQuery.eq('group_id', groupId);
+      }
+
+      const { data: profiles, error: profErr } = await profileQuery;
       if (profErr) throw profErr;
 
       const filtered = (profiles || []).filter(p => !!p.name);
@@ -83,7 +101,7 @@ export function useGroupProfessionalsByRole(role: string, groupId: string | null
         }))
         .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
     },
-    enabled: !!groupId,
+    enabled: isOrgWide || !!groupId,
     staleTime: 30_000,
   });
 }
