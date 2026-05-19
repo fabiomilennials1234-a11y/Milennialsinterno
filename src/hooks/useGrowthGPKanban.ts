@@ -8,14 +8,21 @@ import { fireCelebration } from '@/lib/confetti';
 
 export type GrowthGPStep =
   | 'novos_clientes'
+  // V1 steps
   | 'call_1_agendada'
   | 'call_1_realizada'
+  // V2 steps
+  | 'realizar_call_1'
+  | 'escolher_equipe'
+  | 'alinhar_projeto'
+  // Shared
   | 'acompanhamento_gestores';
 
 export interface GrowthGPClient {
   id: string;
   name: string;
   razao_social: string | null;
+  growth_flow_version: number;
   growth_gp_step: string | null;
   growth_counter_started_at: string | null;
   growth_counter_ended_at: string | null;
@@ -39,6 +46,7 @@ export interface GrowthGPTask {
 const V2_TASK_DESCRIPTIONS = new Set([
   'growth:marcar_call_1',
   'growth:realizar_call_1',
+  'growth:escolher_equipe',
   'growth:alinhar_projeto',
   'growth:brifar_crm',
   'growth:brifar_crm_alinhar',
@@ -52,7 +60,7 @@ export function isGrowthV2Task(task: { description?: string | null }): boolean {
 // ── Queries ────────────────────────────────────────────────────────────────
 
 const SELECT_COLS =
-  'id, name, razao_social, growth_gp_step, growth_counter_started_at, growth_counter_ended_at, assigned_ads_manager, growth_team_added_to_groups, group_id, created_at';
+  'id, name, razao_social, growth_flow_version, growth_gp_step, growth_counter_started_at, growth_counter_ended_at, assigned_ads_manager, growth_team_added_to_groups, group_id, created_at';
 
 /**
  * Novos Clientes column: clients in the first 3 GP steps.
@@ -71,7 +79,13 @@ export function useGrowthGPNovosClientes() {
         .select(SELECT_COLS)
         .eq('archived', false)
         .eq('group_id', user.group_id)
-        .in('growth_gp_step', ['novos_clientes', 'call_1_agendada', 'call_1_realizada'])
+        .in('growth_gp_step', [
+          'novos_clientes',
+          // V1 steps
+          'call_1_agendada', 'call_1_realizada',
+          // V2 steps
+          'realizar_call_1', 'escolher_equipe', 'alinhar_projeto',
+        ])
         .order('created_at', { ascending: false });
 
       if (error) throw error;

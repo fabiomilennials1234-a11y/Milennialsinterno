@@ -49,7 +49,7 @@ describe('clientSchema — Growth conditional fields', () => {
     expect(result.success).toBe(true);
   });
 
-  it('Growth-only: fails without assigned_sucesso_cliente', () => {
+  it('Growth-only: passes without assigned_sucesso_cliente (CX auto-derived)', () => {
     const data = {
       ...baseValid(),
       contracted_products: ['millennials-growth'],
@@ -59,11 +59,7 @@ describe('clientSchema — Growth conditional fields', () => {
       assigned_sucesso_cliente: '',
     };
     const result = clientSchema.safeParse(data);
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      const paths = result.error.issues.map(i => i.path.join('.'));
-      expect(paths).toContain('assigned_sucesso_cliente');
-    }
+    expect(result.success).toBe(true);
   });
 
   it('Growth-only: fails without group_id', () => {
@@ -177,6 +173,45 @@ describe('clientSchema — Growth conditional fields', () => {
       const paths = result.error.issues.map(i => i.path.join('.'));
       expect(paths).toContain('assigned_crm');
     }
+  });
+
+  it('Growth-only: does NOT require comercial/crm/mktplace', () => {
+    const data = {
+      ...baseValid(),
+      contracted_products: ['millennials-growth'],
+      product_values: { 'millennials-growth': '5.000,00' },
+      group_id: 'g1',
+      squad_id: 's1',
+      assigned_comercial: '',
+      assigned_crm: '',
+      assigned_mktplace: '',
+    };
+    const result = clientSchema.safeParse(data);
+    expect(result.success).toBe(true);
+  });
+
+  it('Growth-only: requires group_id', () => {
+    const data = {
+      ...baseValid(),
+      contracted_products: ['millennials-growth'],
+      product_values: { 'millennials-growth': '5.000,00' },
+      group_id: '',
+      squad_id: 's1',
+    };
+    const result = clientSchema.safeParse(data);
+    expect(result.success).toBe(false);
+  });
+
+  it('Growth-only: requires squad_id', () => {
+    const data = {
+      ...baseValid(),
+      contracted_products: ['millennials-growth'],
+      product_values: { 'millennials-growth': '5.000,00' },
+      group_id: 'g1',
+      squad_id: '',
+    };
+    const result = clientSchema.safeParse(data);
+    expect(result.success).toBe(false);
   });
 
   it('No products: passes without any team fields', () => {

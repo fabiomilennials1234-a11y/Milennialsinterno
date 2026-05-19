@@ -7,7 +7,6 @@ import {
   MessageSquare,
   ShoppingBag,
   BarChart3,
-  HeartHandshake,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -51,7 +50,6 @@ export default function GrowthTeamSelectionModal({
   const [adsManagerId, setAdsManagerId] = useState('');
   const [comercialId, setComercialId] = useState('');
   const [crmId, setCrmId] = useState('');
-  const [cxId, setCxId] = useState('');
   const [hasMktplace, setHasMktplace] = useState(false);
   const [mktplaceId, setMktplaceId] = useState('');
 
@@ -76,51 +74,47 @@ export default function GrowthTeamSelectionModal({
     useGroupProfessionalsByRole('consultor_comercial', groupId);
   const { data: crmManagers = [], isLoading: crmLoading } =
     useGroupProfessionalsByRole('gestor_crm', groupId);
-  const { data: cxProfessionals = [], isLoading: cxLoading } =
-    useGroupProfessionalsByRole('sucesso_cliente', groupId);
   const { data: mktplaceConsultants = [], isLoading: mktplaceLoading } =
     useGroupProfessionalsByRole('consultor_mktplace', groupId);
 
   const canSubmit = useMemo(() => {
-    if (!adsManagerId || !comercialId || !crmId || !cxId) return false;
+    if (!adsManagerId || !comercialId || !crmId) return false;
     if (hasMktplace && !mktplaceId) return false;
     return true;
-  }, [adsManagerId, comercialId, crmId, cxId, hasMktplace, mktplaceId]);
+  }, [adsManagerId, comercialId, crmId, hasMktplace, mktplaceId]);
 
   const assignTeam = useMutation({
     mutationFn: async () => {
       if (!user?.id) throw new Error('auth required');
       if (!client) throw new Error('client not loaded');
 
-      // 1. Assign full team via RPC
+      // Assign full team via RPC — v2 atomically advances step + creates
+      // notifications + dynamic auto-task inside the same transaction.
+      // p_cx omitted: RPC uses COALESCE to keep CX auto-derived at registration.
       const { error: rpcError } = await supabase.rpc('growth_assign_full_team', {
         p_client_id: clientId,
         p_ads: adsManagerId,
         p_comercial: comercialId,
         p_crm: crmId,
-        p_cx: cxId,
+        p_cx: null as unknown as string,
         p_mktplace: hasMktplace ? mktplaceId : undefined,
       });
       if (rpcError) throw rpcError;
-
-      // 2. Advance GP step to acompanhamento_gestores
-      const { error: stepError } = await supabase.rpc('growth_advance_gp_step', {
-        p_client_id: clientId,
-        p_new_step: 'acompanhamento_gestores',
-      });
-      if (stepError) throw stepError;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['growth-novos-clientes'] });
       queryClient.invalidateQueries({ queryKey: ['growth-acompanhamento'] });
       queryClient.invalidateQueries({ queryKey: ['growth-gp-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['growth-gp-novos'] });
+      queryClient.invalidateQueries({ queryKey: ['growth-gp-v2-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       queryClient.invalidateQueries({ queryKey: ['client-tags'] });
       queryClient.invalidateQueries({ queryKey: ['client-tags-batch'] });
       queryClient.invalidateQueries({ queryKey: ['all-gestor-client-counts'] });
       queryClient.invalidateQueries({ queryKey: ['all-treinador-client-counts'] });
       queryClient.invalidateQueries({ queryKey: ['all-mktplace-client-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
       toast.success('Equipe Growth designada com sucesso!');
       onSuccess();
     },
@@ -130,7 +124,7 @@ export default function GrowthTeamSelectionModal({
   });
 
   const isLoading =
-    clientLoading || adsLoading || comercialLoading || crmLoading || cxLoading;
+    clientLoading || adsLoading || comercialLoading || crmLoading;
 
   return (
     <Dialog open onOpenChange={() => {}}>
@@ -202,19 +196,7 @@ export default function GrowthTeamSelectionModal({
               placeholder="Selecionar Gestor de CRM..."
             />
 
-            {/* 4. Sucesso do Cliente / CX */}
-            <ProfessionalSelect
-              icon={<HeartHandshake size={16} className="text-rose-400" />}
-              label="Sucesso do Cliente"
-              required
-              professionals={cxProfessionals}
-              limit={GROWTH_TEAM_LIMITS.sucesso_cliente}
-              value={cxId}
-              onChange={setCxId}
-              placeholder="Selecionar Sucesso do Cliente..."
-            />
-
-            {/* 5. Consultoria de MKT Place (opcional) */}
+            {/* 4. Consultoria de MKT Place (opcional) */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">

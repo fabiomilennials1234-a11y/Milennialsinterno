@@ -103,4 +103,52 @@ describe('getOnboardingProgress', () => {
     expect(progress.call1Complete).toBe(true);
     expect(progress.allComplete).toBe(true);
   });
+
+  // ── V2 step tests ──
+
+  it('v2 realizar_call_1: call1 not yet complete', () => {
+    const progress = getOnboardingProgress({
+      growth_gp_step: 'realizar_call_1',
+      assigned_ads_manager: null,
+      growth_team_added_to_groups: false,
+    });
+
+    expect(progress.call1Complete).toBe(false);
+  });
+
+  it('v2 escolher_equipe: call1 complete', () => {
+    const progress = getOnboardingProgress({
+      growth_gp_step: 'escolher_equipe',
+      assigned_ads_manager: null,
+      growth_team_added_to_groups: false,
+    });
+
+    expect(progress.call1Complete).toBe(true);
+    expect(progress.allComplete).toBe(false);
+  });
+
+  it('v2 alinhar_projeto: call1 complete', () => {
+    const progress = getOnboardingProgress({
+      growth_gp_step: 'alinhar_projeto',
+      assigned_ads_manager: 'uuid-456',
+      growth_team_added_to_groups: false,
+    });
+
+    expect(progress.call1Complete).toBe(true);
+    expect(progress.teamSelected).toBe(true);
+    expect(progress.allComplete).toBe(false);
+  });
+
+  it('v2 full chain complete: alinhar_projeto + team + groups', () => {
+    const progress = getOnboardingProgress({
+      growth_gp_step: 'alinhar_projeto',
+      assigned_ads_manager: 'uuid-456',
+      growth_team_added_to_groups: true,
+    });
+
+    expect(progress.call1Complete).toBe(true);
+    expect(progress.teamSelected).toBe(true);
+    expect(progress.addedToGroups).toBe(true);
+    expect(progress.allComplete).toBe(true);
+  });
 });

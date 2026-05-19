@@ -7,6 +7,7 @@ import { fireCelebration } from '@/lib/confetti';
 import { getCurrentDayPortuguese, PADDOCK_AUTO_TASK_TYPES, PADDOCK_STEPS } from './useComercialAutomation';
 import { TC_CYCLE_AUTO_TASK_TYPES, handleTCCycleTaskCompletion } from './useTCMonthlyCycle';
 import { resolveTaskOwner } from './utils/resolveTaskOwner';
+import { isClientBlockedByBriefing } from './utils/briefingBlockCheck';
 
 // Paddock step progression maps (mirrored from useComercialAutomation)
 const PADDOCK_TASK_TO_STEP: Record<string, string> = {
@@ -196,6 +197,16 @@ export function useUpdateComercialTaskStatus() {
         // PADDOCK 4-STEP AUTOMATION
         // -------------------------------------------------------
         if (allPaddockTypes.includes(task.auto_task_type) && clientId && user?.id) {
+          // Block Paddock onboarding completion when "Esperar Briefing" is active
+          if (await isClientBlockedByBriefing(supabase, clientId)) {
+            // Revert task status back
+            await supabase
+              .from('comercial_tasks')
+              .update({ status: 'todo' })
+              .eq('id', taskId);
+            throw new Error('Aguardando Briefing do GP — tarefa não pode ser concluída.');
+          }
+
           const { data: client } = await supabase
             .from('clients')
             .select('comercial_status, paddock_onboarding_step, name, razao_social, assigned_ads_manager')

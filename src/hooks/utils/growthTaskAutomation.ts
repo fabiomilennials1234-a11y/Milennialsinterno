@@ -54,7 +54,7 @@ export async function handleGrowthTaskCompletion(
   const clientId = growthTask.related_client_id;
   const { data: client } = await supabase
     .from('clients')
-    .select('name, razao_social, growth_onboarding_step')
+    .select('name, razao_social, growth_onboarding_step, growth_flow_version')
     .eq('id', clientId)
     .single();
 
@@ -118,11 +118,21 @@ export async function handleGrowthTaskCompletion(
     case 'do_call': {
       return { growthAdvanced: false, growthTeamSelectionNeeded: clientId, growthOnboardingComplete: false };
     }
+    case 'alinhar_projeto':
     case 'align_project': {
-      await supabase
-        .from('clients')
-        .update({ growth_onboarding_step: null } as any)
-        .eq('id', clientId);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const isV2 = (client as any)?.growth_flow_version === 2;
+      if (isV2) {
+        await supabase.rpc('growth_advance_gp_step', {
+          p_client_id: clientId,
+          p_new_step: 'acompanhamento_gestores',
+        });
+      } else {
+        await supabase
+          .from('clients')
+          .update({ growth_onboarding_step: null } as any)
+          .eq('id', clientId);
+      }
       return { growthAdvanced: false, growthTeamSelectionNeeded: null, growthOnboardingComplete: true };
     }
     default:

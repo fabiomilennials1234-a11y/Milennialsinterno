@@ -13,6 +13,7 @@ import {
 } from '@/hooks/useCrmKanban';
 import { resolveTaskOwner } from './utils/resolveTaskOwner';
 import { handleGrowthTaskCompletion } from './utils/growthTaskAutomation';
+import { isClientBlockedByBriefing } from './utils/briefingBlockCheck';
 
 // Map de department → page_slug correspondente em app_pages.
 // Mantido em paralelo aos slugs declarados em types/auth.ts ROLE_PAGE_MATRIX.
@@ -370,22 +371,30 @@ export function useUpdateDepartmentTaskStatus(department: string) {
             .single();
 
           if (client?.mktplace_status) {
-            // Check for blocking tag — prevents mktplace_status advance while
-            // ADS strategy is pending. Task still completes normally.
+            // Check for blocking tags — prevents mktplace_status advance while
+            // ADS strategy or GP briefing is pending. Task still completes normally.
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const { data: blockingTags } = await (supabase as any)
               .from('client_tags')
-              .select('id')
+              .select('id, name')
               .eq('client_id', clientId)
-              .eq('name', 'Aguardando Estratégia de Tráfego')
+              .in('name', ['Aguardando Estratégia de Tráfego', 'Esperar Briefing'])
               .is('dismissed_at', null)
-              .limit(1);
+              .limit(2);
 
             const isMktplaceBlocked = blockingTags && blockingTags.length > 0;
             if (isMktplaceBlocked) {
-              toast.error('Cliente bloqueado no MKT Place', {
-                description: 'Aguardando conclusão da estratégia de tráfego (ADS) para liberar avanço.',
-              });
+              const tagNames = (blockingTags as { id: string; name: string }[]).map(t => t.name);
+              if (tagNames.includes('Aguardando Estratégia de Tráfego')) {
+                toast.error('Cliente bloqueado no MKT Place', {
+                  description: 'Aguardando conclusão da estratégia de tráfego (ADS) para liberar avanço.',
+                });
+              }
+              if (tagNames.includes('Esperar Briefing')) {
+                toast.error('Aguardando Briefing do GP', {
+                  description: 'Esta tarefa so pode ser concluida apos o GP finalizar o briefing.',
+                });
+              }
             }
 
             const products = (client.contracted_products as string[]) || [];
@@ -503,6 +512,21 @@ export function useUpdateDepartmentTaskStatus(department: string) {
             const expectedTitle = crmWelcomeTaskTitle(clientName);
             // Só avança se o título da tarefa for exatamente a de boas-vindas
             if (crmTask.title === expectedTitle) {
+              // Block CRM welcome completion when "Esperar Briefing" is active
+              if (await isClientBlockedByBriefing(supabase, clientId)) {
+                await supabase
+                  .from('department_tasks')
+                  .update({ status: 'todo' } as any)
+                  .eq('id', taskId);
+                return {
+                  _source: 'department' as const, status, financeiroCompleted: false,
+                  allClientTasksDone: false, mktplaceAdvanced: false, crmWelcomeAdvanced: false,
+                  crmConfigAdvanced: false, crmConfigFinalized: false, crmValidationBlocked: false,
+                  growthAdvanced: false, growthTeamSelectionNeeded: null, growthOnboardingComplete: false,
+                  crmBriefingBlocked: true,
+                };
+              }
+
               const weekday = getCurrentWeekdayCrm();
               await supabase
                 .from('clients')
@@ -636,7 +660,7 @@ export function useUpdateDepartmentTaskStatus(department: string) {
         growthOnboardingComplete = growthResult.growthOnboardingComplete;
       }
 
-      return { _source: 'department' as const, status, financeiroCompleted, allClientTasksDone, mktplaceAdvanced, crmWelcomeAdvanced, crmConfigAdvanced, crmConfigFinalized, crmValidationBlocked, growthAdvanced, growthTeamSelectionNeeded, growthOnboardingComplete };
+      return { _source: 'department' as const, status, financeiroCompleted, allClientTasksDone, mktplaceAdvanced, crmWelcomeAdvanced, crmConfigAdvanced, crmConfigFinalized, crmValidationBlocked, growthAdvanced, growthTeamSelectionNeeded, growthOnboardingComplete, crmBriefingBlocked: false };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
@@ -649,6 +673,11 @@ export function useUpdateDepartmentTaskStatus(department: string) {
         queryClient.invalidateQueries({ queryKey: ['crm-config-state'] });
         toast.error('Etapa com pendencias', {
           description: 'Complete o checklist e campos obrigatorios antes de concluir.',
+        });
+      }
+      if (result?.crmBriefingBlocked) {
+        toast.error('Aguardando Briefing do GP', {
+          description: 'Esta tarefa so pode ser concluida apos o GP finalizar o briefing.',
         });
       }
       if (result?.crmConfigAdvanced) {

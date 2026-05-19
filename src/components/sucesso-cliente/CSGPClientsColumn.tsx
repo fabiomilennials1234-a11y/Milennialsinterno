@@ -11,8 +11,14 @@ import ClientLabelBadge, { type ClientLabel } from '@/components/shared/ClientLa
 
 const GP_STEP_LABELS: Record<string, string> = {
   novos_clientes: 'Novos Clientes',
+  // V1 steps
   call_1_agendada: 'Call 1 Agendada',
   call_1_realizada: 'Call 1 Realizada',
+  // V2 steps
+  realizar_call_1: 'Realizar Call 1',
+  escolher_equipe: 'Escolher Equipe',
+  alinhar_projeto: 'Alinhar Projeto',
+  // Shared
   acompanhamento_gestores: 'Acompanhamento Gestores',
 };
 

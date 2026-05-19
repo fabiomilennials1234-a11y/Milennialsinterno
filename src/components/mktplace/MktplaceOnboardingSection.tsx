@@ -1,11 +1,11 @@
 import { useState, useMemo } from 'react';
 import { useMktplaceClients, MKTPLACE_CONSULTORIA_STEPS, MKTPLACE_GESTAO_STEPS } from '@/hooks/useMktplaceKanban';
 import { useClientTagsBatch } from '@/hooks/useClientTags';
-import ClientTagsList, { TAG_TORQUE_BLOQUEADO } from '@/components/client-tags/ClientTagsList';
+import ClientTagsList, { TAG_TORQUE_BLOQUEADO, TAG_ESPERAR_BRIEFING } from '@/components/client-tags/ClientTagsList';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FileText, Eye } from 'lucide-react';
+import { FileText, Eye, ShieldAlert } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ClientViewModal from '@/components/client/ClientViewModal';
 
@@ -100,6 +100,8 @@ export default function MktplaceOnboardingSection() {
                     {/* Client Cards */}
                     {stepClients.map((client: any) => {
                       const clientName = client.razao_social || client.name || 'Cliente';
+                      const clientTags = tagsByClient?.get(client.id) ?? [];
+                      const hasBriefingBlock = clientTags.some(t => t.name === TAG_ESPERAR_BRIEFING && !t.dismissed_at);
 
                       return (
                         <Card key={client.id} className="border-subtle hover:shadow-apple-hover transition-shadow">
@@ -126,10 +128,19 @@ export default function MktplaceOnboardingSection() {
                               </Button>
                             </div>
 
+                            {hasBriefingBlock && (
+                              <div className="flex items-center gap-1.5 px-2 py-1 bg-danger/10 border border-danger/20 rounded-md animate-pulse">
+                                <ShieldAlert size={11} className="text-danger shrink-0" />
+                                <span className="text-[10px] font-bold text-danger uppercase tracking-wider">
+                                  Aguardando Briefing
+                                </span>
+                              </div>
+                            )}
+
                             <ClientTagsList
-                              tags={tagsByClient?.get(client.id) ?? []}
+                              tags={clientTags}
                               size="sm"
-                              excludeNames={[TAG_TORQUE_BLOQUEADO]}
+                              excludeNames={[TAG_TORQUE_BLOQUEADO, TAG_ESPERAR_BRIEFING]}
                               className="mt-0"
                             />
 

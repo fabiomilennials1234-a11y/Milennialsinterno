@@ -2006,6 +2006,7 @@ export type Database = {
           group_id: string | null
           growth_counter_ended_at: string | null
           growth_counter_started_at: string | null
+          growth_flow_version: number
           growth_gp_step: string | null
           growth_onboarding_step: string | null
           growth_team_added_to_groups: boolean
@@ -2071,6 +2072,7 @@ export type Database = {
           group_id?: string | null
           growth_counter_ended_at?: string | null
           growth_counter_started_at?: string | null
+          growth_flow_version?: number
           growth_gp_step?: string | null
           growth_onboarding_step?: string | null
           growth_team_added_to_groups?: boolean
@@ -2136,6 +2138,7 @@ export type Database = {
           group_id?: string | null
           growth_counter_ended_at?: string | null
           growth_counter_started_at?: string | null
+          growth_flow_version?: number
           growth_gp_step?: string | null
           growth_onboarding_step?: string | null
           growth_team_added_to_groups?: boolean

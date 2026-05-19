@@ -1,12 +1,15 @@
 import { useMemo } from 'react';
-import { Loader2, CheckCircle2, Phone, Users as UsersIcon, MessageSquare, ChevronRight } from 'lucide-react';
+import { Loader2, CheckCircle2, Phone, Users as UsersIcon, MessageSquare, Rocket, ArrowRight } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import {
   useGrowthGPNovosClientes,
+  useGrowthGPTasks,
   useGrowthAdvanceStep,
+  useCompleteGrowthGPTask,
+  isGrowthV2Task,
 } from '@/hooks/useGrowthGPKanban';
 import { useClientTagsBatch } from '@/hooks/useClientTags';
 import { TAG_BLOQUEADO_CX } from '@/components/client-tags/ClientTagsList';
@@ -17,18 +20,20 @@ import { supabase } from '@/integrations/supabase/client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { fireCelebration } from '@/lib/confetti';
-import type { GrowthGPClient } from '@/hooks/useGrowthGPKanban';
+import type { GrowthGPClient, GrowthGPTask } from '@/hooks/useGrowthGPKanban';
 import type { ClientTag } from '@/hooks/useClientTags';
 
 interface Props {
   onTeamSelectionNeeded?: (clientId: string) => void;
 }
 
-const STEPS = [
+// ── V1 steps (legacy: filter by getOnboardingProgress) ──────────────────────
+
+const V1_STEPS = [
   {
     key: 'call_1',
     title: 'Realizar Call 1',
-    emoji: '📞',
+    emoji: '\u{1F4DE}',
     color: 'bg-purple',
     borderColor: 'border-l-purple',
     filter: (c: GrowthGPClient) => {
@@ -39,7 +44,7 @@ const STEPS = [
   {
     key: 'equipe',
     title: 'Escolher Equipe',
-    emoji: '👥',
+    emoji: '\u{1F465}',
     color: 'bg-cyan-600',
     borderColor: 'border-l-cyan-500',
     filter: (c: GrowthGPClient) => {
@@ -50,7 +55,7 @@ const STEPS = [
   {
     key: 'grupos',
     title: 'Adicionar nos Grupos',
-    emoji: '💬',
+    emoji: '\u{1F4AC}',
     color: 'bg-success',
     borderColor: 'border-l-success',
     filter: (c: GrowthGPClient) => {
@@ -60,11 +65,76 @@ const STEPS = [
   },
 ] as const;
 
+// ── V2 steps (filter by growth_gp_step directly) ──────────────────────────
+
+interface V2StepDef {
+  key: string;
+  step: string;
+  title: string;
+  emoji: string;
+  color: string;
+  borderColor: string;
+  nextStep: string | null;
+  actionLabel: string | null;
+  actionType: 'advance' | 'team_selection' | null;
+}
+
+const V2_STEPS: V2StepDef[] = [
+  {
+    key: 'v2_novos_clientes',
+    step: 'novos_clientes',
+    title: 'Novos Clientes',
+    emoji: '\u{1F195}',
+    color: 'bg-blue-600',
+    borderColor: 'border-l-blue-500',
+    nextStep: 'realizar_call_1',
+    actionLabel: 'Avancar para Call 1',
+    actionType: 'advance',
+  },
+  {
+    key: 'v2_realizar_call_1',
+    step: 'realizar_call_1',
+    title: 'Realizar Call 1',
+    emoji: '\u{1F4DE}',
+    color: 'bg-purple',
+    borderColor: 'border-l-purple',
+    nextStep: 'escolher_equipe',
+    actionLabel: 'Avancar para Escolher Equipe',
+    actionType: 'advance',
+  },
+  {
+    key: 'v2_escolher_equipe',
+    step: 'escolher_equipe',
+    title: 'Escolher Equipe',
+    emoji: '\u{1F465}',
+    color: 'bg-cyan-600',
+    borderColor: 'border-l-cyan-500',
+    nextStep: null,
+    actionLabel: 'Escolher Equipe Growth',
+    actionType: 'team_selection',
+  },
+  {
+    key: 'v2_alinhar_projeto',
+    step: 'alinhar_projeto',
+    title: 'Alinhar Projeto',
+    emoji: '\u{1F3AF}',
+    color: 'bg-amber-600',
+    borderColor: 'border-l-amber-500',
+    nextStep: null,
+    actionLabel: null,
+    actionType: null,
+  },
+];
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export default function NovosClientesOnboardingSection({ onTeamSelectionNeeded }: Props) {
   const { data: clients = [], isLoading } = useGrowthGPNovosClientes();
   const clientIds = useMemo(() => clients.map(c => c.id), [clients]);
   const { data: tagsMap } = useClientTagsBatch(clientIds);
+  const { data: tasksMap } = useGrowthGPTasks(clientIds);
   const advanceStep = useGrowthAdvanceStep();
+  const completeTask = useCompleteGrowthGPTask();
   const queryClient = useQueryClient();
 
   const markAddedToGroups = useMutation({
@@ -98,13 +168,37 @@ export default function NovosClientesOnboardingSection({ onTeamSelectionNeeded }
     },
   });
 
-  const clientsByStep = useMemo(() => {
+  // Split clients by flow version
+  const { v1Clients, v2Clients } = useMemo(() => {
+    const v1: GrowthGPClient[] = [];
+    const v2: GrowthGPClient[] = [];
+    for (const c of clients) {
+      if (c.growth_flow_version === 2) {
+        v2.push(c);
+      } else {
+        v1.push(c);
+      }
+    }
+    return { v1Clients: v1, v2Clients: v2 };
+  }, [clients]);
+
+  // V1: group by old progress-based steps
+  const v1ByStep = useMemo(() => {
     const result: Record<string, GrowthGPClient[]> = {};
-    for (const step of STEPS) {
-      result[step.key] = clients.filter(step.filter);
+    for (const step of V1_STEPS) {
+      result[step.key] = v1Clients.filter(step.filter);
     }
     return result;
-  }, [clients]);
+  }, [v1Clients]);
+
+  // V2: group by growth_gp_step
+  const v2ByStep = useMemo(() => {
+    const result: Record<string, GrowthGPClient[]> = {};
+    for (const step of V2_STEPS) {
+      result[step.key] = v2Clients.filter(c => c.growth_gp_step === step.step);
+    }
+    return result;
+  }, [v2Clients]);
 
   if (isLoading) {
     return (
@@ -114,17 +208,19 @@ export default function NovosClientesOnboardingSection({ onTeamSelectionNeeded }
     );
   }
 
-  const isPending = advanceStep.isPending || markAddedToGroups.isPending;
+  const isPending = advanceStep.isPending || markAddedToGroups.isPending || completeTask.isPending;
+  const hasV1 = v1Clients.length > 0;
+  const hasV2 = v2Clients.length > 0;
 
   return (
     <ScrollArea className="h-full">
       <div className="space-y-4 pr-1">
-        {STEPS.map(step => {
-          const stepClients = clientsByStep[step.key] || [];
+        {/* ── V2 Steps ── */}
+        {hasV2 && V2_STEPS.map(step => {
+          const stepClients = v2ByStep[step.key] || [];
 
           return (
             <div key={step.key} className="rounded-xl border border-subtle overflow-hidden bg-card shadow-apple">
-              {/* Step header — colored like ADS onboarding */}
               <div className={cn('px-3.5 py-2.5', step.color)}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -140,7 +236,6 @@ export default function NovosClientesOnboardingSection({ onTeamSelectionNeeded }
                 </div>
               </div>
 
-              {/* Client cards inside step */}
               <div className="p-2.5 space-y-2 bg-card">
                 {stepClients.length === 0 ? (
                   <p className="text-[10px] text-muted-foreground/50 italic text-center py-3">
@@ -149,26 +244,23 @@ export default function NovosClientesOnboardingSection({ onTeamSelectionNeeded }
                 ) : (
                   stepClients.map(client => {
                     const tags = tagsMap?.get(client.id) || [];
+                    const tasks = tasksMap?.get(client.id) || [];
                     const hasCXBlock = tags.some(t => t.name === TAG_BLOQUEADO_CX);
 
                     return (
-                      <StepClientCard
+                      <V2StepClientCard
                         key={client.id}
                         client={client}
                         tags={tags}
+                        tasks={tasks}
                         hasCXBlock={hasCXBlock}
-                        stepKey={step.key}
-                        borderColor={step.borderColor}
+                        stepDef={step}
                         isPending={isPending}
-                        onAdvanceCall1={(clientId) => {
-                          if (client.growth_gp_step === 'novos_clientes') {
-                            advanceStep.mutate({ clientId, newStep: 'call_1_agendada' });
-                          } else if (client.growth_gp_step === 'call_1_agendada') {
-                            advanceStep.mutate({ clientId, newStep: 'call_1_realizada' });
-                          }
+                        onAdvance={(clientId, nextStep) => {
+                          advanceStep.mutate({ clientId, newStep: nextStep });
                         }}
                         onTeamSelectionNeeded={onTeamSelectionNeeded}
-                        onMarkAddedToGroups={(clientId) => markAddedToGroups.mutate(clientId)}
+                        onTaskComplete={(taskId) => completeTask.mutate({ taskId })}
                       />
                     );
                   })
@@ -177,14 +269,194 @@ export default function NovosClientesOnboardingSection({ onTeamSelectionNeeded }
             </div>
           );
         })}
+
+        {/* ── V1 Steps (legacy) ── */}
+        {hasV1 && (
+          <>
+            {hasV2 && (
+              <div className="flex items-center gap-2 px-1 py-1">
+                <div className="h-px flex-1 bg-subtle" />
+                <span className="text-[9px] text-muted-foreground/50 uppercase tracking-widest font-medium">Fluxo anterior</span>
+                <div className="h-px flex-1 bg-subtle" />
+              </div>
+            )}
+            {V1_STEPS.map(step => {
+              const stepClients = v1ByStep[step.key] || [];
+
+              return (
+                <div key={step.key} className="rounded-xl border border-subtle overflow-hidden bg-card shadow-apple">
+                  <div className={cn('px-3.5 py-2.5', step.color)}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">{step.emoji}</span>
+                        <span className="font-semibold text-xs text-white">{step.title}</span>
+                      </div>
+                      <Badge
+                        variant="secondary"
+                        className="h-5 min-w-5 px-1.5 text-[10px] bg-white/20 text-white border-0"
+                      >
+                        {stepClients.length}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 space-y-2 bg-card">
+                    {stepClients.length === 0 ? (
+                      <p className="text-[10px] text-muted-foreground/50 italic text-center py-3">
+                        Nenhum cliente nesta etapa
+                      </p>
+                    ) : (
+                      stepClients.map(client => {
+                        const tags = tagsMap?.get(client.id) || [];
+                        const hasCXBlock = tags.some(t => t.name === TAG_BLOQUEADO_CX);
+
+                        return (
+                          <V1StepClientCard
+                            key={client.id}
+                            client={client}
+                            tags={tags}
+                            hasCXBlock={hasCXBlock}
+                            stepKey={step.key}
+                            borderColor={step.borderColor}
+                            isPending={isPending}
+                            onAdvanceCall1={(clientId) => {
+                              if (client.growth_gp_step === 'novos_clientes') {
+                                advanceStep.mutate({ clientId, newStep: 'call_1_agendada' });
+                              } else if (client.growth_gp_step === 'call_1_agendada') {
+                                advanceStep.mutate({ clientId, newStep: 'call_1_realizada' });
+                              }
+                            }}
+                            onTeamSelectionNeeded={onTeamSelectionNeeded}
+                            onMarkAddedToGroups={(clientId) => markAddedToGroups.mutate(clientId)}
+                          />
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </>
+        )}
+
+        {/* Empty state */}
+        {!hasV1 && !hasV2 && (
+          <div className="text-center py-8 text-muted-foreground">
+            <CheckCircle2 className="mx-auto mb-2 opacity-50" size={32} />
+            <p className="font-medium text-sm">Nenhum cliente em onboarding</p>
+          </div>
+        )}
       </div>
     </ScrollArea>
   );
 }
 
-// ── Client card inside a step ──────────────────────────────────────────────
+// ── V2 Client card ────────────────────────────────────────────────────────────
 
-interface StepClientCardProps {
+interface V2StepClientCardProps {
+  client: GrowthGPClient;
+  tags: ClientTag[];
+  tasks: GrowthGPTask[];
+  hasCXBlock: boolean;
+  stepDef: V2StepDef;
+  isPending: boolean;
+  onAdvance: (clientId: string, nextStep: string) => void;
+  onTeamSelectionNeeded?: (clientId: string) => void;
+  onTaskComplete: (taskId: string) => void;
+}
+
+function V2StepClientCard({
+  client,
+  tags,
+  tasks,
+  hasCXBlock,
+  stepDef,
+  isPending,
+  onAdvance,
+  onTeamSelectionNeeded,
+  onTaskComplete,
+}: V2StepClientCardProps) {
+  const displayName = client.razao_social || client.name;
+  const pendingTasks = tasks.filter(t => isGrowthV2Task(t) && t.status !== 'done');
+
+  return (
+    <div
+      className={cn(
+        'kanban-card p-3 border-l-[3px] space-y-2.5',
+        stepDef.borderColor,
+        hasCXBlock && 'border-danger bg-danger/5',
+      )}
+    >
+      <h4 className="text-sm font-medium text-foreground truncate">{displayName}</h4>
+
+      {hasCXBlock && (
+        <GrowthBlockingLabel text="BLOQUEADO: ESPERAR LIGACAO DO CX" variant="danger" />
+      )}
+
+      <ClientTagsList
+        tags={tags}
+        size="sm"
+        excludeNames={[TAG_BLOQUEADO_CX]}
+        className="mt-0"
+      />
+
+      {/* Pending tasks */}
+      {pendingTasks.length > 0 && (
+        <div className="space-y-1">
+          {pendingTasks.map(task => (
+            <div
+              key={task.id}
+              className="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-info/5"
+            >
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTaskComplete(task.id);
+                }}
+                disabled={isPending}
+                className="shrink-0 group/check"
+                title="Concluir tarefa"
+              >
+                <div className="w-3.5 h-3.5 rounded-full border-2 border-info group-hover/check:border-success group-hover/check:bg-success/20 transition-colors" />
+              </button>
+              <span className="text-xs font-medium truncate">{task.title}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Action button */}
+      {!hasCXBlock && stepDef.actionType === 'advance' && stepDef.nextStep && (
+        <Button
+          size="sm"
+          variant="outline"
+          className="w-full h-8 text-xs gap-2"
+          disabled={isPending}
+          onClick={() => onAdvance(client.id, stepDef.nextStep!)}
+        >
+          <ArrowRight size={12} />
+          {stepDef.actionLabel}
+        </Button>
+      )}
+
+      {!hasCXBlock && stepDef.actionType === 'team_selection' && onTeamSelectionNeeded && (
+        <Button
+          size="sm"
+          className="w-full h-8 text-xs gap-2 bg-cyan-600 hover:bg-cyan-700"
+          disabled={isPending}
+          onClick={() => onTeamSelectionNeeded(client.id)}
+        >
+          <UsersIcon size={12} />
+          {stepDef.actionLabel}
+        </Button>
+      )}
+    </div>
+  );
+}
+
+// ── V1 Client card (legacy — unchanged logic) ─────────────────────────────────
+
+interface V1StepClientCardProps {
   client: GrowthGPClient;
   tags: ClientTag[];
   hasCXBlock: boolean;
@@ -196,7 +468,7 @@ interface StepClientCardProps {
   onMarkAddedToGroups: (clientId: string) => void;
 }
 
-function StepClientCard({
+function V1StepClientCard({
   client,
   tags,
   hasCXBlock,
@@ -206,7 +478,7 @@ function StepClientCard({
   onAdvanceCall1,
   onTeamSelectionNeeded,
   onMarkAddedToGroups,
-}: StepClientCardProps) {
+}: V1StepClientCardProps) {
   const displayName = client.razao_social || client.name;
 
   return (
@@ -217,15 +489,12 @@ function StepClientCard({
         hasCXBlock && 'border-danger bg-danger/5',
       )}
     >
-      {/* Client name */}
       <h4 className="text-sm font-medium text-foreground truncate">{displayName}</h4>
 
-      {/* CX block */}
       {hasCXBlock && (
-        <GrowthBlockingLabel text="BLOQUEADO: ESPERAR LIGAÇÃO DO CX" variant="danger" />
+        <GrowthBlockingLabel text="BLOQUEADO: ESPERAR LIGACAO DO CX" variant="danger" />
       )}
 
-      {/* Tags */}
       <ClientTagsList
         tags={tags}
         size="sm"
@@ -252,7 +521,6 @@ function StepClientCard({
         </div>
       )}
 
-      {/* Action button per step */}
       {stepKey === 'call_1' && !hasCXBlock && (
         <Button
           size="sm"

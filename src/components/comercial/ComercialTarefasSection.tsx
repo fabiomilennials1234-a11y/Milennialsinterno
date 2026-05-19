@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, CheckCircle2, Circle, Clock, Trash2, Archive, MoreVertical, AlertTriangle, Timer } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Plus, CheckCircle2, Circle, Clock, Trash2, Archive, MoreVertical, AlertTriangle, Timer, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,6 +20,8 @@ import {
 } from '@/hooks/useComercialTasks';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { cn } from '@/lib/utils';
+import { useClientTagsBatch } from '@/hooks/useClientTags';
+import { TAG_ESPERAR_BRIEFING } from '@/components/client-tags/ClientTagsList';
 
 interface ComercialTarefasSectionProps {
   taskType: 'daily' | 'weekly';
@@ -57,11 +59,12 @@ function getDeadlineInfo(dueDate?: string, status?: string) {
   return { label: `${diffDays}d restantes`, isOverdue: false, isUrgent: false };
 }
 
-function TaskCard({ task, onStatusChange, onDelete, onArchive }: {
+function TaskCard({ task, onStatusChange, onDelete, onArchive, isBlockedByBriefing = false }: {
   task: ComercialTask;
   onStatusChange: (status: 'todo' | 'doing' | 'done') => void;
   onDelete: () => void;
   onArchive: () => void;
+  isBlockedByBriefing?: boolean;
 }) {
   const statusIcon = {
     todo: <Circle size={14} className="text-gray-400" />,
@@ -108,6 +111,14 @@ function TaskCard({ task, onStatusChange, onDelete, onArchive }: {
                 </Badge>
               )}
             </div>
+            {isBlockedByBriefing && (
+              <div className="flex items-center gap-1.5 mt-1.5 px-2 py-1 bg-danger/10 border border-danger/20 rounded-md animate-pulse">
+                <ShieldAlert size={11} className="text-danger shrink-0" />
+                <span className="text-[10px] font-bold text-danger uppercase tracking-wider">
+                  Aguardando Briefing
+                </span>
+              </div>
+            )}
           </div>
         </div>
         <DropdownMenu>
@@ -157,6 +168,22 @@ export default function ComercialTarefasSection({ taskType }: ComercialTarefasSe
   const archiveTask = useArchiveComercialTask();
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [isAdding, setIsAdding] = useState(false);
+
+  // Briefing tag awareness
+  const clientIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const t of tasks) {
+      if (t.related_client_id) ids.add(t.related_client_id);
+    }
+    return [...ids];
+  }, [tasks]);
+  const { data: tagsByClient } = useClientTagsBatch(clientIds);
+
+  const checkBriefingBlock = (clientId?: string): boolean => {
+    if (!clientId) return false;
+    const tags = tagsByClient?.get(clientId);
+    return !!tags?.some(t => t.name === TAG_ESPERAR_BRIEFING && !t.dismissed_at);
+  };
 
   const handleAddTask = async () => {
     if (!newTaskTitle.trim()) return;
@@ -251,6 +278,7 @@ export default function ComercialTarefasSection({ taskType }: ComercialTarefasSe
                               onStatusChange={(status) => updateStatus.mutate({ taskId: task.id, status })}
                               onDelete={() => deleteTask.mutate(task.id)}
                               onArchive={() => archiveTask.mutate(task.id)}
+                              isBlockedByBriefing={task.is_auto_generated ? checkBriefingBlock(task.related_client_id) : false}
                             />
                           </div>
                         )}

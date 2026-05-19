@@ -36,6 +36,7 @@ import {
   useRhUsers,
   useOutboundManagers,
   useMktplaceConsultants,
+  useCxFromSquad,
   useCreateClient,
 } from '@/hooks/useClientRegistration';
 import {
@@ -237,6 +238,7 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
   const { data: rhUsers = [], isLoading: rhLoading } = useRhUsers();
   const { data: outboundManagers = [], isLoading: outboundLoading } = useOutboundManagers();
   const { data: mktplaceConsultants = [], isLoading: mktplaceLoading } = useMktplaceConsultants();
+  const { data: autoCxUserId } = useCxFromSquad(selectedSquadId || undefined);
   const createClient = useCreateClient();
 
   // Contagens de clientes (mesma lógica da Sidebar)
@@ -322,11 +324,19 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
 
   const watchedConsulting = form.watch('has_mktplace_consulting');
 
+  // Growth: auto-derive CX from squad. Non-Growth: clear CX when picker hidden.
   useEffect(() => {
-    if (!showSucessoCliente && form.getValues('assigned_sucesso_cliente')) {
+    if (hasMillennialsGrowth) {
+      // Auto-fill CX from squad lookup
+      if (autoCxUserId) {
+        form.setValue('assigned_sucesso_cliente', autoCxUserId);
+      } else {
+        form.setValue('assigned_sucesso_cliente', '');
+      }
+    } else if (!showSucessoCliente && form.getValues('assigned_sucesso_cliente')) {
       form.setValue('assigned_sucesso_cliente', '');
     }
-  }, [showSucessoCliente, form]);
+  }, [hasMillennialsGrowth, autoCxUserId, showSucessoCliente, form]);
 
   useEffect(() => {
     if (!showMktplace && watchedConsulting !== null) {
@@ -456,7 +466,11 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
         assigned_rh: data.assigned_rh || undefined,
         assigned_outbound_manager: data.assigned_outbound_manager || undefined,
         assigned_mktplace: showMktplace ? (data.assigned_mktplace || undefined) : undefined,
-        assigned_sucesso_cliente: showSucessoCliente ? (data.assigned_sucesso_cliente || undefined) : undefined,
+        // Growth: CX auto-derived from squad, send even though picker is hidden.
+        // Non-Growth: send only if picker is visible.
+        assigned_sucesso_cliente: (showSucessoCliente || hasMillennialsGrowth)
+          ? (data.assigned_sucesso_cliente || undefined)
+          : undefined,
         product_values: productValuesArray,
       });
 

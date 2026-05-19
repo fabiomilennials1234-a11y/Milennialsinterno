@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useCrmDailyTasks, type CrmTaskGroup, type EnrichedCrmTask } from '@/hooks/useCrmDailyTasks';
 import { useUpdateDepartmentTaskStatus } from '@/hooks/useDepartmentTasks';
+import { useClientTagsBatch } from '@/hooks/useClientTags';
+import { TAG_ESPERAR_BRIEFING } from '@/components/client-tags/ClientTagsList';
 import { CRM_PRODUTO_LABEL, CRM_PRODUTO_COLOR, CRM_STEP_LABEL, type CrmProduto } from '@/hooks/useCrmKanban';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   AlertTriangle, Clock, CalendarClock, Hourglass,
-  CheckCircle2, Timer, Eye, ListChecks,
+  CheckCircle2, Timer, Eye, ListChecks, ShieldAlert,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import CrmConfigViewModal from './CrmConfigViewModal';
@@ -54,10 +56,26 @@ const GROUP_ORDER: CrmTaskGroup[] = ['atrasadas', 'hoje', 'pendentes', 'aguardan
  * and click opens the config in the CRM modal.
  */
 export default function CrmDailyTasksSection() {
-  const { grouped, isLoading } = useCrmDailyTasks();
+  const { grouped, isLoading, enrichedTasks } = useCrmDailyTasks();
   const { data: allConfigs = [] } = useCrmConfiguracoes();
   const updateStatus = useUpdateDepartmentTaskStatus('gestor_crm');
   const [selectedConfigId, setSelectedConfigId] = useState<string | null>(null);
+
+  // Briefing tag awareness
+  const clientIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const et of enrichedTasks) {
+      if (et.task.related_client_id) ids.add(et.task.related_client_id);
+    }
+    return [...ids];
+  }, [enrichedTasks]);
+  const { data: tagsByClient } = useClientTagsBatch(clientIds);
+
+  const isBlockedByBriefing = (clientId?: string | null): boolean => {
+    if (!clientId) return false;
+    const tags = tagsByClient?.get(clientId);
+    return !!tags?.some(t => t.name === TAG_ESPERAR_BRIEFING && !t.dismissed_at);
+  };
 
   const selectedConfig = selectedConfigId
     ? (allConfigs as Record<string, unknown>[]).find((c) => c.id === selectedConfigId) || null
@@ -110,20 +128,24 @@ export default function CrmDailyTasksSection() {
 
             {/* Tasks */}
             <div className="space-y-1.5">
-              {tasks.map(enriched => (
-                <TaskCard
-                  key={enriched.task.id}
-                  enriched={enriched}
-                  onComplete={() => {
-                    updateStatus.mutate({
-                      taskId: enriched.task.id,
-                      status: 'done',
-                      taskTitle: enriched.task.title,
-                    });
-                  }}
-                  onOpenConfig={() => enriched.configId && setSelectedConfigId(enriched.configId)}
-                />
-              ))}
+              {tasks.map(enriched => {
+                const briefingBlocked = isBlockedByBriefing(enriched.task.related_client_id);
+                return (
+                  <TaskCard
+                    key={enriched.task.id}
+                    enriched={enriched}
+                    isBlockedByBriefing={briefingBlocked}
+                    onComplete={() => {
+                      updateStatus.mutate({
+                        taskId: enriched.task.id,
+                        status: 'done',
+                        taskTitle: enriched.task.title,
+                      });
+                    }}
+                    onOpenConfig={() => enriched.configId && setSelectedConfigId(enriched.configId)}
+                  />
+                );
+              })}
             </div>
           </div>
         );
@@ -144,10 +166,12 @@ function TaskCard({
   enriched,
   onComplete,
   onOpenConfig,
+  isBlockedByBriefing = false,
 }: {
   enriched: EnrichedCrmTask;
   onComplete: () => void;
   onOpenConfig: () => void;
+  isBlockedByBriefing?: boolean;
 }) {
   const { task, produto, checklistProgress, isBlockedDN, deadlineStatus, blockedUntil } = enriched;
   const clientName = task.clients?.razao_social || task.clients?.name || '';
@@ -219,6 +243,16 @@ function TaskCard({
             </Badge>
           )}
 
+          {/* Briefing block badge */}
+          {isBlockedByBriefing && (
+            <div className="flex items-center gap-1 px-1.5 py-0.5 bg-danger/10 border border-danger/20 rounded animate-pulse">
+              <ShieldAlert size={9} className="text-danger shrink-0" />
+              <span className="text-[9px] font-bold text-danger uppercase tracking-wider">
+                Aguardando Briefing
+              </span>
+            </div>
+          )}
+
           {/* Status badge */}
           <Badge
             variant="outline"
@@ -246,7 +280,7 @@ function TaskCard({
             <Eye size={11} />
           </Button>
         )}
-        {!isBlockedDN && (
+        {!isBlockedDN && !isBlockedByBriefing && (
           <Button
             variant="ghost"
             size="sm"

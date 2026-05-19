@@ -296,6 +296,42 @@ export function useOutboundManagers() {
   });
 }
 
+/**
+ * Auto-derive CX (sucesso_cliente) from the selected squad.
+ * Returns the first sucesso_cliente user_id in that squad, or null.
+ * Used by Growth registration: CX is not manually picked but auto-filled
+ * based on the GP's squad.
+ */
+export function useCxFromSquad(squadId: string | undefined) {
+  return useQuery<string | null>({
+    queryKey: ['cx-from-squad', squadId],
+    queryFn: async () => {
+      if (!squadId) return null;
+
+      const { data: roleRows, error: roleErr } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'sucesso_cliente' as never);
+      if (roleErr) throw roleErr;
+
+      const ids = (roleRows || []).map(r => r.user_id);
+      if (ids.length === 0) return null;
+
+      const { data: profiles, error: profErr } = await supabase
+        .from('profiles')
+        .select('user_id')
+        .in('user_id', ids)
+        .eq('squad_id', squadId)
+        .limit(1);
+      if (profErr) throw profErr;
+
+      return profiles?.[0]?.user_id ?? null;
+    },
+    enabled: !!squadId,
+    staleTime: 30_000,
+  });
+}
+
 // Um ponto de falha silenciosa durante o fluxo de criação.
 // Agregado pelo mutationFn e reportado no onSuccess (toast + log estruturado).
 export interface AutomationError {
