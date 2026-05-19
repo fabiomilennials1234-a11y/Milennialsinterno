@@ -254,14 +254,14 @@ export default function CreateDevCardModal({
             {/* Materials URL - Optional */}
             <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">
-                Materiais e recursos (links)
+                Materiais e recursos (links e descrição)
               </label>
-              <input
-                type="url"
+              <textarea
                 value={formData.materials_url}
                 onChange={e => setFormData(prev => ({ ...prev, materials_url: e.target.value }))}
-                placeholder="https://drive.google.com/..."
-                className="input-apple"
+                placeholder="Descreva os materiais e cole os links..."
+                rows={3}
+                className="input-apple resize-none"
               />
             </div>
 

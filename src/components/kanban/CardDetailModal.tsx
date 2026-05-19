@@ -14,7 +14,6 @@ import {
   CheckCircle2,
   Archive,
   Trash2,
-  ExternalLink,
   Database,
 } from 'lucide-react';
 import { useClientDesignProfile } from '@/hooks/useClientDesignProfiles';
@@ -22,6 +21,7 @@ import { useClientVideoProfile } from '@/hooks/useClientVideoProfiles';
 import { useClientDevProfile } from '@/hooks/useClientDevProfiles';
 import CardAttachmentsTab from '@/components/design/CardAttachmentsTab';
 import ClientInfoTab from '@/components/kanban/ClientInfoTab';
+import { BriefingField } from '@/components/kanban/BriefingField';
 import { cn } from '@/lib/utils';
 import { KanbanCard, useArchiveCard } from '@/hooks/useKanban';
 import {
@@ -556,8 +556,8 @@ export default function CardDetailModal({
                     <input type="url" value={videoBriefingForm.script_url} onChange={e => setVideoBriefingForm(prev => ({ ...prev, script_url: e.target.value }))} placeholder="https://docs.google.com/..." className="input-apple" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-1.5">Materiais do editor (links)</label>
-                    <input type="url" value={videoBriefingForm.materials_url} onChange={e => setVideoBriefingForm(prev => ({ ...prev, materials_url: e.target.value }))} placeholder="https://drive.google.com/..." className="input-apple" />
+                    <label className="block text-sm font-medium text-foreground mb-1.5">Materiais do editor (links e descrição)</label>
+                    <textarea value={videoBriefingForm.materials_url} onChange={e => setVideoBriefingForm(prev => ({ ...prev, materials_url: e.target.value }))} placeholder="Descreva os materiais e cole os links..." rows={3} className="input-apple resize-none" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1.5">Vídeo de referência</label>
@@ -615,8 +615,8 @@ export default function CardDetailModal({
               ) : briefingEditing ? (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-1.5">Materiais e recursos (links)</label>
-                    <input type="url" value={devBriefingForm.materials_url} onChange={e => setDevBriefingForm(prev => ({ ...prev, materials_url: e.target.value }))} placeholder="https://drive.google.com/..." className="input-apple" />
+                    <label className="block text-sm font-medium text-foreground mb-1.5">Materiais e recursos (links e descrição)</label>
+                    <textarea value={devBriefingForm.materials_url} onChange={e => setDevBriefingForm(prev => ({ ...prev, materials_url: e.target.value }))} placeholder="Descreva os materiais e cole os links..." rows={3} className="input-apple resize-none" />
                   </div>
                   <div className="flex items-center justify-end gap-3 pt-4">
                     <button onClick={() => setBriefingEditing(false)} className="px-4 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">Cancelar</button>
@@ -891,47 +891,6 @@ export default function CardDetailModal({
 }
 
 // Helper Components
-function BriefingField({ 
-  label, 
-  value, 
-  isLink = false,
-  isText = false 
-}: { 
-  label: string; 
-  value: string | null; 
-  isLink?: boolean;
-  isText?: boolean;
-}) {
-  if (!value) {
-    return (
-      <div className="space-y-1">
-        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</label>
-        <p className="text-sm text-muted-foreground/50 italic">Não informado</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-1">
-      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</label>
-      {isLink ? (
-        <a 
-          href={value} 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="flex items-center gap-1 text-sm text-primary hover:underline"
-        >
-          {value.length > 50 ? value.substring(0, 50) + '...' : value}
-          <ExternalLink size={12} />
-        </a>
-      ) : isText ? (
-        <p className="text-sm text-foreground whitespace-pre-wrap">{value}</p>
-      ) : (
-        <p className="text-sm text-foreground">{value}</p>
-      )}
-    </div>
-  );
-}
 
 // Design status labels for display
 const DESIGN_STATUS_LABELS: Record<string, string> = {

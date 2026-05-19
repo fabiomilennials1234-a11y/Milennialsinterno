@@ -275,17 +275,17 @@ export default function CreateVideoCardModal({
             {/* Materials URL */}
             <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">
-                Quais materiais o editor deve usar (links)
+                Quais materiais o editor deve usar (links e descrição)
               </label>
-              <input
-                type="url"
+              <textarea
                 value={formData.briefing.materials_url}
-                onChange={e => setFormData(prev => ({ 
-                  ...prev, 
+                onChange={e => setFormData(prev => ({
+                  ...prev,
                   briefing: { ...prev.briefing, materials_url: e.target.value }
                 }))}
-                placeholder="https://drive.google.com/..."
-                className="input-apple"
+                placeholder="Descreva os materiais e cole os links..."
+                rows={3}
+                className="input-apple resize-none"
               />
             </div>
 
