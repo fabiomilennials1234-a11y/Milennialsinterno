@@ -215,8 +215,8 @@ export default function NovosClientesOnboardingSection({ onTeamSelectionNeeded }
   return (
     <ScrollArea className="h-full">
       <div className="space-y-4 pr-1">
-        {/* ── V2 Steps ── */}
-        {hasV2 && V2_STEPS.map(step => {
+        {/* ── V2 Steps (always visible) ── */}
+        {V2_STEPS.map(step => {
           const stepClients = v2ByStep[step.key] || [];
 
           return (
@@ -339,13 +339,7 @@ export default function NovosClientesOnboardingSection({ onTeamSelectionNeeded }
           </>
         )}
 
-        {/* Empty state */}
-        {!hasV1 && !hasV2 && (
-          <div className="text-center py-8 text-muted-foreground">
-            <CheckCircle2 className="mx-auto mb-2 opacity-50" size={32} />
-            <p className="font-medium text-sm">Nenhum cliente em onboarding</p>
-          </div>
-        )}
+        {/* Empty state removed — V2 sections always visible with per-step empty state */}
       </div>
     </ScrollArea>
   );
