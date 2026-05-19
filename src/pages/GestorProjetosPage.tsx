@@ -35,8 +35,8 @@ import OracleSummarySection from '@/components/oracle/OracleSummarySection';
 export const COLUMNS = [
   { id: 'oraculo', title: 'Oráculo IA', icon: Sparkles, headerClass: 'section-header-violet', iconColor: 'text-white' },
   { id: 'tarefas-diarias', title: 'Tarefas Diárias', icon: CheckSquare, headerClass: 'section-header-sky', iconColor: 'text-white' },
-  { id: 'novos-clientes-onboarding', title: 'Novos Clientes + Onboarding', icon: UserPlus, headerClass: 'section-header-cyan', iconColor: 'text-white' },
-  { id: 'acompanhamento-growth', title: 'Acompanhamento Gestores', icon: Headphones, headerClass: 'section-header-teal', iconColor: 'text-white' },
+  { id: 'novos-clientes-onboarding', title: 'Novos Clientes + Onboarding', icon: UserPlus, headerClass: 'section-header-cyan', iconColor: 'text-white', width: 400 },
+  { id: 'acompanhamento-growth', title: 'Acompanhamento Gestores', icon: Headphones, headerClass: 'section-header-teal', iconColor: 'text-white', width: 400 },
   { id: 'metricas', title: 'Métricas por Área', icon: LayoutDashboard, headerClass: 'section-header-blue', iconColor: 'text-white' },
   { id: 'atrasados', title: 'Atrasados por Área', icon: AlertTriangle, headerClass: 'section-header-danger', iconColor: 'text-white' },
   { id: 'atrasos-justificativas', title: 'Atrasos + Justificativas do Time', icon: ClipboardList, headerClass: 'section-header-orange', iconColor: 'text-white' },
@@ -172,7 +172,8 @@ export default function GestorProjetosPage() {
                 return (
                   <div
                     key={column.id}
-                    className="w-[340px] flex-shrink-0 flex flex-col bg-card rounded-2xl border border-subtle overflow-hidden shadow-apple"
+                    className="flex-shrink-0 flex flex-col bg-card rounded-2xl border border-subtle overflow-hidden shadow-apple"
+                    style={{ width: 'width' in column ? column.width : 340 }}
                   >
                     <div className={`section-header ${column.headerClass}`}>
                       <div className="flex items-center gap-3">
