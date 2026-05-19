@@ -391,22 +391,15 @@ function V2StepClientCard({
   return (
     <div
       className={cn(
-        'kanban-card p-3 border-l-[3px] space-y-2.5',
+        'kanban-card p-3 border-l-[3px] space-y-2.5 cursor-pointer',
         stepDef.borderColor,
         hasCXBlock && 'border-danger bg-danger/5',
       )}
+      onClick={() => onViewClient(client.id)}
     >
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center gap-2">
         <h4 className="text-sm font-medium text-foreground truncate">{displayName}</h4>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 px-1.5 text-[10px] gap-1 shrink-0"
-          onClick={() => onViewClient(client.id)}
-        >
-          <Eye size={12} />
-          Ver
-        </Button>
+        <Eye size={12} className="shrink-0 text-muted-foreground" />
       </div>
 
       {hasCXBlock && (
@@ -420,7 +413,6 @@ function V2StepClientCard({
         className="mt-0"
       />
 
-      {/* Pending tasks */}
       {pendingTasks.length > 0 && (
         <div className="space-y-1">
           {pendingTasks.map(task => (
@@ -445,14 +437,16 @@ function V2StepClientCard({
         </div>
       )}
 
-      {/* Action button */}
       {!hasCXBlock && stepDef.actionType === 'advance' && stepDef.nextStep && (
         <Button
           size="sm"
           variant="outline"
           className="w-full h-8 text-xs gap-2"
           disabled={isPending}
-          onClick={() => onAdvance(client.id, stepDef.nextStep!)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onAdvance(client.id, stepDef.nextStep!);
+          }}
         >
           <ArrowRight size={12} />
           {stepDef.actionLabel}
@@ -464,7 +458,10 @@ function V2StepClientCard({
           size="sm"
           className="w-full h-8 text-xs gap-2 bg-cyan-600 hover:bg-cyan-700"
           disabled={isPending}
-          onClick={() => onTeamSelectionNeeded(client.id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onTeamSelectionNeeded(client.id);
+          }}
         >
           <UsersIcon size={12} />
           {stepDef.actionLabel}
@@ -506,22 +503,15 @@ function V1StepClientCard({
   return (
     <div
       className={cn(
-        'kanban-card p-3 border-l-[3px] space-y-2.5',
+        'kanban-card p-3 border-l-[3px] space-y-2.5 cursor-pointer',
         borderColor,
         hasCXBlock && 'border-danger bg-danger/5',
       )}
+      onClick={() => onViewClient(client.id)}
     >
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center gap-2">
         <h4 className="text-sm font-medium text-foreground truncate">{displayName}</h4>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 px-1.5 text-[10px] gap-1 shrink-0"
-          onClick={() => onViewClient(client.id)}
-        >
-          <Eye size={12} />
-          Ver
-        </Button>
+        <Eye size={12} className="shrink-0 text-muted-foreground" />
       </div>
 
       {hasCXBlock && (
@@ -535,7 +525,6 @@ function V1StepClientCard({
         className="mt-0"
       />
 
-      {/* Sub-step badge for call_1 */}
       {stepKey === 'call_1' && (
         <div className="flex items-center gap-1.5">
           <Badge
@@ -560,7 +549,10 @@ function V1StepClientCard({
           variant="outline"
           className="w-full h-8 text-xs gap-2"
           disabled={isPending}
-          onClick={() => onAdvanceCall1(client.id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onAdvanceCall1(client.id);
+          }}
         >
           <Phone size={12} />
           {client.growth_gp_step === 'novos_clientes'
@@ -574,7 +566,10 @@ function V1StepClientCard({
           size="sm"
           className="w-full h-8 text-xs gap-2 bg-cyan-600 hover:bg-cyan-700"
           disabled={isPending}
-          onClick={() => onTeamSelectionNeeded(client.id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onTeamSelectionNeeded(client.id);
+          }}
         >
           <UsersIcon size={12} />
           Escolher Equipe Growth
@@ -587,7 +582,10 @@ function V1StepClientCard({
           variant="outline"
           className="w-full h-8 text-xs gap-2"
           disabled={isPending}
-          onClick={() => onMarkAddedToGroups(client.id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onMarkAddedToGroups(client.id);
+          }}
         >
           <MessageSquare size={12} />
           Confirmar: Equipe nos Grupos

@@ -2,7 +2,6 @@ import { useMemo, useState, useCallback } from 'react';
 import { Loader2, Users, CheckCircle2, ChevronDown, ChevronRight, Circle, Eye } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
   useGrowthGPAcompanhamento,
@@ -213,20 +212,18 @@ function AcompanhamentoCard({
           {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </span>
         <div className="flex-1 min-w-0 space-y-2">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
             <p className="text-sm font-medium text-foreground truncate">{displayName}</p>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 px-1.5 text-[10px] gap-1 shrink-0"
+            <button
+              className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
                 onViewClient(client.id);
               }}
+              title="Ver cliente"
             >
               <Eye size={12} />
-              Ver
-            </Button>
+            </button>
           </div>
 
           {/* Counter badge */}
