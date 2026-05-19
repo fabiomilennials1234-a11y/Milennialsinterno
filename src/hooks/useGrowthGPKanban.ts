@@ -67,18 +67,18 @@ const SELECT_COLS =
  * (novos_clientes, call_1_agendada, call_1_realizada)
  */
 export function useGrowthGPNovosClientes() {
-  const { user } = useAuth();
+  const { user, isAdminUser } = useAuth();
+  const isGlobal = isAdminUser && !user?.group_id;
 
   return useQuery({
-    queryKey: ['growth-gp-novos', user?.group_id],
+    queryKey: ['growth-gp-novos', isGlobal ? '__all__' : user?.group_id],
     queryFn: async (): Promise<GrowthGPClient[]> => {
-      if (!user?.group_id) return [];
+      if (!isGlobal && !user?.group_id) return [];
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('clients')
         .select(SELECT_COLS)
         .eq('archived', false)
-        .eq('group_id', user.group_id)
         .in('growth_gp_step', [
           'novos_clientes',
           // V1 steps
@@ -88,10 +88,15 @@ export function useGrowthGPNovosClientes() {
         ])
         .order('created_at', { ascending: false });
 
+      if (!isGlobal) {
+        query = query.eq('group_id', user!.group_id!);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return (data || []) as GrowthGPClient[];
     },
-    enabled: !!user?.id && !!user?.group_id,
+    enabled: !!user?.id && (isGlobal || !!user?.group_id),
     staleTime: 30_000,
   });
 }
@@ -100,25 +105,30 @@ export function useGrowthGPNovosClientes() {
  * Acompanhamento column: clients in acompanhamento_gestores step.
  */
 export function useGrowthGPAcompanhamento() {
-  const { user } = useAuth();
+  const { user, isAdminUser } = useAuth();
+  const isGlobal = isAdminUser && !user?.group_id;
 
   return useQuery({
-    queryKey: ['growth-gp-acompanhamento', user?.group_id],
+    queryKey: ['growth-gp-acompanhamento', isGlobal ? '__all__' : user?.group_id],
     queryFn: async (): Promise<GrowthGPClient[]> => {
-      if (!user?.group_id) return [];
+      if (!isGlobal && !user?.group_id) return [];
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('clients')
         .select(SELECT_COLS)
         .eq('archived', false)
-        .eq('group_id', user.group_id)
         .eq('growth_gp_step', 'acompanhamento_gestores')
         .order('name', { ascending: true });
 
+      if (!isGlobal) {
+        query = query.eq('group_id', user!.group_id!);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return (data || []) as GrowthGPClient[];
     },
-    enabled: !!user?.id && !!user?.group_id,
+    enabled: !!user?.id && (isGlobal || !!user?.group_id),
     staleTime: 30_000,
   });
 }
