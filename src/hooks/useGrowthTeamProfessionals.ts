@@ -22,7 +22,7 @@ export { MANAGER_LIMITS as GROWTH_TEAM_LIMITS };
  * These professionals have group_id = NULL in profiles and must be listed
  * regardless of the client's group.
  */
-const ORG_WIDE_ROLES = new Set(['consultor_comercial', 'gestor_crm']);
+const ORG_WIDE_ROLES = new Set(['consultor_comercial', 'gestor_crm', 'consultor_mktplace']);
 
 /**
  * Fetch professionals of a given role along with their active client count.
