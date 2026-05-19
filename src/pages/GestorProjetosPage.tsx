@@ -30,7 +30,7 @@ import GrowthAcompanhamentoSection from '@/components/gestor-projetos/GrowthAcom
 import GrowthTeamSelectionModal from '@/components/gestor-projetos/GrowthTeamSelectionModal';
 import ProjectManagerWelcomeModal from '@/components/gestor-projetos/ProjectManagerWelcomeModal';
 import OracleSummarySection from '@/components/oracle/OracleSummarySection';
-import { useDailyMovementDelayCheck } from '@/hooks/useDailyMovementDelayCheck';
+
 
 export const COLUMNS = [
   { id: 'oraculo', title: 'Oráculo IA', icon: Sparkles, headerClass: 'section-header-violet', iconColor: 'text-white' },
@@ -57,9 +57,6 @@ export default function GestorProjetosPage() {
   const handleTeamSelectionNeeded = useCallback((clientId: string) => {
     setPendingTeamSelection(clientId);
   }, []);
-
-  // Check for daily movement delays on page load
-  useDailyMovementDelayCheck();
 
   const checkScrollButtons = () => {
     const container = scrollContainerRef.current;
