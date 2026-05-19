@@ -238,7 +238,7 @@ export default function NovosClientesOnboardingSection({ onTeamSelectionNeeded }
                 </div>
               </div>
 
-              <div className="p-2.5 space-y-2 bg-card">
+              <div className="p-2.5 space-y-2 bg-card overflow-hidden">
                 {stepClients.length === 0 ? (
                   <p className="text-[10px] text-muted-foreground/50 italic text-center py-3">
                     Nenhum cliente nesta etapa
@@ -391,7 +391,7 @@ function V2StepClientCard({
   return (
     <div
       className={cn(
-        'kanban-card p-3 border-l-[3px] space-y-2.5 cursor-pointer',
+        'kanban-card p-3 border-l-[3px] space-y-2.5 cursor-pointer overflow-hidden min-w-0',
         stepDef.borderColor,
         hasCXBlock && 'border-danger bg-danger/5',
       )}
@@ -503,7 +503,7 @@ function V1StepClientCard({
   return (
     <div
       className={cn(
-        'kanban-card p-3 border-l-[3px] space-y-2.5 cursor-pointer',
+        'kanban-card p-3 border-l-[3px] space-y-2.5 cursor-pointer overflow-hidden min-w-0',
         borderColor,
         hasCXBlock && 'border-danger bg-danger/5',
       )}
