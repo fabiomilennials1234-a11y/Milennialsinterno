@@ -38,7 +38,6 @@ import AdsBonusSection from '@/components/ads-manager/AdsBonusSection';
 import AdsLemasSection from '@/components/ads-manager/AdsLemasSection';
 import AdsChurnSection from '@/components/ads-manager/AdsChurnSection';
 import AdsMovimentacaoNotification from '@/components/ads-manager/AdsMovimentacaoNotification';
-import { useDailyMovementDelayCheck } from '@/hooks/useDailyMovementDelayCheck';
 import { useResultsReportAutomation } from '@/hooks/useResultsReportAutomation';
 
 // Cores vibrantes para cada seção - Ordem definida pelo usuário
@@ -65,7 +64,6 @@ export default function AdsManagerPage() {
   const [canScrollRight, setCanScrollRight] = useState(true);
   const [activeView, setActiveView] = useState<'kanban' | 'tarefas'>('kanban');
 
-  useDailyMovementDelayCheck();
   useResultsReportAutomation();
 
   const checkScrollButtons = () => {

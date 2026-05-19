@@ -38,7 +38,6 @@ import AdsFerramentasSection from '@/components/ads-manager/AdsFerramentasSectio
 import AdsBonusSection from '@/components/ads-manager/AdsBonusSection';
 import AdsLemasSection from '@/components/ads-manager/AdsLemasSection';
 import DepartmentTarefasSection from '@/components/department/DepartmentTarefasSection';
-import { useDailyMovementDelayCheck } from '@/hooks/useDailyMovementDelayCheck';
 import { useTCMonthlyCycle } from '@/hooks/useTCMonthlyCycle';
 
 // Colunas do Consultor Comercial
@@ -63,7 +62,6 @@ export default function ConsultorComercialPage() {
   const [canScrollRight, setCanScrollRight] = useState(true);
   const [activeView, setActiveView] = useState<'kanban' | 'tarefas'>('kanban');
 
-  useDailyMovementDelayCheck();
   useTCMonthlyCycle();
 
   const checkScrollButtons = () => {
