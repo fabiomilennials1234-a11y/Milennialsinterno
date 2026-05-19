@@ -1,5 +1,4 @@
 import { cn } from '@/lib/utils';
-import { Timer } from 'lucide-react';
 
 interface GrowthCounterBadgeProps {
   counterStartedAt: string;
@@ -27,18 +26,15 @@ export default function GrowthCounterBadge({
       role="status"
       aria-label={`Contador: ${days} dias`}
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-md px-2 py-1 font-mono tabular-nums select-none border text-[10px] transition-colors',
+        'inline-flex items-baseline gap-0.5 rounded-md px-2 py-0.5 font-mono tabular-nums select-none border transition-colors',
         isDanger
           ? 'bg-danger/10 border-danger/30 text-danger'
           : 'bg-blue-500/10 border-blue-500/30 text-blue-400',
         isAlmostLimit && 'animate-pulse',
       )}
     >
-      <Timer size={12} className="shrink-0 opacity-70" />
-      <span className="font-bold leading-none">{days}</span>
-      <span className="font-semibold uppercase tracking-wider opacity-70">
-        {days === 1 ? 'dia' : 'dias'}
-      </span>
+      <span className="text-[10px] font-semibold leading-none opacity-60">D+</span>
+      <span className="text-2xl font-bold leading-none">{days}</span>
     </div>
   );
 }
