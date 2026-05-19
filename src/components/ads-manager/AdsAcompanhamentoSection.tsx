@@ -23,6 +23,8 @@ import ClientLabelBadge from '@/components/shared/ClientLabelBadge';
 import ClientLabelSelector from '@/components/shared/ClientLabelSelector';
 import type { ClientLabel } from '@/components/shared/ClientLabelBadge';
 import { TorqueCRMProductBadges } from '@/components/shared/ProductBadges';
+import ClientTagsList, { TAG_TORQUE_BLOQUEADO } from '@/components/client-tags/ClientTagsList';
+import { useClientTagsBatch } from '@/hooks/useClientTags';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -108,6 +110,9 @@ export default function AdsAcompanhamentoSection({ compact }: Props) {
 
   // Get active clients that should be in Acompanhamento
   const activeClients = clients.filter(c => c.status === 'active' && c.campaign_published_at);
+
+  // Tags batch — 1 query for all visible cards (avoids N+1)
+  const { data: tagsByClient } = useClientTagsBatch(activeClients.map(c => c.id));
 
   // Get client position by day (excludes churned clients)
   const getClientsByDay = (day: string) => {
@@ -419,6 +424,12 @@ export default function AdsAcompanhamentoSection({ compact }: Props) {
                                     </Button>
                                   </div>
                                 </div>
+                                <ClientTagsList
+                                  tags={tagsByClient?.get(item.client_id) ?? []}
+                                  size="sm"
+                                  excludeNames={[TAG_TORQUE_BLOQUEADO]}
+                                  className="mt-0.5"
+                                />
                                 <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
                                   <span className={cn(
                                     'flex items-center gap-0.5 px-1 rounded',
