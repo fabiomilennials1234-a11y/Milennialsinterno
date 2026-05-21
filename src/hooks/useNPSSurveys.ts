@@ -285,14 +285,11 @@ export function useCreateNPSSurvey() {
 export function useSubmitNPSResponse() {
   return useMutation({
     mutationFn: async (response: Omit<NPSResponse, 'id' | 'submitted_at'>) => {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('nps_responses')
-        .insert(response)
-        .select()
-        .single();
+        .insert(response);
 
       if (error) throw error;
-      return data;
     },
     onSuccess: () => {
       toast.success('Resposta enviada com sucesso!');
@@ -306,14 +303,11 @@ export function useSubmitNPSResponse() {
 export function useSubmitNPSTeamResponse() {
   return useMutation({
     mutationFn: async (response: Omit<NPSTeamResponse, 'id' | 'submitted_at'>) => {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('nps_team_responses')
-        .insert(response)
-        .select()
-        .single();
+        .insert(response);
 
       if (error) throw error;
-      return data;
     },
     onSuccess: () => {
       toast.success('Resposta enviada com sucesso!');
