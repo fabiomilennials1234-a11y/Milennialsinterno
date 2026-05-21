@@ -1,17 +1,18 @@
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { CYCLE_DAYS } from '@/hooks/useClientResultsReports';
 
 const TASK_PREFIX_GERAR = 'Gerar PDF de Resultados';
 const TASK_PREFIX_MARCAR = 'Marcar apresentação de resultado';
 
 /**
- * Auto-creates tasks at the 12-day mark of the 15-day report cycle.
- * Runs on page load for gestor_ads and gestor_projetos.
+ * Auto-creates tasks near the end of the report cycle.
+ * Triggers at (cycleDays - 3) days since last report/reset.
  *
- * At 12 days since last report:
- * 1. "Gerar PDF de Resultados [Client]" — due at day 14
- * 2. "Marcar apresentação de resultado [Client]" — due at day 15
+ * Per client:
+ * 1. "Gerar PDF de Resultados [Client]" — due at cycleDays - 1
+ * 2. "Marcar apresentação de resultado [Client]" — due at cycleDays
  */
 export function useResultsReportAutomation() {
   const { user } = useAuth();
@@ -31,7 +32,6 @@ export function useResultsReportAutomation() {
 async function checkAndCreateTasks(userId: string) {
   const now = new Date();
 
-  // Get all clients tracked by this ads manager
   const { data: tracking } = await supabase
     .from('client_daily_tracking')
     .select('client_id, ads_manager_id')
@@ -41,15 +41,13 @@ async function checkAndCreateTasks(userId: string) {
 
   const clientIds = tracking.map(t => t.client_id);
 
-  // Get client names
   const { data: clients } = await supabase
     .from('clients')
-    .select('id, name, created_at')
+    .select('id, name, created_at, report_cycle_days, report_cycle_reset_at')
     .in('id', clientIds);
 
   if (!clients || clients.length === 0) return;
 
-  // Get latest report per client
   const { data: reports } = await supabase
     .from('client_results_reports')
     .select('client_id, created_at')
@@ -64,20 +62,21 @@ async function checkAndCreateTasks(userId: string) {
   });
 
   for (const client of clients) {
-    const lastReportDate = latestReportByClient.get(client.id) || client.created_at;
+    const cycleDays = (client as any).report_cycle_days ?? CYCLE_DAYS;
+    const resetAt = (client as any).report_cycle_reset_at as string | null;
+
+    const lastReportDate = latestReportByClient.get(client.id) || resetAt || client.created_at;
     const ref = new Date(lastReportDate);
     const diffDays = Math.floor((now.getTime() - ref.getTime()) / (1000 * 60 * 60 * 24));
 
-    // Only create tasks at 12+ days
-    if (diffDays < 12) continue;
+    const triggerDay = cycleDays - 3;
+    if (diffDays < triggerDay) continue;
 
-    // Task 1: "Gerar PDF de Resultados [Client]" — due day 14
     const gerarTitle = `${TASK_PREFIX_GERAR} ${client.name}`;
-    await createTaskIfNotExists(userId, client.id, gerarTitle, addDaysToDate(ref, 14));
+    await createTaskIfNotExists(userId, client.id, gerarTitle, addDaysToDate(ref, cycleDays - 1), ref);
 
-    // Task 2: "Marcar apresentação de resultado [Client]" — due day 15
     const marcarTitle = `${TASK_PREFIX_MARCAR} ${client.name}`;
-    await createTaskIfNotExists(userId, client.id, marcarTitle, addDaysToDate(ref, 15));
+    await createTaskIfNotExists(userId, client.id, marcarTitle, addDaysToDate(ref, cycleDays), ref);
   }
 }
 
@@ -92,15 +91,16 @@ async function createTaskIfNotExists(
   clientId: string,
   title: string,
   dueDate: string,
+  cycleStart: Date,
 ) {
-  // Idempotency check
+  // Check for any task with this title created after the current cycle started
   const { data: existing } = await supabase
     .from('ads_tasks')
     .select('id')
     .eq('ads_manager_id', userId)
     .ilike('title', title)
-    .neq('status', 'done')
-    .eq('archived', false)
+    .or('archived.is.null,archived.eq.false')
+    .gte('created_at', cycleStart.toISOString())
     .maybeSingle();
 
   if (existing) return;

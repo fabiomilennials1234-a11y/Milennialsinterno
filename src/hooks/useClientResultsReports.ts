@@ -143,6 +143,7 @@ export function getDaysRemaining(daysSince: number): number {
 export interface ReportCycleStatus {
   daysSince: number;
   daysLeft: number;
+  cycleDays: number;
   status: 'normal' | 'alert' | 'overdue' | 'pending';
   isLoading: boolean;
 }
@@ -205,64 +206,89 @@ function useContractSigningDate(clientId: string) {
   return { isContractSigned, signingDate, isLoading };
 }
 
+/** Fetch per-client cycle config (report_cycle_days, report_cycle_reset_at) */
+function useClientCycleConfig(clientId: string) {
+  return useQuery({
+    queryKey: ['client-cycle-config', clientId],
+    queryFn: async () => {
+      if (!clientId) return null;
+      const { data, error } = await supabase
+        .from('clients')
+        .select('report_cycle_days, report_cycle_reset_at')
+        .eq('id', clientId)
+        .single();
+      if (error) throw error;
+      return data as { report_cycle_days: number; report_cycle_reset_at: string | null } | null;
+    },
+    enabled: !!clientId,
+    staleTime: 60_000,
+  });
+}
+
 /**
  * Single source of truth for report cycle status.
  *
- * Regra de prazo:
- * - Se já existe relatório: ciclo de 30 dias a partir do último relatório (comportamento padrão)
- * - Se não existe relatório:
- *   - Sem contrato assinado → status 'pending' (sem prazo)
- *   - Contrato assinado ANTES da data de corte → prazo começa na data de corte (2026-04-02)
- *   - Contrato assinado A PARTIR da data de corte → prazo começa na data de assinatura
+ * Uses per-client report_cycle_days (default 15). If report_cycle_reset_at
+ * is set and no report exists, uses it as cycle start date.
  */
 export function useResultsReportStatus(clientId: string): ReportCycleStatus {
   const { data: latestReport, isLoading: reportLoading } = useLatestReport(clientId);
   const { isContractSigned, signingDate, isLoading: contractLoading } = useContractSigningDate(clientId);
+  const { data: cycleConfig, isLoading: cycleLoading } = useClientCycleConfig(clientId);
 
-  const isLoading = reportLoading || contractLoading;
+  const isLoading = reportLoading || contractLoading || cycleLoading;
+  const cycleDays = cycleConfig?.report_cycle_days ?? CYCLE_DAYS;
+  const resetAt = cycleConfig?.report_cycle_reset_at ?? null;
 
-  // Se já existe relatório, o ciclo recomeça a partir do último relatório
+  const getRemainingDays = (since: number) => Math.max(0, cycleDays - since);
+
   if (latestReport) {
     const daysSince = getDaysSinceLastReport(latestReport, undefined);
-    const daysLeft = getDaysRemaining(daysSince);
+    const daysLeft = getRemainingDays(daysSince);
 
     let status: ReportCycleStatus['status'] = 'normal';
-    if (daysLeft === 0 && daysSince >= CYCLE_DAYS) status = 'overdue';
+    if (daysLeft === 0 && daysSince >= cycleDays) status = 'overdue';
     else if (daysLeft > 0 && daysLeft <= 2) status = 'alert';
 
-    return { daysSince, daysLeft, status, isLoading };
+    return { daysSince, daysLeft, cycleDays, status, isLoading };
   }
 
-  // Sem relatório — verificar contrato
+  // If cycle was reset (report_cycle_reset_at set), use it as reference
+  if (resetAt) {
+    const daysSince = getDaysSinceDate(resetAt);
+    const daysLeft = getRemainingDays(daysSince);
+
+    let status: ReportCycleStatus['status'] = 'normal';
+    if (daysLeft === 0 && daysSince >= cycleDays) status = 'overdue';
+    else if (daysLeft > 0 && daysLeft <= 2) status = 'alert';
+
+    return { daysSince, daysLeft, cycleDays, status, isLoading };
+  }
+
   if (!isContractSigned) {
-    return { daysSince: 0, daysLeft: 0, status: 'pending', isLoading };
+    return { daysSince: 0, daysLeft: 0, cycleDays, status: 'pending', isLoading };
   }
 
-  // Contrato assinado, sem relatório ainda — determinar data de referência
   let referenceDate: string;
-
   if (!signingDate) {
-    // Sem data de assinatura registrada → tratar como cliente antigo (usa data de corte)
     referenceDate = CUTOFF_DATE;
   } else {
-    const signingDateStr = signingDate.split('T')[0]; // Normalizar para YYYY-MM-DD
+    const signingDateStr = signingDate.split('T')[0];
     if (signingDateStr < CUTOFF_DATE) {
-      // Cliente antigo (assinado antes da data de corte) → prazo começa na data de corte
       referenceDate = CUTOFF_DATE;
     } else {
-      // Cliente novo (assinado a partir da data de corte) → prazo começa na data de assinatura
       referenceDate = signingDate;
     }
   }
 
   const daysSince = getDaysSinceDate(referenceDate);
-  const daysLeft = getDaysRemaining(daysSince);
+  const daysLeft = getRemainingDays(daysSince);
 
   let status: ReportCycleStatus['status'] = 'normal';
-  if (daysLeft === 0 && daysSince >= CYCLE_DAYS) status = 'overdue';
+  if (daysLeft === 0 && daysSince >= cycleDays) status = 'overdue';
   else if (daysLeft > 0 && daysLeft <= 2) status = 'alert';
 
-  return { daysSince, daysLeft, status, isLoading };
+  return { daysSince, daysLeft, cycleDays, status, isLoading };
 }
 
 /** Transform report content via AI Edge Function */
@@ -347,9 +373,17 @@ export function useCreateResultsReport() {
       // Transform content with AI
       const transformed = await transformReportWithAI(input, clientName);
 
+      // Get per-client cycle days
+      const { data: clientCfg } = await supabase
+        .from('clients')
+        .select('report_cycle_days')
+        .eq('id', input.clientId)
+        .single();
+      const clientCycleDays = clientCfg?.report_cycle_days ?? CYCLE_DAYS;
+
       const now = new Date();
       const cycleEnd = new Date(now);
-      cycleEnd.setDate(cycleEnd.getDate() + CYCLE_DAYS);
+      cycleEnd.setDate(cycleEnd.getDate() + clientCycleDays);
 
       const { data, error } = await supabase
         .from('client_results_reports')

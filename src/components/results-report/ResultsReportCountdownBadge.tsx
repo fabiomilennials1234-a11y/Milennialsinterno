@@ -1,6 +1,6 @@
 import { Clock, AlertTriangle, BarChart3, FileQuestion } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { useResultsReportStatus, CYCLE_DAYS } from '@/hooks/useClientResultsReports';
+import { useResultsReportStatus } from '@/hooks/useClientResultsReports';
 
 interface Props {
   clientId: string;
@@ -10,7 +10,7 @@ interface Props {
 }
 
 export default function ResultsReportCountdownBadge({ clientId, className, alwaysShow }: Props) {
-  const { daysLeft, daysSince, status, isLoading } = useResultsReportStatus(clientId);
+  const { daysLeft, daysSince, cycleDays, status, isLoading } = useResultsReportStatus(clientId);
 
   if (isLoading) return null;
   if (!alwaysShow && (status === 'normal' || status === 'pending')) return null;
@@ -35,7 +35,7 @@ export default function ResultsReportCountdownBadge({ clientId, className, alway
         className={`text-[10px] px-2 py-0.5 gap-1 ${className || ''}`}
       >
         <AlertTriangle size={10} />
-        Relatório vencido (+{daysSince - CYCLE_DAYS}d)
+        Relatório vencido (+{daysSince - cycleDays}d)
       </Badge>
     );
   }
