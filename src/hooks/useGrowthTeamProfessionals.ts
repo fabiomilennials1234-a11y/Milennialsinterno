@@ -22,13 +22,13 @@ export { MANAGER_LIMITS as GROWTH_TEAM_LIMITS };
  * These professionals have group_id = NULL in profiles and must be listed
  * regardless of the client's group.
  */
-const ORG_WIDE_ROLES = new Set(['consultor_comercial', 'gestor_crm', 'consultor_mktplace']);
+const ORG_WIDE_ROLES = new Set(['gestor_ads', 'consultor_comercial', 'gestor_crm', 'consultor_mktplace']);
 
 /**
  * Fetch professionals of a given role along with their active client count.
  *
- * For group-scoped roles (e.g. gestor_ads): filters by the client's group_id.
- * For org-wide roles (consultor_comercial, gestor_crm): lists ALL professionals
+ * For group-scoped roles (e.g. sucesso_cliente): filters by the client's group_id.
+ * For org-wide roles (gestor_ads, consultor_comercial, gestor_crm, consultor_mktplace): lists ALL professionals
  * with that role, ignoring group_id.
  *
  * Used by GrowthTeamSelectionModal to populate selects with portfolio info.
