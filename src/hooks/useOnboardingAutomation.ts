@@ -57,7 +57,7 @@ const DAY_OF_WEEK_MAP: Record<number, string> = {
 };
 
 // IMPORTANT: Only tasks that ADVANCE the client in onboarding should have nextStep/nextMilestone
-// Auxiliary tasks (like anexar_link_consultoria, certificar_consultoria) should NOT be in this list
+// Auxiliary tasks (like enviar_link_drive) should NOT be in this list
 // They are just parallel tasks that don't move the client to the next step
 //
 // NOTE: Marco 1 (Call 1) was removed — Call 1 is now GP's responsibility.
@@ -132,22 +132,22 @@ const ADVANCING_TASK_DEFINITIONS = {
     description: 'Configurar a conta de anúncios para o cliente.',
     dueDays: 2,
     milestone: 5,
-    nextStep: 'certificar_consultoria',
+    nextStep: 'marcar_call_apresentacao_torque',
     nextMilestone: 5,
     nextTask: null,
     createMultipleTasks: true,
     tasksGroup: 'post_configurar_conta',
   },
-  certificar_consultoria_realizada: {
-    title: 'Confirmar se toda a produção está pronta',
-    description: 'Verificar se a consultoria comercial do cliente já foi realizada.',
+  marcar_call_apresentacao_torque: {
+    title: 'Marcar call de apresentação no torque',
+    description: 'Marcar a call de apresentação no torque do cliente.',
     dueDays: 2,
     milestone: 5,
     nextStep: 'esperando_criativos',
     nextMilestone: 5,
     nextTask: null,
     createMultipleTasks: true,
-    tasksGroup: 'post_certificar_consultoria',
+    tasksGroup: 'post_marcar_call_apresentacao_torque',
   },
   publicar_campanha: {
     title: 'Publicar Campanha',

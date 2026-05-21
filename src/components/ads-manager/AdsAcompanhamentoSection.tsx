@@ -114,10 +114,10 @@ export default function AdsAcompanhamentoSection({ compact }: Props) {
   // Tags batch — 1 query for all visible cards (avoids N+1)
   const { data: tagsByClient } = useClientTagsBatch(activeClients.map(c => c.id));
 
-  // Get client position by day (excludes churned clients)
+  // Get client position by day — only active clients with published campaign
   const getClientsByDay = (day: string) => {
     return tracking
-      .filter(t => t.current_day === day && t.clients?.status !== 'churned')
+      .filter(t => t.current_day === day && t.clients?.status === 'active' && t.clients?.campaign_published_at)
       .map(t => ({
         ...t,
         client: t.clients,

@@ -68,7 +68,7 @@ const STEP_LABELS: Record<string, string> = {
   'brifar_criativos':        'Brifar Criativos',
   'elencar_otimizacoes':     'Elencar Otimizações',
   'configurar_conta_anuncios': 'Configurar Conta de Anúncios',
-  'certificando_consultoria':'Confirmar se toda a produção está pronta',
+  'marcar_call_apresentacao_torque': 'Marcar Call Apresentação Torque',
   'esperando_criativos':     'Publicar campanha',
   'acompanhamento':          'Acompanhamento',
 };
@@ -84,8 +84,8 @@ const ONBOARDING_TASK_ADVANCEMENT: Record<string, { step: string; milestone: num
   'apresentar_estrategia':      { step: 'brifar_criativos',          milestone: 3 },
   'brifar_criativos':           { step: 'elencar_otimizacoes',       milestone: 4 },
   'brifar_otimizacoes_pendentes':{ step: 'configurar_conta_anuncios', milestone: 5 },
-  'configurar_conta_anuncios':  { step: 'certificando_consultoria',   milestone: 5 },
-  'certificar_consultoria':     { step: 'esperando_criativos',       milestone: 5 },
+  'configurar_conta_anuncios':  { step: 'marcar_call_apresentacao_torque', milestone: 5 },
+  'marcar_call_apresentacao_torque': { step: 'esperando_criativos',       milestone: 5 },
   'publicar_campanha':          { step: 'acompanhamento',            milestone: 6 },
 };
 
@@ -139,7 +139,6 @@ export default function AdsTarefasSection({ type, compact }: Props) {
     const advancement = ONBOARDING_TASK_ADVANCEMENT[taskType];
     if (!advancement) return;
 
-    // Optimistic update: immediately reflect the new step in AdsOnboardingSection
     queryClient.setQueryData(['client-onboarding', undefined], (old: any[]) => {
       if (!old) return old;
       return old.map((item: any) =>
@@ -147,6 +146,21 @@ export default function AdsTarefasSection({ type, compact }: Props) {
           ? { ...item, current_step: advancement.step, current_milestone: advancement.milestone }
           : item
       );
+    });
+
+    // Optimistic: move client out of "Novo Cliente" — DB trigger sets status atomically
+    queryClient.setQueriesData({ queryKey: ['assigned-clients'] }, (old: unknown) => {
+      if (!Array.isArray(old)) return old;
+      return old.map((c: any) => {
+        if (c.id !== clientId) return c;
+        if (taskType === 'publicar_campanha') {
+          return { ...c, status: 'active', campaign_published_at: new Date().toISOString() };
+        }
+        if (c.status === 'new_client') {
+          return { ...c, status: 'onboarding' };
+        }
+        return c;
+      });
     });
   };
   
@@ -230,7 +244,7 @@ export default function AdsTarefasSection({ type, compact }: Props) {
     'brifar_criativos',
     'brifar_otimizacoes_pendentes',
     'configurar_conta_anuncios',
-    'certificar_consultoria',
+    'marcar_call_apresentacao_torque',
     'publicar_campanha',
   ];
 
@@ -339,7 +353,18 @@ export default function AdsTarefasSection({ type, compact }: Props) {
     }
 
     const draggedTask = tasks.find(t => t.id === taskId);
-    updateStatus.mutate({ id: taskId, status: newStatus, task_type: type, _source: draggedTask?._source });
+    const isOnboardingAdsTask = newStatus === 'done' && draggedTask?.tags?.some(t => t.startsWith('onboarding_task_type:'));
+    updateStatus.mutate(
+      { id: taskId, status: newStatus, task_type: type, _source: draggedTask?._source },
+      isOnboardingAdsTask ? {
+        onSettled: () => {
+          queryClient.invalidateQueries({ queryKey: ['assigned-clients'] });
+          queryClient.invalidateQueries({ queryKey: ['onboarding-tasks'] });
+          queryClient.invalidateQueries({ queryKey: ['client-onboarding'] });
+          queryClient.invalidateQueries({ queryKey: ['client-tracking'] });
+        },
+      } : undefined,
+    );
   };
 
   const handleStatusChange = (taskId: string, newStatus: string, isOnboarding?: boolean, onboardingTask?: any) => {
@@ -412,7 +437,18 @@ export default function AdsTarefasSection({ type, compact }: Props) {
     }
 
     const changedTask = tasks.find(t => t.id === taskId);
-    updateStatus.mutate({ id: taskId, status: newStatus, task_type: type, _source: changedTask?._source });
+    const isOnboardingAdsTask = newStatus === 'done' && changedTask?.tags?.some(t => t.startsWith('onboarding_task_type:'));
+    updateStatus.mutate(
+      { id: taskId, status: newStatus, task_type: type, _source: changedTask?._source },
+      isOnboardingAdsTask ? {
+        onSettled: () => {
+          queryClient.invalidateQueries({ queryKey: ['assigned-clients'] });
+          queryClient.invalidateQueries({ queryKey: ['onboarding-tasks'] });
+          queryClient.invalidateQueries({ queryKey: ['client-onboarding'] });
+          queryClient.invalidateQueries({ queryKey: ['client-tracking'] });
+        },
+      } : undefined,
+    );
   };
 
   const handleTaskClick = (task: AdsTask) => {

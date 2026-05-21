@@ -53,7 +53,7 @@ const STEP_TO_CARD_ID: Record<string, string> = {
   'criativos_brifados': 'm3-2',
   'elencar_otimizacoes': 'm4-1',
   'configurar_conta_anuncios': 'm5-1',
-  'certificando_consultoria': 'm5-2',
+  'marcar_call_apresentacao_torque': 'm5-2',
   'esperando_criativos': 'm5-3',
 };
 
@@ -76,7 +76,7 @@ const MILESTONE_CARDS: Record<number, MilestoneCard[]> = {
   ],
   5: [
     { id: 'm5-1', title: 'Configurar Conta de Anúncios', stepKey: 'configurar_conta_anuncios' },
-    { id: 'm5-2', title: 'Confirmar se toda a produção está pronta', stepKey: 'certificando_consultoria' },
+    { id: 'm5-2', title: 'Marcar Call Apresentação Torque', stepKey: 'marcar_call_apresentacao_torque' },
     { id: 'm5-3', title: 'Publicar campanha', stepKey: 'esperando_criativos' },
   ],
 };

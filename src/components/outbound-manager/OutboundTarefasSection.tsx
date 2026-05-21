@@ -216,7 +216,7 @@ export default function OutboundTarefasSection({ type, compact }: Props) {
     'brifar_criativos',
     'brifar_otimizacoes_pendentes',
     'configurar_conta_anuncios',
-    'certificar_consultoria',
+    'marcar_call_apresentacao_torque',
     'publicar_campanha',
   ];
 
