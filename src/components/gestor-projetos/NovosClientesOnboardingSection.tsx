@@ -397,9 +397,9 @@ function V2StepClientCard({
       )}
       onClick={() => onViewClient(client.id)}
     >
-      <div className="flex items-center gap-2">
-        <h4 className="text-sm font-medium text-foreground truncate">{displayName}</h4>
-        <Eye size={12} className="shrink-0 text-muted-foreground" />
+      <div className="flex items-start gap-2">
+        <h4 className="text-sm font-medium text-foreground flex-1 min-w-0 break-words">{displayName}</h4>
+        <Eye size={12} className="shrink-0 text-muted-foreground mt-0.5" />
       </div>
 
       {hasCXBlock && (
@@ -509,9 +509,9 @@ function V1StepClientCard({
       )}
       onClick={() => onViewClient(client.id)}
     >
-      <div className="flex items-center gap-2">
-        <h4 className="text-sm font-medium text-foreground truncate">{displayName}</h4>
-        <Eye size={12} className="shrink-0 text-muted-foreground" />
+      <div className="flex items-start gap-2">
+        <h4 className="text-sm font-medium text-foreground flex-1 min-w-0 break-words">{displayName}</h4>
+        <Eye size={12} className="shrink-0 text-muted-foreground mt-0.5" />
       </div>
 
       {hasCXBlock && (

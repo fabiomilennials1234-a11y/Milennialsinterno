@@ -213,7 +213,7 @@ function AcompanhamentoCard({
         </span>
         <div className="flex-1 min-w-0 space-y-2">
           <div className="flex items-start gap-2">
-            <p className="text-sm font-medium text-foreground line-clamp-2 flex-1 min-w-0">{displayName}</p>
+            <p className="text-sm font-medium text-foreground flex-1 min-w-0 break-words">{displayName}</p>
             <button
               className="shrink-0 mt-0.5 text-muted-foreground hover:text-foreground transition-colors"
               onClick={(e) => {
