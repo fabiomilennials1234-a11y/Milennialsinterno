@@ -65,9 +65,9 @@ function useGPNamesByGroup(groupIds: string[]) {
 export default function CSGPClientsColumn({ clients, onClientClick }: CSGPClientsColumnProps) {
   const [search, setSearch] = useState('');
 
-  // Filter: growth_gp_step NOT NULL AND != 'feito'
+  // Filter: only onboarding clients (exclude already in acompanhamento or feito)
   const gpClients = useMemo(() =>
-    clients.filter(c => c.growth_gp_step != null && c.growth_gp_step !== 'feito'),
+    clients.filter(c => c.growth_gp_step != null && c.growth_gp_step !== 'feito' && c.growth_gp_step !== 'acompanhamento_gestores'),
   [clients]);
 
   // Resolve GP names by group
