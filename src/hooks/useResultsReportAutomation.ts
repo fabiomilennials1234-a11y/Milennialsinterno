@@ -100,9 +100,9 @@ async function createTaskIfNotExists(
     .eq('ads_manager_id', userId)
     .ilike('title', title)
     .gte('created_at', cycleStart.toISOString())
-    .maybeSingle();
+    .limit(1);
 
-  if (existing) return;
+  if (existing && existing.length > 0) return;
 
   await supabase.from('ads_tasks').insert({
     ads_manager_id: userId,
