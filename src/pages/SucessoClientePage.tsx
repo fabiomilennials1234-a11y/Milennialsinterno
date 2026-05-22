@@ -215,6 +215,9 @@ export default function SucessoClientePage() {
                   </div>
                 </div>
 
+                {/* Pendência CX column - second position */}
+                <CSPendenciaCXColumn clients={cxPendingClients} />
+
                 {/* Tarefas Recorrentes column */}
                 <div className="w-[340px] h-full flex-shrink-0 flex flex-col bg-card rounded-2xl border border-subtle overflow-hidden shadow-apple">
                   <div className="section-header section-header-green">
@@ -230,9 +233,6 @@ export default function SucessoClientePage() {
 
                 {/* Manager columns */}
                 {managers.map(manager => <CSManagerColumn key={manager.user_id} manager={manager} clients={clientsByManager.get(manager.user_id) || []} onClientClick={handleClientClick} />)}
-
-                {/* Pendência CX column - always visible */}
-                <CSPendenciaCXColumn clients={cxPendingClients} />
 
                 {/* Comercial column - right after managers */}
                 <CSComercialColumn />
