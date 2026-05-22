@@ -99,7 +99,6 @@ async function createTaskIfNotExists(
     .select('id')
     .eq('ads_manager_id', userId)
     .ilike('title', title)
-    .or('archived.is.null,archived.eq.false')
     .gte('created_at', cycleStart.toISOString())
     .maybeSingle();
 
