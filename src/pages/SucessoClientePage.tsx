@@ -12,6 +12,7 @@ import CSDashboardColumn from '@/components/sucesso-cliente/CSDashboardColumn';
 import CSHeaderStats from '@/components/sucesso-cliente/CSHeaderStats';
 import CSComercialColumn from '@/components/sucesso-cliente/CSComercialColumn';
 import CSNPSSection from '@/components/sucesso-cliente/CSNPSSection';
+import CSClientGrowthNPSSection from '@/components/sucesso-cliente/CSClientGrowthNPSSection';
 import CSNPSPostReuniaoColumn from '@/components/sucesso-cliente/CSNPSPostReuniaoColumn';
 import CSGPClientsColumn from '@/components/sucesso-cliente/CSGPClientsColumn';
 import ClientViewModal from '@/components/client/ClientViewModal';
@@ -253,6 +254,9 @@ export default function SucessoClientePage() {
 
                 {/* NPS Pós Reunião */}
                 <CSNPSPostReuniaoColumn />
+
+                {/* Pesquisa NPS Clientes (Growth) */}
+                <CSClientGrowthNPSSection />
 
                 {/* NPS TIME + Baú de Ideias */}
                 <CSNPSSection />

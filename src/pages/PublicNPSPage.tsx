@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useNPSSurveyByToken, useSubmitNPSResponse, useSubmitNPSTeamResponse } from '@/hooks/useNPSSurveys';
+import { useNPSSurveyByToken, useSubmitNPSResponse, useSubmitNPSTeamResponse, useSubmitNPSClientGrowthResponse } from '@/hooks/useNPSSurveys';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -651,6 +652,438 @@ function ClientNPSForm({ surveyId, surveyTitle, onSubmitted }: { surveyId: strin
 }
 
 // ============================================================
+// Client Growth NPS Form
+// ============================================================
+
+const EVOLUTION_OPTIONS = [
+  { value: 'muito_abaixo', label: 'Muito abaixo do esperado' },
+  { value: 'abaixo', label: 'Abaixo do esperado' },
+  { value: 'dentro', label: 'Dentro do esperado' },
+  { value: 'acima', label: 'Acima do esperado' },
+  { value: 'muito_acima', label: 'Muito acima do esperado' },
+] as const;
+
+const CHALLENGE_OPTIONS = [
+  'Geração de leads',
+  'Conversão/vendas',
+  'Posicionamento da marca',
+  'Organização comercial',
+  'Atendimento',
+  'Retenção de clientes',
+  'Processos internos',
+  'Escala/crescimento',
+] as const;
+
+const ALIGNMENT_OPTIONS = [
+  { value: 'totalmente', label: 'Totalmente alinhada' },
+  { value: 'parcialmente', label: 'Parcialmente alinhada' },
+  { value: 'pouco', label: 'Pouco alinhada' },
+  { value: 'nao', label: 'Não alinhada' },
+] as const;
+
+const STRENGTHEN_OPTIONS = [
+  'Atendimento',
+  'Comunicação',
+  'Estratégia',
+  'Criativos',
+  'Velocidade',
+  'Acompanhamento',
+  'Reuniões',
+] as const;
+
+const clientGrowthSchema = z.object({
+  company_name: z.string().min(1, 'Nome da empresa é obrigatório').max(200),
+  results_evolution: z.enum(['muito_abaixo', 'abaixo', 'dentro', 'acima', 'muito_acima']),
+  biggest_challenges: z.array(z.string()).min(1, 'Selecione pelo menos 1 desafio').max(3, 'Selecione no máximo 3 desafios'),
+  challenges_other: z.string().max(200).optional(),
+  alignment_assessment: z.enum(['totalmente', 'parcialmente', 'pouco', 'nao']),
+  strengthen_areas: z.array(z.string()).min(1, 'Selecione pelo menos 1 área'),
+  strengthen_other: z.string().max(200).optional(),
+  improvement_suggestions: z.string().min(1, 'Este campo é obrigatório').max(3000),
+  next_months_goal: z.string().min(1, 'Este campo é obrigatório').max(500),
+  nps_score: z.number().min(0).max(10),
+});
+
+function ClientGrowthNPSForm({ surveyId, onSubmitted }: { surveyId: string; onSubmitted: () => void }) {
+  const submitResponse = useSubmitNPSClientGrowthResponse();
+
+  const [formData, setFormData] = useState({
+    company_name: '',
+    results_evolution: '' as string,
+    biggest_challenges: [] as string[],
+    challenges_other: '',
+    challenges_has_other: false,
+    alignment_assessment: '' as string,
+    strengthen_areas: [] as string[],
+    strengthen_other: '',
+    strengthen_has_other: false,
+    improvement_suggestions: '',
+    next_months_goal: '',
+    nps_score: null as number | null,
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const toggleChallenge = (item: string) => {
+    setFormData(prev => {
+      const current = prev.biggest_challenges;
+      if (current.includes(item)) {
+        return { ...prev, biggest_challenges: current.filter(c => c !== item) };
+      }
+      if (current.length >= 3) return prev;
+      return { ...prev, biggest_challenges: [...current, item] };
+    });
+  };
+
+  const toggleStrengthen = (item: string) => {
+    setFormData(prev => {
+      const current = prev.strengthen_areas;
+      if (current.includes(item)) {
+        return { ...prev, strengthen_areas: current.filter(c => c !== item) };
+      }
+      return { ...prev, strengthen_areas: [...current, item] };
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrors({});
+
+    const challenges = [...formData.biggest_challenges];
+    if (formData.challenges_has_other && formData.challenges_other.trim()) {
+      challenges.push('Outro');
+    }
+
+    const areas = [...formData.strengthen_areas];
+    if (formData.strengthen_has_other && formData.strengthen_other.trim()) {
+      areas.push('Outro');
+    }
+
+    const validationResult = clientGrowthSchema.safeParse({
+      company_name: formData.company_name,
+      results_evolution: formData.results_evolution || undefined,
+      biggest_challenges: challenges,
+      challenges_other: formData.challenges_has_other ? formData.challenges_other || undefined : undefined,
+      alignment_assessment: formData.alignment_assessment || undefined,
+      strengthen_areas: areas,
+      strengthen_other: formData.strengthen_has_other ? formData.strengthen_other || undefined : undefined,
+      improvement_suggestions: formData.improvement_suggestions,
+      next_months_goal: formData.next_months_goal,
+      nps_score: formData.nps_score,
+    });
+
+    if (!validationResult.success) {
+      const newErrors: Record<string, string> = {};
+      validationResult.error.errors.forEach((err) => {
+        if (err.path[0]) {
+          newErrors[err.path[0] as string] = err.message;
+        }
+      });
+      setErrors(newErrors);
+      return;
+    }
+
+    try {
+      await submitResponse.mutateAsync({
+        survey_id: surveyId,
+        company_name: formData.company_name,
+        results_evolution: formData.results_evolution as any,
+        biggest_challenges: challenges,
+        challenges_other: formData.challenges_has_other ? formData.challenges_other || null : null,
+        alignment_assessment: formData.alignment_assessment as any,
+        strengthen_areas: areas,
+        strengthen_other: formData.strengthen_has_other ? formData.strengthen_other || null : null,
+        improvement_suggestions: formData.improvement_suggestions,
+        next_months_goal: formData.next_months_goal,
+        nps_score: formData.nps_score!,
+      });
+      onSubmitted();
+    } catch {
+      // Error handled by mutation
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="max-w-2xl mx-auto space-y-6">
+      {/* Header */}
+      <Card className="border-0 shadow-lg bg-gradient-to-br from-emerald-950 via-gray-900 to-gray-950 text-white">
+        <CardHeader className="text-center pb-4">
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <div className="p-2 bg-emerald-500/20 rounded-xl">
+              <BarChart3 className="h-6 w-6 text-emerald-300" />
+            </div>
+          </div>
+          <CardTitle className="text-2xl font-bold">
+            Pesquisa de Evolução e Experiência
+          </CardTitle>
+          <CardDescription className="text-gray-300 text-base mt-3 leading-relaxed">
+            Queremos acompanhar de perto a evolução da sua empresa e garantir que nossa parceria
+            continue gerando valor, crescimento e resultados reais. Sua resposta leva cerca de 2 minutos.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+
+      {/* Company Name */}
+      <Card>
+        <CardContent className="pt-6">
+          <Label className="text-base font-medium">
+            Nome da empresa <span className="text-red-600">*</span>
+          </Label>
+          <Input
+            className="mt-3"
+            placeholder="Sua empresa"
+            value={formData.company_name}
+            onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+            maxLength={200}
+          />
+          {errors.company_name && (
+            <p className="text-sm text-red-600 mt-1">{errors.company_name}</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Q1: Results Evolution */}
+      <Card>
+        <CardContent className="pt-6">
+          <Label className="text-base font-medium">
+            1. Como você avalia os resultados e evolução da sua empresa nos últimos 30 dias? <span className="text-red-600">*</span>
+          </Label>
+          <RadioGroup
+            className="mt-4 space-y-3"
+            value={formData.results_evolution}
+            onValueChange={(value) => setFormData({ ...formData, results_evolution: value })}
+          >
+            {EVOLUTION_OPTIONS.map((opt) => (
+              <div key={opt.value} className="flex items-center space-x-3">
+                <RadioGroupItem value={opt.value} id={`evo-${opt.value}`} />
+                <Label htmlFor={`evo-${opt.value}`} className="font-normal cursor-pointer">{opt.label}</Label>
+              </div>
+            ))}
+          </RadioGroup>
+          {errors.results_evolution && (
+            <p className="text-sm text-red-600 mt-2">{errors.results_evolution}</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Q2: Biggest Challenges (max 3) */}
+      <Card>
+        <CardContent className="pt-6">
+          <Label className="text-base font-medium">
+            2. Hoje, qual é o maior desafio da sua empresa? <span className="text-red-600">*</span>
+          </Label>
+          <p className="text-sm text-muted-foreground mt-1">Selecione até 3 opções</p>
+          <div className="mt-4 space-y-3">
+            {CHALLENGE_OPTIONS.map((item) => (
+              <div key={item} className="flex items-center space-x-3">
+                <Checkbox
+                  id={`challenge-${item}`}
+                  checked={formData.biggest_challenges.includes(item)}
+                  onCheckedChange={() => toggleChallenge(item)}
+                  disabled={!formData.biggest_challenges.includes(item) && formData.biggest_challenges.length >= 3}
+                />
+                <Label htmlFor={`challenge-${item}`} className="font-normal cursor-pointer">{item}</Label>
+              </div>
+            ))}
+            <div className="flex items-center space-x-3">
+              <Checkbox
+                id="challenge-outro"
+                checked={formData.challenges_has_other}
+                onCheckedChange={(checked) => setFormData({ ...formData, challenges_has_other: !!checked })}
+                disabled={!formData.challenges_has_other && formData.biggest_challenges.length >= 3}
+              />
+              <Label htmlFor="challenge-outro" className="font-normal cursor-pointer">Outro:</Label>
+              <Input
+                className="flex-1"
+                placeholder=""
+                value={formData.challenges_other}
+                onChange={(e) => setFormData({ ...formData, challenges_other: e.target.value })}
+                maxLength={200}
+                disabled={!formData.challenges_has_other}
+              />
+            </div>
+          </div>
+          {errors.biggest_challenges && (
+            <p className="text-sm text-red-600 mt-2">{errors.biggest_challenges}</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Q3: Alignment */}
+      <Card>
+        <CardContent className="pt-6">
+          <Label className="text-base font-medium">
+            3. Você sente que a Milennials está alinhada com os objetivos atuais da sua empresa? <span className="text-red-600">*</span>
+          </Label>
+          <RadioGroup
+            className="mt-4 space-y-3"
+            value={formData.alignment_assessment}
+            onValueChange={(value) => setFormData({ ...formData, alignment_assessment: value })}
+          >
+            {ALIGNMENT_OPTIONS.map((opt) => (
+              <div key={opt.value} className="flex items-center space-x-3">
+                <RadioGroupItem value={opt.value} id={`align-${opt.value}`} />
+                <Label htmlFor={`align-${opt.value}`} className="font-normal cursor-pointer">{opt.label}</Label>
+              </div>
+            ))}
+          </RadioGroup>
+          {errors.alignment_assessment && (
+            <p className="text-sm text-red-600 mt-2">{errors.alignment_assessment}</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Q4: Strengthen Areas */}
+      <Card>
+        <CardContent className="pt-6">
+          <Label className="text-base font-medium">
+            4. O que você acredita que deveríamos manter ou fortalecer na nossa parceria? <span className="text-red-600">*</span>
+          </Label>
+          <div className="mt-4 space-y-3">
+            {STRENGTHEN_OPTIONS.map((item) => (
+              <div key={item} className="flex items-center space-x-3">
+                <Checkbox
+                  id={`strengthen-${item}`}
+                  checked={formData.strengthen_areas.includes(item)}
+                  onCheckedChange={() => toggleStrengthen(item)}
+                />
+                <Label htmlFor={`strengthen-${item}`} className="font-normal cursor-pointer">{item}</Label>
+              </div>
+            ))}
+            <div className="flex items-center space-x-3">
+              <Checkbox
+                id="strengthen-outro"
+                checked={formData.strengthen_has_other}
+                onCheckedChange={(checked) => setFormData({ ...formData, strengthen_has_other: !!checked })}
+              />
+              <Label htmlFor="strengthen-outro" className="font-normal cursor-pointer">Outro:</Label>
+              <Input
+                className="flex-1"
+                placeholder=""
+                value={formData.strengthen_other}
+                onChange={(e) => setFormData({ ...formData, strengthen_other: e.target.value })}
+                maxLength={200}
+                disabled={!formData.strengthen_has_other}
+              />
+            </div>
+          </div>
+          {errors.strengthen_areas && (
+            <p className="text-sm text-red-600 mt-2">{errors.strengthen_areas}</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Q5: Improvement Suggestions */}
+      <Card>
+        <CardContent className="pt-6">
+          <Label className="text-base font-medium">
+            5. Existe algo que poderíamos melhorar para gerar mais resultado para sua empresa? <span className="text-red-600">*</span>
+          </Label>
+          <Textarea
+            className="mt-3"
+            placeholder="Compartilhe suas sugestões aqui..."
+            value={formData.improvement_suggestions}
+            onChange={(e) => setFormData({ ...formData, improvement_suggestions: e.target.value })}
+            rows={4}
+            maxLength={3000}
+          />
+          {errors.improvement_suggestions && (
+            <p className="text-sm text-red-600 mt-1">{errors.improvement_suggestions}</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Q6: Next Months Goal */}
+      <Card>
+        <CardContent className="pt-6">
+          <Label className="text-base font-medium">
+            6. Pensando nos próximos meses, qual é o principal objetivo da sua empresa? <span className="text-red-600">*</span>
+          </Label>
+          <Input
+            className="mt-3"
+            placeholder="Ex: aumentar faturamento, captar mais leads, estruturar comercial..."
+            value={formData.next_months_goal}
+            onChange={(e) => setFormData({ ...formData, next_months_goal: e.target.value })}
+            maxLength={500}
+          />
+          {errors.next_months_goal && (
+            <p className="text-sm text-red-600 mt-1">{errors.next_months_goal}</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Q7: NPS Score 0-10 */}
+      <Card>
+        <CardContent className="pt-6">
+          <Label className="text-base font-medium">
+            7. De 0 a 10, o quanto você recomendaria a Milennials para outra empresa? <span className="text-red-600">*</span>
+          </Label>
+          <div className="mt-4 flex justify-between gap-1">
+            {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((score) => (
+              <button
+                key={score}
+                type="button"
+                onClick={() => setFormData({ ...formData, nps_score: score })}
+                className={`w-10 h-10 rounded-full border-2 transition-all ${
+                  formData.nps_score === score
+                    ? 'bg-emerald-600 border-emerald-600 text-white'
+                    : 'border-gray-300 hover:border-emerald-400'
+                }`}
+              >
+                {score}
+              </button>
+            ))}
+          </div>
+          <div className="flex justify-between mt-2 text-xs text-muted-foreground px-1">
+            <span>Nada provável</span>
+            <span>Extremamente provável</span>
+          </div>
+          {errors.nps_score && (
+            <p className="text-sm text-red-600 mt-2">{errors.nps_score}</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Submit */}
+      <div className="flex justify-between items-center">
+        <Button
+          type="submit"
+          size="lg"
+          className="bg-emerald-600 hover:bg-emerald-700"
+          disabled={submitResponse.isPending}
+        >
+          {submitResponse.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          Enviar
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => setFormData({
+            company_name: '',
+            results_evolution: '',
+            biggest_challenges: [],
+            challenges_other: '',
+            challenges_has_other: false,
+            alignment_assessment: '',
+            strengthen_areas: [],
+            strengthen_other: '',
+            strengthen_has_other: false,
+            improvement_suggestions: '',
+            next_months_goal: '',
+            nps_score: null,
+          })}
+        >
+          Limpar formulário
+        </Button>
+      </div>
+
+      <p className="text-xs text-center text-muted-foreground py-4">
+        Pesquisa desenvolvida por Millennials B2B
+      </p>
+    </form>
+  );
+}
+
+// ============================================================
 // Main Page Component
 // ============================================================
 
@@ -709,16 +1142,18 @@ export default function PublicNPSPage() {
     );
   }
 
-  const isTeamSurvey = survey.survey_type === 'team';
+  const bgClass = survey.survey_type === 'team'
+    ? 'bg-gradient-to-b from-gray-950 via-purple-950/20 to-gray-950'
+    : survey.survey_type === 'client_growth'
+    ? 'bg-gradient-to-b from-gray-950 via-emerald-950/20 to-gray-950'
+    : 'bg-gradient-to-b from-purple-50 to-white';
 
   return (
-    <div className={`min-h-screen py-8 px-4 ${
-      isTeamSurvey
-        ? 'bg-gradient-to-b from-gray-950 via-purple-950/20 to-gray-950'
-        : 'bg-gradient-to-b from-purple-50 to-white'
-    }`}>
-      {isTeamSurvey ? (
+    <div className={`min-h-screen py-8 px-4 ${bgClass}`}>
+      {survey.survey_type === 'team' ? (
         <TeamNPSForm surveyId={survey.id} onSubmitted={() => setSubmitted(true)} />
+      ) : survey.survey_type === 'client_growth' ? (
+        <ClientGrowthNPSForm surveyId={survey.id} onSubmitted={() => setSubmitted(true)} />
       ) : (
         <ClientNPSForm surveyId={survey.id} surveyTitle={survey.title} onSubmitted={() => setSubmitted(true)} />
       )}

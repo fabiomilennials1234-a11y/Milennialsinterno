@@ -11,7 +11,7 @@ export interface NPSSurvey {
   updated_at: string;
   is_active: boolean;
   public_token: string;
-  survey_type: 'client' | 'team';
+  survey_type: 'client' | 'team' | 'client_growth';
 }
 
 export interface NPSResponse {
@@ -69,7 +69,7 @@ export interface NPSTeamStats {
 
 // ---------- Surveys ----------
 
-export function useNPSSurveys(surveyType?: 'client' | 'team') {
+export function useNPSSurveys(surveyType?: 'client' | 'team' | 'client_growth') {
   return useQuery({
     queryKey: ['nps-surveys', surveyType],
     queryFn: async () => {
@@ -228,6 +228,70 @@ export function calculateTeamStats(responses: Pick<NPSTeamResponse, 'experience_
   };
 }
 
+// ---------- Client Growth NPS Responses ----------
+
+export interface NPSClientGrowthResponse {
+  id: string;
+  survey_id: string;
+  company_name: string;
+  results_evolution: 'muito_abaixo' | 'abaixo' | 'dentro' | 'acima' | 'muito_acima';
+  biggest_challenges: string[];
+  challenges_other: string | null;
+  alignment_assessment: 'totalmente' | 'parcialmente' | 'pouco' | 'nao';
+  strengthen_areas: string[];
+  strengthen_other: string | null;
+  improvement_suggestions: string;
+  next_months_goal: string;
+  nps_score: number;
+  submitted_at: string;
+}
+
+export interface NPSClientGrowthStats {
+  totalResponses: number;
+  averageNPS: number;
+  averageEvolution: number;
+}
+
+const EVOLUTION_SCORE: Record<string, number> = {
+  muito_abaixo: 1,
+  abaixo: 2,
+  dentro: 3,
+  acima: 4,
+  muito_acima: 5,
+};
+
+export function useNPSClientGrowthResponses(surveyId: string) {
+  return useQuery({
+    queryKey: ['nps-client-growth-responses', surveyId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('nps_client_growth_responses')
+        .select('*')
+        .eq('survey_id', surveyId)
+        .order('submitted_at', { ascending: false });
+
+      if (error) throw error;
+      return data as NPSClientGrowthResponse[];
+    },
+    enabled: !!surveyId,
+  });
+}
+
+export function calculateClientGrowthStats(responses: NPSClientGrowthResponse[]): NPSClientGrowthStats {
+  if (responses.length === 0) {
+    return { totalResponses: 0, averageNPS: 0, averageEvolution: 0 };
+  }
+
+  const avgNPS = responses.reduce((acc, r) => acc + r.nps_score, 0) / responses.length;
+  const avgEvo = responses.reduce((acc, r) => acc + (EVOLUTION_SCORE[r.results_evolution] || 3), 0) / responses.length;
+
+  return {
+    totalResponses: responses.length,
+    averageNPS: Math.round(avgNPS * 10) / 10,
+    averageEvolution: Math.round(avgEvo * 10) / 10,
+  };
+}
+
 // ---------- Team Summaries ----------
 
 export function useLatestTeamSummary() {
@@ -254,7 +318,7 @@ export function useCreateNPSSurvey() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ title, description, surveyType }: { title?: string; description?: string; surveyType?: 'client' | 'team' }) => {
+    mutationFn: async ({ title, description, surveyType }: { title?: string; description?: string; surveyType?: 'client' | 'team' | 'client_growth' }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
@@ -305,6 +369,24 @@ export function useSubmitNPSTeamResponse() {
     mutationFn: async (response: Omit<NPSTeamResponse, 'id' | 'submitted_at'>) => {
       const { error } = await supabase
         .from('nps_team_responses')
+        .insert(response);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Resposta enviada com sucesso!');
+    },
+    onError: (error: Error) => {
+      toast.error('Erro ao enviar resposta', { description: error.message });
+    },
+  });
+}
+
+export function useSubmitNPSClientGrowthResponse() {
+  return useMutation({
+    mutationFn: async (response: Omit<NPSClientGrowthResponse, 'id' | 'submitted_at'>) => {
+      const { error } = await supabase
+        .from('nps_client_growth_responses')
         .insert(response);
 
       if (error) throw error;
