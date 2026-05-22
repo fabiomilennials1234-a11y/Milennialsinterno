@@ -6,6 +6,7 @@ import DepartmentTarefasSection from '@/components/department/DepartmentTarefasS
 import { CheckSquare, ChevronRight, ChevronLeft, LayoutGrid, Database } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import ManualCondutaBanner from '@/components/shared/ManualCondutaBanner';
 
 export default function EditorVideoPage() {
   const [showTarefas, setShowTarefas] = useState(false);
@@ -23,6 +24,7 @@ export default function EditorVideoPage() {
               <p className="text-caption text-muted-foreground mt-1">
                 Kanban de demandas de edicao de video
               </p>
+              <ManualCondutaBanner />
             </div>
             {activeTab === 'kanban' && (
               <Button

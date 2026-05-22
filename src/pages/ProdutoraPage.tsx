@@ -7,6 +7,7 @@ import ProdutoraKanbanBoard from '@/components/produtora/ProdutoraKanbanBoard';
 import DepartmentTarefasSection from '@/components/department/DepartmentTarefasSection';
 import { CheckSquare, ChevronRight, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import ManualCondutaBanner from '@/components/shared/ManualCondutaBanner';
 
 export default function ProdutoraPage() {
   const { user, isCEO, isAdminUser } = useAuth();
@@ -31,6 +32,7 @@ export default function ProdutoraPage() {
               <p className="text-caption text-muted-foreground mt-1">
                 Kanban de demandas de gravacao
               </p>
+              <ManualCondutaBanner />
             </div>
             <Button
               variant="outline"

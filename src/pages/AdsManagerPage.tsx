@@ -39,6 +39,7 @@ import AdsLemasSection from '@/components/ads-manager/AdsLemasSection';
 import AdsChurnSection from '@/components/ads-manager/AdsChurnSection';
 import AdsMovimentacaoNotification from '@/components/ads-manager/AdsMovimentacaoNotification';
 import { useResultsReportAutomation } from '@/hooks/useResultsReportAutomation';
+import ManualCondutaBanner from '@/components/shared/ManualCondutaBanner';
 
 // Cores vibrantes para cada seção - Ordem definida pelo usuário
 const COLUMNS = [
@@ -148,6 +149,7 @@ export default function AdsManagerPage() {
           <p className="text-caption text-muted-foreground mt-1">
             Central de operações do Gestor de Ads
           </p>
+          <ManualCondutaBanner />
 
           {/* View toggle */}
           <div className="flex gap-1 bg-muted/50 rounded-lg p-1 mt-4 w-fit">

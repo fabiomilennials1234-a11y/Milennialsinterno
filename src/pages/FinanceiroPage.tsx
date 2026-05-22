@@ -22,6 +22,7 @@ import FinanceiroContasSection from '@/components/financeiro/FinanceiroContasSec
 import FinanceiroDRESection from '@/components/financeiro/FinanceiroDRESection';
 import { FinanceiroComissoesSection } from '@/components/financeiro/FinanceiroComissoesSection';
 import FinanceiroTarefasKanban from '@/components/financeiro/FinanceiroTarefasKanban';
+import ManualCondutaBanner from '@/components/shared/ManualCondutaBanner';
 
 // Colunas do Kanban "Millennials Contratos"
 const CONTRATOS_COLUMNS = [
@@ -301,6 +302,7 @@ export default function FinanceiroPage() {
               : 'Contas a pagar, receber e DRE'
             }
           </p>
+          <ManualCondutaBanner />
         </div>
 
         {/* Kanban Content */}

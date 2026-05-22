@@ -39,6 +39,7 @@ import AdsBonusSection from '@/components/ads-manager/AdsBonusSection';
 import AdsLemasSection from '@/components/ads-manager/AdsLemasSection';
 import DepartmentTarefasSection from '@/components/department/DepartmentTarefasSection';
 import { useTCMonthlyCycle } from '@/hooks/useTCMonthlyCycle';
+import ManualCondutaBanner from '@/components/shared/ManualCondutaBanner';
 
 // Colunas do Consultor Comercial
 const COLUMNS = [
@@ -139,6 +140,7 @@ export default function ConsultorComercialPage() {
           <p className="text-caption text-muted-foreground mt-1">
             Central de treinamento e acompanhamento comercial
           </p>
+          <ManualCondutaBanner />
 
           {/* View toggle */}
           <div className="flex gap-1 bg-muted/50 rounded-lg p-1 mt-4 w-fit">

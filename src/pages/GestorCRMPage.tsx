@@ -20,6 +20,7 @@ import CrmFinalizadosSection from '@/components/gestor-crm/CrmFinalizadosSection
 import CrmDocumentacaoSection from '@/components/gestor-crm/CrmDocumentacaoSection';
 import CrmFerramentasProSection from '@/components/gestor-crm/CrmFerramentasProSection';
 import { CrmSectionBoundary } from '@/components/gestor-crm/CrmSectionBoundary';
+import ManualCondutaBanner from '@/components/shared/ManualCondutaBanner';
 
 // Colunas do kanban do Gestor de CRM — mesma lógica estrutural do Consultor de MKT Place.
 // As três colunas de "Configuração" (V8/Automation/Copilot) e "CRMs Finalizados" entram
@@ -101,6 +102,7 @@ export default function GestorCRMPage() {
         <div className="px-8 py-6 border-b border-subtle shrink-0">
           <h1 className="text-display text-foreground">Gestor de CRM</h1>
           <p className="text-caption text-muted-foreground mt-1">Kanban do Torque CRM — V8, Automation e Copilot</p>
+          <ManualCondutaBanner />
 
           {/* View toggle */}
           <div className="flex gap-1 bg-muted/50 rounded-lg p-1 mt-4 w-fit">

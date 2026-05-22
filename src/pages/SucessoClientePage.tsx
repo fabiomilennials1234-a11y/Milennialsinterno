@@ -22,6 +22,7 @@ import { useCXPendingClients } from '@/hooks/useCXValidation';
 import DepartmentTarefasSection from '@/components/department/DepartmentTarefasSection';
 import DepartmentTasksTab from '@/components/department/DepartmentTasksTab';
 import OracleSummarySection from '@/components/oracle/OracleSummarySection';
+import ManualCondutaBanner from '@/components/shared/ManualCondutaBanner';
 
 export default function SucessoClientePage() {
   const { user } = useAuth();
@@ -134,6 +135,7 @@ export default function SucessoClientePage() {
               <p className="text-caption text-muted-foreground mt-1">
                 Central de relacionamento e sucesso dos clientes
               </p>
+              <ManualCondutaBanner />
             </div>
             <div className="flex items-center gap-3">
               {isViewOnly && <div className="bg-muted px-3 py-1.5 rounded-full">

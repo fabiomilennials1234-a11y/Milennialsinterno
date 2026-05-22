@@ -19,6 +19,7 @@ import ClientViewModal from '@/components/client/ClientViewModal';
 import { useCreateMktplaceInitialTask, isGestaoMktplace, useMktplaceProfiles } from '@/hooks/useMktplaceKanban';
 import { useClientTagsBatch } from '@/hooks/useClientTags';
 import ClientTagsList, { TAG_TORQUE_BLOQUEADO } from '@/components/client-tags/ClientTagsList';
+import ManualCondutaBanner from '@/components/shared/ManualCondutaBanner';
 
 const COLUMNS = [
   { id: 'novo-cliente', title: 'Novos Clientes', icon: UserPlus, headerClass: 'section-header-green', iconColor: 'text-white' },
@@ -221,6 +222,7 @@ export default function ConsultorMKTPlacePage() {
         <div className="px-8 py-6 border-b border-subtle shrink-0">
           <h1 className="text-display text-foreground">Consultor(a) de MKT Place</h1>
           <p className="text-caption text-muted-foreground mt-1">Gestão de consultoria e acompanhamento de MKT Place</p>
+          <ManualCondutaBanner />
         </div>
 
         <div className="flex-1 relative overflow-hidden">
