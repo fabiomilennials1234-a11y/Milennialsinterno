@@ -99,8 +99,8 @@ export default function GrowthAcompanhamentoSection() {
   }
 
   return (
-    <ScrollArea className="h-full">
-      <div className="space-y-4 pr-2">
+    <ScrollArea className="h-full w-full">
+      <div className="space-y-4 pr-2 overflow-hidden">
         {grouped.map(([managerId, groupClients]) => {
           const managerName =
             managerId === UNASSIGNED
@@ -198,7 +198,7 @@ function AcompanhamentoCard({
   return (
     <div
       className={cn(
-        'rounded-xl border transition-all duration-200',
+        'rounded-xl border transition-all duration-200 overflow-hidden max-w-full',
         hasTorqueBlock
           ? 'border-danger/30 bg-danger/5'
           : 'border-subtle bg-card hover:bg-muted/50',
@@ -228,7 +228,7 @@ function AcompanhamentoCard({
 
           {/* Counter + TORQUE BLOQUEADO inline */}
           {(client.growth_counter_started_at || hasTorqueBlock) && (
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap min-w-0 max-w-full">
               {client.growth_counter_started_at && (
                 <GrowthCounterBadge
                   counterStartedAt={client.growth_counter_started_at}

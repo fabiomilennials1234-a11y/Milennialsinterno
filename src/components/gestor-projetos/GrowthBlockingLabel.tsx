@@ -32,7 +32,7 @@ export default function GrowthBlockingLabel({
     <div
       role="alert"
       className={cn(
-        'inline-flex items-center gap-1.5 px-2 py-1 rounded-md border font-bold text-[10px] uppercase tracking-wider leading-tight select-none',
+        'inline-flex items-center gap-1.5 px-2 py-1 rounded-md border font-bold text-[10px] uppercase tracking-wider leading-tight select-none max-w-full min-w-0',
         styles.container,
         pulsing && styles.pulseClass,
       )}

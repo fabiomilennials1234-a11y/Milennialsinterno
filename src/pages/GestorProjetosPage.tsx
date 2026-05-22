@@ -181,7 +181,7 @@ export default function GestorProjetosPage() {
                         <h2 className="font-semibold">{column.title}</h2>
                       </div>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-4 scrollbar-apple bg-card">
+                    <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 scrollbar-apple bg-card">
                       {renderColumnContent(column.id)}
                     </div>
                   </div>
