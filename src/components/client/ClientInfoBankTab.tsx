@@ -28,6 +28,11 @@ import {
   type ClientInfoBankProfile,
   type InfoBankFieldDef,
 } from '@/hooks/useClientInfoBank';
+import {
+  useClientInfoBankFileCounts,
+  FILE_SECTIONS,
+} from '@/hooks/useClientInfoBankFiles';
+import { Badge } from '@/components/ui/badge';
 import ClientInfoBankModal from '@/components/client/ClientInfoBankModal';
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -109,14 +114,24 @@ const SECTION_ICONS: Record<string, React.ReactNode> = {
   geral: <StickyNote size={11} className="text-primary" />,
 };
 
-// ── Client card ──────────────────────────────────────────────
+// ── File section icons for badges ───────────────────────────
+
+const FILE_SECTION_ICONS: Record<string, React.ComponentType<{ size: number; className?: string }>> = {
+  anuncios: Globe,
+  criativos: Palette,
+  marca: Type,
+  videos: Film,
+};
+
+// ── Client card ─────────────────────────────────────────────
 
 interface ClientCardProps {
   client: ClientWithInfoBank;
+  fileCounts?: Record<string, number>;
   onEdit: (client: ClientWithInfoBank) => void;
 }
 
-function ClientCard({ client, onEdit }: ClientCardProps) {
+function ClientCard({ client, fileCounts, onEdit }: ClientCardProps) {
   const { profile } = client;
   const hasProfile = !!profile;
 
@@ -173,6 +188,21 @@ function ClientCard({ client, onEdit }: ClientCardProps) {
         </button>
       </div>
 
+      {/* File count badges */}
+      {fileCounts && Object.keys(fileCounts).length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {FILE_SECTIONS.filter((s) => fileCounts[s.key] > 0).map((s) => {
+            const Icon = FILE_SECTION_ICONS[s.key];
+            return (
+              <Badge key={s.key} variant="secondary" className="gap-1 text-[10px] px-2 py-0.5">
+                {Icon && <Icon size={10} className="opacity-70" />}
+                {s.label}: {fileCounts[s.key]}
+              </Badge>
+            );
+          })}
+        </div>
+      )}
+
       {hasProfile && populatedSections.length > 0 && (
         <div className="mt-3 pt-3 border-t border-border/50 space-y-3">
           {populatedSections.map(({ section, fields }) => (
@@ -210,6 +240,7 @@ function ClientCard({ client, onEdit }: ClientCardProps) {
 
 export default function ClientInfoBankTab() {
   const { data: clients, isLoading } = useClientInfoBanks();
+  const { data: allFileCounts } = useClientInfoBankFileCounts();
   const [search, setSearch] = useState('');
   const [selectedClient, setSelectedClient] = useState<ClientWithInfoBank | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -271,7 +302,7 @@ export default function ClientInfoBankTab() {
         ) : (
           <>
             {withProfile.map((client) => (
-              <ClientCard key={client.id} client={client} onEdit={handleEdit} />
+              <ClientCard key={client.id} client={client} fileCounts={allFileCounts?.[client.id]} onEdit={handleEdit} />
             ))}
 
             {withProfile.length > 0 && withoutProfile.length > 0 && (
@@ -285,7 +316,7 @@ export default function ClientInfoBankTab() {
             )}
 
             {withoutProfile.map((client) => (
-              <ClientCard key={client.id} client={client} onEdit={handleEdit} />
+              <ClientCard key={client.id} client={client} fileCounts={allFileCounts?.[client.id]} onEdit={handleEdit} />
             ))}
           </>
         )}

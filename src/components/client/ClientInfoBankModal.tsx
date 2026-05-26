@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { X, Loader2, Palette, Globe, Film, Code2, StickyNote, Type, Eye, Link, Instagram, Youtube, AtSign, Map } from 'lucide-react';
+import { X, Loader2, Palette, Globe, Film, Code2, StickyNote, Type, Eye, Link, Instagram, Youtube, AtSign, Map, FileText, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   useUpsertClientInfoBank,
   INFO_BANK_FIELDS,
@@ -9,6 +10,7 @@ import {
   type ClientInfoBankProfile,
   type InfoBankFieldDef,
 } from '@/hooks/useClientInfoBank';
+import InfoBankFilesPanel from '@/components/client/InfoBankFilesPanel';
 
 // ── Props ────────────────────────────────────────────────────
 
@@ -157,87 +159,110 @@ export default function ClientInfoBankModal({
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-elegant">
-          {INFO_BANK_SECTIONS.map((section) => {
-            const sectionFields = INFO_BANK_FIELDS.filter((f) => f.section === section.key);
-            if (sectionFields.length === 0) return null;
-
-            return (
-              <div key={section.key}>
-                {/* Section header */}
-                <div className="flex items-center gap-2 mb-4 pb-2 border-b border-border/50">
-                  <span className="text-primary">{SECTION_ICONS[section.key]}</span>
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground">
-                    {section.label}
-                  </h3>
-                </div>
-
-                <div className="space-y-4">
-                  {sectionFields.map((field) => {
-                    const FieldIcon = FIELD_ICONS[field.key];
-
-                    if (field.type === 'textarea') {
-                      return (
-                        <div key={field.key} className="space-y-2">
-                          <label className="flex items-center gap-2 text-sm font-medium text-foreground">
-                            {FieldIcon && <FieldIcon size={15} className="text-muted-foreground" />}
-                            {field.label}
-                          </label>
-                          <textarea
-                            value={form[field.key]}
-                            onChange={(e) => handleChange(field.key, e.target.value)}
-                            placeholder={field.placeholder}
-                            disabled={upsert.isPending}
-                            rows={3}
-                            className="input-apple resize-none"
-                          />
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <div key={field.key} className="space-y-2">
-                        <label className="flex items-center gap-2 text-sm font-medium text-foreground">
-                          {FieldIcon && <FieldIcon size={15} className="text-muted-foreground" />}
-                          {field.label}
-                        </label>
-                        <input
-                          type={field.type}
-                          value={form[field.key]}
-                          onChange={(e) => handleChange(field.key, e.target.value)}
-                          placeholder={field.placeholder}
-                          disabled={upsert.isPending}
-                          className="input-apple"
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
-            <button
-              type="button"
-              onClick={handleClose}
-              disabled={upsert.isPending}
-              className="px-5 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={upsert.isPending}
-              className="px-6 py-2.5 rounded-xl bg-primary text-primary-foreground font-display font-semibold uppercase text-sm hover:brightness-105 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center gap-2"
-            >
-              {upsert.isPending && <Loader2 size={16} className="animate-spin" />}
-              Salvar
-            </button>
+        {/* Tabs */}
+        <Tabs defaultValue="informacoes" className="flex-1 flex flex-col overflow-hidden">
+          <div className="px-6 pt-4 shrink-0">
+            <TabsList className="w-full">
+              <TabsTrigger value="informacoes" className="flex-1 gap-1.5">
+                <Info size={14} />
+                Informacoes
+              </TabsTrigger>
+              <TabsTrigger value="arquivos" className="flex-1 gap-1.5">
+                <FileText size={14} />
+                Arquivos
+              </TabsTrigger>
+            </TabsList>
           </div>
-        </form>
+
+          {/* Tab: Informacoes — existing form, unchanged */}
+          <TabsContent value="informacoes" className="flex-1 overflow-y-auto mt-0">
+            <form onSubmit={handleSubmit} className="p-6 space-y-6 scrollbar-elegant">
+              {INFO_BANK_SECTIONS.map((section) => {
+                const sectionFields = INFO_BANK_FIELDS.filter((f) => f.section === section.key);
+                if (sectionFields.length === 0) return null;
+
+                return (
+                  <div key={section.key}>
+                    {/* Section header */}
+                    <div className="flex items-center gap-2 mb-4 pb-2 border-b border-border/50">
+                      <span className="text-primary">{SECTION_ICONS[section.key]}</span>
+                      <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                        {section.label}
+                      </h3>
+                    </div>
+
+                    <div className="space-y-4">
+                      {sectionFields.map((field) => {
+                        const FieldIcon = FIELD_ICONS[field.key];
+
+                        if (field.type === 'textarea') {
+                          return (
+                            <div key={field.key} className="space-y-2">
+                              <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+                                {FieldIcon && <FieldIcon size={15} className="text-muted-foreground" />}
+                                {field.label}
+                              </label>
+                              <textarea
+                                value={form[field.key]}
+                                onChange={(e) => handleChange(field.key, e.target.value)}
+                                placeholder={field.placeholder}
+                                disabled={upsert.isPending}
+                                rows={3}
+                                className="input-apple resize-none"
+                              />
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div key={field.key} className="space-y-2">
+                            <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+                              {FieldIcon && <FieldIcon size={15} className="text-muted-foreground" />}
+                              {field.label}
+                            </label>
+                            <input
+                              type={field.type}
+                              value={form[field.key]}
+                              onChange={(e) => handleChange(field.key, e.target.value)}
+                              placeholder={field.placeholder}
+                              disabled={upsert.isPending}
+                              className="input-apple"
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  disabled={upsert.isPending}
+                  className="px-5 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={upsert.isPending}
+                  className="px-6 py-2.5 rounded-xl bg-primary text-primary-foreground font-display font-semibold uppercase text-sm hover:brightness-105 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center gap-2"
+                >
+                  {upsert.isPending && <Loader2 size={16} className="animate-spin" />}
+                  Salvar
+                </button>
+              </div>
+            </form>
+          </TabsContent>
+
+          {/* Tab: Arquivos — file upload panel */}
+          <TabsContent value="arquivos" className="flex-1 overflow-y-auto mt-0">
+            <InfoBankFilesPanel clientId={clientId} />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
