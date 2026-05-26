@@ -1,60 +1,38 @@
 import { useState, useMemo } from 'react';
-import { useCrmDailyTasks, type CrmTaskGroup, type EnrichedCrmTask } from '@/hooks/useCrmDailyTasks';
+import { useCrmDailyTasks, type CrmTaskGroup, type EnrichedCrmTask, type UrgencyBadge } from '@/hooks/useCrmDailyTasks';
 import { useUpdateDepartmentTaskStatus } from '@/hooks/useDepartmentTasks';
 import { useClientTagsBatch } from '@/hooks/useClientTags';
 import { TAG_ESPERAR_BRIEFING } from '@/components/client-tags/ClientTagsList';
-import { CRM_PRODUTO_LABEL, CRM_PRODUTO_COLOR, CRM_STEP_LABEL, type CrmProduto } from '@/hooks/useCrmKanban';
+import { CRM_PRODUTO_LABEL, CRM_PRODUTO_COLOR, type CrmProduto } from '@/hooks/useCrmKanban';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  AlertTriangle, Clock, CalendarClock, Hourglass,
-  CheckCircle2, Timer, Eye, ListChecks, ShieldAlert,
+  AlertTriangle, Clock, Eye, ListChecks, ShieldAlert, Timer, CheckCircle2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
+import { fireCelebration } from '@/lib/confetti';
 import CrmConfigViewModal from './CrmConfigViewModal';
 import { useCrmConfiguracoes } from '@/hooks/useCrmKanban';
 
-const GROUP_META: Record<CrmTaskGroup, {
-  label: string;
-  icon: typeof AlertTriangle;
-  color: string;
-  bgColor: string;
-}> = {
-  atrasadas: {
-    label: 'Atrasadas',
-    icon: AlertTriangle,
-    color: 'text-destructive',
-    bgColor: 'bg-destructive/5 border-destructive/20',
-  },
-  hoje: {
-    label: 'Hoje',
-    icon: CalendarClock,
-    color: 'text-amber-700',
-    bgColor: 'bg-amber-500/5 border-amber-500/20',
-  },
-  pendentes: {
-    label: 'Pendentes',
-    icon: Clock,
-    color: 'text-blue-700',
-    bgColor: 'bg-blue-500/5 border-blue-500/20',
-  },
-  aguardando: {
-    label: 'Aguardando D+N',
-    icon: Hourglass,
-    color: 'text-muted-foreground',
-    bgColor: 'bg-muted/30 border-border',
-  },
+// ─── Column definitions ────────────────────────────────────
+
+const COLUMNS: { id: CrmTaskGroup; label: string; headerClass: string; borderClass: string }[] = [
+  { id: 'todo', label: 'A Fazer', headerClass: 'kanban-header-todo', borderClass: 'card-border-blue' },
+  { id: 'doing', label: 'Fazendo', headerClass: 'kanban-header-doing', borderClass: 'card-border-orange' },
+  { id: 'done', label: 'Feitas', headerClass: 'kanban-header-done', borderClass: 'card-border-green' },
+];
+
+// ─── Urgency badge config ──────────────────────────────────
+
+const URGENCY_META: Record<Exclude<UrgencyBadge, null>, { label: string; className: string }> = {
+  atrasado: { label: 'ATRASADO', className: 'bg-red-500/15 text-red-500 border-red-500/30' },
+  hoje: { label: 'HOJE', className: 'bg-amber-500/15 text-amber-600 border-amber-500/30' },
+  dn: { label: 'D+N', className: 'bg-muted text-muted-foreground border-border' },
 };
 
-const GROUP_ORDER: CrmTaskGroup[] = ['atrasadas', 'hoje', 'pendentes', 'aguardando'];
+// ─── Main component ────────────────────────────────────────
 
-/**
- * CRM daily tasks section with smart grouping:
- * Atrasadas > Hoje > Pendentes > Aguardando D+N
- *
- * Each task shows: produto badge, checklist progress, deadline status,
- * and click opens the config in the CRM modal.
- */
 export default function CrmDailyTasksSection() {
   const { grouped, isLoading, enrichedTasks } = useCrmDailyTasks();
   const { data: allConfigs = [] } = useCrmConfiguracoes();
@@ -81,6 +59,23 @@ export default function CrmDailyTasksSection() {
     ? (allConfigs as Record<string, unknown>[]).find((c) => c.id === selectedConfigId) || null
     : null;
 
+  // ─── Drag handler ──────────────────────────────────────────
+
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+    const taskId = result.draggableId;
+    const newStatus = result.destination.droppableId as CrmTaskGroup;
+    if (newStatus === result.source.droppableId) return;
+
+    if (newStatus === 'done' && result.source.droppableId !== 'done') {
+      fireCelebration();
+    }
+
+    updateStatus.mutate({ taskId, status: newStatus });
+  };
+
+  // ─── Render ────────────────────────────────────────────────
+
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -91,7 +86,7 @@ export default function CrmDailyTasksSection() {
     );
   }
 
-  const totalTasks = GROUP_ORDER.reduce((sum, g) => sum + grouped[g].length, 0);
+  const totalTasks = COLUMNS.reduce((sum, col) => sum + grouped[col.id].length, 0);
 
   if (totalTasks === 0) {
     return (
@@ -103,53 +98,80 @@ export default function CrmDailyTasksSection() {
   }
 
   return (
-    <div className="space-y-4">
-      {GROUP_ORDER.map(groupKey => {
-        const tasks = grouped[groupKey];
-        if (tasks.length === 0) return null;
-        const meta = GROUP_META[groupKey];
-        const Icon = meta.icon;
+    <>
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <div className="space-y-6">
+          {COLUMNS.map(col => {
+            const colTasks = grouped[col.id];
 
-        return (
-          <div key={groupKey} className="space-y-2">
-            {/* Group header */}
-            <div className={cn(
-              'flex items-center gap-2 px-2.5 py-1.5 rounded-lg border',
-              meta.bgColor
-            )}>
-              <Icon size={13} className={meta.color} />
-              <span className={cn('text-[11px] font-bold uppercase tracking-wide', meta.color)}>
-                {meta.label}
-              </span>
-              <Badge variant="secondary" className="ml-auto text-[10px] px-1.5 py-0">
-                {tasks.length}
-              </Badge>
-            </div>
+            return (
+              <div key={col.id}>
+                {/* Column Header */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <span className={col.headerClass}>
+                      {col.label}
+                    </span>
+                    <span className="text-xs text-muted-foreground font-medium bg-muted px-2 py-0.5 rounded-full">
+                      {colTasks.length}
+                    </span>
+                  </div>
+                </div>
 
-            {/* Tasks */}
-            <div className="space-y-1.5">
-              {tasks.map(enriched => {
-                const briefingBlocked = isBlockedByBriefing(enriched.task.related_client_id);
-                return (
-                  <TaskCard
-                    key={enriched.task.id}
-                    enriched={enriched}
-                    isBlockedByBriefing={briefingBlocked}
-                    onComplete={() => {
-                      updateStatus.mutate({
-                        taskId: enriched.task.id,
-                        status: 'done',
-                        taskTitle: enriched.task.title,
-                      });
-                    }}
-                    onOpenConfig={() => enriched.configId && setSelectedConfigId(enriched.configId)}
-                  />
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
+                {/* Droppable area */}
+                <Droppable droppableId={col.id}>
+                  {(provided, snapshot) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                      className={cn(
+                        'min-h-[60px] rounded-xl p-2 transition-all duration-200',
+                        snapshot.isDraggingOver && 'bg-primary/10 ring-2 ring-primary/30',
+                      )}
+                    >
+                      <div className="space-y-2">
+                        {colTasks.map((enriched, index) => {
+                          const isDone = enriched.task.status === 'done';
+                          const briefingBlocked = isBlockedByBriefing(enriched.task.related_client_id);
+
+                          return (
+                            <Draggable
+                              key={enriched.task.id}
+                              draggableId={enriched.task.id}
+                              index={index}
+                            >
+                              {(dragProvided, dragSnapshot) => (
+                                <div
+                                  ref={dragProvided.innerRef}
+                                  {...dragProvided.draggableProps}
+                                  {...dragProvided.dragHandleProps}
+                                  className={cn(
+                                    'kanban-card p-3 group border-l-4',
+                                    col.borderClass,
+                                    isDone && 'opacity-60',
+                                    dragSnapshot.isDragging && 'dragging',
+                                  )}
+                                >
+                                  <TaskCardContent
+                                    enriched={enriched}
+                                    isBlockedByBriefing={briefingBlocked}
+                                    onOpenConfig={() => enriched.configId && setSelectedConfigId(enriched.configId)}
+                                  />
+                                </div>
+                              )}
+                            </Draggable>
+                          );
+                        })}
+                        {provided.placeholder}
+                      </div>
+                    </div>
+                  )}
+                </Droppable>
+              </div>
+            );
+          })}
+        </div>
+      </DragDropContext>
 
       {selectedConfig && (
         <CrmConfigViewModal
@@ -158,23 +180,24 @@ export default function CrmDailyTasksSection() {
           config={selectedConfig}
         />
       )}
-    </div>
+    </>
   );
 }
 
-function TaskCard({
+// ─── Task Card Content (inner, not wrapped by Draggable) ───
+
+function TaskCardContent({
   enriched,
-  onComplete,
-  onOpenConfig,
   isBlockedByBriefing = false,
+  onOpenConfig,
 }: {
   enriched: EnrichedCrmTask;
-  onComplete: () => void;
-  onOpenConfig: () => void;
   isBlockedByBriefing?: boolean;
+  onOpenConfig: () => void;
 }) {
-  const { task, produto, checklistProgress, isBlockedDN, deadlineStatus, blockedUntil } = enriched;
+  const { task, produto, checklistProgress, isBlockedDN, blockedUntil, deadlineStatus, urgencyBadge } = enriched;
   const clientName = task.clients?.razao_social || task.clients?.name || '';
+  const isDone = task.status === 'done';
 
   // Deadline status icon
   const deadlineIcon = (() => {
@@ -187,30 +210,42 @@ function TaskCard({
   })();
 
   return (
-    <div
-      className={cn(
-        'group flex items-start gap-2 p-2.5 rounded-lg border bg-card transition-all hover:shadow-sm',
-        isBlockedDN && 'opacity-60',
-        deadlineStatus === 'overdue' && 'border-l-2 border-l-zinc-800',
-        deadlineStatus === 'critical' && 'border-l-2 border-l-destructive',
-      )}
-    >
-      {/* Title area */}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-foreground leading-snug line-clamp-2">
+    <div className="flex items-start justify-between">
+      <div className="flex-1 min-w-0 pr-2">
+        {/* Title */}
+        <p className={cn(
+          'text-sm font-medium text-foreground leading-snug line-clamp-2',
+          isDone && 'line-through text-muted-foreground',
+        )}>
           {task.title}
         </p>
+
+        {/* Client name */}
         {clientName && (
           <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{clientName}</p>
         )}
 
         {/* Badges row */}
         <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+          {/* Urgency badge */}
+          {urgencyBadge && (
+            <Badge
+              variant="outline"
+              className={cn(
+                'text-[9px] px-1.5 py-0 font-bold uppercase tracking-wide',
+                URGENCY_META[urgencyBadge].className,
+              )}
+              data-testid={`urgency-${urgencyBadge}`}
+            >
+              {URGENCY_META[urgencyBadge].label}
+            </Badge>
+          )}
+
           {/* Produto badge */}
           {produto && (
             <Badge className={cn(
               'text-[9px] px-1.5 py-0 border',
-              CRM_PRODUTO_COLOR[produto]
+              CRM_PRODUTO_COLOR[produto],
             )}>
               {CRM_PRODUTO_LABEL[produto]}
             </Badge>
@@ -225,14 +260,14 @@ function TaskCard({
               'inline-flex items-center gap-0.5 text-[10px] font-bold tabular-nums px-1 py-0.5 rounded',
               checklistProgress.done === checklistProgress.total
                 ? 'bg-emerald-500/10 text-emerald-600'
-                : 'bg-muted text-muted-foreground'
+                : 'bg-muted text-muted-foreground',
             )}>
               <ListChecks size={10} />
               {checklistProgress.done}/{checklistProgress.total}
             </span>
           )}
 
-          {/* Blocked D+N badge */}
+          {/* Blocked D+N badge (separate from urgency) */}
           {isBlockedDN && blockedUntil && (
             <Badge
               variant="outline"
@@ -252,19 +287,6 @@ function TaskCard({
               </span>
             </div>
           )}
-
-          {/* Status badge */}
-          <Badge
-            variant="outline"
-            className={cn(
-              'text-[9px] px-1.5 py-0',
-              task.status === 'doing'
-                ? 'border-blue-500/30 text-blue-600 bg-blue-500/5'
-                : 'border-border text-muted-foreground'
-            )}
-          >
-            {task.status === 'doing' ? 'Fazendo' : 'A fazer'}
-          </Badge>
         </div>
       </div>
 
@@ -276,18 +298,9 @@ function TaskCard({
             size="sm"
             onClick={onOpenConfig}
             className="h-6 px-1.5 text-[10px] gap-0.5"
+            aria-label="Ver configuração"
           >
             <Eye size={11} />
-          </Button>
-        )}
-        {!isBlockedDN && !isBlockedByBriefing && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onComplete}
-            className="h-6 px-1.5 text-[10px] gap-0.5 text-emerald-600 hover:text-emerald-700"
-          >
-            <CheckCircle2 size={11} />
           </Button>
         )}
       </div>

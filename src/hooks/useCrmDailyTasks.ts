@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useDepartmentTasks, type DepartmentTask } from './useDepartmentTasks';
-import { useCrmConfiguracoes, CRM_PRODUTO_LABEL, type CrmProduto } from './useCrmKanban';
+import { useCrmConfiguracoes, type CrmProduto } from './useCrmKanban';
 import { useStepValidations, type StepValidation } from './useCrmStepValidation';
 
 // =============================================================
@@ -11,10 +11,60 @@ import { useStepValidations, type StepValidation } from './useCrmStepValidation'
 // - Blocked until (D+N gate)
 // - Checklist progress (2/4)
 // - Produto label
-// - Task group: atrasadas > hoje > pendentes > aguardando
+// - urgencyBadge: atrasado | hoje | dn | null
+// - Grouped by status: todo / doing / done
 // =============================================================
 
-export type CrmTaskGroup = 'atrasadas' | 'hoje' | 'pendentes' | 'aguardando';
+export type CrmTaskGroup = 'todo' | 'doing' | 'done';
+
+export type UrgencyBadge = 'atrasado' | 'hoje' | 'dn' | null;
+
+// ----- Pure functions (exported for testing) -----
+
+export function computeUrgencyBadge(params: {
+  dueDate: string | null;
+  deadlineStatus: 'ok' | 'warning' | 'critical' | 'overdue' | 'none';
+  isBlockedDN: boolean;
+  todayStart: Date;
+}): UrgencyBadge {
+  const { dueDate, deadlineStatus, isBlockedDN, todayStart } = params;
+
+  // todayEnd = todayStart + 24h - 1ms (works regardless of local/UTC)
+  const todayEndMs = todayStart.getTime() + 24 * 60 * 60 * 1000 - 1;
+
+  // Priority 1: atrasado (overdue due_date OR overdue deadline)
+  if (dueDate && new Date(dueDate).getTime() < todayStart.getTime()) {
+    return 'atrasado';
+  }
+  if (deadlineStatus === 'overdue') {
+    return 'atrasado';
+  }
+
+  // Priority 2: hoje (due_date is today)
+  if (dueDate) {
+    const dueDateMs = new Date(dueDate).getTime();
+    if (dueDateMs >= todayStart.getTime() && dueDateMs <= todayEndMs) {
+      return 'hoje';
+    }
+  }
+
+  // Priority 3: dn (blocked by D+N)
+  if (isBlockedDN) {
+    return 'dn';
+  }
+
+  return null;
+}
+
+export function shouldIncludeTask(params: {
+  status: 'todo' | 'doing' | 'done';
+  updatedAt: string;
+  todayStart: Date;
+}): boolean {
+  const { status, updatedAt, todayStart } = params;
+  if (status !== 'done') return true;
+  return new Date(updatedAt).getTime() >= todayStart.getTime();
+}
 
 export interface EnrichedCrmTask {
   task: DepartmentTask;
@@ -29,8 +79,22 @@ export interface EnrichedCrmTask {
   blockedUntil: string | null;
   /** Step deadline status */
   deadlineStatus: 'ok' | 'warning' | 'critical' | 'overdue' | 'none';
-  /** Group for UI ordering */
-  group: CrmTaskGroup;
+  /** Urgency badge for UI rendering */
+  urgencyBadge: UrgencyBadge;
+}
+
+export function groupTasksByStatus(
+  tasks: EnrichedCrmTask[],
+): Record<CrmTaskGroup, EnrichedCrmTask[]> {
+  const groups: Record<CrmTaskGroup, EnrichedCrmTask[]> = {
+    todo: [],
+    doing: [],
+    done: [],
+  };
+  for (const task of tasks) {
+    groups[task.task.status].push(task);
+  }
+  return groups;
 }
 
 export function useCrmDailyTasks() {
@@ -57,11 +121,13 @@ export function useCrmDailyTasks() {
     const now = Date.now();
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
 
     return tasks
-      .filter(t => t.status !== 'done')
+      .filter(t => shouldIncludeTask({
+        status: t.status as 'todo' | 'doing' | 'done',
+        updatedAt: t.updated_at,
+        todayStart,
+      }))
       .map((task): EnrichedCrmTask => {
         // Parse CRM config info from description
         const desc = task.description || '';
@@ -114,19 +180,12 @@ export function useCrmDailyTasks() {
           }
         }
 
-        // Determine group
-        let group: CrmTaskGroup;
-        if (isBlockedDN) {
-          group = 'aguardando';
-        } else if (task.due_date && new Date(task.due_date).getTime() < todayStart.getTime()) {
-          group = 'atrasadas';
-        } else if (deadlineStatus === 'overdue') {
-          group = 'atrasadas';
-        } else if (task.due_date && new Date(task.due_date).getTime() <= todayEnd.getTime()) {
-          group = 'hoje';
-        } else {
-          group = 'pendentes';
-        }
+        const urgencyBadge = computeUrgencyBadge({
+          dueDate: task.due_date,
+          deadlineStatus,
+          isBlockedDN,
+          todayStart,
+        });
 
         return {
           task,
@@ -137,33 +196,15 @@ export function useCrmDailyTasks() {
           isBlockedDN,
           blockedUntil,
           deadlineStatus,
-          group,
+          urgencyBadge,
         };
-      })
-      // Sort: atrasadas first, then hoje, then pendentes, then aguardando
-      .sort((a, b) => {
-        const groupOrder: Record<CrmTaskGroup, number> = {
-          atrasadas: 0,
-          hoje: 1,
-          pendentes: 2,
-          aguardando: 3,
-        };
-        return groupOrder[a.group] - groupOrder[b.group];
       });
   }, [tasks, configs, v8Validations, automationValidations, copilotValidations]);
 
-  const grouped = useMemo(() => {
-    const groups: Record<CrmTaskGroup, EnrichedCrmTask[]> = {
-      atrasadas: [],
-      hoje: [],
-      pendentes: [],
-      aguardando: [],
-    };
-    for (const item of enriched) {
-      groups[item.group].push(item);
-    }
-    return groups;
-  }, [enriched]);
+  const grouped = useMemo(
+    () => groupTasksByStatus(enriched),
+    [enriched],
+  );
 
   return {
     enrichedTasks: enriched,
