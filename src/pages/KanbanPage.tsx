@@ -40,8 +40,8 @@ export default function KanbanPage() {
   if (specializedBoard) {
     return (
       <MainLayout>
-        <div className="h-full flex flex-col overflow-hidden bg-background">
-          <div className="flex-1 overflow-hidden p-6">
+        <div className="flex flex-col bg-background">
+          <div className="flex-1 p-6">
             {specializedBoard}
           </div>
         </div>

@@ -14,8 +14,8 @@ export default function DevsPage() {
 
   return (
     <MainLayout>
-      <div className="h-full flex flex-col overflow-hidden bg-background">
-        <div className="px-8 py-6 border-b border-subtle shrink-0">
+      <div className="flex flex-col bg-background">
+        <div className="px-8 py-6 border-b border-subtle shrink-0 sticky top-0 z-20 bg-background">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-display text-foreground">
@@ -68,8 +68,8 @@ export default function DevsPage() {
         </div>
 
         {activeTab === 'kanban' && (
-          <div className="flex-1 overflow-hidden flex">
-            <div className="flex-1 overflow-hidden">
+          <div className="flex-1 flex">
+            <div className="flex-1">
               <DevsKanbanBoard />
             </div>
 
@@ -88,7 +88,7 @@ export default function DevsPage() {
         )}
 
         {activeTab === 'info-bank' && (
-          <div className="flex-1 overflow-hidden p-6">
+          <div className="flex-1 p-6">
             <DevsClientInfoTab />
           </div>
         )}

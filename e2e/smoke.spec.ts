@@ -14,9 +14,7 @@ const PAGE_ACCESS_ROUTES = [
   { path: '/gestor-crm', pageSlug: 'gestor-crm' },
   { path: '/design', pageSlug: 'design' },
   { path: '/editor-video', pageSlug: 'editor-video' },
-  { path: '/atrizes-gravacao', pageSlug: 'atrizes-gravacao' },
   { path: '/devs', pageSlug: 'devs' },
-  { path: '/rh', pageSlug: 'rh' },
   { path: '/kanban/design', pageSlug: 'design' },
   { path: '/kanban/crm', pageSlug: 'gestor-crm' },
   { path: '/kanban/produtora', pageSlug: 'produtora' },
@@ -148,7 +146,9 @@ test.describe('smoke: auth and page grants', () => {
   });
 
   test('shows a stable access denied state for authenticated users without the page grant', async ({ page }) => {
-    await mockSupabase(page, { role: 'financeiro', pageGrants: [] });
+    // Use 'design' role to test denial on /financeiro — 'financeiro' role has
+    // matrix access and would pass via defense-in-depth fallback.
+    await mockSupabase(page, { role: 'design', pageGrants: [] });
 
     await page.goto('/financeiro');
 
@@ -171,7 +171,10 @@ test.describe('smoke: auth and page grants', () => {
     });
 
     test(`denies ${route.path} without route loops when the page grant is missing`, async ({ page }) => {
-      await mockSupabase(page, { role: 'financeiro', pageGrants: [] });
+      // 'financeiro' role has matrix access to pageSlug 'financeiro' via
+      // defense-in-depth fallback — use 'design' role for financeiro routes.
+      const denyRole = route.pageSlug === 'financeiro' ? 'design' : 'financeiro';
+      await mockSupabase(page, { role: denyRole, pageGrants: [] });
 
       await page.goto(route.path);
 

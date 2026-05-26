@@ -823,7 +823,7 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
   return (
     <>
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex gap-4 h-full overflow-x-auto pb-4 scrollbar-apple">
+        <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-apple">
           {personColumns.map((column) => {
             const cardsByStatus = getCardsForColumn(column.id);
             const totalCards = Object.values(cardsByStatus).flat().length;
@@ -896,7 +896,7 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
                 )}
                 </div>{/* /sticky header+cover */}
 
-                <div className="flex-1 overflow-y-auto scrollbar-apple">
+                <div className="flex-1">
                   {config.statuses.map((status) => {
                     const statusCards = cardsByStatus[status.id] || [];
                     const isCollapsed = collapsedSections[`${column.id}:${status.id}`];
@@ -1159,7 +1159,7 @@ function JustificationColumn({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-apple">
+      <div className="flex-1 p-3 space-y-2">
         {justifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 text-muted-foreground/50 select-none">
             <div className="w-8 h-8 rounded-lg border border-dashed border-border mb-2" />
