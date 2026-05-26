@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Loader2, CheckCircle2, Phone, Users as UsersIcon, MessageSquare, Rocket, ArrowRight, Eye } from 'lucide-react';
+import { Loader2, CheckCircle2, Phone, Users as UsersIcon, MessageSquare, Rocket, ArrowRight, Eye, Database } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,10 +12,12 @@ import {
   isGrowthV2Task,
 } from '@/hooks/useGrowthGPKanban';
 import { useClientTagsBatch } from '@/hooks/useClientTags';
+import { useClientInfoBankExists } from '@/hooks/useClientInfoBank';
 import { TAG_BLOQUEADO_CX } from '@/components/client-tags/ClientTagsList';
 import ClientTagsList from '@/components/client-tags/ClientTagsList';
 import GrowthBlockingLabel from './GrowthBlockingLabel';
 import ClientViewModal from '@/components/client/ClientViewModal';
+import ClientInfoBankModal from '@/components/client/ClientInfoBankModal';
 import { getOnboardingProgress } from '@/lib/growthOnboardingProgress';
 import { supabase } from '@/integrations/supabase/client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -134,10 +136,16 @@ export default function NovosClientesOnboardingSection({ onTeamSelectionNeeded }
   const clientIds = useMemo(() => clients.map(c => c.id), [clients]);
   const { data: tagsMap } = useClientTagsBatch(clientIds);
   const { data: tasksMap } = useGrowthGPTasks(clientIds);
+  const { data: infoBankExistsSet } = useClientInfoBankExists(clientIds);
   const advanceStep = useGrowthAdvanceStep();
   const completeTask = useCompleteGrowthGPTask();
   const queryClient = useQueryClient();
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [infoBankModalClientId, setInfoBankModalClientId] = useState<string | null>(null);
+  const infoBankModalClient = useMemo(
+    () => infoBankModalClientId ? clients.find(c => c.id === infoBankModalClientId) : null,
+    [infoBankModalClientId, clients],
+  );
 
   const markAddedToGroups = useMutation({
     mutationFn: async (clientId: string) => {
@@ -248,6 +256,7 @@ export default function NovosClientesOnboardingSection({ onTeamSelectionNeeded }
                     const tags = tagsMap?.get(client.id) || [];
                     const tasks = tasksMap?.get(client.id) || [];
                     const hasCXBlock = tags.some(t => t.name === TAG_BLOQUEADO_CX);
+                    const hasInfoBank = infoBankExistsSet?.has(client.id) ?? false;
 
                     return (
                       <V2StepClientCard
@@ -256,6 +265,7 @@ export default function NovosClientesOnboardingSection({ onTeamSelectionNeeded }
                         tags={tags}
                         tasks={tasks}
                         hasCXBlock={hasCXBlock}
+                        hasInfoBank={hasInfoBank}
                         stepDef={step}
                         isPending={isPending}
                         onAdvance={(clientId, nextStep) => {
@@ -264,6 +274,7 @@ export default function NovosClientesOnboardingSection({ onTeamSelectionNeeded }
                         onTeamSelectionNeeded={onTeamSelectionNeeded}
                         onTaskComplete={(taskId) => completeTask.mutate({ taskId })}
                         onViewClient={setSelectedClientId}
+                        onOpenInfoBank={setInfoBankModalClientId}
                       />
                     );
                   })
@@ -354,6 +365,16 @@ export default function NovosClientesOnboardingSection({ onTeamSelectionNeeded }
           clientId={selectedClientId}
         />
       )}
+
+      {infoBankModalClient && (
+        <ClientInfoBankModal
+          isOpen={!!infoBankModalClientId}
+          onClose={() => setInfoBankModalClientId(null)}
+          clientId={infoBankModalClient.id}
+          clientName={infoBankModalClient.razao_social || infoBankModalClient.name}
+          existing={null}
+        />
+      )}
     </ScrollArea>
   );
 }
@@ -365,12 +386,14 @@ interface V2StepClientCardProps {
   tags: ClientTag[];
   tasks: GrowthGPTask[];
   hasCXBlock: boolean;
+  hasInfoBank: boolean;
   stepDef: V2StepDef;
   isPending: boolean;
   onAdvance: (clientId: string, nextStep: string) => void;
   onTeamSelectionNeeded?: (clientId: string) => void;
   onTaskComplete: (taskId: string) => void;
   onViewClient: (clientId: string) => void;
+  onOpenInfoBank: (clientId: string) => void;
 }
 
 function V2StepClientCard({
@@ -378,12 +401,14 @@ function V2StepClientCard({
   tags,
   tasks,
   hasCXBlock,
+  hasInfoBank,
   stepDef,
   isPending,
   onAdvance,
   onTeamSelectionNeeded,
   onTaskComplete,
   onViewClient,
+  onOpenInfoBank,
 }: V2StepClientCardProps) {
   const displayName = client.razao_social || client.name;
   const pendingTasks = tasks.filter(t => isGrowthV2Task(t) && t.status !== 'done');
@@ -437,12 +462,38 @@ function V2StepClientCard({
         </div>
       )}
 
+      {/* Info bank subtask — only in realizar_call_1 */}
+      {stepDef.step === 'realizar_call_1' && (
+        <div
+          className={cn(
+            'flex items-center gap-2 py-1.5 px-2 rounded-lg',
+            hasInfoBank ? 'bg-success/10' : 'bg-warning/10',
+          )}
+        >
+          {hasInfoBank ? (
+            <CheckCircle2 size={14} className="shrink-0 text-success" />
+          ) : (
+            <Database size={14} className="shrink-0 text-warning" />
+          )}
+          <button
+            className="text-xs font-medium truncate hover:underline text-left"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenInfoBank(client.id);
+            }}
+          >
+            {hasInfoBank ? 'Banco de info preenchido' : 'Preencher banco de info do cliente'}
+          </button>
+        </div>
+      )}
+
       {!hasCXBlock && stepDef.actionType === 'advance' && stepDef.nextStep && (
         <Button
           size="sm"
           variant="outline"
           className="w-full h-8 text-xs gap-2"
-          disabled={isPending}
+          disabled={isPending || (stepDef.step === 'realizar_call_1' && !hasInfoBank)}
+          title={stepDef.step === 'realizar_call_1' && !hasInfoBank ? 'Preencha o banco de info antes de avancar' : undefined}
           onClick={(e) => {
             e.stopPropagation();
             onAdvance(client.id, stepDef.nextStep!);

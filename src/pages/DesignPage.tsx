@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import MainLayout from '@/layouts/MainLayout';
 import DesignKanbanBoard from '@/components/design/DesignKanbanBoard';
-import DesignClientInfoTab from '@/components/design/DesignClientInfoTab';
+import ClientInfoBankTab from '@/components/client/ClientInfoBankTab';
 import DepartmentTarefasSection from '@/components/department/DepartmentTarefasSection';
 import { CheckSquare, ChevronRight, ChevronLeft, LayoutGrid, Database } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -89,7 +89,7 @@ export default function DesignPage() {
 
         {activeTab === 'info-bank' && (
           <div className="flex-1 p-6">
-            <DesignClientInfoTab />
+            <ClientInfoBankTab />
           </div>
         )}
       </div>
