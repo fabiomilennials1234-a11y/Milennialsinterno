@@ -322,6 +322,14 @@ export function useUploadAttachment() {
 
         await uploadWithTus('card-attachments', fileName, file, session.access_token, onProgress);
 
+        // Verify object actually landed in Storage before creating DB record
+        const { data: headCheck, error: headError } = await supabase.storage
+          .from('card-attachments')
+          .createSignedUrl(fileName, 10);
+        if (headError || !headCheck?.signedUrl) {
+          throw new Error('Upload reportou sucesso mas arquivo não foi encontrado no Storage. Tente novamente.');
+        }
+
         const { data: urlData } = supabase.storage
           .from('card-attachments')
           .getPublicUrl(fileName);
