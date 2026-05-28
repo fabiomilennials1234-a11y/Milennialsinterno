@@ -4913,6 +4913,10 @@ export type Database = {
         Row: {
           actions_raw: Json | null
           ad_account_id: string
+          ad_id: string | null
+          ad_name: string | null
+          adset_id: string | null
+          adset_name: string | null
           campaign_id: string
           campaign_name: string
           clicks: number
@@ -4920,6 +4924,7 @@ export type Database = {
           cpc: number
           cpm: number
           created_at: string
+          creative_thumbnail_url: string | null
           ctr: number
           date_start: string
           date_stop: string
@@ -4935,6 +4940,10 @@ export type Database = {
         Insert: {
           actions_raw?: Json | null
           ad_account_id: string
+          ad_id?: string | null
+          ad_name?: string | null
+          adset_id?: string | null
+          adset_name?: string | null
           campaign_id: string
           campaign_name: string
           clicks?: number
@@ -4942,6 +4951,7 @@ export type Database = {
           cpc?: number
           cpm?: number
           created_at?: string
+          creative_thumbnail_url?: string | null
           ctr?: number
           date_start: string
           date_stop: string
@@ -4957,6 +4967,10 @@ export type Database = {
         Update: {
           actions_raw?: Json | null
           ad_account_id?: string
+          ad_id?: string | null
+          ad_name?: string | null
+          adset_id?: string | null
+          adset_name?: string | null
           campaign_id?: string
           campaign_name?: string
           clicks?: number
@@ -4964,6 +4978,7 @@ export type Database = {
           cpc?: number
           cpm?: number
           created_at?: string
+          creative_thumbnail_url?: string | null
           ctr?: number
           date_start?: string
           date_stop?: string
@@ -4974,6 +4989,96 @@ export type Database = {
           leads?: number
           reach?: number
           spend?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      meta_ads_manual_sales: {
+        Row: {
+          ad_account_id: string
+          campaign_id: string
+          campaign_name: string
+          created_at: string
+          created_by: string
+          id: string
+          num_sales: number
+          sale_date: string
+          sales_value: number
+          updated_at: string
+        }
+        Insert: {
+          ad_account_id: string
+          campaign_id: string
+          campaign_name: string
+          created_at?: string
+          created_by: string
+          id?: string
+          num_sales?: number
+          sale_date: string
+          sales_value?: number
+          updated_at?: string
+        }
+        Update: {
+          ad_account_id?: string
+          campaign_id?: string
+          campaign_name?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          num_sales?: number
+          sale_date?: string
+          sales_value?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      meta_leads: {
+        Row: {
+          ad_account_id: string
+          ad_id: string | null
+          ad_name: string | null
+          adset_id: string | null
+          campaign_id: string | null
+          campaign_name: string | null
+          created_at: string
+          created_time: string | null
+          fetched_at: string
+          field_data: Json | null
+          form_id: string | null
+          id: string
+          lead_id: string
+          updated_at: string
+        }
+        Insert: {
+          ad_account_id: string
+          ad_id?: string | null
+          ad_name?: string | null
+          adset_id?: string | null
+          campaign_id?: string | null
+          campaign_name?: string | null
+          created_at?: string
+          created_time?: string | null
+          fetched_at?: string
+          field_data?: Json | null
+          form_id?: string | null
+          id?: string
+          lead_id: string
+          updated_at?: string
+        }
+        Update: {
+          ad_account_id?: string
+          ad_id?: string | null
+          ad_name?: string | null
+          adset_id?: string | null
+          campaign_id?: string | null
+          campaign_name?: string | null
+          created_at?: string
+          created_time?: string | null
+          fetched_at?: string
+          field_data?: Json | null
+          form_id?: string | null
+          id?: string
+          lead_id?: string
           updated_at?: string
         }
         Relationships: []
@@ -10097,6 +10202,7 @@ export type Database = {
       }
       tech_unblock_task: { Args: { _task_id: string }; Returns: undefined }
       trigger_oracle_summaries: { Args: never; Returns: undefined }
+      trigger_sync_meta_ads: { Args: never; Returns: undefined }
       unarchive_justification: { Args: { p_id: string }; Returns: undefined }
       upload_info_bank_file: {
         Args: {
@@ -10183,6 +10289,37 @@ export type Database = {
       upsert_kanban_briefing: {
         Args: { _briefing_type: string; _card_id: string; _payload: Json }
         Returns: Json
+      }
+      upsert_meta_ads_insight: {
+        Args: {
+          p_actions_raw: Json
+          p_ad_account_id: string
+          p_ad_id?: string
+          p_ad_name?: string
+          p_adset_id?: string
+          p_adset_name?: string
+          p_campaign_id: string
+          p_campaign_name: string
+          p_clicks: number
+          p_conversions: number
+          p_cpc: number
+          p_cpm: number
+          p_creative_thumbnail_url?: string
+          p_ctr: number
+          p_date_start: string
+          p_date_stop: string
+          p_fetched_at: string
+          p_frequency: number
+          p_impressions: number
+          p_leads: number
+          p_reach: number
+          p_spend: number
+        }
+        Returns: undefined
+      }
+      upsert_meta_ads_insights_batch: {
+        Args: { p_rows: Json }
+        Returns: number
       }
       user_is_crm_pending_involved: {
         Args: { p_config_id: string }

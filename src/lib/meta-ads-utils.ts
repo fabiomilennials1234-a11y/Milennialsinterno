@@ -58,6 +58,59 @@ export interface MetaAdsInsightRow {
   actions_raw: MetaAction[] | null;
 }
 
+export interface LeadFieldEntry {
+  name: string;
+  values: string[];
+}
+
+const NAME_KEYS = ['full_name', 'nome', 'name', 'nome_completo', 'first_name'];
+const EMAIL_KEYS = ['email', 'e-mail', 'e_mail'];
+const PHONE_KEYS = ['phone_number', 'telefone', 'phone', 'celular', 'whatsapp'];
+
+function findFieldValue(fields: LeadFieldEntry[], keys: string[]): string {
+  const field = fields.find(f => keys.includes(f.name.toLowerCase()));
+  return field?.values?.[0] ?? '';
+}
+
+export function parseLeadFieldData(fields: LeadFieldEntry[]): { name: string; email: string; phone: string } {
+  return {
+    name: findFieldValue(fields, NAME_KEYS),
+    email: findFieldValue(fields, EMAIL_KEYS),
+    phone: findFieldValue(fields, PHONE_KEYS),
+  };
+}
+
+export interface RawAdLevelInsight extends RawMetaInsight {
+  adset_id?: string;
+  adset_name?: string;
+  ad_id?: string;
+  ad_name?: string;
+}
+
+export interface AdLevelInsightRow extends MetaAdsInsightRow {
+  adset_id: string | null;
+  adset_name: string | null;
+  ad_id: string | null;
+  ad_name: string | null;
+  creative_thumbnail_url: string | null;
+}
+
+export function transformAdLevelInsightRow(
+  raw: RawAdLevelInsight,
+  accountId: string,
+  thumbnailUrl?: string,
+): AdLevelInsightRow {
+  const base = transformInsightRow(raw, accountId);
+  return {
+    ...base,
+    adset_id: raw.adset_id ?? null,
+    adset_name: raw.adset_name ?? null,
+    ad_id: raw.ad_id ?? null,
+    ad_name: raw.ad_name ?? null,
+    creative_thumbnail_url: thumbnailUrl ?? null,
+  };
+}
+
 export function transformInsightRow(raw: RawMetaInsight, accountId: string): MetaAdsInsightRow {
   const { leads, conversions } = parseMetaActions(raw.actions ?? []);
   return {
@@ -77,5 +130,23 @@ export function transformInsightRow(raw: RawMetaInsight, accountId: string): Met
     leads,
     conversions,
     actions_raw: raw.actions ?? null,
+  };
+}
+
+export interface SalesMetrics {
+  numSales: number;
+  costPerPurchase: number;
+  salesValue: number;
+  spend: number;
+  roi: number;
+}
+
+export function computeSalesMetrics(totalSpend: number, totalSales: number, totalSalesValue: number): SalesMetrics {
+  return {
+    numSales: totalSales,
+    costPerPurchase: totalSales > 0 ? totalSpend / totalSales : 0,
+    salesValue: totalSalesValue,
+    spend: totalSpend,
+    roi: totalSpend > 0 ? totalSalesValue / totalSpend : 0,
   };
 }
