@@ -36,6 +36,12 @@ const TOOLS: ToolCard[] = [
       },
     ],
   },
+  {
+    id: 'acesso_torquecrm',
+    title: 'Acesso TORQUECRM',
+    description: 'Login: login-milennialswebservices@gmail.com | Senha: Milennials123456',
+    links: [],
+  },
 ];
 
 export default function CrmFerramentasProSection() {

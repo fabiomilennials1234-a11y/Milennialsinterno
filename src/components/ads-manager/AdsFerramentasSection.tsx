@@ -140,23 +140,19 @@ export default function AdsFerramentasSection() {
       },
     );
 
-    // Card "Contas da Millennials" — depende de credenciais Make.
-    if (makeReady) {
-      tools.push({
-        id: 'contas_millennials',
-        title: 'Contas da Millennials',
-        icon: '🏦',
-        content: `Conta de ADS: anapauladospassos53@gmail.com\n\nGmail Millennials: milennialswebservices@gmail.com\n\nAcesso Make\n${makeCredentialsBlock}`,
-      });
-    } else if (!makeLoading && isAdminUser) {
-      tools.push({
-        id: 'contas_millennials',
-        title: 'Contas da Millennials',
-        icon: '🏦',
-        content: ADMIN_CONFIG_HINT,
-        locked: true,
-      });
-    }
+    tools.push({
+      id: 'acesso_make',
+      title: 'Acesso Make',
+      icon: '⚙️',
+      content: 'Login: leonardolestesul@hotmail.com\nSenha: Milennials123.',
+    });
+
+    tools.push({
+      id: 'acesso_torquecrm',
+      title: 'Acesso TORQUECRM',
+      icon: '🔑',
+      content: 'Login: login-milennialswebservices@gmail.com\nSenha: Milennials123456',
+    });
 
     // Feature 18: Tutorial Make Pro Torque (placeholder — link pendente)
     tools.push({

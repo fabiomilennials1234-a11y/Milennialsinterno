@@ -58,7 +58,13 @@ const FINANCEIRO_TOOLS: ProTool[] = [
     id: 'site_prefeitura',
     title: 'Site prefeitura para emissão.',
     icon: '⏬',
-    content: '', // User will provide content later
+    content: '',
+  },
+  {
+    id: 'acesso_torquecrm',
+    title: 'Acesso TORQUECRM',
+    icon: '🔑',
+    content: 'Login: login-milennialswebservices@gmail.com\nSenha: Milennials123456',
   },
 ];
 
