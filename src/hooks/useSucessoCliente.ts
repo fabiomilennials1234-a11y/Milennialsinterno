@@ -60,7 +60,7 @@ export type CSClassification = 'normal' | 'alerta' | 'critico' | 'encerrado';
 // =============================================
 
 export function useAdsManagers() {
-  const { user, isCEO, isAdminUser, userGroupId } = useAuth();
+  const { user, isCEO, userGroupId } = useAuth();
 
   return useQuery({
     queryKey: ['ads-managers', userGroupId],
@@ -83,9 +83,9 @@ export function useAdsManagers() {
         name: p.name,
       }));
 
-      // Non-executive users only see managers from their own group.
-      // CEO/admin see all managers across all groups.
-      if (!isCEO && !isAdminUser && userGroupId) {
+      // Non-CEO users only see managers from their own group.
+      // Only CEO/CTO have cross-group visibility.
+      if (!isCEO && userGroupId) {
         const { data: profiles } = await supabase
           .from('profiles')
           .select('user_id, group_id')
@@ -107,7 +107,7 @@ export function useAdsManagers() {
 // =============================================
 
 export function useCSClientsByManager() {
-  const { user, isCEO, isAdminUser, userGroupId } = useAuth();
+  const { user, isCEO, userGroupId } = useAuth();
 
   return useQuery({
     queryKey: ['cs-clients-by-manager', userGroupId],
@@ -118,8 +118,8 @@ export function useCSClientsByManager() {
         .eq('archived', false)
         .neq('status', 'churned');
 
-      // Non-executive users only see clients from their own group.
-      if (!isCEO && !isAdminUser && userGroupId) {
+      // Non-CEO users only see clients from their own group.
+      if (!isCEO && userGroupId) {
         query = query.eq('group_id', userGroupId);
       }
 
