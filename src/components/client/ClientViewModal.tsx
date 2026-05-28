@@ -30,6 +30,7 @@ import {
   Loader2,
   Save,
   CheckCircle2,
+  Copy,
   StickyNote,
   Rocket,
   Handshake,
@@ -65,6 +66,8 @@ import ClientTagsList from '@/components/client-tags/ClientTagsList';
 import ClientTagCountdownHero from '@/components/client-tags/ClientTagCountdownHero';
 import { useClientTags } from '@/hooks/useClientTags';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import { buildClientExportText } from '@/lib/buildClientExportText';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import ClientJourneyMap from './ClientJourneyMap';
@@ -353,6 +356,18 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
     setTimeout(() => setShowSaveSuccess(false), 2000);
   };
 
+  const handleCopyClientInfo = async () => {
+    const text = buildClientExportText({
+      clientInfo: clientInfo ?? null,
+      callForm: callForm ?? null,
+      clientTags,
+      responsibleNames,
+      clientLinks,
+    });
+    await navigator.clipboard.writeText(text);
+    toast.success('Informações copiadas para a área de transferência!');
+  };
+
   const isLoading = clientLoading || formLoading;
 
   return (
@@ -398,6 +413,16 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
                   currentLabel={(clientInfo?.client_label ?? null) as ClientLabel}
                 />
               )}
+
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleCopyClientInfo}
+                title="Copiar informações do cliente"
+                className="h-9 w-9"
+              >
+                <Copy className="w-4 h-4" />
+              </Button>
 
               <Button
                 onClick={handleSave}
