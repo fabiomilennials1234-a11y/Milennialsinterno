@@ -41,6 +41,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import ClientNotesSection from './ClientNotesSection';
+import ClientMeetingNotesSection from './ClientMeetingNotesSection';
 import ClientCallFormSection from './ClientCallFormSection';
 import OverdueInvoiceBadge from '@/components/shared/OverdueInvoiceBadge';
 import ClientLabelBadge, { type ClientLabel } from '@/components/shared/ClientLabelBadge';
@@ -673,6 +674,9 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
               <ClientCallFormSection formData={formData} handleChange={handleChange} />
 
               <Separator />
+
+              {/* Meeting Notes Section */}
+              <ClientMeetingNotesSection clientId={clientId} />
 
               {/* Client Notes Section - Shared between Gestor de Tráfego and Treinador Comercial */}
               <div className="space-y-4">

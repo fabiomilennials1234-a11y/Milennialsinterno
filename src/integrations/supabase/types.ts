@@ -1,4 +1,3 @@
-Initialising login role...
 export type Json =
   | string
   | number
@@ -1455,6 +1454,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "client_management_reports_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_meeting_notes: {
+        Row: {
+          client_id: string
+          content: string
+          created_at: string
+          created_by: string
+          id: string
+          meeting_date: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          content: string
+          created_at?: string
+          created_by: string
+          id?: string
+          meeting_date: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          content?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          meeting_date?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_meeting_notes_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
@@ -10203,6 +10243,10 @@ export type Database = {
       tech_unblock_task: { Args: { _task_id: string }; Returns: undefined }
       trigger_oracle_summaries: { Args: never; Returns: undefined }
       trigger_sync_meta_ads: { Args: never; Returns: undefined }
+      trigger_sync_meta_ads_mode: {
+        Args: { p_mode: string }
+        Returns: undefined
+      }
       unarchive_justification: { Args: { p_id: string }; Returns: undefined }
       upload_info_bank_file: {
         Args: {
