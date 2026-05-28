@@ -305,20 +305,19 @@ async function fetchAdLevelInsights(
   return { rows };
 }
 
-// ---------- Meta API: Lead forms + leads ----------
+// ---------- Meta API: Pages (for Lead Ads) ----------
 
-interface LeadForm {
+interface MetaPage {
   id: string;
   name: string;
+  access_token: string;
 }
 
-async function fetchLeadForms(
-  accountId: string,
-  accessToken: string,
-): Promise<{ forms: LeadForm[]; error?: string }> {
-  const forms: LeadForm[] = [];
-  // accountId already has "act_" prefix from meta_ad_accounts table
-  let url = `${META_GRAPH_URL}/${accountId}/leadgen_forms?fields=id,name&limit=100&access_token=${accessToken}`;
+async function fetchPages(
+  userAccessToken: string,
+): Promise<{ pages: MetaPage[]; error?: string }> {
+  const pages: MetaPage[] = [];
+  let url = `${META_GRAPH_URL}/me/accounts?fields=id,name,access_token&limit=100&access_token=${userAccessToken}`;
   let pageCount = 0;
 
   while (url && pageCount < 10) {
@@ -329,7 +328,43 @@ async function fetchLeadForms(
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error(`[SyncMetaAds] Lead forms error for ${accountId}: ${response.status} ${errText}`);
+      console.error(`[SyncMetaAds] Pages API error: ${response.status} ${errText}`);
+      return { pages, error: `Pages API ${response.status}: ${errText.slice(0, 200)}` };
+    }
+
+    const data = await response.json();
+    pages.push(...(data.data || []));
+    url = data.paging?.next || null;
+  }
+
+  return { pages };
+}
+
+// ---------- Meta API: Lead forms + leads (via Page Access Token) ----------
+
+interface LeadForm {
+  id: string;
+  name: string;
+  status: string;
+}
+
+async function fetchLeadForms(
+  pageId: string,
+  pageAccessToken: string,
+): Promise<{ forms: LeadForm[]; error?: string }> {
+  const forms: LeadForm[] = [];
+  let url = `${META_GRAPH_URL}/${pageId}/leadgen_forms?fields=id,name,status&limit=100&access_token=${pageAccessToken}`;
+  let pageCount = 0;
+
+  while (url && pageCount < 10) {
+    pageCount++;
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(15000),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error(`[SyncMetaAds] Lead forms error for page ${pageId}: ${response.status} ${errText}`);
       return { forms, error: `Lead forms API ${response.status}: ${errText.slice(0, 200)}` };
     }
 
@@ -343,14 +378,21 @@ async function fetchLeadForms(
 
 async function fetchLeadsForForm(
   formId: string,
-  accessToken: string,
-  accountId: string,
+  pageAccessToken: string,
+  adAccountId: string,
+  sinceDate: string,
 ): Promise<{ rows: MetaLeadRow[]; error?: string }> {
   const allRows: MetaLeadRow[] = [];
-  let url = `${META_GRAPH_URL}/${formId}/leads?fields=id,created_time,field_data,ad_id,ad_name,adset_id,campaign_id,campaign_name&limit=500&access_token=${accessToken}`;
+  const cutoff = new Date(sinceDate);
+  let url =
+    `${META_GRAPH_URL}/${formId}/leads` +
+    `?fields=id,created_time,field_data,ad_id,ad_name,adset_id,campaign_id,campaign_name` +
+    `&limit=500` +
+    `&access_token=${pageAccessToken}`;
   let pageCount = 0;
+  let reachedCutoff = false;
 
-  while (url && pageCount < MAX_PAGES) {
+  while (url && pageCount < MAX_PAGES && !reachedCutoff) {
     pageCount++;
     const response = await fetch(url, {
       signal: AbortSignal.timeout(30000),
@@ -366,9 +408,15 @@ async function fetchLeadsForForm(
     const leads: RawMetaLead[] = data.data || [];
 
     for (const lead of leads) {
+      const leadDate = new Date(lead.created_time);
+      if (leadDate < cutoff) {
+        reachedCutoff = true;
+        break;
+      }
+
       allRows.push({
         lead_id: lead.id,
-        ad_account_id: accountId,
+        ad_account_id: adAccountId,
         form_id: formId,
         campaign_id: lead.campaign_id ?? null,
         campaign_name: lead.campaign_name ?? null,
@@ -381,7 +429,7 @@ async function fetchLeadsForForm(
       });
     }
 
-    url = data.paging?.next || null;
+    url = reachedCutoff ? null : (data.paging?.next || null);
   }
 
   return { rows: allRows };
@@ -543,56 +591,78 @@ serve(async (req) => {
         errors.push(msg);
       }
 
-      // === Leads (fail-open) ===
-      try {
-        const { forms, error: formsError } = await fetchLeadForms(
-          account.account_id,
-          metaAccessToken,
-        );
+    }
 
-        if (formsError) errors.push(`${acctLabel} lead forms: ${formsError}`);
+    // === Leads via Page Access Tokens (fail-open, separate from ad accounts) ===
+    try {
+      const { pages, error: pagesError } = await fetchPages(metaAccessToken);
 
-        for (const form of forms) {
-          try {
-            const { rows: leadRows, error: leadError } = await fetchLeadsForForm(
-              form.id,
-              metaAccessToken,
-              account.account_id,
-            );
+      if (pagesError) errors.push(`Pages: ${pagesError}`);
 
-            if (leadError) errors.push(`${acctLabel} form ${form.name}: ${leadError}`);
+      // Use first active ad account ID for traceability in meta_leads rows
+      const defaultAccountId = accounts[0]?.account_id ?? "unknown";
 
-            if (leadRows.length > 0) {
-              // Upsert leads in batches
-              for (let i = 0; i < leadRows.length; i += BATCH_SIZE) {
-                const batch = leadRows.slice(i, i + BATCH_SIZE);
-                const { error: upsertError } = await supabase
-                  .from("meta_leads")
-                  .upsert(batch, { onConflict: "lead_id" });
+      for (const page of pages) {
+        const pageLabel = `${page.name} (${page.id})`;
+        try {
+          const { forms, error: formsError } = await fetchLeadForms(
+            page.id,
+            page.access_token,
+          );
 
-                if (upsertError) {
-                  const msg = `${acctLabel} lead upsert batch: ${upsertError.message}`;
-                  console.error(`[SyncMetaAds] ${msg}`);
-                  errors.push(msg);
+          if (formsError) errors.push(`${pageLabel} lead forms: ${formsError}`);
+
+          const activeForms = forms.filter(f => f.status === "ACTIVE");
+
+          for (const form of activeForms) {
+            try {
+              const { rows: leadRows, error: leadError } = await fetchLeadsForForm(
+                form.id,
+                page.access_token,
+                defaultAccountId,
+                since,
+              );
+
+              if (leadError) errors.push(`${pageLabel} form ${form.name}: ${leadError}`);
+
+              if (leadRows.length > 0) {
+                for (let i = 0; i < leadRows.length; i += BATCH_SIZE) {
+                  const batch = leadRows.slice(i, i + BATCH_SIZE);
+                  const { error: upsertError } = await supabase
+                    .from("meta_leads")
+                    .upsert(batch, { onConflict: "lead_id" });
+
+                  if (upsertError) {
+                    const msg = `${pageLabel} lead upsert batch: ${upsertError.message}`;
+                    console.error(`[SyncMetaAds] ${msg}`);
+                    errors.push(msg);
+                  }
                 }
+                totalLeadRows += leadRows.length;
+                console.log(`[SyncMetaAds] ${pageLabel} form "${form.name}": ${leadRows.length} leads`);
               }
-              totalLeadRows += leadRows.length;
+            } catch (err) {
+              const msg = `${pageLabel} form ${form.name}: ${err instanceof Error ? err.message : "Unknown"}`;
+              console.error(`[SyncMetaAds] ${msg}`);
+              errors.push(msg);
             }
-          } catch (err) {
-            const msg = `${acctLabel} form ${form.name}: ${err instanceof Error ? err.message : "Unknown"}`;
-            console.error(`[SyncMetaAds] ${msg}`);
-            errors.push(msg);
           }
-        }
 
-        if (forms.length > 0) {
-          console.log(`[SyncMetaAds] ${acctLabel}: ${forms.length} forms, ${totalLeadRows} leads`);
+          if (forms.length > 0) {
+            console.log(`[SyncMetaAds] ${pageLabel}: ${forms.length} forms (${activeForms.length} active), ${totalLeadRows} total leads so far`);
+          }
+        } catch (err) {
+          const msg = `${pageLabel} leads: ${err instanceof Error ? err.message : "Unknown"}`;
+          console.error(`[SyncMetaAds] ${msg}`);
+          errors.push(msg);
         }
-      } catch (err) {
-        const msg = `${acctLabel} leads: ${err instanceof Error ? err.message : "Unknown"}`;
-        console.error(`[SyncMetaAds] ${msg}`);
-        errors.push(msg);
       }
+
+      console.log(`[SyncMetaAds] Pages processed: ${pages.length}`);
+    } catch (err) {
+      const msg = `Leads (pages): ${err instanceof Error ? err.message : "Unknown"}`;
+      console.error(`[SyncMetaAds] ${msg}`);
+      errors.push(msg);
     }
 
     console.log(`[SyncMetaAds] Complete — campaigns=${totalCampaignRows}, ads=${totalAdRows}, leads=${totalLeadRows}, errors=${errors.length}`);
