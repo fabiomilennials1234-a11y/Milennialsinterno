@@ -7,8 +7,6 @@ import { CONSULTORIA_TASK_MAP, GESTAO_TASK_MAP, CONSULTORIA_DUE_DAYS, GESTAO_DUE
 import {
   getCurrentWeekday as getCurrentWeekdayCrm,
   welcomeTaskTitle as crmWelcomeTaskTitle,
-  getConfigDueDate as getCrmConfigDueDate,
-  CRM_TASK_TITLE,
   type CrmProduto,
 } from '@/hooks/useCrmKanban';
 import { resolveTaskOwner } from './utils/resolveTaskOwner';
@@ -605,46 +603,8 @@ export function useUpdateDepartmentTaskStatus(department: string) {
                 if (rpcResult.finalized) {
                   crmConfigFinalized = true;
                 } else {
-                  // RPC advanced the step — create next task
-                  const nextStep = rpcResult.next_step as string;
-                  const { data: client } = await supabase
-                    .from('clients')
-                    .select('name, razao_social')
-                    .eq('id', cfgTask.related_client_id)
-                    .single();
-                  const clientName = (client?.razao_social as string | null) || client?.name || 'Cliente';
-
-                  const titleFn = CRM_TASK_TITLE[produto][nextStep];
-                  if (titleFn && user?.id) {
-                    // Guard: only create if no active task exists for this config
-                    const { data: existingNext } = await (supabase as any)
-                      .from('department_tasks')
-                      .select('id')
-                      .eq('related_client_id', cfgTask.related_client_id)
-                      .eq('department', 'gestor_crm')
-                      .eq('description', `crm-config:${produto}`)
-                      .in('status', ['todo', 'doing'])
-                      .eq('archived', false)
-                      .limit(1);
-
-                    if (!existingNext || existingNext.length === 0) {
-                      const dueDate = cfg.created_at
-                        ? getCrmConfigDueDate(cfg.created_at, produto)
-                        : undefined;
-                      const ownerId = await resolveTaskOwner(cfgTask.related_client_id, 'assigned_crm', user.id);
-                      await supabase.from('department_tasks').insert({
-                        user_id: ownerId,
-                        title: titleFn(clientName),
-                        description: `crm-config:${produto}`,
-                        task_type: 'daily',
-                        status: 'todo',
-                        priority: 'high',
-                        department: 'gestor_crm',
-                        related_client_id: cfgTask.related_client_id,
-                        due_date: dueDate,
-                      } as any);
-                    }
-                  }
+                  // Step advanced by RPC — no task creation needed.
+                  // Steps are now managed via CrmValidationGate checklist.
                   crmConfigAdvanced = true;
                 }
               }

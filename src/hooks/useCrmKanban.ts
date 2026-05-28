@@ -701,10 +701,10 @@ export function useMoveClientCrm() {
 
 /**
  * Cria uma linha em `crm_configuracoes` para cada produto informado (V8/Automation/Copilot).
- * Cada linha recebe o step inicial `receber_briefing` e UMA tarefa automática com o
- * título do step inicial do próprio produto. Idempotente por UNIQUE(client_id, produto):
- * se já existe configuração para esse (cliente, produto), mantém a existente e NÃO
- * duplica tarefa.
+ * Cada linha recebe o step inicial `receber_briefing`. Idempotente por UNIQUE(client_id, produto):
+ * se já existe configuração para esse (cliente, produto), mantém a existente.
+ *
+ * NOTE: automatic task creation was removed — steps are now managed via CrmValidationGate checklist.
  */
 export function useCreateCrmConfiguracoes() {
   const queryClient = useQueryClient();
@@ -746,23 +746,16 @@ export function useCreateCrmConfiguracoes() {
             .eq('produto', produto)
             .limit(1);
 
-          let configId: string;
-          let currentStep: string;
-          let configCreatedAt: string;
           let configExisted = false;
 
           if (existingCfg && existingCfg.length > 0) {
-            // Já existe — reusa
-            configId = existingCfg[0].id;
-            currentStep = existingCfg[0].current_step;
-            configCreatedAt = existingCfg[0].created_at;
             configExisted = true;
           } else {
             // Cria nova
             const initialStep = CRM_STEPS_BY_PRODUTO[produto][0];
             const formData = formDataByProduto[produto] || {};
 
-            const { data: inserted, error: insertErr } = await (supabase as any)
+            const { error: insertErr } = await (supabase as any)
               .from('crm_configuracoes')
               .insert({
                 client_id: clientId,
@@ -773,54 +766,12 @@ export function useCreateCrmConfiguracoes() {
                 form_data: formData,
                 created_by: user.id,
               })
-              .select('id, created_at')
+              .select('id')
               .single();
             if (insertErr) throw insertErr;
-
-            configId = inserted.id;
-            currentStep = initialStep;
-            configCreatedAt = inserted.created_at;
           }
 
-          // 2. Garante que exista UMA tarefa ativa para o step atual desta
-          // configuração. Independente do config já existir ou não: se não
-          // houver tarefa ativa (todo/doing), cria. Isso impede o cenário
-          // "3 cards mas só 1 tarefa" quando o usuário reabre o form.
-          const expectedTitle = CRM_TASK_TITLE[produto]?.[currentStep]?.(clientName);
-          if (expectedTitle) {
-            const { data: existingTask } = await (supabase as any)
-              .from('department_tasks')
-              .select('id')
-              .eq('related_client_id', clientId)
-              .eq('department', 'gestor_crm')
-              .eq('description', `crm-config:${produto}`)
-              .in('status', ['todo', 'doing'])
-              .eq('archived', false)
-              .limit(1);
-
-            let taskCreated = false;
-            if (!existingTask || existingTask.length === 0) {
-              const dueDate = getConfigDueDate(configCreatedAt, produto);
-              const ownerId = await resolveTaskOwner(clientId, 'assigned_crm', user.id);
-              const { error: taskErr } = await supabase.from('department_tasks').insert({
-                user_id: ownerId,
-                title: expectedTitle,
-                description: `crm-config:${produto}`,
-                task_type: 'daily',
-                status: 'todo',
-                priority: 'high',
-                department: 'gestor_crm',
-                related_client_id: clientId,
-                due_date: dueDate,
-              } as any);
-              if (taskErr) throw taskErr;
-              taskCreated = true;
-            }
-
-            created.push({ produto, configExisted, taskCreated });
-          } else {
-            created.push({ produto, configExisted, taskCreated: false });
-          }
+          created.push({ produto, configExisted, taskCreated: false });
         } catch (err: unknown) {
           // Isola erro por produto — continua com os próximos em vez de
           // abortar o loop inteiro e deixar configs órfãs sem task.
@@ -864,28 +815,29 @@ export function useCreateCrmConfiguracoes() {
 }
 
 /**
- * Avança uma configuração para o próximo step e cria a tarefa seguinte.
- * Se o step atual era o último (`call_pos_venda`), marca `is_finalizado=true` e NÃO cria tarefa nova —
+ * Avança uma configuração para o próximo step.
+ * Se o step atual era o último (`call_pos_venda`), marca `is_finalizado=true` —
  * o card passa a aparecer na coluna "CRMs Finalizados".
+ *
+ * NOTE: task creation was removed — steps are now managed via CrmValidationGate checklist.
  */
 export function useAdvanceCrmConfiguracao() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({
       configId,
-      clientId,
-      clientName,
       produto,
       currentStep,
     }: {
       configId: string;
-      clientId: string;
-      clientName: string;
+      /** @deprecated kept for caller compatibility — no longer used internally */
+      clientId?: string;
+      /** @deprecated kept for caller compatibility — no longer used internally */
+      clientName?: string;
       produto: CrmProduto;
       currentStep: string;
-      /** @deprecated mantido por compatibilidade — não é usado; a tarefa é criada para user.id */
+      /** @deprecated kept for caller compatibility — no longer used internally */
       gestorId?: string;
     }) => {
       const next = getNextStep(produto, currentStep);
@@ -909,24 +861,6 @@ export function useAdvanceCrmConfiguracao() {
         .update({ current_step: next })
         .eq('id', configId);
       if (updErr) throw updErr;
-
-      // Cria nova tarefa com user_id = assigned_crm do cliente (fallback ao logado).
-      // Garante que o gestor real veja a task mesmo se o avanço foi feito pelo CEO.
-      const titleFn = CRM_TASK_TITLE[produto][next];
-      if (titleFn && user?.id) {
-        const ownerId = await resolveTaskOwner(clientId, 'assigned_crm', user.id);
-        const { error: taskErr } = await supabase.from('department_tasks').insert({
-          user_id: ownerId,
-          title: titleFn(clientName),
-          description: `crm-config:${produto}`,
-          task_type: 'daily',
-          status: 'todo',
-          priority: 'high',
-          department: 'gestor_crm',
-          related_client_id: clientId,
-        } as any);
-        if (taskErr) throw taskErr;
-      }
 
       return { finalized: false as const, nextStep: next };
     },
