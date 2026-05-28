@@ -39,8 +39,13 @@ const TOOLS: ToolCard[] = [
   {
     id: 'acesso_torquecrm',
     title: 'Acesso TORQUECRM',
-    description: 'Login: login-milennialswebservices@gmail.com | Senha: Milennials123456',
-    links: [],
+    description: 'Site: www.torquecrm.com.br | Login: milennialswebservices@gmail.com | Senha: Milennials123456',
+    links: [
+      {
+        label: 'Acessar TORQUECRM',
+        url: 'https://www.torquecrm.com.br',
+      },
+    ],
   },
 ];
 

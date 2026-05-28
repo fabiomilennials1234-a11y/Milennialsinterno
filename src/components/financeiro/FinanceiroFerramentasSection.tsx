@@ -64,7 +64,7 @@ const FINANCEIRO_TOOLS: ProTool[] = [
     id: 'acesso_torquecrm',
     title: 'Acesso TORQUECRM',
     icon: '🔑',
-    content: 'Login: login-milennialswebservices@gmail.com\nSenha: Milennials123456',
+    content: 'Site: www.torquecrm.com.br\n\nLogin: milennialswebservices@gmail.com\nSenha: Milennials123456',
   },
 ];
 

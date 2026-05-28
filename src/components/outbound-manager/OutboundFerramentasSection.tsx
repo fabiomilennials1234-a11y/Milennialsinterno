@@ -80,7 +80,7 @@ export default function OutboundFerramentasSection() {
       { id: 'drive_clientes', title: 'Drive Clientes', icon: '📁', content: '' },
       { id: 'contornar_impostos', title: 'Como contornar os impostos dos ADS', icon: '💰', content: '' },
       { id: 'relatorio_reportei', title: 'Relatorio Reportei', icon: '📈', content: 'Ola, pessoal!\nTodos os relatorios da Millennials sao disponibilizados em tempo real para os clientes (e tambem fazemos o envio semanal em PDF).\n\nVoce, como Gestor, ja deve ter recebido seu acesso por e-mail. Caso ainda nao tenha recebido, entre em contato com o seu Gestor de Projetos.\n\nTutorial de como criar relatorios em tempo real para seus clientes:\n\nhttps://drive.google.com/file/d/1Ge8WAptlLGBUhFOTdx8i0_8vZBUqz_gu/view?usp=sharing' },
-      { id: 'acesso_torquecrm', title: 'Acesso TORQUECRM', icon: '🔑', content: 'Login: login-milennialswebservices@gmail.com\nSenha: Milennials123456' },
+      { id: 'acesso_torquecrm', title: 'Acesso TORQUECRM', icon: '🔑', content: 'Site: www.torquecrm.com.br\n\nLogin: milennialswebservices@gmail.com\nSenha: Milennials123456' },
     ];
 
     // Card "Contas da Millennials" — depende de credenciais Make.
