@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
@@ -10,10 +11,47 @@ interface Props {
   disabled?: boolean;
 }
 
-/**
- * Renders required fields by type (datetime, text, boolean, url).
- * Saves on blur for text/datetime/url, immediately for boolean.
- */
+function DebouncedTextInput({
+  fieldKey,
+  serverValue,
+  placeholder,
+  type = 'text',
+  disabled,
+  onSave,
+  filled,
+}: {
+  fieldKey: string;
+  serverValue: string;
+  placeholder: string;
+  type?: string;
+  disabled?: boolean;
+  onSave: (key: string, value: string) => void;
+  filled: boolean;
+}) {
+  const [local, setLocal] = useState(serverValue);
+
+  useEffect(() => {
+    setLocal(serverValue);
+  }, [serverValue]);
+
+  return (
+    <Input
+      type={type}
+      value={local}
+      placeholder={placeholder}
+      onChange={(e) => setLocal(e.target.value)}
+      onBlur={() => {
+        if (local !== serverValue) onSave(fieldKey, local);
+      }}
+      disabled={disabled}
+      className={cn(
+        'h-9 text-sm',
+        filled && 'border-emerald-500/30'
+      )}
+    />
+  );
+}
+
 export default function CrmRequiredFields({ fields, values, onSave, disabled }: Props) {
   return (
     <div className="space-y-2">
@@ -51,45 +89,33 @@ export default function CrmRequiredFields({ fields, values, onSave, disabled }: 
                   <span className="text-sm">Sim</span>
                 </label>
               ) : field.type === 'datetime' ? (
-                <Input
+                <DebouncedTextInput
+                  fieldKey={field.key}
+                  serverValue={value}
+                  placeholder=""
                   type="datetime-local"
-                  value={value}
-                  onChange={(e) => onSave(field.key, e.target.value)}
                   disabled={disabled}
-                  className={cn(
-                    'h-9 text-sm',
-                    filled && 'border-emerald-500/30'
-                  )}
+                  onSave={onSave}
+                  filled={filled}
                 />
               ) : field.type === 'url' ? (
-                <Input
-                  type="url"
-                  value={value}
+                <DebouncedTextInput
+                  fieldKey={field.key}
+                  serverValue={value}
                   placeholder="https://..."
-                  onBlur={(e) => onSave(field.key, e.target.value)}
-                  onChange={(e) => {
-                    // Controlled but only save on blur
-                    const input = e.target;
-                    input.dataset.pendingValue = e.target.value;
-                  }}
+                  type="url"
                   disabled={disabled}
-                  className={cn(
-                    'h-9 text-sm',
-                    filled && 'border-emerald-500/30'
-                  )}
+                  onSave={onSave}
+                  filled={filled}
                 />
               ) : (
-                // text
-                <Input
-                  type="text"
-                  value={value}
+                <DebouncedTextInput
+                  fieldKey={field.key}
+                  serverValue={value}
                   placeholder="..."
-                  onChange={(e) => onSave(field.key, e.target.value)}
                   disabled={disabled}
-                  className={cn(
-                    'h-9 text-sm',
-                    filled && 'border-emerald-500/30'
-                  )}
+                  onSave={onSave}
+                  filled={filled}
                 />
               )}
             </div>
