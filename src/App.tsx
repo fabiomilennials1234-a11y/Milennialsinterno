@@ -24,6 +24,7 @@ import NotFound from "./pages/NotFound";
 const ClientAreaPage = lazy(() => import("./pages/ClientAreaPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const CEODashboardPage = lazy(() => import("./pages/CEODashboardPage"));
+const MetaAdsDashboardPage = lazy(() => import("./pages/MetaAdsDashboardPage"));
 const MillennialsGrowthDashPage = lazy(() => import("./pages/MillennialsGrowthDashPage"));
 const ProductDashboardPage = lazy(() => import("./pages/ProductDashboardPage"));
 const KanbanPage = lazy(() => import("./pages/KanbanPage"));
@@ -241,6 +242,13 @@ function AppRoutes() {
         </ExecutiveRoute>
       } />
       
+      {/* Meta Ads Dashboard - CEO/CTO only */}
+      <Route path="/meta-ads" element={
+        <ExecutiveRoute>
+          <MetaAdsDashboardPage />
+        </ExecutiveRoute>
+      } />
+
       {/* Millennials Growth Dashboard - CEO and Gestor de Projetos */}
       <Route path="/millennials-growth" element={
         <AdminRoute>

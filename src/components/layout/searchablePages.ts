@@ -20,6 +20,7 @@ const KANBAN_COMERCIAL_ALLOWED: readonly UserRole[] = [];
 
 export const SEARCHABLE_PAGES: readonly SearchablePage[] = [
   { path: '/ceo', label: 'Indicadores', category: 'CEO' },
+  { path: '/meta-ads', label: 'Meta Ads', category: 'CEO' },
   { path: '/kanban/ceo', label: 'Kanban CEO', category: 'CEO' },
   { path: '/okrs-millennials', label: 'OKRs Millennials', category: 'CEO' },
   { path: '/tv-dashboard', label: 'TV Dashboard', category: 'CEO' },

@@ -38,7 +38,11 @@ export type Database = {
           client_id: string | null
           created_at: string
           documentation_date: string
+          etapa_crm_parados: string | null
           id: string
+          leads_cadastrados_crm: string | null
+          leads_gerados: string | null
+          leads_incompletos: string | null
           metrics: string | null
           updated_at: string
         }
@@ -49,7 +53,11 @@ export type Database = {
           client_id?: string | null
           created_at?: string
           documentation_date?: string
+          etapa_crm_parados?: string | null
           id?: string
+          leads_cadastrados_crm?: string | null
+          leads_gerados?: string | null
+          leads_incompletos?: string | null
           metrics?: string | null
           updated_at?: string
         }
@@ -60,7 +68,11 @@ export type Database = {
           client_id?: string | null
           created_at?: string
           documentation_date?: string
+          etapa_crm_parados?: string | null
           id?: string
+          leads_cadastrados_crm?: string | null
+          leads_gerados?: string | null
+          leads_incompletos?: string | null
           metrics?: string | null
           updated_at?: string
         }
@@ -727,6 +739,7 @@ export type Database = {
         Row: {
           acoes_pontuais: string | null
           apresentacao: string | null
+          beneficios_produto: string | null
           captar_novos_representantes: string | null
           catalogo_fotos_videos: string | null
           client_id: string
@@ -781,6 +794,7 @@ export type Database = {
         Insert: {
           acoes_pontuais?: string | null
           apresentacao?: string | null
+          beneficios_produto?: string | null
           captar_novos_representantes?: string | null
           catalogo_fotos_videos?: string | null
           client_id: string
@@ -835,6 +849,7 @@ export type Database = {
         Update: {
           acoes_pontuais?: string | null
           apresentacao?: string | null
+          beneficios_produto?: string | null
           captar_novos_representantes?: string | null
           catalogo_fotos_videos?: string | null
           client_id?: string
@@ -1124,6 +1139,153 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_info_bank: {
+        Row: {
+          brand_colors: string | null
+          brand_manual_url: string | null
+          client_id: string
+          cms_platform: string | null
+          created_at: string
+          created_by: string
+          domain: string | null
+          editing_style: string | null
+          figma_url: string | null
+          id: string
+          instagram_handle: string | null
+          logo_url: string | null
+          notes: string | null
+          tiktok_handle: string | null
+          typography: string | null
+          updated_at: string
+          updated_by: string
+          video_formats: string | null
+          visual_style: string | null
+          website_url: string | null
+          youtube_channel: string | null
+        }
+        Insert: {
+          brand_colors?: string | null
+          brand_manual_url?: string | null
+          client_id: string
+          cms_platform?: string | null
+          created_at?: string
+          created_by: string
+          domain?: string | null
+          editing_style?: string | null
+          figma_url?: string | null
+          id?: string
+          instagram_handle?: string | null
+          logo_url?: string | null
+          notes?: string | null
+          tiktok_handle?: string | null
+          typography?: string | null
+          updated_at?: string
+          updated_by: string
+          video_formats?: string | null
+          visual_style?: string | null
+          website_url?: string | null
+          youtube_channel?: string | null
+        }
+        Update: {
+          brand_colors?: string | null
+          brand_manual_url?: string | null
+          client_id?: string
+          cms_platform?: string | null
+          created_at?: string
+          created_by?: string
+          domain?: string | null
+          editing_style?: string | null
+          figma_url?: string | null
+          id?: string
+          instagram_handle?: string | null
+          logo_url?: string | null
+          notes?: string | null
+          tiktok_handle?: string | null
+          typography?: string | null
+          updated_at?: string
+          updated_by?: string
+          video_formats?: string | null
+          visual_style?: string | null
+          website_url?: string | null
+          youtube_channel?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_info_bank_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_info_bank_files: {
+        Row: {
+          client_id: string
+          content_type: string
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number
+          id: string
+          info_bank_id: string
+          replaced_by: string | null
+          section: Database["public"]["Enums"]["info_bank_file_section"]
+          uploaded_by: string
+          version: number
+        }
+        Insert: {
+          client_id: string
+          content_type: string
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size: number
+          id?: string
+          info_bank_id: string
+          replaced_by?: string | null
+          section: Database["public"]["Enums"]["info_bank_file_section"]
+          uploaded_by?: string
+          version?: number
+        }
+        Update: {
+          client_id?: string
+          content_type?: string
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          info_bank_id?: string
+          replaced_by?: string | null
+          section?: Database["public"]["Enums"]["info_bank_file_section"]
+          uploaded_by?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_info_bank_files_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_info_bank_files_info_bank_id_fkey"
+            columns: ["info_bank_id"]
+            isOneToOne: false
+            referencedRelation: "client_info_bank"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_info_bank_files_replaced_by_fkey"
+            columns: ["replaced_by"]
+            isOneToOne: false
+            referencedRelation: "client_info_bank_files"
             referencedColumns: ["id"]
           },
         ]
@@ -2013,6 +2175,7 @@ export type Database = {
           growth_torque_unblocked_at: string | null
           id: string
           last_cs_contact_at: string | null
+          links: Json
           mktplace_entered_at: string | null
           mktplace_status: string | null
           monthly_value: number | null
@@ -2025,6 +2188,8 @@ export type Database = {
           payment_due_day: number | null
           phone: string | null
           razao_social: string | null
+          report_cycle_days: number
+          report_cycle_reset_at: string | null
           sales_percentage: number
           squad_id: string | null
           status: string | null
@@ -2079,6 +2244,7 @@ export type Database = {
           growth_torque_unblocked_at?: string | null
           id?: string
           last_cs_contact_at?: string | null
+          links?: Json
           mktplace_entered_at?: string | null
           mktplace_status?: string | null
           monthly_value?: number | null
@@ -2091,6 +2257,8 @@ export type Database = {
           payment_due_day?: number | null
           phone?: string | null
           razao_social?: string | null
+          report_cycle_days?: number
+          report_cycle_reset_at?: string | null
           sales_percentage?: number
           squad_id?: string | null
           status?: string | null
@@ -2145,6 +2313,7 @@ export type Database = {
           growth_torque_unblocked_at?: string | null
           id?: string
           last_cs_contact_at?: string | null
+          links?: Json
           mktplace_entered_at?: string | null
           mktplace_status?: string | null
           monthly_value?: number | null
@@ -2157,6 +2326,8 @@ export type Database = {
           payment_due_day?: number | null
           phone?: string | null
           razao_social?: string | null
+          report_cycle_days?: number
+          report_cycle_reset_at?: string | null
           sales_percentage?: number
           squad_id?: string | null
           status?: string | null
@@ -4700,6 +4871,113 @@ export type Database = {
         }
         Relationships: []
       }
+      meta_ad_accounts: {
+        Row: {
+          account_id: string
+          account_name: string
+          client_id: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          account_name: string
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          account_name?: string
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_ad_accounts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meta_ads_insights: {
+        Row: {
+          actions_raw: Json | null
+          ad_account_id: string
+          campaign_id: string
+          campaign_name: string
+          clicks: number
+          conversions: number
+          cpc: number
+          cpm: number
+          created_at: string
+          ctr: number
+          date_start: string
+          date_stop: string
+          fetched_at: string
+          frequency: number
+          id: string
+          impressions: number
+          leads: number
+          reach: number
+          spend: number
+          updated_at: string
+        }
+        Insert: {
+          actions_raw?: Json | null
+          ad_account_id: string
+          campaign_id: string
+          campaign_name: string
+          clicks?: number
+          conversions?: number
+          cpc?: number
+          cpm?: number
+          created_at?: string
+          ctr?: number
+          date_start: string
+          date_stop: string
+          fetched_at?: string
+          frequency?: number
+          id?: string
+          impressions?: number
+          leads?: number
+          reach?: number
+          spend?: number
+          updated_at?: string
+        }
+        Update: {
+          actions_raw?: Json | null
+          ad_account_id?: string
+          campaign_id?: string
+          campaign_name?: string
+          clicks?: number
+          conversions?: number
+          cpc?: number
+          cpm?: number
+          created_at?: string
+          ctr?: number
+          date_start?: string
+          date_stop?: string
+          fetched_at?: string
+          frequency?: number
+          id?: string
+          impressions?: number
+          leads?: number
+          reach?: number
+          spend?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       mktplace_cycle_reports: {
         Row: {
           acoes_executadas: string | null
@@ -5281,6 +5559,62 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nps_client_growth_responses: {
+        Row: {
+          alignment_assessment: string
+          biggest_challenges: string[]
+          challenges_other: string | null
+          company_name: string
+          id: string
+          improvement_suggestions: string
+          next_months_goal: string
+          nps_score: number
+          results_evolution: string
+          strengthen_areas: string[]
+          strengthen_other: string | null
+          submitted_at: string
+          survey_id: string
+        }
+        Insert: {
+          alignment_assessment: string
+          biggest_challenges?: string[]
+          challenges_other?: string | null
+          company_name: string
+          id?: string
+          improvement_suggestions: string
+          next_months_goal: string
+          nps_score: number
+          results_evolution: string
+          strengthen_areas?: string[]
+          strengthen_other?: string | null
+          submitted_at?: string
+          survey_id: string
+        }
+        Update: {
+          alignment_assessment?: string
+          biggest_challenges?: string[]
+          challenges_other?: string | null
+          company_name?: string
+          id?: string
+          improvement_suggestions?: string
+          next_months_goal?: string
+          nps_score?: number
+          results_evolution?: string
+          strengthen_areas?: string[]
+          strengthen_other?: string | null
+          submitted_at?: string
+          survey_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nps_client_growth_responses_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "nps_surveys"
             referencedColumns: ["id"]
           },
         ]
@@ -9212,6 +9546,7 @@ export type Database = {
       }
       create_mktplace_cycle_report: { Args: { p_payload: Json }; Returns: Json }
       create_weekly_gestor_tasks: { Args: never; Returns: undefined }
+      delete_info_bank_file: { Args: { p_file_id: string }; Returns: string }
       delete_kanban_card_attachment: {
         Args: { _attachment_id: string }
         Returns: {
@@ -9763,6 +10098,17 @@ export type Database = {
       tech_unblock_task: { Args: { _task_id: string }; Returns: undefined }
       trigger_oracle_summaries: { Args: never; Returns: undefined }
       unarchive_justification: { Args: { p_id: string }; Returns: undefined }
+      upload_info_bank_file: {
+        Args: {
+          p_client_id: string
+          p_content_type: string
+          p_file_name: string
+          p_file_path: string
+          p_file_size: number
+          p_section: Database["public"]["Enums"]["info_bank_file_section"]
+        }
+        Returns: string
+      }
       upsert_client_design_profile: {
         Args: {
           p_brand_colors?: string
@@ -9795,6 +10141,27 @@ export type Database = {
         }
         Returns: string
       }
+      upsert_client_info_bank: {
+        Args: {
+          p_brand_colors?: string
+          p_brand_manual_url?: string
+          p_client_id: string
+          p_cms_platform?: string
+          p_domain?: string
+          p_editing_style?: string
+          p_figma_url?: string
+          p_instagram_handle?: string
+          p_logo_url?: string
+          p_notes?: string
+          p_tiktok_handle?: string
+          p_typography?: string
+          p_video_formats?: string
+          p_visual_style?: string
+          p_website_url?: string
+          p_youtube_channel?: string
+        }
+        Returns: string
+      }
       upsert_client_video_profile: {
         Args: {
           p_brand_assets_url?: string
@@ -9823,6 +10190,7 @@ export type Database = {
       }
     }
     Enums: {
+      info_bank_file_section: "anuncios" | "criativos" | "marca" | "videos"
       tech_sprint_status: "PLANNING" | "ACTIVE" | "COMPLETED"
       tech_task_priority: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW"
       tech_task_status: "BACKLOG" | "TODO" | "IN_PROGRESS" | "REVIEW" | "DONE"
@@ -9972,6 +10340,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      info_bank_file_section: ["anuncios", "criativos", "marca", "videos"],
       tech_sprint_status: ["PLANNING", "ACTIVE", "COMPLETED"],
       tech_task_priority: ["CRITICAL", "HIGH", "MEDIUM", "LOW"],
       tech_task_status: ["BACKLOG", "TODO", "IN_PROGRESS", "REVIEW", "DONE"],
@@ -9998,4 +10367,3 @@ export const Constants = {
     },
   },
 } as const
-<claude-code-hint v="1" type="plugin" value="supabase@claude-plugins-official" />

@@ -29,7 +29,8 @@ import {
   VideoIcon,
   CheckSquare,
   Cpu,
-  ListChecks
+  ListChecks,
+  BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ROLE_LABELS, canViewBoard, isExecutive, UserRole } from '@/types/auth';
@@ -324,6 +325,12 @@ export default function AppSidebar() {
               <NavLink to="/ceo" className={({ isActive }) => cn("sidebar-item", isActive && "active")}>
                 <Crown size={20} />
                 {!isCollapsed && <span>Indicadores</span>}
+              </NavLink>
+            </NavTooltip>
+            <NavTooltip label="Meta Ads">
+              <NavLink to="/meta-ads" className={({ isActive }) => cn("sidebar-item", isActive && "active")}>
+                <BarChart3 size={20} />
+                {!isCollapsed && <span>Meta Ads</span>}
               </NavLink>
             </NavTooltip>
             {ceoBoard && (
