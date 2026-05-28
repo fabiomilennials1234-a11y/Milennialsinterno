@@ -524,7 +524,7 @@ export function useUpdateDepartmentTaskStatus(department: string) {
                 return {
                   _source: 'department' as const, status, financeiroCompleted: false,
                   allClientTasksDone: false, mktplaceAdvanced: false, crmWelcomeAdvanced: false,
-                  crmConfigAdvanced: false, crmConfigFinalized: false, crmValidationBlocked: false,
+                  crmConfigAdvanced: false, crmConfigFinalized: false, crmValidationBlocked: false, crmValidationBlockers: null,
                   growthAdvanced: false, growthTeamSelectionNeeded: null, growthOnboardingComplete: false,
                   crmBriefingBlocked: true,
                 };
@@ -558,6 +558,7 @@ export function useUpdateDepartmentTaskStatus(department: string) {
       let crmConfigAdvanced = false;
       let crmConfigFinalized = false;
       let crmValidationBlocked = false;
+      let crmValidationBlockers: string[] | null = null;
       if (status === 'done') {
         const { data: cfgTask } = await supabase
           .from('department_tasks')
@@ -599,6 +600,7 @@ export function useUpdateDepartmentTaskStatus(department: string) {
                   .update({ status: 'todo' } as any)
                   .eq('id', taskId);
                 crmValidationBlocked = true;
+                crmValidationBlockers = (rpcResult.blockers as string[]) || null;
               } else if (rpcResult?.allowed) {
                 if (rpcResult.finalized) {
                   crmConfigFinalized = true;
@@ -663,7 +665,7 @@ export function useUpdateDepartmentTaskStatus(department: string) {
         growthOnboardingComplete = growthResult.growthOnboardingComplete;
       }
 
-      return { _source: 'department' as const, status, financeiroCompleted, allClientTasksDone, mktplaceAdvanced, crmWelcomeAdvanced, crmConfigAdvanced, crmConfigFinalized, crmValidationBlocked, growthAdvanced, growthTeamSelectionNeeded, growthOnboardingComplete, crmBriefingBlocked: false };
+      return { _source: 'department' as const, status, financeiroCompleted, allClientTasksDone, mktplaceAdvanced, crmWelcomeAdvanced, crmConfigAdvanced, crmConfigFinalized, crmValidationBlocked, crmValidationBlockers, growthAdvanced, growthTeamSelectionNeeded, growthOnboardingComplete, crmBriefingBlocked: false };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
@@ -674,9 +676,16 @@ export function useUpdateDepartmentTaskStatus(department: string) {
         queryClient.invalidateQueries({ queryKey: ['crm-configuracoes'] });
         queryClient.invalidateQueries({ queryKey: ['crm-configs-for-client'] });
         queryClient.invalidateQueries({ queryKey: ['crm-config-state'] });
-        toast.error('Etapa com pendencias', {
-          description: 'Complete o checklist e campos obrigatorios antes de concluir.',
-        });
+        const blockerList = result.crmValidationBlockers;
+        if (blockerList && blockerList.length > 0) {
+          toast.error('Nao foi possivel concluir', {
+            description: blockerList.join('\n'),
+          });
+        } else {
+          toast.error('Etapa com pendencias', {
+            description: 'Complete o checklist e campos obrigatorios antes de concluir.',
+          });
+        }
       }
       if (result?.crmBriefingBlocked) {
         toast.error('Aguardando Briefing do GP', {

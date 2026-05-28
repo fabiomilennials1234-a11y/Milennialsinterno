@@ -98,8 +98,8 @@ export default function GestorCRMPage() {
 
   return (
     <MainLayout>
-      <div className="h-full flex flex-col overflow-hidden bg-background">
-        <div className="px-8 py-6 border-b border-subtle shrink-0">
+      <div className="flex flex-col bg-background">
+        <div className="px-8 py-6 border-b border-subtle shrink-0 sticky top-0 z-20 bg-background">
           <h1 className="text-display text-foreground">Gestor de CRM</h1>
           <p className="text-caption text-muted-foreground mt-1">Kanban do Torque CRM — V8, Automation e Copilot</p>
           <ManualCondutaBanner />
@@ -137,7 +137,7 @@ export default function GestorCRMPage() {
         {activeView === 'tarefas' ? (
           <DepartmentTasksTab department="gestor_crm" />
         ) : (
-        <div className="flex-1 relative overflow-hidden">
+        <div className="flex-1 relative">
           {canScrollLeft && (
             <Button
               variant="ghost"
@@ -159,14 +159,14 @@ export default function GestorCRMPage() {
             </Button>
           )}
 
-          <div ref={scrollContainerRef} className="h-full overflow-x-auto overflow-y-hidden px-8 py-6 scrollbar-apple">
-            <div className="flex gap-6 h-full pb-4" style={{ minWidth: 'max-content' }}>
+          <div ref={scrollContainerRef} className="overflow-x-auto px-8 py-6 scrollbar-apple">
+            <div className="flex gap-6 pb-4" style={{ minWidth: 'max-content' }}>
               {COLUMNS.map(column => {
                 const Icon = column.icon;
                 return (
                   <div
                     key={column.id}
-                    className="w-[340px] h-full flex-shrink-0 flex flex-col bg-card rounded-2xl border border-subtle overflow-hidden shadow-apple"
+                    className="w-[340px] flex-shrink-0 flex flex-col bg-card rounded-2xl border border-subtle overflow-hidden shadow-apple"
                   >
                     <div className={`section-header ${column.headerClass}`}>
                       <div className="flex items-center gap-3">

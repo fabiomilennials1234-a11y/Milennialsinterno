@@ -203,6 +203,9 @@ export function useCrmStepValidation(configId: string | undefined, produto: CrmP
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['crm-config-state', configId] });
     },
+    onError: (err: Error) => {
+      toast.error('Erro ao salvar checklist', { description: err.message });
+    },
   });
 
   const saveField = useMutation({

@@ -274,28 +274,29 @@ describe('CrmDailyTasksSection', () => {
   });
 
   // ============================================================
-  // Slice 7: Eye icon for config
+  // Slice 7: Context menu (three-dot)
   // ============================================================
 
-  describe('config eye icon', () => {
-    it('renders eye button when task has configId', () => {
+  describe('context menu', () => {
+    it('renders action button when task has configId', () => {
       setup({
         todo: [makeTask({ status: 'todo', configId: 'cfg-123' })],
         doing: [],
         done: [],
       });
 
-      expect(screen.getByLabelText('Ver configuração')).toBeInTheDocument();
+      expect(screen.getByLabelText('Ações da tarefa')).toBeInTheDocument();
     });
 
-    it('does not render eye button when task has no configId', () => {
+    it('renders action button even when task has no configId', () => {
       setup({
         todo: [makeTask({ status: 'todo', configId: null })],
         doing: [],
         done: [],
       });
 
-      expect(screen.queryByLabelText('Ver configuração')).not.toBeInTheDocument();
+      // Menu still shows move options even without configId
+      expect(screen.getByLabelText('Ações da tarefa')).toBeInTheDocument();
     });
   });
 });

@@ -5,11 +5,17 @@ import { useClientTagsBatch } from '@/hooks/useClientTags';
 import { TAG_ESPERAR_BRIEFING } from '@/components/client-tags/ClientTagsList';
 import { CRM_PRODUTO_LABEL, CRM_PRODUTO_COLOR, type CrmProduto } from '@/hooks/useCrmKanban';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
-  AlertTriangle, Clock, Eye, ListChecks, ShieldAlert, Timer, CheckCircle2,
+  AlertTriangle, Clock, Eye, ListChecks, ShieldAlert, Timer, CheckCircle2, MoreHorizontal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { fireCelebration } from '@/lib/confetti';
 import CrmConfigViewModal from './CrmConfigViewModal';
@@ -155,6 +161,13 @@ export default function CrmDailyTasksSection() {
                                   <TaskCardContent
                                     enriched={enriched}
                                     isBlockedByBriefing={briefingBlocked}
+                                    currentStatus={col.id}
+                                    onMove={(newStatus) => {
+                                      if (newStatus === 'done' && col.id !== 'done') {
+                                        fireCelebration();
+                                      }
+                                      updateStatus.mutate({ taskId: enriched.task.id, status: newStatus });
+                                    }}
                                     onOpenConfig={() => enriched.configId && setSelectedConfigId(enriched.configId)}
                                   />
                                 </div>
@@ -189,10 +202,14 @@ export default function CrmDailyTasksSection() {
 function TaskCardContent({
   enriched,
   isBlockedByBriefing = false,
+  currentStatus,
+  onMove,
   onOpenConfig,
 }: {
   enriched: EnrichedCrmTask;
   isBlockedByBriefing?: boolean;
+  currentStatus: CrmTaskGroup;
+  onMove: (newStatus: CrmTaskGroup) => void;
   onOpenConfig: () => void;
 }) {
   const { task, produto, checklistProgress, isBlockedDN, blockedUntil, deadlineStatus, urgencyBadge } = enriched;
@@ -291,18 +308,40 @@ function TaskCardContent({
       </div>
 
       {/* Actions */}
-      <div className="flex flex-col gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-        {enriched.configId && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onOpenConfig}
-            className="h-6 px-1.5 text-[10px] gap-0.5"
-            aria-label="Ver configuração"
-          >
-            <Eye size={11} />
-          </Button>
-        )}
+      <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
+            <button className="p-1.5 -m-1 hover:bg-muted rounded-lg" aria-label="Ações da tarefa">
+              <MoreHorizontal size={14} className="text-muted-foreground" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="bg-popover border-subtle">
+            {COLUMNS.filter(c => c.id !== currentStatus).map(c => (
+              <DropdownMenuItem
+                key={c.id}
+                onClick={(e) => { e.stopPropagation(); onMove(c.id); }}
+              >
+                <div className={cn('w-2.5 h-2.5 rounded-full mr-2',
+                  c.id === 'todo' && 'bg-info',
+                  c.id === 'doing' && 'bg-warning',
+                  c.id === 'done' && 'bg-success'
+                )} />
+                Mover para {c.label}
+              </DropdownMenuItem>
+            ))}
+            {enriched.configId && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={(e) => { e.stopPropagation(); onOpenConfig(); }}
+                >
+                  <Eye size={14} className="mr-2" />
+                  Ver configuração
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );
