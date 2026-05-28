@@ -50,7 +50,7 @@ import {
 
 interface Props {
   department: string;
-  type?: 'daily' | 'weekly';
+  type?: 'daily' | 'weekly' | 'all';
 }
 
 const STATUSES = [
@@ -100,7 +100,7 @@ export default function DepartmentTarefasSection({ department, type = 'daily' }:
     if (!newTaskTitle.trim()) return;
     await createTask.mutateAsync({
       title: newTaskTitle,
-      task_type: type,
+      task_type: type === 'all' ? 'daily' : type,
     });
     setNewTaskTitle('');
     setIsAdding(null);
@@ -222,6 +222,7 @@ export default function DepartmentTarefasSection({ department, type = 'daily' }:
                       const hasJustification = !!(task as any).justification;
                       const needsJustification = isOverdue && !hasJustification;
                       const clientName = task.clients?.razao_social || task.clients?.name || null;
+                      const isNPSHighlight = task.title.includes('NPS TIME');
 
                         const isHighPriority = task.priority === 'high' || task.priority === 'urgent';
 
@@ -242,15 +243,21 @@ export default function DepartmentTarefasSection({ department, type = 'daily' }:
                                 status.borderClass,
                                 isDone && 'opacity-60',
                                 isOverdue && 'border-l-danger bg-danger/5',
-                                !isOverdue && !isDone && isHighPriority && 'border-l-amber-500 bg-amber-500/5 ring-1 ring-amber-500/20',
-                                !isOverdue && !isDone && isHighPriority && task.status === 'todo' && 'animate-pulse',
+                                !isOverdue && !isDone && isNPSHighlight && 'border-l-purple-500 bg-purple-500/8 ring-1 ring-purple-500/30 animate-pulse',
+                                !isOverdue && !isDone && !isNPSHighlight && isHighPriority && 'border-l-amber-500 bg-amber-500/5 ring-1 ring-amber-500/20',
+                                !isOverdue && !isDone && !isNPSHighlight && isHighPriority && task.status === 'todo' && 'animate-pulse',
                                 snapshot.isDragging && 'dragging'
                               )}
                             >
                               <div className="flex items-start justify-between">
                                 <div className="flex-1 min-w-0 pr-2">
                                   <div className="flex items-center gap-1.5">
-                                    {isHighPriority && !isDone && (
+                                    {isNPSHighlight && !isDone && (
+                                      <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-purple-500/15 text-purple-400 border border-purple-500/25">
+                                        Quinzenal
+                                      </span>
+                                    )}
+                                    {isHighPriority && !isDone && !isNPSHighlight && (
                                       <span className={cn(
                                         "shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide",
                                         task.priority === 'urgent'

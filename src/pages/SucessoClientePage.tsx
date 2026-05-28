@@ -227,7 +227,7 @@ export default function SucessoClientePage() {
                     </div>
                   </div>
                   <div className="flex-1 overflow-y-auto p-4 scrollbar-apple bg-card">
-                    <DepartmentTarefasSection department="sucesso_cliente" type="daily" />
+                    <DepartmentTarefasSection department="sucesso_cliente" type="all" />
                   </div>
                 </div>
 

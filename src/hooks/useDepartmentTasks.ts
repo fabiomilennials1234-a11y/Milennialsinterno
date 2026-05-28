@@ -60,7 +60,7 @@ export interface DepartmentTask {
   };
 }
 
-export function useDepartmentTasks(department: string, type: 'daily' | 'weekly' = 'daily') {
+export function useDepartmentTasks(department: string, type: 'daily' | 'weekly' | 'all' = 'daily') {
   const { user } = useAuth();
 
   // page_grant: user com grant na página do department vê dados completos
@@ -77,10 +77,14 @@ export function useDepartmentTasks(department: string, type: 'daily' | 'weekly' 
         .from('department_tasks')
         .select('*, clients:related_client_id(name, razao_social)')
         .eq('department', department)
-        .eq('task_type', type)
         .eq('archived', false)
         .is('related_project_id' as any, null)
         .order('created_at', { ascending: false });
+
+      // 'all' skips task_type filter — shows daily + weekly in a single column
+      if (type !== 'all') {
+        baseQuery = baseQuery.eq('task_type', type);
+      }
 
       // Exclude Growth onboarding step tasks from the regular GP board — they live
       // in GrowthAcompanhamentoSection. Operational tasks like "Brifar CRM" stay.
@@ -765,7 +769,7 @@ export function useArchiveDepartmentTask(department: string) {
   });
 }
 
-export function useArchivedDepartmentTasks(department: string, type: 'daily' | 'weekly' = 'daily') {
+export function useArchivedDepartmentTasks(department: string, type: 'daily' | 'weekly' | 'all' = 'daily') {
   const { user } = useAuth();
   const slug = DEPARTMENT_TO_PAGE_SLUG[department];
   const { seesAll, isReady, scopeKey } = useDataScope(slug);
@@ -777,10 +781,13 @@ export function useArchivedDepartmentTasks(department: string, type: 'daily' | '
         .from('department_tasks')
         .select('*, clients:related_client_id(name, razao_social)')
         .eq('department', department)
-        .eq('task_type', type)
         .eq('archived', true)
         .is('related_project_id' as any, null)
         .order('archived_at', { ascending: false });
+
+      if (type !== 'all') {
+        query = query.eq('task_type', type);
+      }
 
       if (department === 'gestor_projetos') {
         query = query.or(
