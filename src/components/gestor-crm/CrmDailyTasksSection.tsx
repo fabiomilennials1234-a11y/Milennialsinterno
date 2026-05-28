@@ -1,12 +1,23 @@
 import { useState, useMemo } from 'react';
 import { useCrmDailyTasks, type CrmTaskGroup, type EnrichedCrmTask, type UrgencyBadge } from '@/hooks/useCrmDailyTasks';
-import { useUpdateDepartmentTaskStatus } from '@/hooks/useDepartmentTasks';
+import {
+  useUpdateDepartmentTaskStatus,
+  useCreateDepartmentTask,
+  useArchiveDepartmentTask,
+  useDeleteDepartmentTask,
+  useArchivedDepartmentTasks,
+  useUnarchiveDepartmentTask,
+} from '@/hooks/useDepartmentTasks';
+import { useAuth } from '@/contexts/AuthContext';
 import { useClientTagsBatch } from '@/hooks/useClientTags';
 import { TAG_ESPERAR_BRIEFING } from '@/components/client-tags/ClientTagsList';
 import { CRM_PRODUTO_LABEL, CRM_PRODUTO_COLOR, type CrmProduto } from '@/hooks/useCrmKanban';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   AlertTriangle, Clock, Eye, ListChecks, ShieldAlert, Timer, CheckCircle2, MoreHorizontal,
+  Plus, Archive, Trash2, ArchiveRestore,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -16,8 +27,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { fireCelebration } from '@/lib/confetti';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import CrmConfigViewModal from './CrmConfigViewModal';
 import { useCrmConfiguracoes } from '@/hooks/useCrmKanban';
 
@@ -37,13 +56,32 @@ const URGENCY_META: Record<Exclude<UrgencyBadge, null>, { label: string; classNa
   dn: { label: 'D+N', className: 'bg-muted text-muted-foreground border-border' },
 };
 
+// ─── Roles allowed to manage tasks ─────────────────────────
+
+const CAN_MANAGE_TASKS_ROLES = new Set([
+  'ceo', 'cto', 'sucesso_cliente',
+  'gestor_crm', 'gestor_ads', 'gestor_projetos',
+  'consultor_mktplace', 'consultor_comercial',
+  'financeiro', 'outbound', 'rh',
+]);
+
 // ─── Main component ────────────────────────────────────────
 
 export default function CrmDailyTasksSection() {
   const { grouped, isLoading, enrichedTasks } = useCrmDailyTasks();
   const { data: allConfigs = [] } = useCrmConfiguracoes();
+  const { user } = useAuth();
   const updateStatus = useUpdateDepartmentTaskStatus('gestor_crm');
+  const createTask = useCreateDepartmentTask('gestor_crm');
+  const archiveTask = useArchiveDepartmentTask('gestor_crm');
+  const deleteTask = useDeleteDepartmentTask('gestor_crm');
+  const unarchiveTask = useUnarchiveDepartmentTask('gestor_crm');
+  const { data: archivedTasks = [] } = useArchivedDepartmentTasks('gestor_crm', 'daily');
+  const canManageTasks = !!user?.role && CAN_MANAGE_TASKS_ROLES.has(user.role);
   const [selectedConfigId, setSelectedConfigId] = useState<string | null>(null);
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [isAdding, setIsAdding] = useState(false);
+  const [showArchivedModal, setShowArchivedModal] = useState(false);
 
   // Briefing tag awareness
   const clientIds = useMemo(() => {
@@ -64,6 +102,15 @@ export default function CrmDailyTasksSection() {
   const selectedConfig = selectedConfigId
     ? (allConfigs as Record<string, unknown>[]).find((c) => c.id === selectedConfigId) || null
     : null;
+
+  // ─── Add task handler ──────────────────────────────────────
+
+  const handleAddTask = async () => {
+    if (!newTaskTitle.trim()) return;
+    await createTask.mutateAsync({ title: newTaskTitle, task_type: 'daily' });
+    setNewTaskTitle('');
+    setIsAdding(false);
+  };
 
   // ─── Drag handler ──────────────────────────────────────────
 
@@ -105,10 +152,26 @@ export default function CrmDailyTasksSection() {
 
   return (
     <>
+      {/* View archived tasks button */}
+      {canManageTasks && archivedTasks.length > 0 && (
+        <div className="mb-4">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 text-xs"
+            onClick={() => setShowArchivedModal(true)}
+          >
+            <Eye size={14} />
+            Ver Arquivadas ({archivedTasks.length})
+          </Button>
+        </div>
+      )}
+
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="space-y-6">
           {COLUMNS.map(col => {
             const colTasks = grouped[col.id];
+            const hasDoneTasks = col.id === 'done' && colTasks.length > 0;
 
             return (
               <div key={col.id}>
@@ -122,6 +185,21 @@ export default function CrmDailyTasksSection() {
                       {colTasks.length}
                     </span>
                   </div>
+
+                  {hasDoneTasks && canManageTasks && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs text-muted-foreground hover:text-foreground gap-1.5"
+                      onClick={() => {
+                        colTasks.forEach(enriched => archiveTask.mutate({ taskId: enriched.task.id }));
+                      }}
+                      disabled={archiveTask.isPending}
+                    >
+                      <Archive size={12} />
+                      Arquivar concluídas
+                    </Button>
+                  )}
                 </div>
 
                 {/* Droppable area */}
@@ -162,12 +240,15 @@ export default function CrmDailyTasksSection() {
                                     enriched={enriched}
                                     isBlockedByBriefing={briefingBlocked}
                                     currentStatus={col.id}
+                                    canManage={canManageTasks}
                                     onMove={(newStatus) => {
                                       if (newStatus === 'done' && col.id !== 'done') {
                                         fireCelebration();
                                       }
                                       updateStatus.mutate({ taskId: enriched.task.id, status: newStatus });
                                     }}
+                                    onArchive={() => archiveTask.mutate({ taskId: enriched.task.id })}
+                                    onDelete={() => deleteTask.mutate({ taskId: enriched.task.id })}
                                     onOpenConfig={() => enriched.configId && setSelectedConfigId(enriched.configId)}
                                   />
                                 </div>
@@ -177,6 +258,52 @@ export default function CrmDailyTasksSection() {
                         })}
                         {provided.placeholder}
                       </div>
+
+                      {/* Add Task Input — only in "todo" column */}
+                      {col.id === 'todo' && (
+                        isAdding ? (
+                          <div className="mt-2 space-y-2">
+                            <Input
+                              placeholder="Nova tarefa..."
+                              value={newTaskTitle}
+                              onChange={(e) => setNewTaskTitle(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleAddTask();
+                                if (e.key === 'Escape') setIsAdding(false);
+                              }}
+                              autoFocus
+                              className="h-9"
+                            />
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                onClick={handleAddTask}
+                                disabled={createTask.isPending}
+                                className="flex-1"
+                              >
+                                Adicionar
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setIsAdding(false)}
+                              >
+                                Cancelar
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full mt-2 gap-1.5 text-muted-foreground hover:text-foreground"
+                            onClick={() => setIsAdding(true)}
+                          >
+                            <Plus size={14} />
+                            Adicionar tarefa
+                          </Button>
+                        )
+                      )}
                     </div>
                   )}
                 </Droppable>
@@ -193,6 +320,58 @@ export default function CrmDailyTasksSection() {
           config={selectedConfig}
         />
       )}
+
+      {/* Archived Tasks Modal */}
+      <Dialog open={showArchivedModal} onOpenChange={setShowArchivedModal}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Archive size={18} />
+              Tarefas Arquivadas
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 mt-4">
+            {archivedTasks.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">
+                Nenhuma tarefa arquivada
+              </p>
+            ) : (
+              archivedTasks.map(task => (
+                <div
+                  key={task.id}
+                  className="p-4 bg-muted/30 rounded-xl border border-subtle"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground">{task.title}</p>
+                      {task.clients && (
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Cliente: {task.clients.razao_social || task.clients.name}
+                        </p>
+                      )}
+                      {task.archived_at && (
+                        <p className="text-[10px] text-muted-foreground mt-2">
+                          Arquivada em: {format(new Date(task.archived_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5 text-xs shrink-0"
+                      onClick={() => unarchiveTask.mutate(task.id)}
+                      disabled={unarchiveTask.isPending}
+                    >
+                      <ArchiveRestore size={14} />
+                      Desarquivar
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
@@ -203,13 +382,19 @@ function TaskCardContent({
   enriched,
   isBlockedByBriefing = false,
   currentStatus,
+  canManage = false,
   onMove,
+  onArchive,
+  onDelete,
   onOpenConfig,
 }: {
   enriched: EnrichedCrmTask;
   isBlockedByBriefing?: boolean;
   currentStatus: CrmTaskGroup;
+  canManage?: boolean;
   onMove: (newStatus: CrmTaskGroup) => void;
+  onArchive: () => void;
+  onDelete: () => void;
   onOpenConfig: () => void;
 }) {
   const { task, produto, checklistProgress, isBlockedDN, blockedUntil, deadlineStatus, urgencyBadge } = enriched;
@@ -337,6 +522,25 @@ function TaskCardContent({
                 >
                   <Eye size={14} className="mr-2" />
                   Ver configuração
+                </DropdownMenuItem>
+              </>
+            )}
+            {canManage && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={(e) => { e.stopPropagation(); onArchive(); }}
+                  className="text-muted-foreground"
+                >
+                  <Archive size={14} className="mr-2" />
+                  Arquivar
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 size={14} className="mr-2" />
+                  Excluir
                 </DropdownMenuItem>
               </>
             )}
