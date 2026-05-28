@@ -1,6 +1,22 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
+// ---------- Helpers ----------
+
+interface ActionEntry {
+  action_type: string;
+  value: string;
+}
+
+/** Extract 3-second video views from Meta actions_raw JSONB. */
+export function extractVideoViews(actionsRaw: unknown): number {
+  if (!Array.isArray(actionsRaw)) return 0;
+  const entry = (actionsRaw as ActionEntry[]).find(
+    (a) => a?.action_type === 'video_view',
+  );
+  return Number(entry?.value ?? 0);
+}
+
 export interface MetaAdsInsight {
   id: string;
   ad_account_id: string;
@@ -39,6 +55,9 @@ export interface CampaignData {
   clicks: number;
   cpl: number;
   ctr: number;
+  video_views: number;
+  hook_rate: number;
+  connect_rate: number;
 }
 
 export interface MetaAdsAggregates {
@@ -51,6 +70,9 @@ export interface MetaAdsAggregates {
   avgCPC: number;
   avgCPM: number;
   totalReach: number;
+  totalVideoViews: number;
+  avgHookRate: number;
+  avgConnectRate: number;
   dailyData: DailyData[];
   campaignData: CampaignData[];
   top10Campaigns: CampaignData[];
@@ -69,6 +91,9 @@ function computeAggregates(rows: MetaAdsInsight[]): MetaAdsAggregates {
       avgCPC: 0,
       avgCPM: 0,
       totalReach: 0,
+      totalVideoViews: 0,
+      avgHookRate: 0,
+      avgConnectRate: 0,
       dailyData: [],
       campaignData: [],
       top10Campaigns: [],
@@ -82,6 +107,7 @@ function computeAggregates(rows: MetaAdsInsight[]): MetaAdsAggregates {
   let totalImpressions = 0;
   let totalClicks = 0;
   let totalReach = 0;
+  let totalVideoViews = 0;
   let latestFetchedAt = rows[0].fetched_at;
 
   // Daily aggregation
@@ -93,14 +119,18 @@ function computeAggregates(rows: MetaAdsInsight[]): MetaAdsAggregates {
     leads: number;
     impressions: number;
     clicks: number;
+    video_views: number;
   }>();
 
   for (const row of rows) {
+    const rowVideoViews = extractVideoViews(row.actions_raw);
+
     totalSpend += row.spend;
     totalLeads += row.leads;
     totalImpressions += row.impressions;
     totalClicks += row.clicks;
     totalReach += row.reach;
+    totalVideoViews += rowVideoViews;
 
     if (row.fetched_at > latestFetchedAt) {
       latestFetchedAt = row.fetched_at;
@@ -122,6 +152,7 @@ function computeAggregates(rows: MetaAdsInsight[]): MetaAdsAggregates {
       campaignExisting.leads += row.leads;
       campaignExisting.impressions += row.impressions;
       campaignExisting.clicks += row.clicks;
+      campaignExisting.video_views += rowVideoViews;
     } else {
       campaignMap.set(row.campaign_id, {
         campaign_name: row.campaign_name,
@@ -129,6 +160,7 @@ function computeAggregates(rows: MetaAdsInsight[]): MetaAdsAggregates {
         leads: row.leads,
         impressions: row.impressions,
         clicks: row.clicks,
+        video_views: rowVideoViews,
       });
     }
   }
@@ -137,6 +169,8 @@ function computeAggregates(rows: MetaAdsInsight[]): MetaAdsAggregates {
   const avgCTR = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
   const avgCPC = totalClicks > 0 ? totalSpend / totalClicks : 0;
   const avgCPM = totalImpressions > 0 ? (totalSpend / totalImpressions) * 1000 : 0;
+  const avgHookRate = totalImpressions > 0 ? (totalVideoViews / totalImpressions) * 100 : 0;
+  const avgConnectRate = totalVideoViews > 0 ? (totalClicks / totalVideoViews) * 100 : 0;
 
   const dailyData: DailyData[] = Array.from(dailyMap.entries())
     .map(([date, d]) => ({ date, spend: d.spend, leads: d.leads }))
@@ -152,6 +186,9 @@ function computeAggregates(rows: MetaAdsInsight[]): MetaAdsAggregates {
       clicks: c.clicks,
       cpl: c.leads > 0 ? c.spend / c.leads : 0,
       ctr: c.impressions > 0 ? (c.clicks / c.impressions) * 100 : 0,
+      video_views: c.video_views,
+      hook_rate: c.impressions > 0 ? (c.video_views / c.impressions) * 100 : 0,
+      connect_rate: c.video_views > 0 ? (c.clicks / c.video_views) * 100 : 0,
     }))
     .sort((a, b) => b.spend - a.spend);
 
@@ -167,6 +204,9 @@ function computeAggregates(rows: MetaAdsInsight[]): MetaAdsAggregates {
     avgCPC,
     avgCPM,
     totalReach,
+    totalVideoViews,
+    avgHookRate,
+    avgConnectRate,
     dailyData,
     campaignData,
     top10Campaigns,

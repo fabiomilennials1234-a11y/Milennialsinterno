@@ -11,7 +11,7 @@ import { SectionHeader } from './shared-components';
 import { formatCurrency, formatNumber, formatPercent } from './format-utils';
 import { Input } from '@/components/ui/input';
 
-type SortKey = 'ad_name' | 'campaign_name' | 'spend' | 'impressions' | 'clicks' | 'ctr' | 'cpc' | 'leads' | 'cpl';
+type SortKey = 'ad_name' | 'campaign_name' | 'spend' | 'impressions' | 'clicks' | 'ctr' | 'cpc' | 'leads' | 'cpl' | 'hook_rate' | 'connect_rate';
 
 function SortIcon({ column, current, direction }: { column: SortKey; current: SortKey; direction: 'asc' | 'desc' }) {
   if (column !== current) return <ArrowUpDown size={12} className="opacity-30" />;
@@ -74,6 +74,8 @@ export default function MetaAdsCreativesTab({ dateFrom, dateTo, accountId }: Pro
     ['cpc', 'CPC'],
     ['leads', 'Leads'],
     ['cpl', 'CPL'],
+    ['hook_rate', 'Hook Rate'],
+    ['connect_rate', 'Connect Rate'],
   ];
 
   return (
@@ -153,6 +155,12 @@ export default function MetaAdsCreativesTab({ dateFrom, dateTo, accountId }: Pro
                       <td className="px-3 py-2.5 font-mono text-xs font-semibold text-success">{formatNumber(c.leads)}</td>
                       <td className="px-3 py-2.5 font-mono text-xs">
                         {c.leads > 0 ? formatCurrency(c.cpl) : '--'}
+                      </td>
+                      <td className="px-3 py-2.5 font-mono text-xs">
+                        {c.impressions > 0 ? formatPercent(c.hook_rate) : '--'}
+                      </td>
+                      <td className="px-3 py-2.5 font-mono text-xs">
+                        {c.video_views > 0 ? formatPercent(c.connect_rate) : '--'}
                       </td>
                     </tr>
                   ))}

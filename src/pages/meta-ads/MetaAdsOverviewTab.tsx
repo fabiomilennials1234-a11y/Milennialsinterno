@@ -10,6 +10,8 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  Video,
+  Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
@@ -29,7 +31,7 @@ import {
   Legend,
 } from 'recharts';
 
-type SortColumn = 'campaign_name' | 'spend' | 'leads' | 'cpl' | 'impressions' | 'clicks' | 'ctr';
+type SortColumn = 'campaign_name' | 'spend' | 'leads' | 'cpl' | 'impressions' | 'clicks' | 'ctr' | 'hook_rate' | 'connect_rate';
 
 function SortIcon({ column, current, direction }: { column: SortColumn; current: SortColumn; direction: 'asc' | 'desc' }) {
   if (column !== current) return <ArrowUpDown size={12} className="opacity-30" />;
@@ -115,6 +117,8 @@ export default function MetaAdsOverviewTab({ aggregates, hasData }: Props) {
           <MetricCard icon={Coins} label="CPC" value={formatCurrency(aggregates.avgCPC)} variant="default" animDelay={240} />
           <MetricCard icon={BarChart3} label="CPM" value={formatCurrency(aggregates.avgCPM)} variant="info" animDelay={320} />
           <MetricCard icon={Users} label="Alcance" value={formatNumber(aggregates.totalReach)} variant="success" animDelay={400} />
+          <MetricCard icon={Video} label="Hook Rate" value={formatPercent(aggregates.avgHookRate)} subValue="3s views / impressoes" variant="info" animDelay={480} />
+          <MetricCard icon={Zap} label="Connect Rate" value={formatPercent(aggregates.avgConnectRate)} subValue="clicks / 3s views" variant={aggregates.avgConnectRate >= 5 ? 'success' : 'warning'} animDelay={560} />
         </div>
       </section>
 
@@ -227,6 +231,8 @@ export default function MetaAdsOverviewTab({ aggregates, hasData }: Props) {
                     ['impressions', 'Impressoes'],
                     ['clicks', 'Clicks'],
                     ['ctr', 'CTR'],
+                    ['hook_rate', 'Hook Rate'],
+                    ['connect_rate', 'Connect Rate'],
                   ] as [SortColumn, string][]).map(([col, title]) => (
                     <th
                       key={col}
@@ -266,6 +272,8 @@ export default function MetaAdsOverviewTab({ aggregates, hasData }: Props) {
                       <td className="px-3 py-2.5 font-mono text-xs">{formatNumber(c.impressions)}</td>
                       <td className="px-3 py-2.5 font-mono text-xs">{formatNumber(c.clicks)}</td>
                       <td className="px-3 py-2.5 font-mono text-xs">{formatPercent(c.ctr)}</td>
+                      <td className="px-3 py-2.5 font-mono text-xs">{c.impressions > 0 ? formatPercent(c.hook_rate) : '--'}</td>
+                      <td className="px-3 py-2.5 font-mono text-xs">{c.video_views > 0 ? formatPercent(c.connect_rate) : '--'}</td>
                     </tr>
                   );
                 })}

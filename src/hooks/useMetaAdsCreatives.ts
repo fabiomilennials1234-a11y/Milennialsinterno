@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { extractVideoViews } from './useMetaAdsInsights';
 
 export interface CreativeRow {
   ad_id: string;
@@ -13,6 +14,9 @@ export interface CreativeRow {
   cpc: number;
   leads: number;
   cpl: number;
+  video_views: number;
+  hook_rate: number;
+  connect_rate: number;
 }
 
 export function useMetaAdsCreatives(params: {
@@ -27,7 +31,7 @@ export function useMetaAdsCreatives(params: {
     queryFn: async (): Promise<CreativeRow[]> => {
       let q = supabase
         .from('meta_ads_insights')
-        .select('ad_id, ad_name, campaign_name, creative_thumbnail_url, spend, impressions, clicks, ctr, cpc, leads')
+        .select('ad_id, ad_name, campaign_name, creative_thumbnail_url, spend, impressions, clicks, ctr, cpc, leads, actions_raw')
         .not('ad_id', 'is', null)
         .gte('date_start', dateFrom)
         .lte('date_start', dateTo);
@@ -48,16 +52,19 @@ export function useMetaAdsCreatives(params: {
         impressions: number;
         clicks: number;
         leads: number;
+        video_views: number;
       }>();
 
       for (const row of data ?? []) {
         if (!row.ad_id) continue;
+        const rowVideoViews = extractVideoViews(row.actions_raw);
         const existing = map.get(row.ad_id);
         if (existing) {
           existing.spend += row.spend;
           existing.impressions += row.impressions;
           existing.clicks += row.clicks;
           existing.leads += row.leads;
+          existing.video_views += rowVideoViews;
           // Keep latest thumbnail
           if (row.creative_thumbnail_url) {
             existing.creative_thumbnail_url = row.creative_thumbnail_url;
@@ -71,6 +78,7 @@ export function useMetaAdsCreatives(params: {
             impressions: row.impressions,
             clicks: row.clicks,
             leads: row.leads,
+            video_views: rowVideoViews,
           });
         }
       }
@@ -87,6 +95,9 @@ export function useMetaAdsCreatives(params: {
         cpc: c.clicks > 0 ? c.spend / c.clicks : 0,
         leads: c.leads,
         cpl: c.leads > 0 ? c.spend / c.leads : 0,
+        video_views: c.video_views,
+        hook_rate: c.impressions > 0 ? (c.video_views / c.impressions) * 100 : 0,
+        connect_rate: c.video_views > 0 ? (c.clicks / c.video_views) * 100 : 0,
       }));
     },
     staleTime: 60_000,
