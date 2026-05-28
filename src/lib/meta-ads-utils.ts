@@ -15,12 +15,50 @@ function formatDate(date: Date): string {
   return date.toISOString().split('T')[0];
 }
 
-export function buildDateRange(isBackfill: boolean): { since: string; until: string } {
+export type SyncMode = 'leads' | 'insights' | 'full' | 'backfill';
+
+const SYNC_DAYS: Record<SyncMode, number> = {
+  leads: 2,
+  insights: 2,
+  full: 7,
+  backfill: 90,
+};
+
+export function buildDateRange(mode: SyncMode): { since: string; until: string } {
   const now = new Date();
   const until = formatDate(now);
   const since = new Date(now);
-  since.setDate(since.getDate() - (isBackfill ? 90 : 7));
+  since.setDate(since.getDate() - SYNC_DAYS[mode]);
   return { since: formatDate(since), until };
+}
+
+export interface DatePreset {
+  label: string;
+  value: { since: string; until: string };
+}
+
+export function getDatePresets(): DatePreset[] {
+  const now = new Date();
+  const today = formatDate(now);
+
+  const daysAgo = (n: number) => {
+    const d = new Date(now);
+    d.setDate(d.getDate() - n);
+    return formatDate(d);
+  };
+
+  const monthStart = formatDate(new Date(now.getFullYear(), now.getMonth(), 1));
+
+  const prevMonthStart = formatDate(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+  const prevMonthEnd = formatDate(new Date(now.getFullYear(), now.getMonth(), 0));
+
+  return [
+    { label: 'Hoje', value: { since: today, until: today } },
+    { label: 'Últimos 7 dias', value: { since: daysAgo(7), until: today } },
+    { label: 'Últimos 30 dias', value: { since: daysAgo(30), until: today } },
+    { label: 'Mês atual', value: { since: monthStart, until: today } },
+    { label: 'Mês anterior', value: { since: prevMonthStart, until: prevMonthEnd } },
+  ];
 }
 
 export interface RawMetaInsight {

@@ -3,14 +3,18 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.2";
 import { corsHeaders } from "../_shared/cors.ts";
 
 // ============================================================
-// Edge Function: sync-meta-ads (v2)
+// Edge Function: sync-meta-ads (v3)
 //
 // Fetches campaign-level + ad-level insights + leads from Meta
 // Marketing API and upserts into meta_ads_insights / meta_leads.
 //
-// Supports:
-//   - backfill=true  -> last 90 days
-//   - backfill=false -> last 7 days (default, used by hourly cron)
+// Supports sync modes:
+//   - mode='leads'    -> pages/forms/leads only, last 2 days (cron: */5 min)
+//   - mode='insights' -> campaign + ad insights + thumbnails, last 2 days (cron: */30 min)
+//   - mode='full'     -> everything, last 7 days (cron: daily 3AM BRT)
+//   - mode='backfill' -> everything, last 90 days (manual only)
+//
+// Backward compat: backfill=true (no mode) maps to 'backfill'.
 //
 // Auth:
 //   - source='cron' -> no JWT check (called via pg_net with anon key)
@@ -113,7 +117,16 @@ interface MetaLeadRow {
   fetched_at: string;
 }
 
-// ---------- Utils (duplicated from src/lib/meta-ads-utils.ts) ----------
+// ---------- Utils (duplicated from src/lib/meta-ads-utils.ts — Deno boundary) ----------
+
+type SyncMode = "leads" | "insights" | "full" | "backfill";
+
+const SYNC_DAYS: Record<SyncMode, number> = {
+  leads: 2,
+  insights: 2,
+  full: 7,
+  backfill: 90,
+};
 
 function parseMetaActions(actions: MetaAction[]): { leads: number; conversions: number } {
   const leads = Number(actions.find(a => a.action_type === "lead")?.value ?? 0);
@@ -127,11 +140,11 @@ function formatDate(date: Date): string {
   return date.toISOString().split("T")[0];
 }
 
-function buildDateRange(isBackfill: boolean): { since: string; until: string } {
+function buildDateRange(mode: SyncMode): { since: string; until: string } {
   const now = new Date();
   const until = formatDate(now);
   const since = new Date(now);
-  since.setDate(since.getDate() - (isBackfill ? 90 : 7));
+  since.setDate(since.getDate() - SYNC_DAYS[mode]);
   return { since: formatDate(since), until };
 }
 
@@ -454,7 +467,20 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body = await req.json().catch(() => ({}));
-    const { backfill = false, source } = body as { backfill?: boolean; source?: string };
+    const { backfill = false, source, mode: rawMode } = body as {
+      backfill?: boolean;
+      source?: string;
+      mode?: string;
+    };
+
+    // Resolve sync mode: explicit mode takes precedence, then backfill compat
+    const validModes: SyncMode[] = ["leads", "insights", "full", "backfill"];
+    const mode: SyncMode =
+      rawMode && validModes.includes(rawMode as SyncMode)
+        ? (rawMode as SyncMode)
+        : backfill
+          ? "backfill"
+          : "full";
 
     // ---------- Auth ----------
     if (source !== "cron") {
@@ -511,8 +537,10 @@ serve(async (req) => {
     }
 
     // ---------- Determine date range ----------
-    const { since, until } = buildDateRange(backfill);
-    console.log(`[SyncMetaAds] Syncing ${accounts.length} accounts, range ${since}->${until}, backfill=${backfill}`);
+    const { since, until } = buildDateRange(mode);
+    const doInsights = mode !== "leads";
+    const doLeads = mode !== "insights";
+    console.log(`[SyncMetaAds] Syncing ${accounts.length} accounts, range ${since}->${until}, mode=${mode}`);
 
     // ---------- Process each account ----------
     let totalCampaignRows = 0;
@@ -522,10 +550,10 @@ serve(async (req) => {
 
     for (const account of accounts) {
       const acctLabel = `${account.account_name} (${account.account_id})`;
-      console.log(`[SyncMetaAds] Processing ${acctLabel}...`);
+      console.log(`[SyncMetaAds] Processing ${acctLabel} (mode=${mode})...`);
 
-      // === Campaign-level ===
-      try {
+      // === Campaign-level (skip in leads-only mode) ===
+      if (doInsights) try {
         const { rows, error } = await fetchCampaignInsights(
           account.account_id,
           metaAccessToken,
@@ -558,8 +586,8 @@ serve(async (req) => {
         errors.push(msg);
       }
 
-      // === Ad-level (fail-open) ===
-      try {
+      // === Ad-level (fail-open, skip in leads-only mode) ===
+      if (doInsights) try {
         const { rows: adRows, error: adError } = await fetchAdLevelInsights(
           account.account_id,
           metaAccessToken,
@@ -593,8 +621,8 @@ serve(async (req) => {
 
     }
 
-    // === Leads via Page Access Tokens (fail-open, separate from ad accounts) ===
-    try {
+    // === Leads via Page Access Tokens (fail-open, skip in insights-only mode) ===
+    if (doLeads) try {
       const { pages, error: pagesError } = await fetchPages(metaAccessToken);
 
       if (pagesError) errors.push(`Pages: ${pagesError}`);
@@ -665,7 +693,7 @@ serve(async (req) => {
       errors.push(msg);
     }
 
-    console.log(`[SyncMetaAds] Complete — campaigns=${totalCampaignRows}, ads=${totalAdRows}, leads=${totalLeadRows}, errors=${errors.length}`);
+    console.log(`[SyncMetaAds] Complete — mode=${mode}, campaigns=${totalCampaignRows}, ads=${totalAdRows}, leads=${totalLeadRows}, errors=${errors.length}`);
 
     return new Response(
       JSON.stringify({
@@ -677,7 +705,7 @@ serve(async (req) => {
         errors,
         accounts_processed: accounts.length,
         date_range: { since, until },
-        backfill,
+        mode,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

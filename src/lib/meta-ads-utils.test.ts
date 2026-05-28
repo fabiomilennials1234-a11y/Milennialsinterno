@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { parseMetaActions, buildDateRange, transformInsightRow, parseLeadFieldData, transformAdLevelInsightRow, computeSalesMetrics } from './meta-ads-utils';
+import { parseMetaActions, buildDateRange, transformInsightRow, parseLeadFieldData, transformAdLevelInsightRow, computeSalesMetrics, getDatePresets } from './meta-ads-utils';
 
 describe('parseMetaActions', () => {
   it('returns zeros for empty array', () => {
@@ -51,14 +51,54 @@ describe('buildDateRange', () => {
     vi.useRealTimers();
   });
 
-  it('returns 90-day range for backfill', () => {
-    const range = buildDateRange(true);
+  it('returns 90-day range for backfill mode', () => {
+    const range = buildDateRange('backfill');
     expect(range).toEqual({ since: '2026-02-27', until: '2026-05-28' });
   });
 
-  it('returns 7-day range for regular sync', () => {
-    const range = buildDateRange(false);
+  it('returns 7-day range for full mode', () => {
+    const range = buildDateRange('full');
     expect(range).toEqual({ since: '2026-05-21', until: '2026-05-28' });
+  });
+
+  it('returns 48h range for leads mode', () => {
+    const range = buildDateRange('leads');
+    expect(range).toEqual({ since: '2026-05-26', until: '2026-05-28' });
+  });
+
+  it('returns 48h range for insights mode', () => {
+    const range = buildDateRange('insights');
+    expect(range).toEqual({ since: '2026-05-26', until: '2026-05-28' });
+  });
+});
+
+describe('getDatePresets', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-05-28'));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('returns 5 presets with correct date ranges', () => {
+    const presets = getDatePresets();
+
+    expect(presets).toHaveLength(5);
+    expect(presets.map(p => p.label)).toEqual([
+      'Hoje',
+      'Últimos 7 dias',
+      'Últimos 30 dias',
+      'Mês atual',
+      'Mês anterior',
+    ]);
+
+    expect(presets[0].value).toEqual({ since: '2026-05-28', until: '2026-05-28' });
+    expect(presets[1].value).toEqual({ since: '2026-05-21', until: '2026-05-28' });
+    expect(presets[2].value).toEqual({ since: '2026-04-28', until: '2026-05-28' });
+    expect(presets[3].value).toEqual({ since: '2026-05-01', until: '2026-05-28' });
+    expect(presets[4].value).toEqual({ since: '2026-04-01', until: '2026-04-30' });
   });
 });
 

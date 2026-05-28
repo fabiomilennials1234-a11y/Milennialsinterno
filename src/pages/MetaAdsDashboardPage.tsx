@@ -2,8 +2,9 @@ import { useState, useMemo, useCallback } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import MainLayout from '@/layouts/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
-import { format, startOfMonth, endOfMonth, subMonths, subDays } from 'date-fns';
+import { format, subDays, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import type { DateRange } from 'react-day-picker';
 import {
   Select,
   SelectContent,
@@ -11,8 +12,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import {
   BarChart3,
+  CalendarDays,
   Loader2,
   RefreshCw,
   AlertTriangle,
@@ -23,34 +27,19 @@ import { Button } from '@/components/ui/button';
 import { useMetaAdsInsights } from '@/hooks/useMetaAdsInsights';
 import { useMetaAdsAccounts } from '@/hooks/useMetaAdsAccounts';
 import { useMetaAdsSync } from '@/hooks/useMetaAdsSync';
+import { getDatePresets } from '@/lib/meta-ads-utils';
 import MetaAdsOverviewTab from './meta-ads/MetaAdsOverviewTab';
 import MetaAdsLeadsTab from './meta-ads/MetaAdsLeadsTab';
 import MetaAdsSalesTab from './meta-ads/MetaAdsSalesTab';
 import MetaAdsCreativesTab from './meta-ads/MetaAdsCreativesTab';
 
-// ---------- Period presets ----------
+// ---------- Helpers ----------
 
-type PeriodKey = 'today' | '7d' | '30d' | 'month' | 'prev_month';
-
-function getDateRange(key: PeriodKey): { dateFrom: string; dateTo: string; label: string } {
-  const now = new Date();
-  const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
-
-  switch (key) {
-    case 'today':
-      return { dateFrom: fmt(now), dateTo: fmt(now), label: 'Hoje' };
-    case '7d':
-      return { dateFrom: fmt(subDays(now, 6)), dateTo: fmt(now), label: 'Ultimos 7 dias' };
-    case '30d':
-      return { dateFrom: fmt(subDays(now, 29)), dateTo: fmt(now), label: 'Ultimos 30 dias' };
-    case 'month':
-      return { dateFrom: fmt(startOfMonth(now)), dateTo: fmt(now), label: format(now, "MMMM 'de' yyyy", { locale: ptBR }) };
-    case 'prev_month': {
-      const prev = subMonths(now, 1);
-      return { dateFrom: fmt(startOfMonth(prev)), dateTo: fmt(endOfMonth(prev)), label: format(prev, "MMMM 'de' yyyy", { locale: ptBR }) };
-    }
-  }
-}
+const fmtDate = (d: Date) => format(d, 'yyyy-MM-dd');
+const fmtDisplay = (iso: string) => {
+  const d = parse(iso, 'yyyy-MM-dd', new Date());
+  return format(d, 'dd/MM', { locale: ptBR });
+};
 
 // ---------- Relative time ----------
 
@@ -86,8 +75,38 @@ const TABS: { key: TabKey; label: string }[] = [
 export default function MetaAdsDashboardPage() {
   const { isCEO } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [periodKey, setPeriodKey] = useState<PeriodKey>('30d');
   const [accountFilter, setAccountFilter] = useState('all');
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [presetLabel, setPresetLabel] = useState('Ultimos 30 dias');
+
+  // Date range state — default last 30 days
+  const [dateFrom, setDateFrom] = useState(() => fmtDate(subDays(new Date(), 29)));
+  const [dateTo, setDateTo] = useState(() => fmtDate(new Date()));
+
+  // Convert string dates to Date objects for Calendar
+  const calendarRange: DateRange = useMemo(() => ({
+    from: parse(dateFrom, 'yyyy-MM-dd', new Date()),
+    to: parse(dateTo, 'yyyy-MM-dd', new Date()),
+  }), [dateFrom, dateTo]);
+
+  const handleRangeSelect = useCallback((range: DateRange | undefined) => {
+    if (!range?.from) return;
+    setDateFrom(fmtDate(range.from));
+    if (range.to) {
+      setDateTo(fmtDate(range.to));
+      setPresetLabel(`${fmtDisplay(fmtDate(range.from))} - ${fmtDisplay(fmtDate(range.to))}`);
+      setPickerOpen(false);
+    }
+  }, []);
+
+  const presets = useMemo(() => getDatePresets(), []);
+
+  const handlePreset = useCallback((label: string, since: string, until: string) => {
+    setDateFrom(since);
+    setDateTo(until);
+    setPresetLabel(label);
+    setPickerOpen(false);
+  }, []);
 
   // Tab from URL or default
   const activeTab = (searchParams.get('tab') as TabKey) || 'overview';
@@ -103,7 +122,6 @@ export default function MetaAdsDashboardPage() {
     }, { replace: true });
   }, [setSearchParams]);
 
-  const { dateFrom, dateTo, label: periodLabel } = useMemo(() => getDateRange(periodKey), [periodKey]);
   const { data: accounts = [] } = useMetaAdsAccounts();
   const { data: insights, isLoading, aggregates } = useMetaAdsInsights({ dateFrom, dateTo, accountId: accountFilter });
   const { sync, isSyncing, canSync, cooldownRemaining, syncError } = useMetaAdsSync();
@@ -139,24 +157,50 @@ export default function MetaAdsDashboardPage() {
               <h1 className="font-display text-xl md:text-2xl font-bold uppercase tracking-wide text-foreground">
                 Meta Ads
               </h1>
-              <p className="text-muted-foreground text-xs md:text-sm">{periodLabel}</p>
+              <p className="text-muted-foreground text-xs md:text-sm">{presetLabel}</p>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {/* Period filter */}
-            <Select value={periodKey} onValueChange={(v) => setPeriodKey(v as PeriodKey)}>
-              <SelectTrigger className="w-[170px]">
-                <SelectValue placeholder="Periodo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="today">Hoje</SelectItem>
-                <SelectItem value="7d">Ultimos 7 dias</SelectItem>
-                <SelectItem value="30d">Ultimos 30 dias</SelectItem>
-                <SelectItem value="month">Mes atual</SelectItem>
-                <SelectItem value="prev_month">Mes anterior</SelectItem>
-              </SelectContent>
-            </Select>
+            {/* Date range picker */}
+            <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5 min-w-[170px] justify-start font-normal">
+                  <CalendarDays size={14} className="text-muted-foreground" />
+                  <span className="truncate">{presetLabel}</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <div className="flex">
+                  {/* Preset sidebar */}
+                  <div className="flex flex-col gap-0.5 border-r border-border/50 p-2 min-w-[130px]">
+                    {presets.map(p => (
+                      <button
+                        key={p.label}
+                        onClick={() => handlePreset(p.label, p.value.since, p.value.until)}
+                        className={cn(
+                          'text-left text-xs px-2.5 py-1.5 rounded-md transition-colors whitespace-nowrap',
+                          p.label === presetLabel
+                            ? 'bg-primary text-primary-foreground'
+                            : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                        )}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                  {/* Calendar */}
+                  <Calendar
+                    mode="range"
+                    selected={calendarRange}
+                    onSelect={handleRangeSelect}
+                    numberOfMonths={2}
+                    locale={ptBR}
+                    disabled={{ after: new Date() }}
+                  />
+                </div>
+              </PopoverContent>
+            </Popover>
 
             {/* Account filter */}
             <Select value={accountFilter} onValueChange={setAccountFilter}>
@@ -177,7 +221,7 @@ export default function MetaAdsDashboardPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => sync({ backfill: false })}
+              onClick={() => sync({ mode: 'full' })}
               disabled={!canSync}
               className="gap-1.5"
             >
@@ -273,7 +317,7 @@ export default function MetaAdsDashboardPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => sync({ backfill: true })}
+              onClick={() => sync({ mode: 'backfill' })}
               disabled={!canSync}
               className="gap-1.5"
             >

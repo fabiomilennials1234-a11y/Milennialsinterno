@@ -33,7 +33,7 @@ export function useMetaAdsSync() {
 
   const canSync = cooldownRemaining === 0 && !isSyncing;
 
-  const sync = useCallback(async (opts?: { backfill?: boolean }) => {
+  const sync = useCallback(async (opts?: { mode?: 'leads' | 'insights' | 'full' | 'backfill' }) => {
     if (!canSync) return;
 
     setIsSyncing(true);
@@ -41,7 +41,7 @@ export function useMetaAdsSync() {
 
     try {
       const { data, error } = await supabase.functions.invoke('sync-meta-ads', {
-        body: { backfill: opts?.backfill ?? false },
+        body: { mode: opts?.mode ?? 'full' },
       });
 
       if (error) {
