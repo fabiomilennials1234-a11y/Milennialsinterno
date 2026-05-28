@@ -141,7 +141,7 @@ async function createTCCycleStartTask(
       .eq('user_id', gp.userId)
       .eq('related_client_id', clientId)
       .eq('department', 'gestor_projetos')
-      .ilike('title', 'Alinhar horários com o treinador comercial%')
+      .ilike('title', 'Marcar reunião de alinhamento comercial com%')
       .in('status', ['todo', 'doing'])
       .limit(1);
 
@@ -149,7 +149,7 @@ async function createTCCycleStartTask(
 
     await supabase.from('department_tasks').insert({
       user_id: gp.userId,
-      title: `Alinhar horários com o treinador comercial ${tcName} para alinhamento ${clientName}`,
+      title: `Marcar reunião de alinhamento comercial com ${clientName}`,
       description: JSON.stringify({ type: 'tc_cross_kanban_alignment', trigger: 'tc_monthly_cycle' }),
       task_type: 'daily',
       status: 'todo',
