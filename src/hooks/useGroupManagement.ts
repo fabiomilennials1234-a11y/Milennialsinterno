@@ -164,6 +164,13 @@ export function useCreateGroup() {
 
       const nextPosition = (groups?.[0]?.position || 0) + 1;
 
+      // Resolve default product_category (Millennials Growth)
+      const { data: defaultCategory } = await supabase
+        .from('product_categories')
+        .select('id')
+        .eq('slug', 'millennials-growth')
+        .single();
+
       // Insert group
       const { data: newGroup, error: groupError } = await supabase
         .from('organization_groups')
@@ -172,7 +179,8 @@ export function useCreateGroup() {
           slug,
           description: data.description || null,
           position: nextPosition,
-        })
+          product_category_id: defaultCategory?.id || null,
+        } as any)
         .select('id, name, slug, description, position')
         .single();
 
@@ -196,12 +204,11 @@ export function useCreateGroup() {
       return newGroup;
     },
     onSuccess: async () => {
-      // Await all invalidations to ensure the UI reflects the new state
-      // before the mutation promise resolves.
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['groups-with-occupancy'] }),
         queryClient.invalidateQueries({ queryKey: ['organization-groups'] }),
         queryClient.invalidateQueries({ queryKey: ['registration-groups'] }),
+        queryClient.invalidateQueries({ queryKey: ['product-categories'] }),
       ]);
     },
   });
