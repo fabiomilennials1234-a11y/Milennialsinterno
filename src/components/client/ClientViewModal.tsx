@@ -18,7 +18,6 @@ import { NICHE_OPTIONS } from '@/lib/nicheOptions';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -435,7 +434,7 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
         ) : (
-          <ScrollArea className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 overflow-y-auto">
             <div className="px-6 py-4 space-y-6">
               {/* Limite de criativos mensal */}
               <ClientCreativesLimit clientId={clientId} className="px-1" />
@@ -767,7 +766,7 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
                 />
               )}
             </div>
-          </ScrollArea>
+          </div>
         )}
       </DialogContent>
     </Dialog>
