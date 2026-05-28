@@ -254,7 +254,7 @@ export function useCrmStepValidation(configId: string | undefined, produto: CrmP
       if (result?.finalized) {
         toast.success('CRM finalizado!');
 
-        // Growth cross-kanban: dismiss "Esperar TORQUE%" tags when CRM finalizes
+        // Growth cross-kanban: dismiss "Torque em producao%" tags when CRM finalizes
         if (configState?.client_id) {
           (async () => {
             const { data: client } = await supabase

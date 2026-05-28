@@ -17,10 +17,10 @@ export function isGrowthClient(client: { contracted_products?: string[] | null }
 }
 
 /**
- * Called when ADS completes `publicar_campanha` for a Growth client.
+ * Called when ADS completes `realizar_apresentacao_estrategia` for a Growth client.
  * - Dismisses TORQUE BLOQUEADO tag
  * - Sets growth_torque_unblocked_at
- * - Creates "Esperar TORQUE [Name]" label in ADS
+ * - Creates "Torque em producao [Name]" tag
  * - Creates 2 GP auto-tasks (Brifar CRM)
  */
 export async function callGrowthOnAdsPublicarCampanha(clientId: string): Promise<void> {
@@ -57,7 +57,7 @@ export async function callGrowthOnAdsDailyTracking(clientId: string): Promise<vo
 
 /**
  * Called when CRM configuration is finalized for a Growth client.
- * Dismisses all "Esperar TORQUE%" tags from growth_ads_publicar source.
+ * Dismisses all "Torque em producao%" tags from growth_ads_apresentar_estrategia source.
  */
 export async function callGrowthOnCrmFinalizado(clientId: string): Promise<void> {
   try {

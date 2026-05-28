@@ -358,8 +358,7 @@ export function useCompleteOnboardingTaskWithAutomation() {
           const dayName = (result as any).dayOfWeek || 'hoje';
           toast.success(`Onboarding concluído! Cliente movido para Acompanhamento - ${dayName.charAt(0).toUpperCase() + dayName.slice(1)}.`);
 
-          // Growth cross-kanban: fire RPCs for Growth clients on publicar_campanha
-          // Fire-and-forget — primary flow must not fail because of Growth side-effects
+          // Growth cross-kanban: daily tracking fires on publicar_campanha (onboarding complete)
           if (variables.taskType === 'publicar_campanha') {
             (async () => {
               const { data: client } = await supabase
@@ -368,13 +367,27 @@ export function useCompleteOnboardingTaskWithAutomation() {
                 .eq('id', variables.clientId)
                 .single();
               if (client && isGrowthClient(client as { contracted_products?: string[] | null })) {
-                await callGrowthOnAdsPublicarCampanha(variables.clientId);
                 await callGrowthOnAdsDailyTracking(variables.clientId);
               }
             })();
           }
         } else {
           toast.success(`Tarefa concluída! Cliente avançou para Marco ${result.nextMilestone}.`);
+
+          // Growth cross-kanban: fire tag + Brifar CRM on realizar_apresentacao_estrategia
+          // Fire-and-forget — primary flow must not fail because of Growth side-effects
+          if (variables.taskType === 'realizar_apresentacao_estrategia') {
+            (async () => {
+              const { data: client } = await supabase
+                .from('clients')
+                .select('contracted_products')
+                .eq('id', variables.clientId)
+                .single();
+              if (client && isGrowthClient(client as { contracted_products?: string[] | null })) {
+                await callGrowthOnAdsPublicarCampanha(variables.clientId);
+              }
+            })();
+          }
         }
       }
     },
