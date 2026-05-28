@@ -358,7 +358,7 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[90vh] p-0 flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[90vh] p-0 flex flex-col overflow-hidden">
         <DialogHeader className="px-6 py-4 border-b border-border shrink-0">
           {/* Overdue Invoice Alert Banner */}
           <OverdueInvoiceBadge 
@@ -435,7 +435,7 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
         ) : (
-          <ScrollArea className="flex-1 overflow-y-auto">
+          <ScrollArea className="flex-1 min-h-0">
             <div className="px-6 py-4 space-y-6">
               {/* Limite de criativos mensal */}
               <ClientCreativesLimit clientId={clientId} className="px-1" />
