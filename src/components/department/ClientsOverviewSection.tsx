@@ -5,6 +5,7 @@ import OverdueInvoiceBadge from '@/components/shared/OverdueInvoiceBadge';
 import ContractStatusBadge from '@/components/shared/ContractStatusBadge';
 import ClientLabelBadge from '@/components/shared/ClientLabelBadge';
 import ClientLabelSelector from '@/components/shared/ClientLabelSelector';
+import { isCampaignPublished } from '@/lib/clientStatus';
 
 interface ClientsOverviewSectionProps {
   clients: DepartmentClient[];
@@ -29,7 +30,7 @@ export default function ClientsOverviewSection({
 
   const activeClients = clients.filter(c => !c.archived && c.status !== 'churned');
   const onboardingClients = clients.filter(c => c.status === 'onboarding');
-  const publishedClients = clients.filter(c => c.status === 'campaign_published');
+  const publishedClients = clients.filter(isCampaignPublished);
   const newClients = clients.filter(c => c.status === 'new_client');
 
   const stats = [

@@ -57,6 +57,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { deriveRestoredStatus, type RestoredClientStatus } from '@/lib/clientStatus';
 import { format, startOfMonth, endOfMonth, parseISO, isSameMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -565,12 +566,7 @@ export default function ClientListPage() {
   const handleRestoreClient = async (client: ClientWithSales) => {
     setIsUpdatingStatus(true);
     try {
-      let newStatus = 'new_client';
-      if (client.campaign_published_at) {
-        newStatus = 'campaign_published';
-      } else if (client.onboarding_started_at) {
-        newStatus = 'onboarding';
-      }
+      const newStatus = deriveRestoredStatus(client);
 
       const { error } = await supabase
         .from('clients')
@@ -592,10 +588,10 @@ export default function ClientListPage() {
         .eq('client_id', client.id)
         .eq('archived', false);
 
-      const statusLabels: Record<string, string> = {
+      const statusLabels: Record<RestoredClientStatus, string> = {
         'new_client': 'Novo Cliente',
         'onboarding': 'Onboarding',
-        'campaign_published': 'Campanha Publicada'
+        'active': 'Ativo'
       };
 
       toast.success('Cliente restaurado', {
