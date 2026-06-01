@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.2";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.2";
 import { corsHeaders } from "../_shared/cors.ts";
 
 // ============================================================
@@ -34,6 +34,15 @@ const AD_FIELDS = "campaign_id,campaign_name,adset_id,adset_name,ad_id,ad_name,s
 const ACTION_BREAKDOWNS = "action_type";
 const BATCH_SIZE = 200;
 const MAX_PAGES = 100;
+
+// Supabase edge functions have a wall-clock ceiling (~150s default). In
+// backfill mode the universe of distinct ads can be large, so thumbnail
+// enrichment runs under a time budget: it starts only while there's at least
+// THUMBNAIL_DEADLINE_MARGIN_MS left, and stops mid-flight when the deadline
+// passes. Insights are persisted BEFORE enrichment, so skipping thumbnails
+// never loses data — the next cron cycle picks up whatever is still missing.
+const EDGE_WALL_CLOCK_BUDGET_MS = 150_000;
+const THUMBNAIL_DEADLINE_MARGIN_MS = 20_000;
 
 // ---------- Types (duplicated from src/lib/meta-ads-utils.ts — Deno boundary) ----------
 
@@ -323,20 +332,44 @@ async function fetchAdLevelInsights(
     url = data.paging?.next || null;
   }
 
-  // Dedupe ad_ids for thumbnail fetching
-  const uniqueAdIds = [...new Set(allRaw.map(r => r.ad_id).filter(Boolean))] as string[];
-  const thumbnailMap = new Map<string, string>();
+  // Thumbnails are fetched in a separate enrichment step (see
+  // enrichMissingThumbnails) so the thumbnail loop can never block — or be
+  // truncated by — persistence of the insights themselves. Rows are returned
+  // with creative_thumbnail_url = null; enrichment fills only what's missing.
+  const rows = allRaw.map(raw => transformAdLevelInsightRow(raw, accountId));
 
-  // Fetch thumbnails in parallel batches of 10
-  for (let i = 0; i < uniqueAdIds.length; i += 10) {
-    const batch = uniqueAdIds.slice(i, i + 10);
+  return { rows };
+}
+
+// ---------- Meta API: Thumbnail enrichment (decoupled from insights path) ----------
+
+/**
+ * Fetch creative thumbnails ONLY for the given ad_ids (already filtered to
+ * those missing a thumbnail in the DB), in parallel batches of 10 with a 10s
+ * per-request timeout. Returns a map of ad_id -> thumbnail_url for the ones
+ * that resolved. `deadline` (epoch ms) bounds wall-clock time: when exceeded,
+ * the loop stops early and returns whatever was gathered so far. Insights are
+ * already persisted by the time this runs, so a partial result is safe.
+ */
+async function fetchThumbnailsForAdIds(
+  adIds: string[],
+  accessToken: string,
+  deadline?: number,
+): Promise<{ map: Map<string, string>; truncated: boolean }> {
+  const map = new Map<string, string>();
+
+  for (let i = 0; i < adIds.length; i += 10) {
+    if (deadline !== undefined && Date.now() >= deadline) {
+      return { map, truncated: true };
+    }
+
+    const batch = adIds.slice(i, i + 10);
     const results = await Promise.allSettled(
       batch.map(async (adId) => {
         const thumb = await fetchCreativeThumbnail(adId, accessToken);
-        if (thumb) thumbnailMap.set(adId, thumb);
-      })
+        if (thumb) map.set(adId, thumb);
+      }),
     );
-    // Log failures but continue
     for (const r of results) {
       if (r.status === "rejected") {
         console.warn(`[SyncMetaAds] Thumbnail fetch failed:`, r.reason);
@@ -344,11 +377,7 @@ async function fetchAdLevelInsights(
     }
   }
 
-  const rows = allRaw.map(raw =>
-    transformAdLevelInsightRow(raw, accountId, raw.ad_id ? thumbnailMap.get(raw.ad_id) : undefined)
-  );
-
-  return { rows };
+  return { map, truncated: false };
 }
 
 // ---------- Meta API: Pages (for Lead Ads) ----------
@@ -481,12 +510,66 @@ async function fetchLeadsForForm(
   return { rows: allRows };
 }
 
+// ---------- Thumbnail enrichment: persist missing thumbnails ----------
+
+/**
+ * For a single account: find ad_ids that currently have NO thumbnail in the
+ * DB, fetch thumbnails for only those, and write them back. Runs AFTER
+ * insights are persisted and is bounded by `deadline` (epoch ms, optional) so
+ * it can never delay or truncate insight persistence. Returns a small summary
+ * for logging. Errors are caught by the caller (fail-open).
+ */
+async function enrichMissingThumbnails(
+  supabase: SupabaseClient,
+  accountId: string,
+  accessToken: string,
+  deadline?: number,
+): Promise<{ updated: number; missing: number; truncated: boolean }> {
+  const { data, error } = await supabase
+    .from("meta_ads_insights")
+    .select("ad_id")
+    .eq("ad_account_id", accountId)
+    .not("ad_id", "is", null)
+    .is("creative_thumbnail_url", null);
+
+  if (error) {
+    throw new Error(`thumbnail query: ${error.message}`);
+  }
+
+  const missingAdIds = [...new Set((data ?? []).map((r) => r.ad_id as string))];
+  if (missingAdIds.length === 0) {
+    return { updated: 0, missing: 0, truncated: false };
+  }
+
+  const { map, truncated } = await fetchThumbnailsForAdIds(missingAdIds, accessToken, deadline);
+
+  let updated = 0;
+  for (const [adId, thumb] of map) {
+    const { error: updErr } = await supabase
+      .from("meta_ads_insights")
+      .update({ creative_thumbnail_url: thumb })
+      .eq("ad_account_id", accountId)
+      .eq("ad_id", adId)
+      .is("creative_thumbnail_url", null);
+
+    if (updErr) {
+      console.warn(`[SyncMetaAds] Thumbnail update failed for ad ${adId}:`, updErr.message);
+    } else {
+      updated++;
+    }
+  }
+
+  return { updated, missing: missingAdIds.length, truncated };
+}
+
 // ---------- Main Handler ----------
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const startedAt = Date.now();
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -575,10 +658,19 @@ serve(async (req) => {
     const doLeads = mode !== "insights";
     console.log(`[SyncMetaAds] Syncing ${accounts.length} accounts, range ${since}->${until}, mode=${mode}`);
 
+    // Thumbnail enrichment is time-bounded only in backfill (large ad universe,
+    // close to the wall-clock ceiling). Other modes have small daily windows and
+    // run enrichment unbounded.
+    const thumbnailDeadline =
+      mode === "backfill"
+        ? startedAt + EDGE_WALL_CLOCK_BUDGET_MS - THUMBNAIL_DEADLINE_MARGIN_MS
+        : undefined;
+
     // ---------- Process each account ----------
     let totalCampaignRows = 0;
     let totalAdRows = 0;
     let totalLeadRows = 0;
+    let totalThumbnailsUpdated = 0;
     const errors: string[] = [];
 
     for (const account of accounts) {
@@ -650,6 +742,29 @@ serve(async (req) => {
         const msg = `${acctLabel} ads: ${err instanceof Error ? err.message : "Unknown"}`;
         console.error(`[SyncMetaAds] ${msg}`);
         errors.push(msg);
+      }
+
+      // === Thumbnail enrichment (fail-open, runs AFTER insights persist) ===
+      // Cosmetic — never allowed to block or roll back insight persistence.
+      if (doInsights) {
+        if (thumbnailDeadline !== undefined && Date.now() >= thumbnailDeadline) {
+          console.log(`[SyncMetaAds] ${acctLabel}: skipping thumbnails (time budget exhausted) — insights already persisted`);
+        } else try {
+          const { updated, missing, truncated } = await enrichMissingThumbnails(
+            supabase,
+            account.account_id,
+            metaAccessToken,
+            thumbnailDeadline,
+          );
+          totalThumbnailsUpdated += updated;
+          if (missing > 0) {
+            console.log(`[SyncMetaAds] ${acctLabel}: thumbnails ${updated}/${missing} filled${truncated ? " (truncated by time budget)" : ""}`);
+          }
+        } catch (err) {
+          const msg = `${acctLabel} thumbnails: ${err instanceof Error ? err.message : "Unknown"}`;
+          console.warn(`[SyncMetaAds] ${msg}`);
+          errors.push(msg);
+        }
       }
 
     }
@@ -726,13 +841,14 @@ serve(async (req) => {
       errors.push(msg);
     }
 
-    console.log(`[SyncMetaAds] Complete — mode=${mode}, campaigns=${totalCampaignRows}, ads=${totalAdRows}, leads=${totalLeadRows}, errors=${errors.length}`);
+    console.log(`[SyncMetaAds] Complete — mode=${mode}, campaigns=${totalCampaignRows}, ads=${totalAdRows}, thumbnails=${totalThumbnailsUpdated}, leads=${totalLeadRows}, errors=${errors.length}, elapsed=${Date.now() - startedAt}ms`);
 
     return new Response(
       JSON.stringify({
         synced: {
           campaigns: totalCampaignRows,
           ads: totalAdRows,
+          thumbnails: totalThumbnailsUpdated,
           leads: totalLeadRows,
         },
         errors,
