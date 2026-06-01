@@ -12,7 +12,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMetaLeads } from '@/hooks/useMetaLeads';
-import { useMetaAdsInsights, type MetaAdsAggregates } from '@/hooks/useMetaAdsInsights';
+import { type MetaAdsAggregates } from '@/hooks/useMetaAdsInsights';
+import { useMetaAdsCreatives } from '@/hooks/useMetaAdsCreatives';
 import { parseLeadFieldData, type LeadFieldEntry } from '@/lib/meta-ads-utils';
 import { MetricCard, SectionHeader } from './shared-components';
 import { formatCurrency, formatNumber } from './format-utils';
@@ -36,46 +37,18 @@ export default function MetaAdsLeadsTab({ dateFrom, dateTo, accountId, aggregate
 
   const { data: leads = [], isLoading: leadsLoading } = useMetaLeads({ dateFrom, dateTo, accountId });
 
-  // Ad-level data for creative ranking
-  const { data: adInsights = [] } = useMetaAdsInsights({ dateFrom, dateTo, accountId });
+  // Ad-level data for creative ranking. useMetaAdsInsights now returns only
+  // campaign-level rows (to avoid double-counting), so per-creative metrics
+  // come from the dedicated ad-level hook.
+  const { data: creatives = [] } = useMetaAdsCreatives({ dateFrom, dateTo, accountId });
 
   // Creative ranking by leads
   const creativeRanking = useMemo(() => {
-    const map = new Map<string, {
-      ad_name: string;
-      creative_thumbnail_url: string | null;
-      leads: number;
-      spend: number;
-    }>();
-
-    for (const row of adInsights) {
-      const r = row as Record<string, unknown>;
-      const adId = r.ad_id as string | null;
-      if (!adId) continue;
-      const existing = map.get(adId);
-      if (existing) {
-        existing.leads += (r.leads as number) ?? 0;
-        existing.spend += (r.spend as number) ?? 0;
-      } else {
-        map.set(adId, {
-          ad_name: (r.ad_name as string) ?? adId,
-          creative_thumbnail_url: (r.creative_thumbnail_url as string) ?? null,
-          leads: (r.leads as number) ?? 0,
-          spend: (r.spend as number) ?? 0,
-        });
-      }
-    }
-
-    return Array.from(map.entries())
-      .map(([ad_id, c]) => ({
-        ad_id,
-        ...c,
-        cpl: c.leads > 0 ? c.spend / c.leads : 0,
-      }))
+    return creatives
       .filter(c => c.leads > 0)
       .sort((a, b) => b.leads - a.leads)
       .slice(0, 10);
-  }, [adInsights]);
+  }, [creatives]);
 
   // Campaign ranking by leads
   const campaignRanking = useMemo(() => {

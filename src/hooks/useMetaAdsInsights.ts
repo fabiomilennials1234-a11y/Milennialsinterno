@@ -93,7 +93,7 @@ export interface MetaAdsAggregates {
   latestFetchedAt: string | null;
 }
 
-function computeAggregates(rows: MetaAdsInsight[]): MetaAdsAggregates {
+export function computeAggregates(rows: MetaAdsInsight[]): MetaAdsAggregates {
   if (rows.length === 0) {
     return {
       totalSpend: 0,
@@ -251,9 +251,15 @@ export function useMetaAdsInsights(params: {
   const query = useQuery({
     queryKey: ['meta-ads-insights', dateFrom, dateTo, accountId],
     queryFn: async (): Promise<MetaAdsInsight[]> => {
+      // meta_ads_insights stores two granularities per campaign/day: one
+      // campaign-level row (ad_id IS NULL) and N ad-level rows that sum to the
+      // SAME totals. Aggregating both double-counts spend/leads/etc. The
+      // campaign-level row is the authoritative complete total (it even carries
+      // agendamentos that are missing from some ad-level rows), so restrict to it.
       let q = supabase
         .from('meta_ads_insights')
         .select('*')
+        .is('ad_id', null)
         .gte('date_start', dateFrom)
         .lte('date_start', dateTo)
         .order('date_start', { ascending: false });
