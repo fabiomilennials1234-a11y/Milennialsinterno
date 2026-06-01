@@ -7,6 +7,16 @@ vi.mock('@/hooks/useJustificativas', () => ({
   useJustificativasCount: vi.fn(),
 }));
 
+// Role outside CHURN_BADGE_ROLES so churn count stays 0 and badge value
+// equals the justificativas count under test.
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 'u1', role: 'gestor_projetos' } }),
+}));
+
+vi.mock('@/hooks/useChurnNotifications', () => ({
+  useChurnNotifications: () => ({ data: [] }),
+}));
+
 import { useJustificativasCount } from '@/hooks/useJustificativas';
 
 describe('SidebarBadge', () => {

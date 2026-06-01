@@ -12,8 +12,15 @@ vi.mock('@/hooks/useCrmDailyTasks', () => ({
   useCrmDailyTasks: vi.fn(),
 }));
 
+const mockCreateMutateAsync = vi.fn().mockResolvedValue(undefined);
+
 vi.mock('@/hooks/useDepartmentTasks', () => ({
   useUpdateDepartmentTaskStatus: () => ({ mutate: mockUpdateMutate }),
+  useCreateDepartmentTask: () => ({ mutateAsync: mockCreateMutateAsync, isPending: false }),
+  useArchiveDepartmentTask: () => ({ mutate: vi.fn(), isPending: false }),
+  useDeleteDepartmentTask: () => ({ mutate: vi.fn() }),
+  useUnarchiveDepartmentTask: () => ({ mutate: vi.fn(), isPending: false }),
+  useArchivedDepartmentTasks: () => ({ data: [] }),
 }));
 
 vi.mock('@/hooks/useCrmKanban', () => ({

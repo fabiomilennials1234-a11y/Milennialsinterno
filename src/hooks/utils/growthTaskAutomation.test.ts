@@ -10,9 +10,21 @@ function mockSupabase(overrides: {
 }) {
   const rpcSpy = vi.fn().mockResolvedValue({ data: overrides.rpcResult ?? null, error: null });
 
-  const updateSpy = vi.fn().mockReturnValue({
-    eq: vi.fn().mockResolvedValue({ data: [{}], error: null }),
-  });
+  // Update chain must satisfy BOTH:
+  //   clients:     .update().eq()                  (awaited after 1 eq)
+  //   client_tags: .update().eq().eq().is()        (awaited after is)
+  // Each link is chainable AND thenable, so awaiting at any depth resolves.
+  const updateResult = { data: [{}], error: null };
+  function makeUpdateChain(): Record<string, unknown> {
+    const chain: Record<string, unknown> = {
+      eq: vi.fn(() => makeUpdateChain()),
+      is: vi.fn(() => makeUpdateChain()),
+      then: (resolve: (v: typeof updateResult) => unknown) =>
+        Promise.resolve(updateResult).then(resolve),
+    };
+    return chain;
+  }
+  const updateSpy = vi.fn(() => makeUpdateChain());
 
   const insertSpy = vi.fn().mockResolvedValue({ data: [{}], error: null });
 

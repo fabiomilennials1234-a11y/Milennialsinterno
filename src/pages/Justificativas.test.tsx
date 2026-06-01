@@ -11,6 +11,14 @@ vi.mock('@/hooks/useJustificativas', () => ({
   useJustificativasCount: () => ({ data: 0 }),
 }));
 
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 'u1', role: 'gestor_projetos' } }),
+}));
+
+vi.mock('@/hooks/useChurnNotifications', () => ({
+  useChurnNotifications: () => ({ data: [] }),
+}));
+
 function renderPage() {
   const client = new QueryClient();
   return render(

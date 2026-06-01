@@ -65,6 +65,14 @@ function makeBuilder(table: string, op: CallRecord['op']) {
       record.filters.push([`${col} IN`, val]);
       return builder;
     },
+    contains: (col: string, val: unknown) => {
+      record.filters.push([`${col} CONTAINS`, val]);
+      return builder;
+    },
+    insert: (payload: unknown) => {
+      record.payload = payload;
+      return Promise.resolve({ data: null, error: null });
+    },
     maybeSingle: () => {
       const res = nextSelectResponse(table);
       const data = Array.isArray(res.data) ? (res.data[0] ?? null) : res.data;

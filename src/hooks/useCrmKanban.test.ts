@@ -36,8 +36,8 @@ describe('CRM State Machines — step definitions', () => {
     expect(V8_STEPS).toHaveLength(12);
   });
 
-  it('Automation has 15 steps', () => {
-    expect(AUTOMATION_STEPS).toHaveLength(15);
+  it('Automation has 16 steps', () => {
+    expect(AUTOMATION_STEPS).toHaveLength(16);
   });
 
   it('Copilot has 12 steps', () => {
@@ -81,7 +81,7 @@ describe('getNextStep', () => {
     expect(visited).toEqual([...V8_STEPS]);
   });
 
-  it('Automation: full traversal hits all 15 steps', () => {
+  it('Automation: full traversal hits all 16 steps', () => {
     const visited: string[] = [AUTOMATION_STEPS[0]];
     let current: string | null = AUTOMATION_STEPS[0];
     while (current !== null) {
@@ -119,15 +119,15 @@ describe('isLastStep', () => {
 describe('getConfigDueDate', () => {
   const base = '2026-01-10T12:00:00.000Z';
 
-  it('V8: adds 7 days', () => {
+  it('V8: adds 12 days', () => {
     const result = new Date(getConfigDueDate(base, 'v8'));
-    expect(result.getUTCDate()).toBe(17);
+    expect(result.getUTCDate()).toBe(22);
     expect(result.getUTCMonth()).toBe(0); // Jan
   });
 
-  it('Automation: adds 7 days', () => {
+  it('Automation: adds 15 days', () => {
     const result = new Date(getConfigDueDate(base, 'automation'));
-    expect(result.getUTCDate()).toBe(17);
+    expect(result.getUTCDate()).toBe(25);
   });
 
   it('Copilot: adds 10 days', () => {
