@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import MainLayout from '@/layouts/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,6 +20,7 @@ import {
   Loader2,
   RefreshCw,
   AlertTriangle,
+  ArrowRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -83,32 +84,56 @@ export default function MetaAdsDashboardPage() {
   const [dateFrom, setDateFrom] = useState(() => fmtDate(subDays(new Date(), 29)));
   const [dateTo, setDateTo] = useState(() => fmtDate(new Date()));
 
-  // Convert string dates to Date objects for Calendar
-  const calendarRange: DateRange = useMemo(() => ({
+  // Convert committed string dates to Date objects for Calendar default
+  const committedRange: DateRange = useMemo(() => ({
     from: parse(dateFrom, 'yyyy-MM-dd', new Date()),
     to: parse(dateTo, 'yyyy-MM-dd', new Date()),
   }), [dateFrom, dateTo]);
 
+  // Draft selection — the calendar edits this, nothing queries until "Aplicar".
+  // Preview-then-apply: keeps the dashboard stable behind the open popover and
+  // makes the single-day-vs-range affordance explicit (footer narrates state).
+  const [draftRange, setDraftRange] = useState<DateRange | undefined>(committedRange);
+
+  // Re-sync the draft to the committed range each time the popover opens, so the
+  // calendar always reflects the active period (and discards an abandoned draft).
+  useEffect(() => {
+    if (pickerOpen) setDraftRange(committedRange);
+  }, [pickerOpen, committedRange]);
+
   const handleRangeSelect = useCallback((range: DateRange | undefined) => {
-    if (!range?.from) return;
-    const from = fmtDate(range.from);
-    // Single day: react-day-picker returns { from, to: undefined } on the first
-    // (and, for a single-day pick, only) click. Treat it as a valid one-day range
-    // (since === until). The Meta query (useMetaAdsInsights) filters
-    // date_start >= from AND date_start <= to, so from === to returns that day.
-    const to = range.to ? fmtDate(range.to) : from;
+    // react-day-picker returns { from, to: undefined } on the first click — a
+    // valid one-day selection. Normalize so the draft always has both endpoints
+    // (single day => from === to). Meta query filters date_start BETWEEN from
+    // AND to, so from === to returns exactly that day.
+    if (!range?.from) {
+      setDraftRange(undefined);
+      return;
+    }
+    setDraftRange({ from: range.from, to: range.to ?? range.from });
+  }, []);
+
+  const applyDraft = useCallback(() => {
+    if (!draftRange?.from) return;
+    const from = fmtDate(draftRange.from);
+    const to = draftRange.to ? fmtDate(draftRange.to) : from;
     setDateFrom(from);
     setDateTo(to);
     setPresetLabel(
-      from === to ? fmtDisplay(from) : `${fmtDisplay(from)} - ${fmtDisplay(to)}`,
+      from === to ? fmtDisplay(from) : `${fmtDisplay(from)} – ${fmtDisplay(to)}`,
     );
-    // Close once the selection is complete: a full range (two endpoints) closes
-    // immediately; a single day stays open so the user can optionally extend it
-    // into a range with a second click — but it is already applied.
-    if (range.to) {
-      setPickerOpen(false);
+    setPickerOpen(false);
+  }, [draftRange]);
+
+  // Narrates the draft state in the footer: guides the single-vs-range choice.
+  const draftSummary = useMemo(() => {
+    if (!draftRange?.from) return 'Selecione uma data';
+    const from = fmtDisplay(fmtDate(draftRange.from));
+    if (!draftRange.to || fmtDate(draftRange.to) === fmtDate(draftRange.from)) {
+      return { from, to: null };
     }
-  }, []);
+    return { from, to: fmtDisplay(fmtDate(draftRange.to)) };
+  }, [draftRange]);
 
   const presets = useMemo(() => getDatePresets(), []);
 
@@ -168,7 +193,7 @@ export default function MetaAdsDashboardPage() {
               <h1 className="font-display text-xl md:text-2xl font-bold uppercase tracking-wide text-foreground">
                 Meta Ads
               </h1>
-              <p className="text-muted-foreground text-xs md:text-sm">{presetLabel}</p>
+              <p className="text-muted-foreground text-xs md:text-sm">Performance de campanhas</p>
             </div>
           </div>
 
@@ -176,39 +201,80 @@ export default function MetaAdsDashboardPage() {
             {/* Date range picker */}
             <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1.5 min-w-[170px] justify-start font-normal">
-                  <CalendarDays size={14} className="text-muted-foreground" />
-                  <span className="truncate">{presetLabel}</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 min-w-[190px] justify-start font-normal"
+                  aria-label={`Período selecionado: ${presetLabel}. Alterar.`}
+                >
+                  <CalendarDays size={14} className="text-muted-foreground shrink-0" />
+                  <span className="text-[0.7rem] uppercase tracking-wider text-muted-foreground/70 shrink-0">
+                    Período
+                  </span>
+                  <span className="truncate font-medium text-foreground">{presetLabel}</span>
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
+              <PopoverContent className="w-auto p-0 overflow-hidden" align="start">
                 <div className="flex">
                   {/* Preset sidebar */}
-                  <div className="flex flex-col gap-0.5 border-r border-border/50 p-2 min-w-[130px]">
+                  <div className="flex flex-col gap-0.5 border-r border-border/50 p-2 min-w-[136px] bg-muted/30">
+                    <p className="px-2.5 pt-1 pb-1.5 text-[0.65rem] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                      Atalhos
+                    </p>
                     {presets.map(p => (
                       <button
                         key={p.label}
                         onClick={() => handlePreset(p.label, p.value.since, p.value.until)}
                         className={cn(
-                          'text-left text-xs px-2.5 py-1.5 rounded-md transition-colors whitespace-nowrap',
+                          'text-left text-[0.8rem] px-2.5 py-1.5 rounded-md transition-colors whitespace-nowrap',
+                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                           p.label === presetLabel
-                            ? 'bg-primary text-primary-foreground'
-                            : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                            ? 'bg-foreground/[0.08] text-foreground font-medium'
+                            : 'text-muted-foreground hover:bg-foreground/[0.05] hover:text-foreground'
                         )}
                       >
                         {p.label}
                       </button>
                     ))}
                   </div>
-                  {/* Calendar */}
-                  <Calendar
-                    mode="range"
-                    selected={calendarRange}
-                    onSelect={handleRangeSelect}
-                    numberOfMonths={2}
-                    locale={ptBR}
-                    disabled={{ after: new Date() }}
-                  />
+
+                  {/* Calendar + apply footer */}
+                  <div className="flex flex-col">
+                    <Calendar
+                      mode="range"
+                      selected={draftRange}
+                      onSelect={handleRangeSelect}
+                      defaultMonth={committedRange.from}
+                      numberOfMonths={2}
+                      locale={ptBR}
+                      disabled={{ after: new Date() }}
+                    />
+                    <div className="flex items-center justify-between gap-3 border-t border-border/50 px-3 py-2.5">
+                      {typeof draftSummary === 'string' ? (
+                        <span className="text-xs text-muted-foreground">{draftSummary}</span>
+                      ) : (
+                        <span className="flex items-center gap-1.5 text-xs tabular-nums">
+                          <span className="font-medium text-foreground">{draftSummary.from}</span>
+                          {draftSummary.to ? (
+                            <>
+                              <ArrowRight size={12} className="text-muted-foreground" />
+                              <span className="font-medium text-foreground">{draftSummary.to}</span>
+                            </>
+                          ) : (
+                            <span className="text-muted-foreground">· dia único</span>
+                          )}
+                        </span>
+                      )}
+                      <Button
+                        size="sm"
+                        className="h-7 px-3 text-xs"
+                        onClick={applyDraft}
+                        disabled={!draftRange?.from}
+                      >
+                        Aplicar
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </PopoverContent>
             </Popover>

@@ -52,10 +52,14 @@ export function getDatePresets(): DatePreset[] {
   const prevMonthStart = formatDate(new Date(now.getFullYear(), now.getMonth() - 1, 1));
   const prevMonthEnd = formatDate(new Date(now.getFullYear(), now.getMonth(), 0));
 
+  const yesterday = daysAgo(1);
+
   return [
     { label: 'Hoje', value: { since: today, until: today } },
+    { label: 'Ontem', value: { since: yesterday, until: yesterday } },
     { label: 'Últimos 7 dias', value: { since: daysAgo(7), until: today } },
     { label: 'Últimos 30 dias', value: { since: daysAgo(30), until: today } },
+    { label: 'Últimos 90 dias', value: { since: daysAgo(90), until: today } },
     { label: 'Mês atual', value: { since: monthStart, until: today } },
     { label: 'Mês anterior', value: { since: prevMonthStart, until: prevMonthEnd } },
   ];
