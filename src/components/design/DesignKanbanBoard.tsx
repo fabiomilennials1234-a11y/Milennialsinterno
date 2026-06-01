@@ -16,8 +16,8 @@ const DESIGN_STATUSES = [
   { id: 'a_fazer', label: 'A FAZER', color: 'bg-blue-500' },
   { id: 'fazendo', label: 'FAZENDO', color: 'bg-orange-500' },
   { id: 'arrumar', label: 'ARRUMAR', color: 'bg-red-500' },
-  { id: 'para_aprovacao', label: 'PARA APROVAÇÃO', color: 'bg-purple-500' },
-  { id: 'aprovado', label: 'APROVADO', color: 'bg-green-500' },
+  { id: 'para_aprovacao', label: 'PARA APROVAÇÃO', color: 'bg-purple-500', terminal: true },
+  { id: 'aprovado', label: 'APROVADO', color: 'bg-green-500', terminal: true },
 ] as const;
 
 const DESIGN_PRIORITY_MAP: Record<string, string> = {

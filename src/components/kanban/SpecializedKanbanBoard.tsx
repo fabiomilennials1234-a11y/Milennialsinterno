@@ -15,9 +15,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { format, isPast, isToday } from 'date-fns';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { parseDateOnly } from '@/lib/dateUtils';
+import { isCardOverdue, terminalStatusesFromConfig } from '@/lib/kanbanOverdue';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -47,6 +48,12 @@ export interface BoardStatus {
   id: string;
   label: string;
   color: string; // ex: 'bg-blue-500' — classe Tailwind
+  /**
+   * Status terminal de aprovação/entrega. Cards neste status NUNCA contam como
+   * atrasados, mesmo com deadline vencido — já foram entregues. Ver
+   * `src/lib/kanbanOverdue.ts`.
+   */
+  terminal?: boolean;
 }
 
 export interface BoardColumn {
@@ -186,12 +193,6 @@ function sanitizeFileName(name: string): string {
   return safe.length > 0 ? safe : 'file';
 }
 
-function isCardOverdue(card: KanbanCard): boolean {
-  if (!card.due_date) return false;
-  const dueDate = parseDateOnly(card.due_date);
-  return isPast(dueDate) && !isToday(dueDate);
-}
-
 function getPersonNameFromJustificationColumn(title: string): string | null {
   const match = title.match(/JUSTIFICATIVA\s*\(([^)]+)\)/);
   return match ? match[1] : null;
@@ -203,6 +204,13 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
   const { user, isCEO } = useAuth();
   const queryClient = useQueryClient();
   const coverInputRef = useRef<HTMLInputElement>(null);
+
+  // Status terminais do board (ex.: para_aprovacao/aprovado). Cards nesses
+  // status nunca contam como atrasados. Fonte única: src/lib/kanbanOverdue.ts.
+  const terminalStatuses = useMemo(
+    () => terminalStatusesFromConfig(config.statuses),
+    [config.statuses],
+  );
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedColumnId, setSelectedColumnId] = useState<string | null>(null);
@@ -938,7 +946,7 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
                                     isDragDisabled={!canMove}
                                   >
                                     {(provided, snapshot) => {
-                                      const overdue = isCardOverdue(card);
+                                      const overdue = isCardOverdue(card, terminalStatuses);
                                       const hasJustification = card.justification;
                                       // Thumbnail: first image attachment for this card
                                       const cardCoverUrl = config.showCardThumbnails
@@ -1111,6 +1119,12 @@ export default function SpecializedKanbanBoard({ config }: { config: Specialized
           }}
           card={selectedCard}
           boardId={board?.id}
+          terminalStatuses={terminalStatuses}
+          onCardUpdated={() => {
+            queryClient.invalidateQueries({
+              queryKey: [`${config.boardQueryKeyPrefix}-cards`, board?.id],
+            });
+          }}
           {...config.cardDetailFlags}
         />
       )}

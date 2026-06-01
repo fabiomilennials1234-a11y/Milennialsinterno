@@ -45,8 +45,8 @@ export const VIDEO_STATUSES = [
   { id: 'a_fazer', label: 'A FAZER', color: 'bg-slate-500' },
   { id: 'fazendo', label: 'FAZENDO', color: 'bg-blue-500' },
   { id: 'alteracao', label: 'ALTERAÇÃO', color: 'bg-orange-500' },
-  { id: 'aguardando_aprovacao', label: 'AGUARDANDO APROVAÇÃO', color: 'bg-purple-500' },
-  { id: 'aprovados', label: 'APROVADOS', color: 'bg-green-500' },
+  { id: 'aguardando_aprovacao', label: 'AGUARDANDO APROVAÇÃO', color: 'bg-purple-500', terminal: true },
+  { id: 'aprovados', label: 'APROVADOS', color: 'bg-green-500', terminal: true },
 ] as const;
 
 export const VIDEO_STATUS_LABELS: Record<string, string> = {

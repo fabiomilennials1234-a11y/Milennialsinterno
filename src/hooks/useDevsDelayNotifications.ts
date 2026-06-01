@@ -18,6 +18,7 @@ const hooks = createKanbanDelayHooks({
   dismissalsTable: 'dev_notification_dismissals',
   personIdCol: 'dev_id',
   personNameCol: 'dev_name',
+  terminalStatuses: ['aguardando_aprovacao', 'aprovados'],
   queryKeys: {
     delayed: 'dev-delayed-cards',
     notifications: 'dev-delay-notifications',

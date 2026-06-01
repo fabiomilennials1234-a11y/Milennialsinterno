@@ -1,8 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { isPast, isToday } from 'date-fns';
-import { parseDateOnly } from '@/lib/dateUtils';
+import { isCardOverdue } from '@/lib/kanbanOverdue';
 
 /**
  * Factory de hooks de delay/justificativa para boards especializados.
@@ -28,6 +27,12 @@ export interface KanbanDelayConfig {
   personIdCol: string;
   /** Nome da coluna do nome do "responsável" (ex: 'designer_name'). */
   personNameCol: string;
+  /**
+   * Status terminais de aprovação/entrega do board (ex.: ['para_aprovacao',
+   * 'aprovado']). Cards nesses status nunca contam como atrasados, mesmo com
+   * deadline vencido — já foram entregues. Ver `src/lib/kanbanOverdue.ts`.
+   */
+  terminalStatuses: readonly string[];
   /** Query keys usadas em invalidate/cache. */
   queryKeys: {
     /** Cards atrasados (lista local pra justificativa). */
@@ -113,9 +118,7 @@ export function createKanbanDelayHooks(config: KanbanDelayConfig) {
 
         const overdueCards = ((cards || []) as CardLite[]).filter(card => {
           if (card.column_id !== personColumn.id) return false;
-          if (!card.due_date) return false;
-          const dueDate = parseDateOnly(card.due_date);
-          return isPast(dueDate) && !isToday(dueDate);
+          return isCardOverdue(card, config.terminalStatuses);
         });
 
         const cardIds = overdueCards.map(c => c.id);

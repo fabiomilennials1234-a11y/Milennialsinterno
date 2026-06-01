@@ -18,6 +18,7 @@ const hooks = createKanbanDelayHooks({
   dismissalsTable: 'video_notification_dismissals',
   personIdCol: 'editor_id',
   personNameCol: 'editor_name',
+  terminalStatuses: ['aguardando_aprovacao', 'aprovados'],
   queryKeys: {
     delayed: 'editor-delayed-cards',
     notifications: 'video-delay-notifications',

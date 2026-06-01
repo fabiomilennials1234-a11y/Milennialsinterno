@@ -23,7 +23,7 @@ import CardAttachmentsTab from '@/components/design/CardAttachmentsTab';
 import ClientInfoTab from '@/components/kanban/ClientInfoTab';
 import { BriefingField } from '@/components/kanban/BriefingField';
 import { cn } from '@/lib/utils';
-import { KanbanCard, useArchiveCard } from '@/hooks/useKanban';
+import { KanbanCard, useArchiveCard, useUpdateCard } from '@/hooks/useKanban';
 import {
   useBriefing,
   useUpsertBriefing,
@@ -49,9 +49,10 @@ import {
   PRODUTORA_STATUS_LABELS,
 } from '@/hooks/useProdutoraKanban';
 import { useKanbanActionPermissions } from '@/hooks/useKanbanActionPermissions';
-import { format, isPast, isToday } from 'date-fns';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { parseDateOnly } from '@/lib/dateUtils';
+import { isCardOverdue } from '@/lib/kanbanOverdue';
 import { toast } from 'sonner';
 import {
   Tooltip,
@@ -72,6 +73,12 @@ interface CardDetailModalProps {
   onDelete?: () => void;
   onArchive?: () => void;
   boardId?: string;
+  /** Status terminais do board (ex.: para_aprovacao/aprovado). Cards nesses
+   *  status não contam como atrasados. Ver src/lib/kanbanOverdue.ts. */
+  terminalStatuses?: readonly string[];
+  /** Invalida a query de cards do board após editar o card (cada board usa
+   *  um prefixo de query key próprio; o engine fornece o invalidador certo). */
+  onCardUpdated?: () => void;
 }
 
 type TabType = 'briefing' | 'comments' | 'attachments' | 'activity' | 'info';
@@ -93,7 +100,9 @@ export default function CardDetailModal({
   isProdutoraBoard = false,
   onDelete,
   onArchive,
-  boardId
+  boardId,
+  terminalStatuses = [],
+  onCardUpdated,
 }: CardDetailModalProps) {
   const isSpecialBoard = isDesignBoard || isVideoBoard || isDevBoard || isProdutoraBoard;
   const archiveCard = useArchiveCard();
@@ -166,10 +175,17 @@ export default function CardDetailModal({
   
   const [briefingEditing, setBriefingEditing] = useState(false);
 
+  // Due-date (deadline) editing — PEDIDO 2
+  const updateCard = useUpdateCard();
+  const [dueDateEditing, setDueDateEditing] = useState(false);
+  const [dueDateForm, setDueDateForm] = useState('');
+
   // Reset all local state when card changes to prevent data bleeding between cards
   useEffect(() => {
     setNewComment('');
     setBriefingEditing(false);
+    setDueDateEditing(false);
+    setDueDateForm(card.due_date ?? '');
     setActiveTab(isSpecialBoard ? 'briefing' : 'comments');
     setDesignBriefingForm({
       description: '',
@@ -197,7 +213,7 @@ export default function CardDetailModal({
       observations: '',
       reference_video_url: '',
     });
-  }, [card.id, isSpecialBoard]);
+  }, [card.id, card.due_date, isSpecialBoard]);
 
   // Comments
   const { data: comments = [], isLoading: commentsLoading } = useCardComments(card.id);
@@ -213,6 +229,34 @@ export default function CardDetailModal({
   const canEditBriefing = actionPermissions.permissions.canEditBriefing;
   const canDelete =
     actionPermissions.permissions.canArchive || actionPermissions.permissions.canDelete;
+  // Quem pode mover o card pode reagendar seu deadline. Mesma fronteira de
+  // permissão do drag-and-drop — não inventamos permissão nova.
+  const canEditDueDate = actionPermissions.permissions.canMove;
+
+  const handleStartEditDueDate = () => {
+    setDueDateForm(card.due_date ?? '');
+    setDueDateEditing(true);
+  };
+
+  const handleSaveDueDate = async () => {
+    const next = dueDateForm || null;
+    if (next === (card.due_date ?? null)) {
+      setDueDateEditing(false);
+      return;
+    }
+    try {
+      await updateCard.mutateAsync({
+        cardId: card.id,
+        updates: { due_date: next },
+        boardId: boardId ?? '',
+      });
+      onCardUpdated?.();
+      setDueDateEditing(false);
+      toast.success(next ? 'Data de entrega atualizada' : 'Data de entrega removida');
+    } catch (error) {
+      toast.error('Erro ao atualizar data de entrega');
+    }
+  };
 
   const handleStartEditBriefing = () => {
     if (isDesignBoard) {
@@ -297,7 +341,7 @@ export default function CardDetailModal({
   if (!isOpen) return null;
 
   const priority = priorityConfig[card.priority];
-  const isOverdue = card.due_date && isPast(parseDateOnly(card.due_date)) && !isToday(parseDateOnly(card.due_date));
+  const isOverdue = isCardOverdue(card, terminalStatuses);
 
   const showInfoTab = (isDesignBoard || isVideoBoard || isDevBoard) && !!card.client_id;
 
@@ -327,11 +371,62 @@ export default function CardDetailModal({
               )}>
                 {priority.label}
               </span>
-              {card.due_date && (
-                <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Calendar size={12} />
-                  {format(parseDateOnly(card.due_date), "dd MMM yyyy", { locale: ptBR })}
+              {dueDateEditing ? (
+                <span className="flex items-center gap-1.5">
+                  <span className="relative flex items-center">
+                    <Calendar size={12} className="absolute left-2 text-muted-foreground pointer-events-none" />
+                    <input
+                      type="date"
+                      autoFocus
+                      value={dueDateForm}
+                      onChange={(e) => setDueDateForm(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSaveDueDate();
+                        if (e.key === 'Escape') setDueDateEditing(false);
+                      }}
+                      className="h-7 rounded-lg border border-border bg-background pl-7 pr-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    />
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleSaveDueDate}
+                    disabled={updateCard.isPending}
+                    aria-label="Salvar data de entrega"
+                    className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-all hover:brightness-105 disabled:opacity-50"
+                  >
+                    {updateCard.isPending ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDueDateEditing(false)}
+                    aria-label="Cancelar edição da data"
+                    className="flex h-7 w-7 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  >
+                    <X size={13} />
+                  </button>
                 </span>
+              ) : canEditDueDate ? (
+                <button
+                  type="button"
+                  onClick={handleStartEditDueDate}
+                  className={cn(
+                    "group flex items-center gap-1 rounded-lg px-1.5 py-0.5 -mx-1.5 text-xs transition-colors hover:bg-muted",
+                    isOverdue ? "text-danger" : "text-muted-foreground",
+                  )}
+                  title="Editar data de entrega"
+                >
+                  <Calendar size={12} />
+                  {card.due_date
+                    ? format(parseDateOnly(card.due_date), "dd MMM yyyy", { locale: ptBR })
+                    : 'Definir data de entrega'}
+                </button>
+              ) : (
+                card.due_date && (
+                  <span className={cn("flex items-center gap-1 text-xs", isOverdue ? "text-danger" : "text-muted-foreground")}>
+                    <Calendar size={12} />
+                    {format(parseDateOnly(card.due_date), "dd MMM yyyy", { locale: ptBR })}
+                  </span>
+                )
               )}
             </div>
             <h2 className="font-display text-xl font-bold text-foreground">

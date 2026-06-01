@@ -16,8 +16,8 @@ const DEV_STATUSES = [
   { id: 'a_fazer', label: 'A FAZER', color: 'bg-blue-500' },
   { id: 'fazendo', label: 'FAZENDO', color: 'bg-orange-500' },
   { id: 'alteracao', label: 'ALTERAÇÃO', color: 'bg-red-500' },
-  { id: 'aguardando_aprovacao', label: 'AGUARDANDO APROVAÇÃO', color: 'bg-purple-500' },
-  { id: 'aprovados', label: 'APROVADOS', color: 'bg-green-500' },
+  { id: 'aguardando_aprovacao', label: 'AGUARDANDO APROVAÇÃO', color: 'bg-purple-500', terminal: true },
+  { id: 'aprovados', label: 'APROVADOS', color: 'bg-green-500', terminal: true },
 ] as const;
 
 export default function DevsKanbanBoard() {
