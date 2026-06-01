@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { parseMetaActions, buildDateRange, transformInsightRow, parseLeadFieldData, transformAdLevelInsightRow, computeSalesMetrics, getDatePresets } from './meta-ads-utils';
+import { parseMetaActions, buildDateRange, transformInsightRow, parseLeadFieldData, transformAdLevelInsightRow, computeSalesMetrics, getDatePresets, extractConversion, CONVERSION_EVENTS } from './meta-ads-utils';
 
 describe('parseMetaActions', () => {
   it('returns zeros for empty array', () => {
@@ -16,15 +16,29 @@ describe('parseMetaActions', () => {
     expect(result.leads).toBe(12);
   });
 
-  it('extracts conversions from offsite_conversion and purchase', () => {
+  it('counts only hard purchase action types as conversions', () => {
     const actions = [
       { action_type: 'offsite_conversion.fb_pixel_purchase', value: '5' },
-      { action_type: 'offsite_conversion.fb_pixel_lead', value: '3' },
       { action_type: 'purchase', value: '7' },
+      { action_type: 'omni_purchase', value: '3' },
       { action_type: 'link_click', value: '100' },
     ];
     const result = parseMetaActions(actions);
     expect(result.conversions).toBe(15);
+  });
+
+  // Regression: the old soma-cega `startsWith('offsite_conversion.')` blended
+  // custom pixel events (agendamento) and pixel leads into `conversions`,
+  // inflating the number in production. Those must NOT count here anymore.
+  it('does NOT blend custom pixel conversions or pixel leads into conversions', () => {
+    const actions = [
+      { action_type: 'offsite_conversion.fb_pixel_lead', value: '3' },
+      { action_type: 'offsite_conversion.fb_pixel_custom', value: '9' },
+      { action_type: CONVERSION_EVENTS.agendamento.actionType, value: '4' },
+      { action_type: 'purchase', value: '2' },
+    ];
+    const result = parseMetaActions(actions);
+    expect(result.conversions).toBe(2);
   });
 
   it('handles mixed action types correctly', () => {
@@ -38,6 +52,53 @@ describe('parseMetaActions', () => {
     ];
     const result = parseMetaActions(actions);
     expect(result).toEqual({ leads: 8, conversions: 5 });
+  });
+});
+
+describe('extractConversion', () => {
+  const AGENDAMENTO = CONVERSION_EVENTS.agendamento.actionType;
+
+  it('returns 0 for non-array input', () => {
+    expect(extractConversion(null, AGENDAMENTO)).toBe(0);
+    expect(extractConversion(undefined, AGENDAMENTO)).toBe(0);
+    expect(extractConversion('offsite', AGENDAMENTO)).toBe(0);
+    expect(extractConversion({}, AGENDAMENTO)).toBe(0);
+  });
+
+  it('returns 0 when the action_type is absent', () => {
+    const actions = [
+      { action_type: 'offsite_conversion.fb_pixel_custom', value: '5' },
+      { action_type: 'video_view', value: '120' },
+    ];
+    expect(extractConversion(actions, AGENDAMENTO)).toBe(0);
+  });
+
+  it('matches the real Meta agendamento action_type exactly', () => {
+    const actions = [
+      { action_type: 'offsite_conversion.fb_pixel_custom.invitee_meeting_scheduled', value: '2' },
+      { action_type: 'offsite_conversion.fb_pixel_custom', value: '1' },
+    ];
+    expect(extractConversion(actions, AGENDAMENTO)).toBe(2);
+  });
+
+  it('does NOT match the un-suffixed aggregate bucket (no over-count)', () => {
+    const actions = [
+      { action_type: 'offsite_conversion.fb_pixel_custom', value: '99' },
+    ];
+    expect(extractConversion(actions, AGENDAMENTO)).toBe(0);
+  });
+
+  it('sums duplicate entries of the same action_type', () => {
+    const actions = [
+      { action_type: AGENDAMENTO, value: '1' },
+      { action_type: AGENDAMENTO, value: '2' },
+    ];
+    expect(extractConversion(actions, AGENDAMENTO)).toBe(3);
+  });
+
+  it('treats missing value as zero', () => {
+    const actions = [{ action_type: AGENDAMENTO }];
+    expect(extractConversion(actions, AGENDAMENTO)).toBe(0);
   });
 });
 
@@ -82,23 +143,27 @@ describe('getDatePresets', () => {
     vi.useRealTimers();
   });
 
-  it('returns 5 presets with correct date ranges', () => {
+  it('returns 7 presets with correct date ranges', () => {
     const presets = getDatePresets();
 
-    expect(presets).toHaveLength(5);
+    expect(presets).toHaveLength(7);
     expect(presets.map(p => p.label)).toEqual([
       'Hoje',
+      'Ontem',
       'Últimos 7 dias',
       'Últimos 30 dias',
+      'Últimos 90 dias',
       'Mês atual',
       'Mês anterior',
     ]);
 
     expect(presets[0].value).toEqual({ since: '2026-05-28', until: '2026-05-28' });
-    expect(presets[1].value).toEqual({ since: '2026-05-21', until: '2026-05-28' });
-    expect(presets[2].value).toEqual({ since: '2026-04-28', until: '2026-05-28' });
-    expect(presets[3].value).toEqual({ since: '2026-05-01', until: '2026-05-28' });
-    expect(presets[4].value).toEqual({ since: '2026-04-01', until: '2026-04-30' });
+    expect(presets[1].value).toEqual({ since: '2026-05-27', until: '2026-05-27' });
+    expect(presets[2].value).toEqual({ since: '2026-05-21', until: '2026-05-28' });
+    expect(presets[3].value).toEqual({ since: '2026-04-28', until: '2026-05-28' });
+    expect(presets[4].value).toEqual({ since: '2026-02-27', until: '2026-05-28' });
+    expect(presets[5].value).toEqual({ since: '2026-05-01', until: '2026-05-28' });
+    expect(presets[6].value).toEqual({ since: '2026-04-01', until: '2026-04-30' });
   });
 });
 

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { CONVERSION_EVENTS, extractConversion } from '@/lib/meta-ads-utils';
 
 // ---------- Helpers ----------
 
@@ -15,6 +16,15 @@ export function extractVideoViews(actionsRaw: unknown): number {
     (a) => a?.action_type === 'video_view',
   );
   return Number(entry?.value ?? 0);
+}
+
+/**
+ * Number of scheduled calls (agendamentos) in a Meta actions_raw JSONB.
+ * Delegates to the canonical, ID-keyed extractor — single source of truth for
+ * the agendamento action_type (Custom Conversion 1516257283377789).
+ */
+export function extractAgendamentos(actionsRaw: unknown): number {
+  return extractConversion(actionsRaw, CONVERSION_EVENTS.agendamento.actionType);
 }
 
 export interface MetaAdsInsight {
@@ -58,6 +68,8 @@ export interface CampaignData {
   video_views: number;
   hook_rate: number;
   connect_rate: number;
+  agendamentos: number;
+  custoPorAgendamento: number;
 }
 
 export interface MetaAdsAggregates {
@@ -73,6 +85,8 @@ export interface MetaAdsAggregates {
   totalVideoViews: number;
   avgHookRate: number;
   avgConnectRate: number;
+  totalAgendamentos: number;
+  avgCustoPorAgendamento: number;
   dailyData: DailyData[];
   campaignData: CampaignData[];
   top10Campaigns: CampaignData[];
@@ -94,6 +108,8 @@ function computeAggregates(rows: MetaAdsInsight[]): MetaAdsAggregates {
       totalVideoViews: 0,
       avgHookRate: 0,
       avgConnectRate: 0,
+      totalAgendamentos: 0,
+      avgCustoPorAgendamento: 0,
       dailyData: [],
       campaignData: [],
       top10Campaigns: [],
@@ -108,6 +124,7 @@ function computeAggregates(rows: MetaAdsInsight[]): MetaAdsAggregates {
   let totalClicks = 0;
   let totalReach = 0;
   let totalVideoViews = 0;
+  let totalAgendamentos = 0;
   let latestFetchedAt = rows[0].fetched_at;
 
   // Daily aggregation
@@ -120,10 +137,12 @@ function computeAggregates(rows: MetaAdsInsight[]): MetaAdsAggregates {
     impressions: number;
     clicks: number;
     video_views: number;
+    agendamentos: number;
   }>();
 
   for (const row of rows) {
     const rowVideoViews = extractVideoViews(row.actions_raw);
+    const rowAgendamentos = extractAgendamentos(row.actions_raw);
 
     totalSpend += row.spend;
     totalLeads += row.leads;
@@ -131,6 +150,7 @@ function computeAggregates(rows: MetaAdsInsight[]): MetaAdsAggregates {
     totalClicks += row.clicks;
     totalReach += row.reach;
     totalVideoViews += rowVideoViews;
+    totalAgendamentos += rowAgendamentos;
 
     if (row.fetched_at > latestFetchedAt) {
       latestFetchedAt = row.fetched_at;
@@ -153,6 +173,7 @@ function computeAggregates(rows: MetaAdsInsight[]): MetaAdsAggregates {
       campaignExisting.impressions += row.impressions;
       campaignExisting.clicks += row.clicks;
       campaignExisting.video_views += rowVideoViews;
+      campaignExisting.agendamentos += rowAgendamentos;
     } else {
       campaignMap.set(row.campaign_id, {
         campaign_name: row.campaign_name,
@@ -161,6 +182,7 @@ function computeAggregates(rows: MetaAdsInsight[]): MetaAdsAggregates {
         impressions: row.impressions,
         clicks: row.clicks,
         video_views: rowVideoViews,
+        agendamentos: rowAgendamentos,
       });
     }
   }
@@ -171,6 +193,7 @@ function computeAggregates(rows: MetaAdsInsight[]): MetaAdsAggregates {
   const avgCPM = totalImpressions > 0 ? (totalSpend / totalImpressions) * 1000 : 0;
   const avgHookRate = totalImpressions > 0 ? (totalVideoViews / totalImpressions) * 100 : 0;
   const avgConnectRate = totalVideoViews > 0 ? (totalClicks / totalVideoViews) * 100 : 0;
+  const avgCustoPorAgendamento = totalAgendamentos > 0 ? totalSpend / totalAgendamentos : 0;
 
   const dailyData: DailyData[] = Array.from(dailyMap.entries())
     .map(([date, d]) => ({ date, spend: d.spend, leads: d.leads }))
@@ -189,6 +212,8 @@ function computeAggregates(rows: MetaAdsInsight[]): MetaAdsAggregates {
       video_views: c.video_views,
       hook_rate: c.impressions > 0 ? (c.video_views / c.impressions) * 100 : 0,
       connect_rate: c.video_views > 0 ? (c.clicks / c.video_views) * 100 : 0,
+      agendamentos: c.agendamentos,
+      custoPorAgendamento: c.agendamentos > 0 ? c.spend / c.agendamentos : 0,
     }))
     .sort((a, b) => b.spend - a.spend);
 
@@ -207,6 +232,8 @@ function computeAggregates(rows: MetaAdsInsight[]): MetaAdsAggregates {
     totalVideoViews,
     avgHookRate,
     avgConnectRate,
+    totalAgendamentos,
+    avgCustoPorAgendamento,
     dailyData,
     campaignData,
     top10Campaigns,

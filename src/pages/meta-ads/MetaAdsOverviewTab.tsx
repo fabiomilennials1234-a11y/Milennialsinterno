@@ -12,6 +12,9 @@ import {
   ArrowDown,
   Video,
   Zap,
+  CalendarCheck,
+  Wallet,
+  GitMerge,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
@@ -31,7 +34,7 @@ import {
   Legend,
 } from 'recharts';
 
-type SortColumn = 'campaign_name' | 'spend' | 'leads' | 'cpl' | 'impressions' | 'clicks' | 'ctr' | 'hook_rate' | 'connect_rate';
+type SortColumn = 'campaign_name' | 'spend' | 'leads' | 'cpl' | 'impressions' | 'clicks' | 'ctr' | 'hook_rate' | 'connect_rate' | 'agendamentos' | 'custoPorAgendamento';
 
 function SortIcon({ column, current, direction }: { column: SortColumn; current: SortColumn; direction: 'asc' | 'desc' }) {
   if (column !== current) return <ArrowUpDown size={12} className="opacity-30" />;
@@ -66,6 +69,16 @@ export default function MetaAdsOverviewTab({ aggregates, hasData }: Props) {
       setSortDir('desc');
     }
   };
+
+  // Scheduling (agendamento de call) is the primary objective for OFFSITE_CONVERSIONS
+  // accounts. Only surfaces when the account actually reports scheduled calls — keeps
+  // lead-gen accounts uncluttered. Lead → agendamento rate frames the two raw numbers
+  // as a funnel-efficiency read rather than disconnected counters.
+  const hasAgendamentos = aggregates.totalAgendamentos > 0;
+  const agendamentoRate =
+    aggregates.totalLeads > 0
+      ? (aggregates.totalAgendamentos / aggregates.totalLeads) * 100
+      : 0;
 
   if (!hasData) return null;
 
@@ -106,6 +119,47 @@ export default function MetaAdsOverviewTab({ aggregates, hasData }: Props) {
           </div>
         </div>
       </div>
+
+      {/* Agendamentos — primary objective for OFFSITE_CONVERSIONS accounts */}
+      {hasAgendamentos && (
+        <section>
+          <SectionHeader title="Agendamentos" icon={CalendarCheck} color="success" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <MetricCard
+              icon={CalendarCheck}
+              label="Agendamentos"
+              value={formatNumber(aggregates.totalAgendamentos)}
+              subValue="Calls agendadas no período"
+              variant="success"
+              animDelay={0}
+            />
+            <MetricCard
+              icon={Wallet}
+              label="Custo por Agendamento"
+              value={
+                aggregates.avgCustoPorAgendamento > 0
+                  ? formatCurrency(aggregates.avgCustoPorAgendamento)
+                  : '--'
+              }
+              subValue={`${formatCurrency(aggregates.totalSpend)} investido`}
+              variant="warning"
+              animDelay={80}
+            />
+            <MetricCard
+              icon={GitMerge}
+              label="Conversão Lead → Agend."
+              value={agendamentoRate > 0 ? formatPercent(agendamentoRate) : '--'}
+              subValue={
+                aggregates.totalLeads > 0
+                  ? `${formatNumber(aggregates.totalAgendamentos)} de ${formatNumber(aggregates.totalLeads)} leads`
+                  : 'Sem leads no período'
+              }
+              variant={agendamentoRate >= 20 ? 'success' : 'info'}
+              animDelay={160}
+            />
+          </div>
+        </section>
+      )}
 
       {/* KPIs */}
       <section>
@@ -228,6 +282,12 @@ export default function MetaAdsOverviewTab({ aggregates, hasData }: Props) {
                     ['spend', 'Investimento'],
                     ['leads', 'Leads'],
                     ['cpl', 'CPL'],
+                    ...(hasAgendamentos
+                      ? ([
+                          ['agendamentos', 'Agendamentos'],
+                          ['custoPorAgendamento', 'Custo/Agend.'],
+                        ] as [SortColumn, string][])
+                      : []),
                     ['impressions', 'Impressoes'],
                     ['clicks', 'Clicks'],
                     ['ctr', 'CTR'],
@@ -236,7 +296,12 @@ export default function MetaAdsOverviewTab({ aggregates, hasData }: Props) {
                   ] as [SortColumn, string][]).map(([col, title]) => (
                     <th
                       key={col}
-                      className="text-left px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors select-none"
+                      className={cn(
+                        'text-left px-3 py-2.5 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors select-none',
+                        col === 'agendamentos' || col === 'custoPorAgendamento'
+                          ? 'text-success/80'
+                          : 'text-muted-foreground'
+                      )}
                       onClick={() => handleSort(col)}
                     >
                       <div className="flex items-center gap-1">
@@ -269,6 +334,19 @@ export default function MetaAdsOverviewTab({ aggregates, hasData }: Props) {
                           <ArrowUpRight size={12} className="inline ml-1 text-amber-500" />
                         )}
                       </td>
+                      {hasAgendamentos && (
+                        <>
+                          <td className={cn(
+                            'px-3 py-2.5 font-mono text-xs font-semibold',
+                            c.agendamentos > 0 ? 'text-success' : 'text-muted-foreground'
+                          )}>
+                            {c.agendamentos > 0 ? formatNumber(c.agendamentos) : '--'}
+                          </td>
+                          <td className="px-3 py-2.5 font-mono text-xs">
+                            {c.custoPorAgendamento > 0 ? formatCurrency(c.custoPorAgendamento) : '--'}
+                          </td>
+                        </>
+                      )}
                       <td className="px-3 py-2.5 font-mono text-xs">{formatNumber(c.impressions)}</td>
                       <td className="px-3 py-2.5 font-mono text-xs">{formatNumber(c.clicks)}</td>
                       <td className="px-3 py-2.5 font-mono text-xs">{formatPercent(c.ctr)}</td>

@@ -24,8 +24,14 @@ import { corsHeaders } from "../_shared/cors.ts";
 // ============================================================
 
 const META_GRAPH_URL = "https://graph.facebook.com/v21.0";
-const CAMPAIGN_FIELDS = "campaign_id,campaign_name,spend,impressions,clicks,reach,frequency,cpc,cpm,ctr,actions";
-const AD_FIELDS = "campaign_id,campaign_name,adset_id,adset_name,ad_id,ad_name,spend,impressions,clicks,reach,frequency,cpc,cpm,ctr,actions";
+// `conversions` is requested ALONGSIDE `actions` because Meta only emits the
+// suffixed custom-conversion action_type (e.g.
+// offsite_conversion.fb_pixel_custom.invitee_meeting_scheduled) in the
+// `conversions` field with action_breakdowns=action_type. `actions` alone
+// collapses it into the un-suffixed offsite_conversion.fb_pixel_custom bucket.
+const CAMPAIGN_FIELDS = "campaign_id,campaign_name,spend,impressions,clicks,reach,frequency,cpc,cpm,ctr,actions,conversions";
+const AD_FIELDS = "campaign_id,campaign_name,adset_id,adset_name,ad_id,ad_name,spend,impressions,clicks,reach,frequency,cpc,cpm,ctr,actions,conversions";
+const ACTION_BREAKDOWNS = "action_type";
 const BATCH_SIZE = 200;
 const MAX_PAGES = 100;
 
@@ -50,6 +56,7 @@ interface RawMetaInsight {
   cpm?: string;
   ctr?: string;
   actions?: MetaAction[];
+  conversions?: MetaAction[];
 }
 
 interface RawAdLevelInsight extends RawMetaInsight {
@@ -128,12 +135,35 @@ const SYNC_DAYS: Record<SyncMode, number> = {
   backfill: 90,
 };
 
+// Mirror of src/lib/meta-ads-utils.ts (Deno boundary — cannot import).
+// Hard purchases only. Custom pixel conversions (e.g. agendamento) are tracked
+// individually downstream via actions_raw, never blended into `conversions`.
+const PURCHASE_ACTION_TYPES = new Set([
+  "purchase",
+  "offsite_conversion.fb_pixel_purchase",
+  "omni_purchase",
+]);
+
 function parseMetaActions(actions: MetaAction[]): { leads: number; conversions: number } {
   const leads = Number(actions.find(a => a.action_type === "lead")?.value ?? 0);
   const conversions = actions
-    .filter(a => a.action_type.startsWith("offsite_conversion.") || a.action_type === "purchase")
+    .filter(a => PURCHASE_ACTION_TYPES.has(a.action_type))
     .reduce((sum, a) => sum + Number(a.value), 0);
   return { leads, conversions };
+}
+
+/**
+ * Merge the `conversions` array (suffixed custom-conversion events) into the
+ * `actions` array, deduping by action_type. The named custom-conversion events
+ * (e.g. offsite_conversion.fb_pixel_custom.invitee_meeting_scheduled) only
+ * appear in `conversions`; persisting them into actions_raw lets the frontend
+ * extractor read agendamentos by exact action_type.
+ */
+function mergeActions(actions?: MetaAction[], conversions?: MetaAction[]): MetaAction[] | null {
+  const merged = new Map<string, MetaAction>();
+  for (const a of actions ?? []) merged.set(a.action_type, a);
+  for (const c of conversions ?? []) merged.set(c.action_type, c);
+  return merged.size > 0 ? Array.from(merged.values()) : null;
 }
 
 function formatDate(date: Date): string {
@@ -150,6 +180,7 @@ function buildDateRange(mode: SyncMode): { since: string; until: string } {
 
 function transformInsightRow(raw: RawMetaInsight, accountId: string): MetaAdsInsightRow {
   const { leads, conversions } = parseMetaActions(raw.actions ?? []);
+  const actionsRaw = mergeActions(raw.actions, raw.conversions);
   return {
     ad_account_id: accountId,
     campaign_id: raw.campaign_id,
@@ -166,7 +197,7 @@ function transformInsightRow(raw: RawMetaInsight, accountId: string): MetaAdsIns
     ctr: Number(raw.ctr ?? 0),
     leads,
     conversions,
-    actions_raw: raw.actions ?? null,
+    actions_raw: actionsRaw,
     fetched_at: new Date().toISOString(),
   };
 }
@@ -202,6 +233,7 @@ async function fetchCampaignInsights(
     `${META_GRAPH_URL}/${accountId}/insights` +
     `?level=campaign` +
     `&fields=${CAMPAIGN_FIELDS}` +
+    `&action_breakdowns=${ACTION_BREAKDOWNS}` +
     `&time_range=${encodeURIComponent(timeRange)}` +
     `&time_increment=1` +
     `&limit=500` +
@@ -266,6 +298,7 @@ async function fetchAdLevelInsights(
     `${META_GRAPH_URL}/${accountId}/insights` +
     `?level=ad` +
     `&fields=${AD_FIELDS}` +
+    `&action_breakdowns=${ACTION_BREAKDOWNS}` +
     `&time_range=${encodeURIComponent(timeRange)}` +
     `&time_increment=1` +
     `&limit=500` +

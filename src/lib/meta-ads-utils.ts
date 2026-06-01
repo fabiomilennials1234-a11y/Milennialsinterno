@@ -3,10 +3,52 @@ export interface MetaAction {
   value: string;
 }
 
+/**
+ * Canonical registry of tracked conversion events, keyed by the Meta Custom
+ * Conversion ID. Meta does NOT surface the custom conversion under an
+ * `offsite_conversion.custom.<id>` action_type — it surfaces it under the
+ * underlying pixel custom-event name (`offsite_conversion.fb_pixel_custom.<event>`),
+ * returned by the `conversions` insights field with `action_breakdowns=action_type`.
+ * The `id` is the source of truth (Custom Conversion 1516257283377789 =
+ * "Reuniao marcada.", rule `event == invitee_meeting_scheduled`); `actionType`
+ * is the exact string to match in the actions/conversions array.
+ */
+export interface ConversionEvent {
+  id: string;
+  label: string;
+  actionType: string;
+}
+
+export const CONVERSION_EVENTS = {
+  agendamento: {
+    id: '1516257283377789',
+    label: 'Agendamento',
+    actionType: 'offsite_conversion.fb_pixel_custom.invitee_meeting_scheduled',
+  },
+} as const satisfies Record<string, ConversionEvent>;
+
+/** Sum the value of a single conversion event by exact action_type match. */
+export function extractConversion(actionsRaw: unknown, actionType: string): number {
+  if (!Array.isArray(actionsRaw)) return 0;
+  return (actionsRaw as MetaAction[]).reduce(
+    (sum, a) => (a?.action_type === actionType ? sum + Number(a.value ?? 0) : sum),
+    0,
+  );
+}
+
+// Conversion action_types that hard purchases use. Custom pixel conversions are
+// intentionally excluded here — they are tracked individually via CONVERSION_EVENTS
+// so that named events (e.g. agendamento) are never blended into this bucket.
+const PURCHASE_ACTION_TYPES = new Set([
+  'purchase',
+  'offsite_conversion.fb_pixel_purchase',
+  'omni_purchase',
+]);
+
 export function parseMetaActions(actions: MetaAction[]): { leads: number; conversions: number } {
   const leads = Number(actions.find(a => a.action_type === 'lead')?.value ?? 0);
   const conversions = actions
-    .filter(a => a.action_type.startsWith('offsite_conversion.') || a.action_type === 'purchase')
+    .filter(a => PURCHASE_ACTION_TYPES.has(a.action_type))
     .reduce((sum, a) => sum + Number(a.value), 0);
   return { leads, conversions };
 }
