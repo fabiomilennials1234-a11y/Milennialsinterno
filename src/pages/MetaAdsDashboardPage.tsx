@@ -91,10 +91,21 @@ export default function MetaAdsDashboardPage() {
 
   const handleRangeSelect = useCallback((range: DateRange | undefined) => {
     if (!range?.from) return;
-    setDateFrom(fmtDate(range.from));
+    const from = fmtDate(range.from);
+    // Single day: react-day-picker returns { from, to: undefined } on the first
+    // (and, for a single-day pick, only) click. Treat it as a valid one-day range
+    // (since === until). The Meta query (useMetaAdsInsights) filters
+    // date_start >= from AND date_start <= to, so from === to returns that day.
+    const to = range.to ? fmtDate(range.to) : from;
+    setDateFrom(from);
+    setDateTo(to);
+    setPresetLabel(
+      from === to ? fmtDisplay(from) : `${fmtDisplay(from)} - ${fmtDisplay(to)}`,
+    );
+    // Close once the selection is complete: a full range (two endpoints) closes
+    // immediately; a single day stays open so the user can optionally extend it
+    // into a range with a second click — but it is already applied.
     if (range.to) {
-      setDateTo(fmtDate(range.to));
-      setPresetLabel(`${fmtDisplay(fmtDate(range.from))} - ${fmtDisplay(fmtDate(range.to))}`);
       setPickerOpen(false);
     }
   }, []);
