@@ -124,7 +124,7 @@ serve(async (req) => {
         file_size: body.file_size || null,
         duration_seconds: body.duration_seconds || null,
         recorded_in_browser: true,
-        transcript_status: "none",
+        transcript_status: "pending",
         created_by: user.id,
         created_by_name: user.user_metadata?.name || null,
       })
@@ -181,7 +181,11 @@ serve(async (req) => {
       }
     })();
 
-    // --- Trigger transcription (fire-and-forget) ---
+    // --- Best-effort transcription kick (NOT relied upon for durability) ---
+    // The recording is already marked transcript_status='pending'; the
+    // reconcile-recordings cron is the durable path that guarantees the
+    // transcription runs even if this fetch dies with the runtime. This is
+    // purely a latency optimization so the common case starts immediately.
     const transcribePromise = (async () => {
       try {
         await fetch(`${SUPABASE_URL}/functions/v1/transcribe-meeting`, {
@@ -193,7 +197,8 @@ serve(async (req) => {
           body: JSON.stringify({ recording_id: meeting.id }),
         });
       } catch (err) {
-        console.warn("Transcription trigger failed:", err);
+        // Non-fatal: reconciler will re-dispatch the pending transcription.
+        console.warn("Transcription kick failed (reconciler will retry):", err);
       }
     })();
 

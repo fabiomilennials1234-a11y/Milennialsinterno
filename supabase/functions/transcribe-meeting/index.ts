@@ -1,6 +1,18 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCorsHeaders } from "../_shared/cors.ts";
+import { extractBearer, isServiceRoleCaller } from "../_shared/internalAuth.ts";
+
+// Transcription provider: Deepgram Nova-2 (ADR 0003 — supersedes 0002).
+//
+// URL-BASED on purpose: we hand Deepgram the public audio URL and it fetches the
+// file itself. Zero audio bytes enter this edge worker's memory, so there is no
+// OOM ceiling — a full 2h meeting transcribes fine. (The OpenRouter swap loaded
+// base64 audio in-memory and OOM-killed the worker on real recordings; reverted.)
+// Output carries real diarization: per-speaker `segments` + has_diarization:true
+// so the viewer colors by voice.
+const DEEPGRAM_LISTEN_URL =
+  "https://api.deepgram.com/v1/listen?model=nova-2&language=pt-BR&diarize=true&punctuate=true&utterances=true";
 
 serve(async (req) => {
   const cors = buildCorsHeaders(req);
@@ -20,25 +32,37 @@ serve(async (req) => {
     );
   }
 
-  // --- Validate JWT ---
+  // --- Auth (gateway verify_jwt is OFF — see config.toml; we validate here).
+  //     Accept a valid end-user JWT, OR the trusted internal caller presenting
+  //     the service-role key (reconcile-recordings cron). The internal caller's
+  //     secret never leaves the server environment, so this is not a
+  //     client-exposed path. ---
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader) {
+  const token = extractBearer(authHeader);
+  if (!token) {
     return new Response(
       JSON.stringify({ error: "Missing Authorization header" }),
       { status: 401, headers: { ...cors, "Content-Type": "application/json" } },
     );
   }
 
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-  const userClient = createClient(SUPABASE_URL, anonKey, {
-    global: { headers: { Authorization: authHeader } },
-  });
-  const { data: { user }, error: authError } = await userClient.auth.getUser();
-  if (authError || !user) {
-    return new Response(
-      JSON.stringify({ error: "Invalid or expired token" }),
-      { status: 401, headers: { ...cors, "Content-Type": "application/json" } },
-    );
+  const isInternalCall = isServiceRoleCaller(
+    token,
+    SUPABASE_SERVICE_ROLE_KEY,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_JWT_LEGACY"),
+  );
+  if (!isInternalCall) {
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const userClient = createClient(SUPABASE_URL, anonKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
+    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: "Invalid or expired token" }),
+        { status: 401, headers: { ...cors, "Content-Type": "application/json" } },
+      );
+    }
   }
 
   // --- Parse body ---
@@ -62,7 +86,7 @@ serve(async (req) => {
   // --- Fetch recording ---
   const { data: recording, error: fetchErr } = await adminClient
     .from("recorded_meetings")
-    .select("id, audio_file_url, transcript_status")
+    .select("id, audio_file_url, transcript_status, updated_at")
     .eq("id", recording_id)
     .single();
 
@@ -80,47 +104,54 @@ serve(async (req) => {
     );
   }
 
-  if (recording.transcript_status === "processing") {
+  // Idempotency guard: if already completed, do nothing.
+  if (recording.transcript_status === "completed") {
     return new Response(
-      JSON.stringify({ status: "already_processing" }),
+      JSON.stringify({ status: "already_completed", recording_id }),
       { status: 200, headers: { ...cors, "Content-Type": "application/json" } },
     );
   }
 
-  // --- Mark processing ---
+  // If a previous attempt is still 'processing', only re-run if it has been
+  // stuck for >15min (the prior runtime likely died inside waitUntil). This
+  // makes the function safe to call repeatedly (reconciler + manual retry).
+  const STUCK_PROCESSING_MS = 15 * 60 * 1000;
+  if (recording.transcript_status === "processing") {
+    const updatedAt = recording.updated_at ? new Date(recording.updated_at).getTime() : 0;
+    const stuckFor = Date.now() - updatedAt;
+    if (stuckFor < STUCK_PROCESSING_MS) {
+      return new Response(
+        JSON.stringify({ status: "already_processing", recording_id }),
+        { status: 200, headers: { ...cors, "Content-Type": "application/json" } },
+      );
+    }
+    // else: fall through and reprocess the stuck recording.
+  }
+
+  // --- Mark processing (bumps updated_at, which the timeout guard reads) ---
   await adminClient
     .from("recorded_meetings")
-    .update({ transcript_status: "processing", transcript_error: null })
+    .update({ transcript_status: "processing", transcript_error: null, updated_at: new Date().toISOString() })
     .eq("id", recording_id);
 
   // Respond immediately — transcription runs in background via waitUntil
   const transcriptionPromise = (async () => {
     try {
-      // --- Download audio ---
-      const audioResponse = await fetch(recording.audio_file_url);
-      if (!audioResponse.ok) {
-        throw new Error(`Failed to download audio: ${audioResponse.status}`);
-      }
-      const audioBuffer = await audioResponse.arrayBuffer();
-
-      // --- Call Deepgram Nova-2 ---
-      const deepgramUrl =
-        "https://api.deepgram.com/v1/listen?model=nova-2&language=pt-BR&diarize=true&punctuate=true&utterances=true";
-
-      const deepgramResponse = await fetch(deepgramUrl, {
+      // --- Call Deepgram (URL-based — Deepgram fetches the audio itself) ---
+      const deepgramResponse = await fetch(DEEPGRAM_LISTEN_URL, {
         method: "POST",
         headers: {
           Authorization: `Token ${DEEPGRAM_API_KEY}`,
-          "Content-Type": "audio/webm",
+          "Content-Type": "application/json",
         },
-        body: audioBuffer,
+        body: JSON.stringify({ url: recording.audio_file_url }),
       });
 
       if (!deepgramResponse.ok) {
-        const errText = await deepgramResponse.text();
-        throw new Error(
-          `Deepgram API error ${deepgramResponse.status}: ${errText}`,
-        );
+        // Truncate the upstream body; never log request headers (they carry the
+        // Deepgram API key). Only status + a short body excerpt is surfaced.
+        const errText = (await deepgramResponse.text()).slice(0, 300);
+        throw new Error(`Deepgram API error ${deepgramResponse.status}: ${errText}`);
       }
 
       const result = await deepgramResponse.json();
@@ -129,7 +160,7 @@ serve(async (req) => {
       let transcript: Record<string, unknown>;
 
       if (utterances && utterances.length > 0) {
-        // Diarized transcript with speaker segments
+        // Diarized transcript with per-speaker segments.
         const segments = utterances.map(
           (u: { speaker: number; transcript: string; start: number; end: number }) => ({
             speaker: u.speaker,
@@ -150,7 +181,7 @@ serve(async (req) => {
           has_diarization: true,
         };
       } else {
-        // Fallback: plain transcript without diarization
+        // Fallback: plain transcript without diarization.
         const plainText =
           result.results?.channels?.[0]?.alternatives?.[0]?.transcript || "";
 
@@ -160,19 +191,25 @@ serve(async (req) => {
 
         transcript = {
           text: plainText,
+          segments: [],
+          speakers_count: 1,
           model: "deepgram-nova-2",
           transcribed_at: new Date().toISOString(),
           has_diarization: false,
         };
       }
 
-      // --- Save success ---
+      // --- Save success + enqueue ata generation ---
+      // Setting ata_status='pending' hands off to the ata pipeline; the
+      // reconciler guarantees generate-meeting-ata runs durably.
       await adminClient
         .from("recorded_meetings")
         .update({
           transcript,
           transcript_status: "completed",
           transcript_error: null,
+          ata_status: "pending",
+          updated_at: new Date().toISOString(),
         })
         .eq("id", recording_id);
 
@@ -186,6 +223,7 @@ serve(async (req) => {
         .update({
           transcript_status: "failed",
           transcript_error: message,
+          updated_at: new Date().toISOString(),
         })
         .eq("id", recording_id);
     }

@@ -16,3 +16,16 @@ verify_jwt = false
 
 [functions.api-v1]
 verify_jwt = false
+
+# Recording pipeline: chamadas internas usam a service-role secret key
+# (sb_secret_...), que NÃO é um JWT — o gateway com verify_jwt=true a rejeita
+# com 401 antes do código rodar (quebrava o reconciler/durabilidade da #70).
+# JWT de usuário e service-role são validados em código.
+[functions.transcribe-meeting]
+verify_jwt = false
+
+[functions.generate-meeting-ata]
+verify_jwt = false
+
+[functions.reconcile-recordings]
+verify_jwt = false
