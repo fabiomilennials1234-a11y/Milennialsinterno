@@ -32,6 +32,8 @@ interface UseChunkUploaderReturn {
   pauseUploads: (ms: number) => void;
   /** Resume upload processing immediately (clears any active pause). */
   resumeUploads: () => void;
+  /** Clear the permanently-failed-chunk ledger at the start of a new recording. */
+  resetFailures: () => void;
 }
 
 const MAX_RETRIES = 3;
@@ -66,7 +68,12 @@ export function useChunkUploader(): UseChunkUploaderReturn {
   const audioQueueRef = useRef<ChunkJob[]>([]);
   const videoProcessingRef = useRef(false);
   const audioProcessingRef = useRef(false);
-  const drainResolversRef = useRef<Array<() => void>>([]);
+  const drainResolversRef = useRef<Array<{ resolve: () => void; reject: (err: Error) => void }>>([]);
+  // Chunks that exhausted all retries and were NOT written to Storage. They stay
+  // in IndexedDB for recovery, but the final drain must report this loss instead
+  // of resolving success — otherwise assembly fetches a missing object and
+  // persists the Storage 404 JSON body as the final audio (issue #74).
+  const failedChunksRef = useRef<string[]>([]);
   const consecutiveFailuresRef = useRef(0);
   const pausedUntilRef = useRef(0);
   const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -80,7 +87,16 @@ export function useChunkUploader(): UseChunkUploaderReturn {
         !videoProcessingRef.current && !audioProcessingRef.current) {
       const resolvers = drainResolversRef.current;
       drainResolversRef.current = [];
-      resolvers.forEach((r) => r());
+      const failed = failedChunksRef.current;
+      if (failed.length > 0) {
+        const err = new Error(
+          `Falha ao enviar ${failed.length} parte(s) da gravacao: ${failed.join(', ')}. ` +
+          `Os dados ficaram salvos localmente para recuperacao.`,
+        );
+        resolvers.forEach((r) => r.reject(err));
+      } else {
+        resolvers.forEach((r) => r.resolve());
+      }
     }
   }, []);
 
@@ -119,7 +135,9 @@ export function useChunkUploader(): UseChunkUploaderReturn {
             // Track consecutive failures
             consecutiveFailuresRef.current += 1;
             setConsecutiveFailures(consecutiveFailuresRef.current);
-            // Leave chunk in IDB for recovery — skip this chunk and continue
+            // Leave chunk in IDB for recovery, but RECORD the loss so drainQueue
+            // rejects instead of letting assembly run against a missing object.
+            failedChunksRef.current.push(`${job.track}/${job.index}`);
           }
         }
       }
@@ -130,6 +148,9 @@ export function useChunkUploader(): UseChunkUploaderReturn {
           consecutiveFailuresRef.current = 0;
           setConsecutiveFailures(0);
         }
+        // A retry (recovery) that finally lands clears the earlier loss record.
+        const key = `${job.track}/${job.index}`;
+        failedChunksRef.current = failedChunksRef.current.filter((k) => k !== key);
         await markUploaded(job.sessionId, job.track, job.index);
       }
 
@@ -157,24 +178,32 @@ export function useChunkUploader(): UseChunkUploaderReturn {
   }, [processQueue, updatePendingCount]);
 
   const drainQueue = useCallback((): Promise<void> => {
-    if (videoQueueRef.current.length === 0 && audioQueueRef.current.length === 0 &&
-        !videoProcessingRef.current && !audioProcessingRef.current) {
+    const drained = videoQueueRef.current.length === 0 && audioQueueRef.current.length === 0 &&
+        !videoProcessingRef.current && !audioProcessingRef.current;
+
+    if (drained) {
+      const failed = failedChunksRef.current;
+      if (failed.length > 0) {
+        return Promise.reject(new Error(
+          `Falha ao enviar ${failed.length} parte(s) da gravacao: ${failed.join(', ')}. ` +
+          `Os dados ficaram salvos localmente para recuperacao.`,
+        ));
+      }
       return Promise.resolve();
     }
 
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        // Remove this resolver from the list
-        drainResolversRef.current = drainResolversRef.current.filter((r) => r !== wrappedResolve);
+        drainResolversRef.current = drainResolversRef.current.filter((r) => r !== entry);
         reject(new Error('Tempo limite de upload excedido (60s)'));
       }, 60_000);
 
-      const wrappedResolve = () => {
-        clearTimeout(timeout);
-        resolve();
+      const entry = {
+        resolve: () => { clearTimeout(timeout); resolve(); },
+        reject: (err: Error) => { clearTimeout(timeout); reject(err); },
       };
 
-      drainResolversRef.current.push(wrappedResolve);
+      drainResolversRef.current.push(entry);
     });
   }, []);
 
@@ -228,6 +257,10 @@ export function useChunkUploader(): UseChunkUploaderReturn {
     }
   }, []);
 
+  const resetFailures = useCallback(() => {
+    failedChunksRef.current = [];
+  }, []);
+
   return {
     enqueueChunk,
     drainQueue,
@@ -237,5 +270,6 @@ export function useChunkUploader(): UseChunkUploaderReturn {
     consecutiveFailures,
     pauseUploads,
     resumeUploads,
+    resetFailures,
   };
 }

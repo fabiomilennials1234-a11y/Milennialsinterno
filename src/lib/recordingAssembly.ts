@@ -63,6 +63,37 @@ export function assembleTrackBlob(chunks: TrackChunk[], mimeType: string): Blob 
   return new Blob(sorted.map((c) => c.blob), { type: mimeType });
 }
 
+/** First byte of the Storage JSON error body `{"statusCode":...}` — `{` = 0x7b. */
+const JSON_OPEN_BRACE = 0x7b;
+
+/**
+ * Screen a single fetched chunk before it enters assembly.
+ *
+ * `assertEbmlMagic` only inspects the assembled container's first 4 bytes, so a
+ * Storage error body (`{"statusCode":"404"}`) fetched as a NON-first chunk would
+ * ride inside the final audio undetected (issue #74). This rejects any chunk
+ * that is empty or begins with `{` (a JSON error body, never valid WebM —
+ * neither the EBML header `0x1A` nor a raw Matroska continuation byte is `{`).
+ *
+ * @throws AssemblyError if the chunk is empty or looks like a JSON error body.
+ */
+export async function assertNotErrorBody(
+  blob: Blob,
+  track: 'video' | 'audio',
+  index: number,
+): Promise<void> {
+  if (blob.size === 0) {
+    throw new AssemblyError(`Chunk ${track}/${index} vazio (0 bytes) — objeto ausente no Storage.`);
+  }
+
+  const first = new Uint8Array(await blob.slice(0, 1).arrayBuffer());
+  if (first[0] === JSON_OPEN_BRACE) {
+    throw new AssemblyError(
+      `Chunk ${track}/${index} é um corpo de erro JSON (404), não áudio — abortando para não persistir lixo.`,
+    );
+  }
+}
+
 /**
  * Assert the assembled blob begins with the EBML magic bytes.
  *

@@ -7,7 +7,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { uploadBlob } from '@/lib/storageUpload';
-import { assembleTrackBlob, assertEbmlMagic, type TrackChunk } from '@/lib/recordingAssembly';
+import { assembleTrackBlob, assertEbmlMagic, assertNotErrorBody, type TrackChunk } from '@/lib/recordingAssembly';
 
 export type AssemblyStage = 'idle' | 'fetching' | 'assembling' | 'uploading-video' | 'uploading-audio' | 'finalizing' | 'done' | 'error';
 
@@ -71,7 +71,11 @@ export function useRecordingAssembly(): UseRecordingAssemblyReturn {
               const url = buildChunkUrl(storagePrefix, track, idx);
               const response = await fetch(url);
               if (!response.ok) throw new Error(`Failed to fetch ${track} chunk ${idx}: ${response.status}`);
-              return { index: idx, blob: await response.blob() } as TrackChunk;
+              const blob = await response.blob();
+              // Even a 200 can carry a Storage error body; screen every chunk so
+              // a JSON 404 never rides inside the container (issue #74).
+              await assertNotErrorBody(blob, track, idx);
+              return { index: idx, blob } as TrackChunk;
             }),
           );
           chunks.push(...results);

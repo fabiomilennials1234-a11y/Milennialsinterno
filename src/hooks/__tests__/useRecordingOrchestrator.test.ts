@@ -72,6 +72,10 @@ vi.mock('../useChunkUploader', () => ({
     uploadPendingFromIDB: vi.fn().mockResolvedValue(undefined),
     pendingCount: 0,
     error: null,
+    consecutiveFailures: 0,
+    pauseUploads: vi.fn(),
+    resumeUploads: vi.fn(),
+    resetFailures: vi.fn(),
   }),
 }));
 

@@ -21,6 +21,7 @@ import {
   EBML_MAGIC,
   assembleTrackBlob,
   assertEbmlMagic,
+  assertNotErrorBody,
   type TrackChunk,
 } from '@/lib/recordingAssembly';
 
@@ -119,5 +120,27 @@ describe('assertEbmlMagic', () => {
   it('throws on a blob shorter than the 4-byte magic', async () => {
     const tiny = new Blob([new Uint8Array([0x1a, 0x45])], { type: 'audio/webm' });
     await expect(assertEbmlMagic(tiny)).rejects.toThrow();
+  });
+});
+
+describe('assertNotErrorBody — per-chunk guard against a 404 JSON body riding inside the container', () => {
+  // Issue #74: the assembled blob's FIRST bytes can be a valid EBML header
+  // (chunk 0 uploaded fine) while a LATER chunk is the Storage error body
+  // `{"statusCode":"404"}`. assertEbmlMagic only inspects the first 4 bytes, so
+  // each fetched chunk must be screened individually before assembly.
+  it('rejects a chunk that is the Storage 404 JSON error body', async () => {
+    const jsonBody = new Blob([new TextEncoder().encode('{"statusCode":"404","error":"not_found"}')]);
+    await expect(assertNotErrorBody(jsonBody, 'audio', 3)).rejects.toThrow(/404|erro|invalid|audio/i);
+  });
+
+  it('passes a real webm chunk (EBML header or raw continuation bytes)', async () => {
+    const header = new Blob([new Uint8Array([...EBML_MAGIC, 0x9f])]);
+    const body = new Blob([new Uint8Array([0xa3, 0x42, 0x00])]);
+    await expect(assertNotErrorBody(header, 'audio', 0)).resolves.toBeUndefined();
+    await expect(assertNotErrorBody(body, 'audio', 1)).resolves.toBeUndefined();
+  });
+
+  it('rejects an empty chunk (a 0-byte object is not real audio)', async () => {
+    await expect(assertNotErrorBody(new Blob([]), 'video', 5)).rejects.toThrow();
   });
 });

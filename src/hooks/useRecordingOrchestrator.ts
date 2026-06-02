@@ -442,6 +442,7 @@ export function useRecordingOrchestrator(): UseRecordingOrchestratorReturn {
       totalBytesRef.current = 0;
       videoMimeRef.current = null;
       audioMimeRef.current = null;
+      chunkUploader.resetFailures();
 
       setActiveSession(session);
       setPipelineState('idle');
@@ -464,7 +465,7 @@ export function useRecordingOrchestrator(): UseRecordingOrchestratorReturn {
         }
       }
     }
-  }, [title, folderId, clientId, sessionApi, recorder]);
+  }, [title, folderId, clientId, sessionApi, recorder, chunkUploader]);
 
   const cancelRecording = useCallback(async () => {
     try {
