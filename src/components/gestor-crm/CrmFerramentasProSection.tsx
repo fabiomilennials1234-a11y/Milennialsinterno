@@ -60,9 +60,9 @@ export default function CrmFerramentasProSection() {
             key={tool.id}
             type="button"
             onClick={() => setOpenTool(tool)}
-            className="w-full text-left p-3 rounded-lg border border-border bg-muted/20 hover:bg-muted/40 hover:border-violet-500/40 transition-colors flex items-center gap-3"
+            className="w-full text-left p-3 rounded-lg border border-border bg-muted/20 hover:bg-muted/40 hover:border-foreground/20 transition-colors flex items-center gap-3"
           >
-            <div className="w-9 h-9 rounded-md bg-violet-500/15 text-violet-400 flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-md bg-muted text-muted-foreground flex items-center justify-center shrink-0">
               <GraduationCap size={18} />
             </div>
             <div className="min-w-0 flex-1">
@@ -79,7 +79,7 @@ export default function CrmFerramentasProSection() {
             <>
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
-                  <GraduationCap size={18} className="text-violet-400" />
+                  <GraduationCap size={18} className="text-muted-foreground" />
                   {openTool.title}
                 </DialogTitle>
               </DialogHeader>
@@ -92,10 +92,10 @@ export default function CrmFerramentasProSection() {
                       href={link.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-between gap-3 p-3 rounded-lg border border-border bg-card hover:border-violet-500/40 hover:bg-muted/30 transition-colors group"
+                      className="flex items-center justify-between gap-3 p-3 rounded-lg border border-border bg-card hover:border-foreground/20 hover:bg-muted/30 transition-colors group"
                     >
                       <span className="text-sm font-medium text-foreground">{link.label}</span>
-                      <ExternalLink size={14} className="text-muted-foreground group-hover:text-violet-400 shrink-0" />
+                      <ExternalLink size={14} className="text-muted-foreground group-hover:text-foreground shrink-0" />
                     </a>
                   ))}
                 </div>

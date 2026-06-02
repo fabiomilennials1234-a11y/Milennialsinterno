@@ -46,7 +46,7 @@ export default function CrmResetLoopSection({ resetCount, checklistItems, onRese
           <span className="text-xs text-muted-foreground">
             Reset loop
             {resetCount > 0 && (
-              <span className="ml-1.5 text-amber-600 font-semibold">
+              <span className="ml-1.5 text-warning font-semibold">
                 ({resetCount} reset{resetCount > 1 ? 's' : ''})
               </span>
             )}
@@ -57,7 +57,7 @@ export default function CrmResetLoopSection({ resetCount, checklistItems, onRese
             variant="outline"
             size="sm"
             onClick={() => setIsOpen(true)}
-            className="h-7 text-[11px] gap-1 border-amber-500/30 text-amber-700 hover:bg-amber-500/10"
+            className="h-7 text-[11px] gap-1 border-warning/30 text-warning hover:bg-warning/10"
           >
             <RotateCcw size={11} />
             Resetar etapa
@@ -66,8 +66,8 @@ export default function CrmResetLoopSection({ resetCount, checklistItems, onRese
       </div>
 
       {isOpen && (
-        <div className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/20 space-y-3">
-          <div className="flex items-start gap-1.5 text-xs text-amber-700">
+        <div className="p-3 rounded-lg bg-warning/5 border border-warning/20 space-y-3">
+          <div className="flex items-start gap-1.5 text-xs text-warning">
             <AlertCircle size={12} className="mt-0.5 shrink-0" />
             Checklist sera zerado e uma nova tarefa de reagendamento sera criada.
           </div>
@@ -83,8 +83,8 @@ export default function CrmResetLoopSection({ resetCount, checklistItems, onRese
                     className={cn(
                       'flex items-start gap-2 p-1.5 rounded-md border cursor-pointer transition-all text-[11px]',
                       failedItems.includes(item)
-                        ? 'bg-amber-500/10 border-amber-500/30'
-                        : 'bg-background border-border/50 hover:border-amber-500/20'
+                        ? 'bg-warning/10 border-warning/30'
+                        : 'bg-background border-border/50 hover:border-warning/20'
                     )}
                   >
                     <Checkbox
@@ -138,7 +138,7 @@ export default function CrmResetLoopSection({ resetCount, checklistItems, onRese
               onClick={handleReset}
               className={cn(
                 'h-7 text-[11px] gap-1',
-                'bg-amber-500 hover:bg-amber-600 text-slate-900'
+                'bg-primary hover:bg-primary/90 text-primary-foreground'
               )}
             >
               <RotateCcw size={11} />

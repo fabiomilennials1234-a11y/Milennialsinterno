@@ -51,7 +51,7 @@ export default function CrmNovoClienteSection() {
   if (isLoading) {
     return (
       <div className="space-y-2">
-        {[1, 2].map(i => <div key={i} className="h-20 bg-muted/50 rounded-lg animate-pulse" />)}
+        {[1, 2].map(i => <div key={i} className="h-20 skeleton-static rounded-lg" />)}
       </div>
     );
   }
@@ -72,8 +72,8 @@ export default function CrmNovoClienteSection() {
           const name = client.razao_social || client.name || 'Cliente';
           const torqueProducts = getTorqueCrmProducts(client);
           return (
-            <Card key={client.id} className="border-subtle hover:shadow-apple-hover transition-shadow">
-              <CardContent className="p-3">
+            <Card key={client.id} className="bg-card">
+              <CardContent className="p-3.5">
                 <div className="space-y-2">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
@@ -108,7 +108,7 @@ export default function CrmNovoClienteSection() {
                     )}
                   </div>
 
-                  <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+                  <Badge variant="outline" className="text-[10px] bg-success/10 text-success border-success/30">
                     Gestão de CRM
                   </Badge>
                 </div>

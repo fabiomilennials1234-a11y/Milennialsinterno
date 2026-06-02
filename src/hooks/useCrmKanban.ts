@@ -34,10 +34,14 @@ export const CRM_PRODUTO_LABEL: Record<CrmProduto, string> = {
   copilot: 'Copilot',
 };
 
+// Chip de produto: NEUTRO. O produto é identificado pelo label (V8/Automation/
+// Copilot), não por cor. Antes eram 3 pills saturadas (sky/violet/amber)
+// competindo em cada card — decoração que roubava o sinal dos estados reais
+// (success/warning/danger). Restraint: a cor fica reservada para informação.
 export const CRM_PRODUTO_COLOR: Record<CrmProduto, string> = {
-  v8: 'bg-sky-500/10 text-sky-600 border-sky-500/30',
-  automation: 'bg-violet-500/10 text-violet-600 border-violet-500/30',
-  copilot: 'bg-amber-500/10 text-amber-600 border-amber-500/30',
+  v8: 'bg-muted text-muted-foreground border-border',
+  automation: 'bg-muted text-muted-foreground border-border',
+  copilot: 'bg-muted text-muted-foreground border-border',
 };
 
 export const CRM_PRODUTOS_VALIDOS: readonly CrmProduto[] = ['v8', 'automation', 'copilot'] as const;

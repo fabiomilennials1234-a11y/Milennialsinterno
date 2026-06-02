@@ -41,8 +41,8 @@ export default function CrmDelayJustificationField({
 
   if (hasJustification) {
     return (
-      <div className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/20 space-y-1.5">
-        <div className="flex items-center gap-1.5 text-xs text-amber-700 font-medium">
+      <div className="p-3 rounded-lg bg-warning/5 border border-warning/20 space-y-1.5">
+        <div className="flex items-center gap-1.5 text-xs text-warning font-medium">
           <CheckCircle2 size={12} />
           Atraso justificado
           {justifiedAt && (
@@ -53,7 +53,7 @@ export default function CrmDelayJustificationField({
           )}
         </div>
         {categoryLabel && (
-          <p className="text-[11px] font-semibold text-amber-600">{categoryLabel}</p>
+          <p className="text-[11px] font-semibold text-warning">{categoryLabel}</p>
         )}
         <p className="text-sm text-foreground/80 leading-relaxed">{currentJustification}</p>
       </div>

@@ -138,7 +138,7 @@ export default function CrmTimeline({ configId, produto, currentStep, isFinaliza
   }, [logs, steps, currentStep, isFinalizado]);
 
   if (isLoading) {
-    return <div className="h-20 bg-muted/30 rounded animate-pulse" />;
+    return <div className="h-20 skeleton-static rounded" />;
   }
 
   return (
@@ -154,7 +154,7 @@ export default function CrmTimeline({ configId, produto, currentStep, isFinaliza
             {/* Vertical line + icon */}
             <div className="flex flex-col items-center w-5 shrink-0">
               {step.status === 'completed' ? (
-                <CheckCircle2 size={14} className="text-emerald-600 shrink-0 z-10" />
+                <CheckCircle2 size={14} className="text-success shrink-0 z-10" />
               ) : step.status === 'current' ? (
                 <div className="w-3.5 h-3.5 rounded-full border-2 border-primary bg-primary/20 shrink-0 z-10" />
               ) : (
@@ -163,7 +163,7 @@ export default function CrmTimeline({ configId, produto, currentStep, isFinaliza
               {idx < timeline.length - 1 && (
                 <div className={cn(
                   'w-px flex-1 min-h-[20px]',
-                  step.status === 'completed' ? 'bg-emerald-500/40' : 'bg-border/50'
+                  step.status === 'completed' ? 'bg-success/40' : 'bg-border/50'
                 )} />
               )}
             </div>

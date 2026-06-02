@@ -13,13 +13,13 @@ const ACTION_META: Record<string, {
   icon: typeof History;
   color: string;
 }> = {
-  checklist_toggle: { label: 'Checklist', icon: CheckSquare, color: 'text-blue-600' },
-  advance: { label: 'Avancou', icon: ArrowRight, color: 'text-emerald-600' },
-  reset_loop: { label: 'Reset', icon: RotateCcw, color: 'text-amber-600' },
+  checklist_toggle: { label: 'Checklist', icon: CheckSquare, color: 'text-muted-foreground' },
+  advance: { label: 'Avancou', icon: ArrowRight, color: 'text-success' },
+  reset_loop: { label: 'Reset', icon: RotateCcw, color: 'text-warning' },
   blocked: { label: 'Bloqueado', icon: Shield, color: 'text-destructive' },
-  field_save: { label: 'Campo', icon: FileText, color: 'text-violet-600' },
-  delay_justification: { label: 'Justificativa', icon: Send, color: 'text-orange-600' },
-  finalized: { label: 'Finalizado', icon: CheckCircle2, color: 'text-emerald-700' },
+  field_save: { label: 'Campo', icon: FileText, color: 'text-muted-foreground' },
+  delay_justification: { label: 'Justificativa', icon: Send, color: 'text-warning' },
+  finalized: { label: 'Finalizado', icon: CheckCircle2, color: 'text-success' },
 };
 
 function formatTimestamp(iso: string): string {
@@ -79,7 +79,7 @@ export default function CrmValidationHistory({ configId }: Props) {
   const filtered = logs.filter(l => l.action !== 'blocked');
 
   if (isLoading) {
-    return <div className="h-8 bg-muted/30 rounded animate-pulse" />;
+    return <div className="h-8 skeleton-static rounded" />;
   }
 
   if (filtered.length === 0) {

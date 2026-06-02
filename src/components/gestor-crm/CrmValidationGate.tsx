@@ -47,7 +47,7 @@ export default function CrmValidationGate({ configId, produto, compact }: Props)
 
   if (configLoading || !configState) {
     return (
-      <div className="h-8 bg-muted/30 rounded animate-pulse" />
+      <div className="h-8 skeleton-static rounded" />
     );
   }
 
@@ -74,7 +74,7 @@ export default function CrmValidationGate({ configId, produto, compact }: Props)
           totalMs={stepDeadlineStatus.totalMs}
         />
         {blockers.length > 0 && (
-          <span className="text-[10px] text-amber-600 font-medium">
+          <span className="text-[10px] text-warning font-medium">
             {blockers.length} pendencia{blockers.length > 1 ? 's' : ''}
           </span>
         )}
@@ -111,7 +111,7 @@ export default function CrmValidationGate({ configId, produto, compact }: Props)
 
       {/* Reset count indicator */}
       {configState.reset_count > 0 && (
-        <div className="flex items-center gap-1.5 text-[11px] text-amber-600 font-medium px-2 py-1 bg-amber-500/5 rounded-md border border-amber-500/15">
+        <div className="flex items-center gap-1.5 text-[11px] text-warning font-medium px-2 py-1 bg-warning/5 rounded-md border border-warning/15">
           Reset #{configState.reset_count}
         </div>
       )}

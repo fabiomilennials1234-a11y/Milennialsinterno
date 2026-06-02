@@ -27,9 +27,9 @@ vi.mock('@/hooks/useCrmKanban', () => ({
   useCrmConfiguracoes: () => ({ data: [] }),
   CRM_PRODUTO_LABEL: { v8: 'V8', automation: 'Automation', copilot: 'Copilot' },
   CRM_PRODUTO_COLOR: {
-    v8: 'bg-sky-500/10 text-sky-600 border-sky-500/30',
-    automation: 'bg-violet-500/10 text-violet-600 border-violet-500/30',
-    copilot: 'bg-amber-500/10 text-amber-600 border-amber-500/30',
+    v8: 'bg-muted text-muted-foreground border-border',
+    automation: 'bg-muted text-muted-foreground border-border',
+    copilot: 'bg-muted text-muted-foreground border-border',
   },
 }));
 

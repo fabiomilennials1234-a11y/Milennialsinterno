@@ -36,8 +36,8 @@ export default function CrmStepDeadlineBadge({ status, remainingMs, totalMs, cla
       <Badge
         variant="destructive"
         className={cn(
-          'text-[9px] px-1.5 py-0 gap-0.5 animate-pulse',
-          'bg-zinc-900 hover:bg-zinc-800 text-white border-zinc-700',
+          'text-[9px] px-1.5 py-0 gap-0.5 font-semibold',
+          'bg-foreground text-background border-transparent ring-1 ring-danger/50',
           className
         )}
       >
@@ -79,7 +79,7 @@ export default function CrmStepDeadlineBadge({ status, remainingMs, totalMs, cla
     <Badge
       variant="outline"
       className={cn(
-        'text-[9px] px-1.5 py-0 gap-0.5 border-emerald-500/40 text-emerald-700 bg-emerald-500/5',
+        'text-[9px] px-1.5 py-0 gap-0.5 border-success/40 text-success bg-success/5',
         className
       )}
     >

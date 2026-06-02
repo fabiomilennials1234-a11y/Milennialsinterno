@@ -51,8 +51,8 @@ const COLUMNS: { id: CrmTaskGroup; label: string; headerClass: string; borderCla
 // ─── Urgency badge config ──────────────────────────────────
 
 const URGENCY_META: Record<Exclude<UrgencyBadge, null>, { label: string; className: string }> = {
-  atrasado: { label: 'ATRASADO', className: 'bg-red-500/15 text-red-500 border-red-500/30' },
-  hoje: { label: 'HOJE', className: 'bg-amber-500/15 text-amber-600 border-amber-500/30' },
+  atrasado: { label: 'ATRASADO', className: 'bg-danger/15 text-danger border-danger/30' },
+  hoje: { label: 'HOJE', className: 'bg-warning/15 text-warning border-warning/30' },
   dn: { label: 'D+N', className: 'bg-muted text-muted-foreground border-border' },
 };
 
@@ -133,7 +133,7 @@ export default function CrmDailyTasksSection() {
     return (
       <div className="space-y-3">
         {[0, 1, 2].map(i => (
-          <div key={i} className="h-16 bg-muted/30 rounded-lg animate-pulse" />
+          <div key={i} className="h-16 skeleton-static rounded-lg" />
         ))}
       </div>
     );
@@ -404,7 +404,7 @@ function TaskCardContent({
   // Deadline status icon
   const deadlineIcon = (() => {
     switch (deadlineStatus) {
-      case 'overdue': return <AlertTriangle size={10} className="text-zinc-900" />;
+      case 'overdue': return <AlertTriangle size={10} className="text-danger" />;
       case 'critical': return <AlertTriangle size={10} className="text-destructive" />;
       case 'warning': return <Clock size={10} className="text-warning" />;
       default: return null;
@@ -461,7 +461,7 @@ function TaskCardContent({
             <span className={cn(
               'inline-flex items-center gap-0.5 text-[10px] font-bold tabular-nums px-1 py-0.5 rounded',
               checklistProgress.done === checklistProgress.total
-                ? 'bg-emerald-500/10 text-emerald-600'
+                ? 'bg-success/10 text-success'
                 : 'bg-muted text-muted-foreground',
             )}>
               <ListChecks size={10} />
@@ -473,7 +473,7 @@ function TaskCardContent({
           {isBlockedDN && blockedUntil && (
             <Badge
               variant="outline"
-              className="text-[9px] px-1.5 py-0 gap-0.5 border-amber-500/30 text-amber-600 bg-amber-500/5"
+              className="text-[9px] px-1.5 py-0 gap-0.5 border-warning/30 text-warning bg-warning/5"
             >
               <Timer size={9} />
               D+N
@@ -482,7 +482,7 @@ function TaskCardContent({
 
           {/* Briefing block badge */}
           {isBlockedByBriefing && (
-            <div className="flex items-center gap-1 px-1.5 py-0.5 bg-danger/10 border border-danger/20 rounded animate-pulse">
+            <div className="flex items-center gap-1 px-1.5 py-0.5 bg-danger/15 border border-danger/40 rounded">
               <ShieldAlert size={9} className="text-danger shrink-0" />
               <span className="text-[9px] font-bold text-danger uppercase tracking-wider">
                 Aguardando Briefing

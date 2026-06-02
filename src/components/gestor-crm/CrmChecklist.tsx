@@ -26,7 +26,7 @@ export default function CrmChecklist({ items, state, onToggle, disabled }: Props
         <span className={cn(
           'text-[11px] font-bold tabular-nums px-1.5 py-0.5 rounded',
           allDone
-            ? 'bg-emerald-500/10 text-emerald-600'
+            ? 'bg-success/10 text-success'
             : 'bg-muted text-muted-foreground'
         )}>
           {completed}/{total}
@@ -42,7 +42,7 @@ export default function CrmChecklist({ items, state, onToggle, disabled }: Props
               className={cn(
                 'flex items-start gap-2.5 p-2 rounded-lg border cursor-pointer transition-all',
                 checked
-                  ? 'bg-emerald-500/5 border-emerald-500/20'
+                  ? 'bg-success/5 border-success/20'
                   : 'bg-background border-border hover:border-primary/30',
                 disabled && 'opacity-50 cursor-not-allowed'
               )}

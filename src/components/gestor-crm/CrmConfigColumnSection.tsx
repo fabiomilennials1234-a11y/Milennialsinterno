@@ -100,7 +100,7 @@ export default function CrmConfigColumnSection({ produto }: Props) {
   if (isLoading) {
     return (
       <div className="space-y-2">
-        {[1, 2].map(i => <div key={i} className="h-20 bg-muted/50 rounded-lg animate-pulse" />)}
+        {[1, 2].map(i => <div key={i} className="h-20 skeleton-static rounded-lg" />)}
       </div>
     );
   }
@@ -190,7 +190,7 @@ export default function CrmConfigColumnSection({ produto }: Props) {
                               <span className={cn(
                                 'inline-flex items-center gap-0.5 text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded',
                                 progress.done === progress.total
-                                  ? 'bg-emerald-500/10 text-emerald-600'
+                                  ? 'bg-success/10 text-success'
                                   : 'bg-muted text-muted-foreground'
                               )}>
                                 <ListChecks size={10} />

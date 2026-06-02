@@ -128,7 +128,7 @@ export default function CrmGerarTarefaSection({ clientId, clientName }: Props) {
     return (
       <div className="bg-muted/20 rounded-xl p-4 border border-border space-y-3">
         <div className="flex items-center gap-2">
-          <UserPlus className="w-4 h-4 text-amber-500" />
+          <UserPlus className="w-4 h-4 text-warning" />
           <h3 className="text-sm font-semibold text-foreground">Gestor de CRM</h3>
         </div>
         <p className="text-xs text-muted-foreground">
@@ -156,7 +156,7 @@ export default function CrmGerarTarefaSection({ clientId, clientName }: Props) {
               size="sm"
               onClick={handleAssignGestor}
               disabled={!selectedGestor || assigning}
-              className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold gap-1.5 shrink-0"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold gap-1.5 shrink-0"
             >
               <UserPlus size={14} />
               {assigning ? 'Atribuindo...' : 'Atribuir'}
@@ -186,7 +186,7 @@ export default function CrmGerarTarefaSection({ clientId, clientName }: Props) {
         <Button
           size="sm"
           onClick={() => setModalOpen(true)}
-          className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold gap-1.5"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold gap-1.5"
         >
           <Wand2 size={14} />
           Gerar tarefa
@@ -227,12 +227,12 @@ export default function CrmGerarTarefaSection({ clientId, clientName }: Props) {
 
               if (cfg.is_finalizado) {
                 return (
-                  <div key={produto} className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-2.5">
+                  <div key={produto} className="rounded-lg border border-success/30 bg-success/5 p-2.5">
                     <div className="flex items-center gap-1.5">
                       <Badge className={`${color} border`}>{label}</Badge>
-                      <CheckCircle2 size={14} className="text-emerald-600" />
+                      <CheckCircle2 size={14} className="text-success" />
                     </div>
-                    <p className="text-[11px] text-emerald-700 mt-1.5 font-semibold">Finalizado</p>
+                    <p className="text-[11px] text-success mt-1.5 font-semibold">Finalizado</p>
                   </div>
                 );
               }

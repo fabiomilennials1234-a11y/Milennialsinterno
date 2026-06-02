@@ -26,7 +26,7 @@ export default function CrmBoasVindasSection() {
   if (isLoading) {
     return (
       <div className="space-y-2">
-        {[1, 2].map(i => <div key={i} className="h-20 bg-muted/50 rounded-lg animate-pulse" />)}
+        {[1, 2].map(i => <div key={i} className="h-20 skeleton-static rounded-lg" />)}
       </div>
     );
   }
@@ -86,7 +86,7 @@ export default function CrmBoasVindasSection() {
                   />
 
                   <div className="text-[10px] text-muted-foreground flex items-center gap-1">
-                    <Sparkles size={10} className="text-emerald-500" />
+                    <Sparkles size={10} className="text-success" />
                     Aguardando conclusão da tarefa de boas-vindas
                   </div>
                 </div>

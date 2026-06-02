@@ -5,7 +5,6 @@ import {
   FileText, AlertCircle, Sparkles, Settings, CheckCircle2, Wrench, GraduationCap,
   LayoutGrid, ListTodo
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import DepartmentTasksTab from '@/components/department/DepartmentTasksTab';
 import DepartmentTarefasSection from '@/components/department/DepartmentTarefasSection';
@@ -23,20 +22,24 @@ import { CrmSectionBoundary } from '@/components/gestor-crm/CrmSectionBoundary';
 import ManualCondutaBanner from '@/components/shared/ManualCondutaBanner';
 
 // Colunas do kanban do Gestor de CRM — mesma lógica estrutural do Consultor de MKT Place.
-// As três colunas de "Configuração" (V8/Automation/Copilot) e "CRMs Finalizados" entram
-// com placeholders em Commit 2 e serão povoadas em Commit 3 e Commit 4.
-const COLUMNS = [
-  { id: 'documentacao', title: 'Documentação do dia', icon: FileText, headerClass: 'section-header-orange', iconColor: 'text-white' },
-  { id: 'tarefas-diarias', title: 'Tarefas Diárias', icon: CheckSquare, headerClass: 'section-header-yellow', iconColor: 'text-foreground' },
-  { id: 'novos-clientes', title: 'Novos clientes', icon: UserPlus, headerClass: 'section-header-green', iconColor: 'text-white' },
-  { id: 'boas-vindas', title: 'Boas-vindas — Novos clientes', icon: Sparkles, headerClass: 'section-header-emerald', iconColor: 'text-white' },
-  { id: 'acompanhamento', title: 'Acompanhamento diário', icon: Users, headerClass: 'section-header-blue', iconColor: 'text-white' },
-  { id: 'config-v8', title: 'Configuração V8', icon: Wrench, headerClass: 'section-header-sky', iconColor: 'text-white' },
-  { id: 'config-automation', title: 'Configuração Automation', icon: Settings, headerClass: 'section-header-violet', iconColor: 'text-white' },
-  { id: 'config-copilot', title: 'Configuração Copilot', icon: Settings, headerClass: 'section-header-amber', iconColor: 'text-foreground' },
-  { id: 'justificativa', title: 'Justificativa', icon: AlertCircle, headerClass: 'section-header-danger', iconColor: 'text-white' },
-  { id: 'finalizados', title: 'CRMs Finalizados', icon: CheckCircle2, headerClass: 'section-header-purple', iconColor: 'text-white' },
-  { id: 'ferramentas-pro', title: 'Ferramentas PRO+', icon: GraduationCap, headerClass: 'section-header-violet', iconColor: 'text-white' },
+// Pegada visual Milennials Tech (escopo `.crm-mtech` em index.css): pretos
+// profundos, Geist, headers uppercase tracking-widest, cards radius-md.
+// `semantic`: cor = informação. Só Justificativa (danger) e CRMs Finalizados
+// (success) são ESTADOS → ícone ganha acento. As demais são FASES de fluxo;
+// cor ali seria decoração (rainbow Trello). Hierarquia fica na tipografia.
+type ColumnSemantic = 'neutral' | 'danger' | 'success';
+const COLUMNS: { id: string; title: string; icon: typeof FileText; semantic: ColumnSemantic }[] = [
+  { id: 'documentacao', title: 'Documentação do dia', icon: FileText, semantic: 'neutral' },
+  { id: 'tarefas-diarias', title: 'Tarefas Diárias', icon: CheckSquare, semantic: 'neutral' },
+  { id: 'novos-clientes', title: 'Novos clientes', icon: UserPlus, semantic: 'neutral' },
+  { id: 'boas-vindas', title: 'Boas-vindas — Novos clientes', icon: Sparkles, semantic: 'neutral' },
+  { id: 'acompanhamento', title: 'Acompanhamento diário', icon: Users, semantic: 'neutral' },
+  { id: 'config-v8', title: 'Configuração V8', icon: Wrench, semantic: 'neutral' },
+  { id: 'config-automation', title: 'Configuração Automation', icon: Settings, semantic: 'neutral' },
+  { id: 'config-copilot', title: 'Configuração Copilot', icon: Settings, semantic: 'neutral' },
+  { id: 'justificativa', title: 'Justificativa', icon: AlertCircle, semantic: 'danger' },
+  { id: 'finalizados', title: 'CRMs Finalizados', icon: CheckCircle2, semantic: 'success' },
+  { id: 'ferramentas-pro', title: 'Ferramentas PRO+', icon: GraduationCap, semantic: 'neutral' },
 ];
 
 export default function GestorCRMPage() {
@@ -98,21 +101,31 @@ export default function GestorCRMPage() {
 
   return (
     <MainLayout>
-      <div className="flex flex-col bg-background">
-        <div className="px-8 py-6 border-b border-subtle shrink-0 sticky top-0 z-20 bg-background">
-          <h1 className="text-display text-foreground">Gestor de CRM</h1>
-          <p className="text-caption text-muted-foreground mt-1">Kanban do Torque CRM — V8, Automation e Copilot</p>
+      <div className="crm-mtech flex flex-col" style={{ background: 'var(--mtech-bg)' }}>
+        <div
+          className="px-8 py-6 shrink-0 sticky top-0 z-20"
+          style={{ background: 'var(--mtech-bg)', borderBottom: '1px solid var(--mtech-border)' }}
+        >
+          <h1 className="text-display" style={{ color: 'var(--mtech-text)' }}>Gestor de CRM</h1>
+          <p className="text-caption mt-1" style={{ color: 'var(--mtech-text-muted)' }}>
+            Kanban do Torque CRM — V8, Automation e Copilot
+          </p>
           <ManualCondutaBanner />
 
-          {/* View toggle */}
-          <div className="flex gap-1 bg-muted/50 rounded-lg p-1 mt-4 w-fit">
+          {/* View toggle — segmented control mtech. Ativo: accent ouro contido. */}
+          <div
+            className="flex gap-1 rounded-lg p-1 mt-4 w-fit"
+            style={{ background: 'var(--mtech-surface)', border: '1px solid var(--mtech-border)' }}
+          >
             <button
               onClick={() => setActiveView('kanban')}
+              aria-pressed={activeView === 'kanban'}
               className={cn(
-                'flex items-center gap-2 px-3 py-1.5 text-sm rounded-md transition-all',
+                'flex items-center gap-2 px-3 py-1.5 text-sm rounded-md font-medium transition-colors',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mtech-accent)]/50',
                 activeView === 'kanban'
-                  ? 'bg-card shadow-sm text-foreground font-medium'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-[var(--mtech-accent)] text-[var(--mtech-bg)]'
+                  : 'text-[var(--mtech-text-muted)] hover:text-[var(--mtech-text)]'
               )}
             >
               <LayoutGrid size={16} />
@@ -120,11 +133,13 @@ export default function GestorCRMPage() {
             </button>
             <button
               onClick={() => setActiveView('tarefas')}
+              aria-pressed={activeView === 'tarefas'}
               className={cn(
-                'flex items-center gap-2 px-3 py-1.5 text-sm rounded-md transition-all',
+                'flex items-center gap-2 px-3 py-1.5 text-sm rounded-md font-medium transition-colors',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mtech-accent)]/50',
                 activeView === 'tarefas'
-                  ? 'bg-card shadow-sm text-foreground font-medium'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-[var(--mtech-accent)] text-[var(--mtech-bg)]'
+                  : 'text-[var(--mtech-text-muted)] hover:text-[var(--mtech-text)]'
               )}
             >
               <ListTodo size={16} />
@@ -139,42 +154,44 @@ export default function GestorCRMPage() {
         ) : (
         <div className="flex-1 relative">
           {canScrollLeft && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-card shadow-apple-hover border border-subtle hover:bg-muted"
+            <button
+              aria-label="Rolar para a esquerda"
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mtech-accent)]/50"
+              style={{ background: 'var(--mtech-surface-elev)', border: '1px solid var(--mtech-border)', boxShadow: 'var(--mtech-shadow-card)' }}
               onClick={() => scrollContainerRef.current?.scrollBy({ left: -380, behavior: 'smooth' })}
             >
-              <ChevronLeft size={18} className="text-muted-foreground" />
-            </Button>
+              <ChevronLeft size={18} style={{ color: 'var(--mtech-text-muted)' }} />
+            </button>
           )}
           {canScrollRight && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-card shadow-apple-hover border border-subtle hover:bg-muted"
+            <button
+              aria-label="Rolar para a direita"
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mtech-accent)]/50"
+              style={{ background: 'var(--mtech-surface-elev)', border: '1px solid var(--mtech-border)', boxShadow: 'var(--mtech-shadow-card)' }}
               onClick={() => scrollContainerRef.current?.scrollBy({ left: 380, behavior: 'smooth' })}
             >
-              <ChevronRight size={18} className="text-muted-foreground" />
-            </Button>
+              <ChevronRight size={18} style={{ color: 'var(--mtech-text-muted)' }} />
+            </button>
           )}
 
           <div ref={scrollContainerRef} className="overflow-x-auto px-8 py-6 scrollbar-apple">
-            <div className="flex gap-6 pb-4" style={{ minWidth: 'max-content' }}>
+            <div className="flex gap-5 pb-4" style={{ minWidth: 'max-content' }}>
               {COLUMNS.map(column => {
                 const Icon = column.icon;
                 return (
                   <div
                     key={column.id}
-                    className="w-[340px] flex-shrink-0 flex flex-col bg-card rounded-2xl border border-subtle overflow-hidden shadow-apple"
+                    className={cn(
+                      'crm-column w-[320px] flex-shrink-0 flex flex-col overflow-hidden',
+                      column.semantic === 'danger' && 'crm-column--danger',
+                      column.semantic === 'success' && 'crm-column--success'
+                    )}
                   >
-                    <div className={`section-header ${column.headerClass}`}>
-                      <div className="flex items-center gap-3">
-                        <Icon size={18} className={column.iconColor} />
-                        <h2 className="font-semibold text-sm">{column.title}</h2>
-                      </div>
+                    <div className="crm-column-header">
+                      <Icon />
+                      <h2 className="crm-column-title truncate">{column.title}</h2>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-4 scrollbar-apple bg-card">
+                    <div className="crm-column-body flex-1 overflow-y-auto p-3 scrollbar-apple">
                       {renderColumnContent(column.id)}
                     </div>
                   </div>

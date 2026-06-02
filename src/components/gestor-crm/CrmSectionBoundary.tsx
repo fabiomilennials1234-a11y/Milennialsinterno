@@ -28,7 +28,7 @@ export class CrmSectionBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError && this.state.error) {
       return (
-        <div className="p-4 bg-red-500/5 border border-red-500/30 rounded-lg text-xs text-red-700">
+        <div className="p-4 bg-danger/5 border border-danger/30 rounded-lg text-xs text-danger">
           <p className="font-semibold mb-1">Erro em: {this.props.name}</p>
           <p className="font-mono text-[10px] break-all opacity-80">
             {this.state.error.message}

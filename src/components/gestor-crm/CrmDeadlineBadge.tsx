@@ -28,7 +28,7 @@ export default function CrmDeadlineBadge({ createdAt, produto, finalizado, class
         variant="outline"
         className={cn(
           'text-[9px] px-1.5 py-0 gap-0.5',
-          'border-emerald-500/40 text-emerald-700 bg-emerald-500/10',
+          'border-success/40 text-success bg-success/10',
           className
         )}
       >
@@ -43,7 +43,7 @@ export default function CrmDeadlineBadge({ createdAt, produto, finalizado, class
     return (
       <Badge
         variant="destructive"
-        className={cn('text-[9px] px-1.5 py-0 gap-0.5 animate-pulse', className)}
+        className={cn('text-[9px] px-1.5 py-0 gap-0.5 font-semibold ring-1 ring-danger/40', className)}
       >
         <AlertTriangle size={9} />
         Atrasado {overdueDays}d

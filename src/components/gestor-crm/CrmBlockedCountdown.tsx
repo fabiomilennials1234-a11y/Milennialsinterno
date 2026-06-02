@@ -45,20 +45,20 @@ export default function CrmBlockedCountdown({ blockedUntil, className }: Props) 
   return (
     <div className={cn(
       'flex items-center gap-2.5 p-3 rounded-lg border',
-      'bg-gradient-to-r from-amber-500/10 to-amber-500/5 border-amber-500/25',
+      'bg-gradient-to-r from-warning/10 to-warning/5 border-warning/25',
       className
     )}>
-      <div className="w-8 h-8 rounded-full bg-amber-500/15 flex items-center justify-center shrink-0">
-        <Lock size={14} className="text-amber-600" />
+      <div className="w-8 h-8 rounded-full bg-warning/15 flex items-center justify-center shrink-0">
+        <Lock size={14} className="text-warning" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-semibold text-amber-700">Aguardando D+N</p>
+        <p className="text-xs font-semibold text-warning">Aguardando D+N</p>
         <div className="flex items-baseline gap-1.5 mt-0.5">
-          <Timer size={11} className="text-amber-600" />
-          <span className="text-sm font-mono font-bold text-amber-800 tabular-nums">
+          <Timer size={11} className="text-warning" />
+          <span className="text-sm font-mono font-bold text-warning tabular-nums">
             {timeDisplay}
           </span>
-          <span className="text-[10px] text-amber-600/70">restantes</span>
+          <span className="text-[10px] text-warning/70">restantes</span>
         </div>
       </div>
     </div>

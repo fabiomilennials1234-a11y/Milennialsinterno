@@ -266,8 +266,10 @@
     margin: 4px 0;
     border: 1.5px dashed hsl(48 100% 50% / 0.45);
     border-radius: 12px;
-    background: hsl(48 100% 50% / 0.03);
-    animation: kanbanDropPulse 1.6s ease-in-out infinite;
+    background: hsl(48 100% 50% / 0.05);
+    /* SAÚDE: era kanbanDropPulse (loop infinito que piscava border/bg ao
+     * arrastar). Agora estado estático — dashed + tint comunica o drop alvo
+     * sem nenhum movimento. */
   }
 
   /* Scroll fade: máscara nas bordas superior/inferior da lista */
@@ -387,7 +389,7 @@
   .section-header-teal { color: hsl(168 76% 42%); }
   .section-header-teal * { color: hsl(var(--foreground)); }
 
-  .section-header-gray { color: hsl(215 14% 45%); }
+  .section-header-gray { color: hsl(var(--muted-foreground)); }
   .section-header-gray * { color: hsl(var(--foreground)); }
 
   /* Garante que o ícone e o título ficam em cor neutra, só o ::before herda o color acima.
@@ -839,17 +841,6 @@
     }
   }
 
-  @keyframes kanbanDropPulse {
-    0%, 100% {
-      border-color: hsl(48 100% 50% / 0.35);
-      background: hsl(48 100% 50% / 0.03);
-    }
-    50% {
-      border-color: hsl(48 100% 50% / 0.65);
-      background: hsl(48 100% 50% / 0.08);
-    }
-  }
-
   @keyframes slideUp {
     from {
       opacity: 0;
@@ -894,87 +885,21 @@
     -webkit-backface-visibility: hidden;
   }
 
-  /* Action Plan urgency - pulsing borders */
-  /* Recording health indicator pulses */
-  @keyframes healthPulseOk {
-    0%, 100% { box-shadow: 0 0 0 2px hsl(var(--success) / 0.12); }
-    50% { box-shadow: 0 0 0 3px hsl(var(--success) / 0.3); }
-  }
-  @keyframes healthPulseWarn {
-    0%, 100% { box-shadow: 0 0 0 2px hsl(var(--warning) / 0.15); }
-    50% { box-shadow: 0 0 0 4px hsl(var(--warning) / 0.4); }
-  }
-  @keyframes healthPulseCrit {
-    0%, 100% { box-shadow: 0 0 0 2px hsl(var(--danger) / 0.2); }
-    50% { box-shadow: 0 0 0 5px hsl(var(--danger) / 0.5); }
-  }
-
-  @keyframes pulse-border-red {
-    0%, 100% {
-      box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
-    }
-    50% {
-      box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
-    }
-  }
-
-  @keyframes pulse-border-orange {
-    0%, 100% {
-      box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
-    }
-    50% {
-      box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.1);
-    }
-  }
-
-  .animate-pulse-border-red {
-    animation: pulse-border-red 2s ease-in-out infinite;
-  }
-
-  .animate-pulse-border-orange {
-    animation: pulse-border-orange 2s ease-in-out infinite;
-  }
-
-  /* Blocking tag pulse — red glow for tags that block progress */
-  @keyframes tag-blocking-pulse {
-    0%, 100% {
-      box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.3), 0 0 6px rgba(239, 68, 68, 0.1);
-      opacity: 1;
-    }
-    50% {
-      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15), 0 0 10px rgba(239, 68, 68, 0.2);
-      opacity: 0.9;
-    }
-  }
-
-  .tag-blocking-pulse {
-    animation: tag-blocking-pulse 2s ease-in-out infinite;
-  }
-
-  /* Growth blocking labels — danger variant */
-  @keyframes growth-blocking-pulse-danger {
-    0%, 100% {
-      box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.25), 0 0 8px rgba(239, 68, 68, 0.1);
-    }
-    50% {
-      box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12), 0 0 16px rgba(239, 68, 68, 0.18);
-    }
-  }
+  /*
+   * SAÚDE — EPILEPSIA FOTOSSENSÍVEL.
+   * Todas as classes abaixo eram pulsos de box-shadow em loop infinito (flash).
+   * Convertidas em ESTADO ESTÁTICO: ring sólido + cor. Urgência continua legível
+   * por contraste/cor, sem nenhum movimento. NÃO reintroduzir `animation` aqui.
+   */
+  .animate-pulse-border-red,
+  .tag-blocking-pulse,
   .growth-blocking-pulse-danger {
-    animation: growth-blocking-pulse-danger 2s ease-in-out infinite;
+    box-shadow: 0 0 0 1.5px hsl(var(--danger) / 0.45);
   }
 
-  /* Growth blocking labels — warning variant */
-  @keyframes growth-blocking-pulse-warning {
-    0%, 100% {
-      box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.2), 0 0 6px rgba(245, 158, 11, 0.08);
-    }
-    50% {
-      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1), 0 0 12px rgba(245, 158, 11, 0.14);
-    }
-  }
+  .animate-pulse-border-orange,
   .growth-blocking-pulse-warning {
-    animation: growth-blocking-pulse-warning 2s ease-in-out infinite;
+    box-shadow: 0 0 0 1.5px hsl(var(--warning) / 0.45);
   }
 
   .animate-marquee-slow:hover {
@@ -1157,5 +1082,139 @@
 
   .scrollbar-elegant::-webkit-scrollbar-thumb:hover {
     background: hsl(130 7% 45% / 0.3);
+  }
+
+  /*
+   * Skeleton estático — substitui `animate-pulse` em placeholders de loading.
+   * Sem loop de opacidade. Superfície neutra fixa que comunica "carregando"
+   * por forma, não por movimento. Use em vez de `bg-muted/.. animate-pulse`.
+   */
+  .skeleton-static {
+    background: hsl(var(--muted) / 0.4);
+  }
+
+  /*
+   * ─────────────────────────────────────────────────────────────────────
+   * CRM Kanban — escopo Milennials Tech
+   * ─────────────────────────────────────────────────────────────────────
+   * Estratégia: REUSO dos tokens --mtech-* (já em :root via tokens.css),
+   * não duplicação. Este escopo é a consolidação da linguagem visual do app
+   * pedida pelo fundador: o board do CRM herda a mesma pegada do Milennials
+   * Tech (pretos profundos, ouro contido, Geist, headers uppercase).
+   *
+   * Aplicado como classe opt-in no subtree do board (`.crm-mtech`), sem
+   * mutação global e sem tocar o próprio Milennials Tech (referência).
+   *
+   * Decisão de craft: reescalamos o SHELL (coluna + card + badge) aqui, no
+   * CSS, para que os 22 componentes de seção — que renderizam shadcn
+   * <Card>/<Badge> — herdem a pegada sem reescrita massiva. Cor semântica
+   * (success/danger/etc.) é preservada: o escopo só troca a base neutra.
+   */
+  .crm-mtech {
+    color: var(--mtech-text);
+    font-family: 'Geist', 'Inter', system-ui, sans-serif;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  .crm-mtech [data-mono] {
+    font-family: 'Geist Mono', ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Shell da coluna — superfície mtech, borda sutil, radius-lg, sombra macia */
+  .crm-mtech .crm-column {
+    background: var(--mtech-surface);
+    border: 1px solid var(--mtech-border);
+    border-radius: var(--mtech-radius-lg);
+    box-shadow: var(--mtech-shadow-card);
+  }
+
+  /* Header da coluna — sóbrio: label uppercase tracking-widest + contador mono.
+     Substitui o dot colorido + chapadão. Hierarquia vem da tipografia. */
+  .crm-mtech .crm-column-header {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--mtech-border);
+  }
+  .crm-mtech .crm-column-header svg {
+    width: 15px;
+    height: 15px;
+    color: var(--mtech-text-subtle);
+    flex-shrink: 0;
+  }
+  .crm-mtech .crm-column-title {
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--mtech-text-muted);
+  }
+  /* Estado semântico no header: só danger/success ganham acento no ícone.
+     Demais colunas são FASES (não estados) → ícone neutro. Cor = informação. */
+  .crm-mtech .crm-column--danger .crm-column-header svg { color: var(--mtech-danger); }
+  .crm-mtech .crm-column--success .crm-column-header svg { color: var(--mtech-success); }
+  .crm-mtech .crm-column-count {
+    margin-left: auto;
+    font-family: 'Geist Mono', ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 11px;
+    color: var(--mtech-text-subtle);
+  }
+
+  /* Corpo da coluna */
+  .crm-mtech .crm-column-body {
+    background: var(--mtech-bg);
+  }
+
+  /* Cards internos — captura os shadcn <Card> das seções sem reescrevê-los.
+     O Card raiz emite `bg-card`; usamos isso como âncora. Surface elevada
+     sobre o fundo da coluna, borda sutil, hover firma a borda (sem flash). */
+  .crm-mtech .crm-column-body .bg-card {
+    background: var(--mtech-surface-elev) !important;
+    border-color: var(--mtech-border) !important;
+    border-radius: var(--mtech-radius-md);
+    box-shadow: var(--mtech-shadow-card);
+    color: var(--mtech-text);
+    transition: border-color 120ms ease-out, transform 120ms ease-out;
+  }
+  .crm-mtech .crm-column-body .bg-card:hover {
+    border-color: var(--mtech-border-strong) !important;
+    transform: translateY(-1px);
+  }
+  /* Cards que já carregam intenção semântica (ex.: Finalizados success/5)
+     mantêm o tom — o escopo não deve apagar cor = informação. */
+  .crm-mtech .crm-column-body .border-success\/30 {
+    border-color: hsl(var(--success) / 0.3) !important;
+  }
+  .crm-mtech .crm-column-body .bg-success\/5 {
+    background: hsl(var(--success) / 0.06) !important;
+  }
+
+  /* Texto dentro do escopo segue a hierarquia mtech por opacidade de cor */
+  .crm-mtech .text-foreground { color: var(--mtech-text); }
+  .crm-mtech .text-muted-foreground { color: var(--mtech-text-muted); }
+
+  /* Empty / loading states herdam tom mtech */
+  .crm-mtech .skeleton-static {
+    background: var(--mtech-surface-elev);
+  }
+}
+
+/*
+ * BACKSTOP GLOBAL — SAÚDE (epilepsia fotossensível).
+ * Mata QUALQUER animação/transição em loop perceptível para usuários que
+ * pedem redução de movimento. NÃO é a defesa primária (o pulse foi removido
+ * na origem), é a malha de segurança caso algo escape.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }

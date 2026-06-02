@@ -29,7 +29,7 @@ export default function CrmAdvanceButton({
 }: Props) {
   if (isFinalized) {
     return (
-      <div className="flex items-center gap-1.5 text-emerald-600 text-sm font-medium">
+      <div className="flex items-center gap-1.5 text-success text-sm font-medium">
         <CheckCircle2 size={16} />
         Finalizado
       </div>
@@ -44,7 +44,7 @@ export default function CrmAdvanceButton({
       className={cn(
         'gap-1.5 font-semibold transition-all',
         canAdvance
-          ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+          ? 'bg-success hover:bg-success text-white'
           : 'bg-muted text-muted-foreground cursor-not-allowed'
       )}
     >

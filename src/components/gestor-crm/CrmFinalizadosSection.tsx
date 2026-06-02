@@ -29,7 +29,7 @@ export default function CrmFinalizadosSection() {
   if (isLoading) {
     return (
       <div className="space-y-2">
-        {[1, 2].map(i => <div key={i} className="h-20 bg-muted/50 rounded-lg animate-pulse" />)}
+        {[1, 2].map(i => <div key={i} className="h-20 skeleton-static rounded-lg" />)}
       </div>
     );
   }
@@ -61,12 +61,12 @@ export default function CrmFinalizadosSection() {
           const finalizadoDate = cfg.finalizado_at ? parseISO(cfg.finalizado_at) : null;
 
           return (
-            <Card key={cfg.id} className="border-emerald-500/30 bg-emerald-500/5">
+            <Card key={cfg.id} className="border-success/30 bg-success/5">
               <CardContent className="p-3 space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <CheckCircle2 size={12} className="text-emerald-600 shrink-0" />
+                      <CheckCircle2 size={12} className="text-success shrink-0" />
                       <h4 className="font-medium text-sm text-foreground line-clamp-1">{clientName}</h4>
                     </div>
                   </div>
@@ -89,7 +89,7 @@ export default function CrmFinalizadosSection() {
                 </div>
 
                 {finalizadoDate && (
-                  <p className="text-[10px] text-emerald-700">
+                  <p className="text-[10px] text-success">
                     Finalizado em {format(finalizadoDate, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                   </p>
                 )}

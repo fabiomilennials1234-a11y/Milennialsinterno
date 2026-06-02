@@ -46,7 +46,7 @@ export default function CrmConfigViewModal({ isOpen, onClose, config }: Props) {
           <div className="flex items-center gap-3 flex-wrap">
             <Badge className={`${color} border`}>{label}</Badge>
             {config.is_finalizado ? (
-              <span className="inline-flex items-center gap-1 text-sm text-emerald-600 font-medium">
+              <span className="inline-flex items-center gap-1 text-sm text-success font-medium">
                 <CheckCircle2 size={14} />
                 Finalizado
               </span>

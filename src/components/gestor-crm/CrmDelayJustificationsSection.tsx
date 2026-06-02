@@ -17,10 +17,13 @@ const PRODUTO_LABEL: Record<string, string> = {
   copilot: 'Copilot',
 };
 
+// Borda superior neutra. O produto já é identificado pelo label textual
+// (PRODUTO_LABEL) — cor aqui seria decoração competindo com o sinal real de
+// atraso (danger/warning). Mantemos neutro para a urgência falar mais alto.
 const PRODUTO_BORDER: Record<string, string> = {
-  v8: 'border-violet-500',
-  automation: 'border-cyan-500',
-  copilot: 'border-amber-500',
+  v8: 'border-border',
+  automation: 'border-border',
+  copilot: 'border-border',
 };
 
 const ROLE_LABEL: Record<string, string> = {
@@ -55,18 +58,18 @@ export default function CrmDelayJustificationsSection({
           >
             <div className="px-4 pt-3 pb-2 flex items-center justify-between gap-3">
               <div className="space-y-2 flex-1">
-                <div className="h-3 w-20 bg-muted/40 rounded animate-pulse" />
-                <div className="h-4 w-1/2 bg-muted/40 rounded animate-pulse" />
+                <div className="h-3 w-20 skeleton-static rounded" />
+                <div className="h-4 w-1/2 skeleton-static rounded" />
               </div>
-              <div className="h-3 w-16 bg-muted/40 rounded animate-pulse" />
+              <div className="h-3 w-16 skeleton-static rounded" />
             </div>
             <div className="px-4 py-3 space-y-3">
               {[0, 1, 2].map(j => (
                 <div key={j} className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-md bg-muted/40 animate-pulse" />
+                  <div className="w-6 h-6 rounded-md skeleton-static" />
                   <div className="flex-1 space-y-1.5">
-                    <div className="h-3 w-32 bg-muted/40 rounded animate-pulse" />
-                    <div className="h-3 w-3/4 bg-muted/40 rounded animate-pulse" />
+                    <div className="h-3 w-32 skeleton-static rounded" />
+                    <div className="h-3 w-3/4 skeleton-static rounded" />
                   </div>
                 </div>
               ))}
@@ -154,7 +157,7 @@ function ConfigCard({ config }: { config: DelayedConfigSummary }) {
           {showDot && (
             <span
               className={cn(
-                'w-1.5 h-1.5 rounded-full animate-pulse',
+                'w-1.5 h-1.5 rounded-full',
                 severity === 'danger' ? 'bg-danger' : 'bg-warning',
               )}
             />

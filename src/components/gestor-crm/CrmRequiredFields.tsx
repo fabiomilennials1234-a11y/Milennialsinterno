@@ -46,7 +46,7 @@ function DebouncedTextInput({
       disabled={disabled}
       className={cn(
         'h-9 text-sm',
-        filled && 'border-emerald-500/30'
+        filled && 'border-success/30'
       )}
     />
   );
@@ -77,7 +77,7 @@ export default function CrmRequiredFields({ fields, values, onSave, disabled }: 
                 <label className={cn(
                   'flex items-center gap-2.5 p-2 rounded-lg border cursor-pointer transition-all',
                   value === 'true'
-                    ? 'bg-emerald-500/5 border-emerald-500/20'
+                    ? 'bg-success/5 border-success/20'
                     : 'bg-background border-border',
                   disabled && 'opacity-50 cursor-not-allowed'
                 )}>
