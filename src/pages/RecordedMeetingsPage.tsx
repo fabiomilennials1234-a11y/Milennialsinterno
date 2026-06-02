@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import MainLayout from '@/layouts/MainLayout';
 import { useRecordedMeetings, MeetingFolder, RecordedMeeting, TranscriptData } from '@/hooks/useRecordedMeetings';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,7 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import CreateMeetingModal from '@/components/recorded-meetings/CreateMeetingModal';
+import MeetingAtaSection from '@/components/recorded-meetings/MeetingAtaSection';
 import { downloadStorageFile } from '@/lib/storageUpload';
 import { toast } from 'sonner';
 import { useAllActiveClients } from '@/hooks/useAllActiveClients';
@@ -68,7 +69,19 @@ export default function RecordedMeetingsPage() {
     renameFolder,
     deleteFolder,
     deleteMeeting,
+    retryTranscript,
+    retryAta,
   } = useRecordedMeetings();
+
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  const handleSeek = (seconds: number) => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.currentTime = seconds;
+    video.play().catch(() => {});
+    video.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
 
   const { data: clients = [] } = useAllActiveClients();
   const clientNameMap = Object.fromEntries(clients.map(c => [c.id, c.name]));
@@ -541,6 +554,7 @@ ${bodyContent}
                             </div>
                             {meeting.video_url.includes('supabase') || meeting.video_url.endsWith('.mp4') || meeting.video_url.endsWith('.webm') ? (
                               <video
+                                ref={videoRef}
                                 src={meeting.video_url}
                                 controls
                                 className="w-full max-w-2xl rounded-lg border border-border"
@@ -611,6 +625,21 @@ ${bodyContent}
                             </div>
                           )}
 
+                          {/* Ata estruturada + status + retry (issue #72) */}
+                          <MeetingAtaSection
+                            ataJson={meeting.ata_json}
+                            transcriptStatus={meeting.transcript_status}
+                            ataStatus={meeting.ata_status}
+                            onSeek={handleSeek}
+                            onRetryTranscript={() => retryTranscript.mutate(meeting.id)}
+                            onRetryAta={() => retryAta.mutate(meeting.id)}
+                          />
+                          {meeting.ata_status === 'failed' && meeting.ata_error && (
+                            <p className="text-sm text-red-500 bg-red-500/5 p-3 rounded-lg border border-red-500/20">
+                              {meeting.ata_error}
+                            </p>
+                          )}
+
                           {/* Participants */}
                           {(meeting.is_whole_team || (meeting.participants?.length > 0)) && (
                             <div>
@@ -629,8 +658,8 @@ ${bodyContent}
                             </div>
                           )}
 
-                          {/* Ata */}
-                          {meeting.ata && (
+                          {/* Ata legada (markdown) — só quando não há ata estruturada */}
+                          {meeting.ata && !meeting.ata_json && (
                             <div>
                               <p className="text-xs font-medium text-muted-foreground uppercase mb-1">Ata</p>
                               <p className="text-sm whitespace-pre-wrap bg-card p-3 rounded-lg border border-border">

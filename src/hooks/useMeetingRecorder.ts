@@ -21,6 +21,10 @@ interface UseMeetingRecorderReturn {
   videoRecorderState: RecordingState | null;
   audioRecorderState: RecordingState | null;
   videoTrackReadyState: MediaStreamTrackState | null;
+  /** Real MIME (with codecs) chosen for the active video recorder, or null when idle. */
+  videoMimeType: string | null;
+  /** Real MIME (with codecs) chosen for the active audio recorder, or null when idle. */
+  audioMimeType: string | null;
   startRecording: () => Promise<void>;
   stopRecording: () => Promise<number>;
   pauseRecording: () => void;
@@ -44,6 +48,8 @@ export function useMeetingRecorder(options?: UseMeetingRecorderOptions): UseMeet
   const [videoRecorderState, setVideoRecorderState] = useState<RecordingState | null>(null);
   const [audioRecorderState, setAudioRecorderState] = useState<RecordingState | null>(null);
   const [videoTrackReadyState, setVideoTrackReadyState] = useState<MediaStreamTrackState | null>(null);
+  const [videoMimeType, setVideoMimeType] = useState<string | null>(null);
+  const [audioMimeType, setAudioMimeType] = useState<string | null>(null);
 
   const videoRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRecorderRef = useRef<MediaRecorder | null>(null);
@@ -93,6 +99,8 @@ export function useMeetingRecorder(options?: UseMeetingRecorderOptions): UseMeet
     setVideoRecorderState(null);
     setAudioRecorderState(null);
     setVideoTrackReadyState(null);
+    setVideoMimeType(null);
+    setAudioMimeType(null);
   }, []);
 
   useEffect(() => {
@@ -192,6 +200,10 @@ export function useMeetingRecorder(options?: UseMeetingRecorderOptions): UseMeet
       };
 
       videoRecorderRef.current = videoRecorder;
+      // Read back the recorder's authoritative MIME (browser may normalize the
+      // codec string). This is what the final assembled blob must declare so
+      // decoders/STT see a container tagged with its real codecs (issue #73).
+      setVideoMimeType(videoRecorder.mimeType || videoMimeType);
 
       // Audio-only recorder
       const audioOnlyStream = destination.stream;
@@ -214,6 +226,7 @@ export function useMeetingRecorder(options?: UseMeetingRecorderOptions): UseMeet
       };
 
       audioRecorderRef.current = audioRecorder;
+      setAudioMimeType(audioRecorder.mimeType || audioMimeType);
 
       // Handle user stopping screen share via browser UI
       displayStream.getVideoTracks()[0].addEventListener('ended', () => {
@@ -411,6 +424,8 @@ export function useMeetingRecorder(options?: UseMeetingRecorderOptions): UseMeet
     videoRecorderState,
     audioRecorderState,
     videoTrackReadyState,
+    videoMimeType,
+    audioMimeType,
     startRecording,
     stopRecording,
     pauseRecording,

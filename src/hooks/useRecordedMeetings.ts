@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { uploadBlob } from '@/lib/storageUpload';
+import type { Json } from '@/integrations/supabase/types';
 
 export interface TranscriptSegment {
   speaker: number;
@@ -47,6 +48,10 @@ export interface RecordedMeeting {
   transcript: TranscriptData | null;
   transcript_status: string | null;
   transcript_error: string | null;
+  ata_json: Json | null;
+  ata_status: string | null;
+  ata_error: string | null;
+  ata_generated_at: string | null;
   created_by: string | null;
   created_by_name: string | null;
   created_at: string;
@@ -98,7 +103,10 @@ export function useRecordedMeetings() {
     },
     refetchInterval: (query) => {
       const data = query.state.data as RecordedMeeting[] | undefined;
-      if (data?.some((m) => m.transcript_status === 'processing')) return 10_000;
+      const isInFlight = (s: string | null) => s === 'pending' || s === 'processing';
+      if (data?.some((m) => isInFlight(m.transcript_status) || isInFlight(m.ata_status))) {
+        return 10_000;
+      }
       return false;
     },
   });
@@ -205,6 +213,52 @@ export function useRecordedMeetings() {
     },
   });
 
+  const retryTranscript = useMutation({
+    mutationFn: async (recordingId: string) => {
+      const { error: updateError } = await supabase
+        .from('recorded_meetings')
+        .update({ transcript_status: 'pending', transcript_error: null } as any)
+        .eq('id', recordingId);
+      if (updateError) throw updateError;
+
+      const { error } = await supabase.functions.invoke('transcribe-meeting', {
+        body: { recording_id: recordingId },
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recorded-meetings'] });
+      toast.success('Transcrição reenfileirada');
+    },
+    onError: (error: Error) => {
+      queryClient.invalidateQueries({ queryKey: ['recorded-meetings'] });
+      toast.error('Erro ao reprocessar transcrição: ' + error.message);
+    },
+  });
+
+  const retryAta = useMutation({
+    mutationFn: async (recordingId: string) => {
+      const { error: updateError } = await supabase
+        .from('recorded_meetings')
+        .update({ ata_status: 'pending', ata_error: null } as any)
+        .eq('id', recordingId);
+      if (updateError) throw updateError;
+
+      const { error } = await supabase.functions.invoke('generate-meeting-ata', {
+        body: { recording_id: recordingId },
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recorded-meetings'] });
+      toast.success('Geração da ata reenfileirada');
+    },
+    onError: (error: Error) => {
+      queryClient.invalidateQueries({ queryKey: ['recorded-meetings'] });
+      toast.error('Erro ao reprocessar ata: ' + error.message);
+    },
+  });
+
   const uploadVideo = async (
     file: File,
     onProgress?: (percentage: number) => void,
@@ -237,6 +291,8 @@ export function useRecordedMeetings() {
     deleteFolder,
     createMeeting,
     deleteMeeting,
+    retryTranscript,
+    retryAta,
     uploadVideo,
   };
 }

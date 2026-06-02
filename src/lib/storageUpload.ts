@@ -27,13 +27,18 @@ function getSupabaseUrl(): string {
 /**
  * Upload a blob via TUS resumable protocol.
  * Handles retries and resume-from-previous automatically.
+ *
+ * The Authorization header is refreshed on EVERY request via `onBeforeRequest`
+ * (not captured once), because a long upload can outlive the access token's
+ * ~1h lifetime. A stale token mid-upload returns 401, exhausts retries, and
+ * loses the recording — the confirmed root cause of mass-abandoned sessions
+ * (see docs/adr/0001 §"Risco a tratar").
  */
 function uploadBlobWithTus(
   bucketName: string,
   objectName: string,
   blob: Blob,
   contentType: string,
-  token: string,
   onProgress?: (percentage: number) => void,
 ): Promise<void> {
   const supabaseUrl = getSupabaseUrl();
@@ -43,8 +48,13 @@ function uploadBlobWithTus(
       endpoint: `${supabaseUrl}/storage/v1/upload/resumable`,
       retryDelays: [0, 3000, 5000, 10000, 20000],
       headers: {
-        authorization: `Bearer ${token}`,
         'x-upsert': 'false',
+      },
+      onBeforeRequest: async (req) => {
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        if (!token) throw new Error('Sessao expirada. Faca login novamente.');
+        req.setHeader('authorization', `Bearer ${token}`);
       },
       uploadDataDuringCreation: true,
       removeFingerprintOnSuccess: true,
@@ -124,10 +134,7 @@ export async function uploadBlob(
   const useTus = blob.size > TUS_THRESHOLD;
 
   if (useTus) {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.access_token) throw new Error('Sessao expirada. Faca login novamente.');
-
-    await uploadBlobWithTus(bucketName, objectName, blob, contentType, session.access_token, onProgress);
+    await uploadBlobWithTus(bucketName, objectName, blob, contentType, onProgress);
   } else {
     onProgress?.(0);
     const { error } = await supabase.storage

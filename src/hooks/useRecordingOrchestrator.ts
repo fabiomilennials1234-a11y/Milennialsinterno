@@ -39,6 +39,8 @@ export interface UseRecordingOrchestratorReturn {
   overlayState: OverlayState;
   activeSession: RecordingSession | null;
   pipelineError: string | null;
+  /** true when in error state with a live session whose assembly can be re-run */
+  canRetry: boolean;
 
   // Form
   title: string;
@@ -77,6 +79,8 @@ export interface UseRecordingOrchestratorReturn {
   pauseRecording: () => void;
   resumeRecording: () => void;
   cancelRecording: () => Promise<void>;
+  /** re-run the failed assembly/upload of the live session that errored */
+  retryPipeline: () => Promise<void>;
   dismiss: () => void;
 }
 
@@ -103,6 +107,13 @@ export function useRecordingOrchestrator(): UseRecordingOrchestratorReturn {
   const activeSessionRef = useRef<RecordingSession | null>(null);
   activeSessionRef.current = activeSession;
   const stoppingRef = useRef(false);
+  // Captured at first chunk — the recorder's MIME state is cleared by cleanup()
+  // during stop, before assembly reads it. Refs survive that teardown.
+  const videoMimeRef = useRef<string | null>(null);
+  const audioMimeRef = useRef<string | null>(null);
+  // Last known recording duration — captured at stop so a retry can re-run
+  // assembly without re-deriving it from the (already torn-down) recorder.
+  const durationSecondsRef = useRef(0);
 
   // ── Hooks ──
   const chunkUploader = useChunkUploader();
@@ -181,12 +192,17 @@ export function useRecordingOrchestrator(): UseRecordingOrchestratorReturn {
     scheduleProgressUpdate();
   }, [chunkUploader, scheduleProgressUpdate]);
 
-  // ── Auto-stop handler (browser "Stop sharing") ──
-  const handleAutoStop = useCallback(async (durationSeconds: number) => {
-    const session = activeSessionRef.current;
-    if (!session) return;
-
+  // ── Shared post-stop pipeline: drain → persist progress → stop session →
+  //    assemble → clear → invalidate. The single source of the finalize logic,
+  //    reused by manual stop, browser auto-stop, and the live-session retry.
+  //    `skipServerStop` is true on retry (the session is already stopped server-side). ──
+  const runAssemblyPipeline = useCallback(async (
+    session: RecordingSession,
+    durationSeconds: number,
+    options?: { skipServerStop?: boolean },
+  ) => {
     setPipelineState('processing');
+    setPipelineError(null);
 
     try {
       await chunkUploader.drainQueue();
@@ -197,9 +213,11 @@ export function useRecordingOrchestrator(): UseRecordingOrchestratorReturn {
         totalBytesRef.current,
       );
 
-      await sessionApi.stopSession(session.id, durationSeconds);
+      if (!options?.skipServerStop) {
+        await sessionApi.stopSession(session.id, durationSeconds);
+      }
 
-      const meetingId = await assembly.assemble({
+      await assembly.assemble({
         sessionId: session.id,
         storagePrefix: session.storage_prefix,
         videoChunkCount: videoCountRef.current,
@@ -208,6 +226,8 @@ export function useRecordingOrchestrator(): UseRecordingOrchestratorReturn {
         title: titleRef.current.trim(),
         folderId: folderIdRef.current,
         clientId: clientIdRef.current,
+        videoMimeType: videoMimeRef.current,
+        audioMimeType: audioMimeRef.current,
       });
 
       await clearSession(session.id);
@@ -220,15 +240,21 @@ export function useRecordingOrchestrator(): UseRecordingOrchestratorReturn {
       setPipelineState('error');
       toast.error('Erro ao salvar gravacao: ' + msg);
 
-      if (session) {
-        try {
-          await sessionApi.markFailed(session.id, msg);
-        } catch (markErr) {
-          console.error('[Recording] Erro ao marcar sessao como falha:', markErr);
-        }
+      try {
+        await sessionApi.markFailed(session.id, msg);
+      } catch (markErr) {
+        console.error('[Recording] Erro ao marcar sessao como falha:', markErr);
       }
     }
   }, [chunkUploader, sessionApi, assembly, queryClient]);
+
+  // ── Auto-stop handler (browser "Stop sharing") ──
+  const handleAutoStop = useCallback(async (durationSeconds: number) => {
+    const session = activeSessionRef.current;
+    if (!session) return;
+    durationSecondsRef.current = durationSeconds;
+    await runAssemblyPipeline(session, durationSeconds);
+  }, [runAssemblyPipeline]);
 
   // ── Recorder (depends on chunk + autoStop callbacks — declared AFTER them to avoid TDZ) ──
   const recorder = useMeetingRecorder({
@@ -236,6 +262,11 @@ export function useRecordingOrchestrator(): UseRecordingOrchestratorReturn {
     onVideoChunk: handleVideoChunk,
     onAudioChunk: handleAudioChunk,
   });
+
+  // Capture recorder MIME while it is non-null (set on start, cleared on stop).
+  // Assembly runs after stop, so it reads these refs, not the live recorder state.
+  if (recorder.videoMimeType) videoMimeRef.current = recorder.videoMimeType;
+  if (recorder.audioMimeType) audioMimeRef.current = recorder.audioMimeType;
 
   // ── Derived overlay state ──
   const overlayState: OverlayState = (() => {
@@ -269,53 +300,28 @@ export function useRecordingOrchestrator(): UseRecordingOrchestratorReturn {
     if (!activeSession || stoppingRef.current) return;
     stoppingRef.current = true;
 
-    setPipelineState('processing');
-
     try {
       const durationSeconds = await recorder.stopRecording();
-
-      await chunkUploader.drainQueue();
-
-      await sessionApi.updateChunkProgress(
-        activeSession.id,
-        videoCountRef.current + audioCountRef.current,
-        totalBytesRef.current,
-      );
-
-      await sessionApi.stopSession(activeSession.id, durationSeconds);
-
-      const meetingId = await assembly.assemble({
-        sessionId: activeSession.id,
-        storagePrefix: activeSession.storage_prefix,
-        videoChunkCount: videoCountRef.current,
-        audioChunkCount: audioCountRef.current,
-        durationSeconds,
-        title: titleRef.current.trim(),
-        folderId: folderIdRef.current,
-        clientId: clientIdRef.current,
-      });
-
-      await clearSession(activeSession.id);
-      queryClient.invalidateQueries({ queryKey: ['recorded-meetings'] });
-      setPipelineState('done');
-      toast.success('Gravacao salva com sucesso!');
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Erro desconhecido';
-      setPipelineError(msg);
-      setPipelineState('error');
-      toast.error('Erro ao salvar gravacao: ' + msg);
-
-      if (activeSession) {
-        try {
-          await sessionApi.markFailed(activeSession.id, msg);
-        } catch (markErr) {
-          console.error('[Recording] Erro ao marcar sessao como falha:', markErr);
-        }
-      }
+      durationSecondsRef.current = durationSeconds;
+      await runAssemblyPipeline(activeSession, durationSeconds);
     } finally {
       stoppingRef.current = false;
     }
-  }, [activeSession, recorder, chunkUploader, sessionApi, assembly, queryClient]);
+  }, [activeSession, recorder, runAssemblyPipeline]);
+
+  // ── Retry the failed pipeline for the SAME live session. The session was
+  //    already stopped server-side before assembly ran, so we skip stopSession
+  //    and re-run only the upload/finalize work. ──
+  const retryPipeline = useCallback(async () => {
+    if (pipelineState !== 'error' || !activeSession || stoppingRef.current) return;
+    stoppingRef.current = true;
+
+    try {
+      await runAssemblyPipeline(activeSession, durationSecondsRef.current, { skipServerStop: true });
+    } finally {
+      stoppingRef.current = false;
+    }
+  }, [pipelineState, activeSession, runAssemblyPipeline]);
 
   // ── Auto-stop when 2h limit reached ──
   useEffect(() => {
@@ -434,6 +440,8 @@ export function useRecordingOrchestrator(): UseRecordingOrchestratorReturn {
       videoCountRef.current = 0;
       audioCountRef.current = 0;
       totalBytesRef.current = 0;
+      videoMimeRef.current = null;
+      audioMimeRef.current = null;
 
       setActiveSession(session);
       setPipelineState('idle');
@@ -506,6 +514,7 @@ export function useRecordingOrchestrator(): UseRecordingOrchestratorReturn {
     overlayState,
     activeSession,
     pipelineError,
+    canRetry: pipelineState === 'error' && activeSession !== null,
 
     // Form
     title,
@@ -544,6 +553,7 @@ export function useRecordingOrchestrator(): UseRecordingOrchestratorReturn {
     pauseRecording: recorder.pauseRecording,
     resumeRecording: recorder.resumeRecording,
     cancelRecording,
+    retryPipeline,
     dismiss,
   };
 }

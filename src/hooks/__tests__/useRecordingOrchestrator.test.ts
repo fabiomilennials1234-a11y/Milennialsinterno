@@ -370,4 +370,85 @@ describe('useRecordingOrchestrator', () => {
     expect(result.current.isApproachingLimit).toBe(false);
     expect(result.current.remainingSeconds).toBe(7200);
   });
+
+  // ── Live-session retry (issue #71) ──
+  // A failed assembly/upload of the live session used to be terminal+silent.
+  // The overlay now surfaces it and offers retry, which re-runs the pipeline
+  // against the SAME live session (distinct from #72's persisted-record retry).
+
+  async function driveToError(result: { current: ReturnType<typeof useRecordingOrchestrator> }) {
+    act(() => {
+      result.current.setTitle('Test Meeting');
+      result.current.setFolderId('folder-1');
+    });
+    await act(async () => {
+      await result.current.startRecording();
+    });
+    mockAssemble.mockRejectedValueOnce(new Error('upload failed: 500'));
+    await act(async () => {
+      await result.current.stopRecording();
+    });
+  }
+
+  it('enters error state and offers retry after a failed assembly of the live session', async () => {
+    const { result } = renderHook(() => useRecordingOrchestrator());
+
+    await driveToError(result);
+
+    expect(result.current.overlayState).toBe('error');
+    expect(result.current.pipelineError).toBe('upload failed: 500');
+    expect(result.current.canRetry).toBe(true);
+    // The live session is preserved so retry has something to re-run.
+    expect(result.current.activeSession).toEqual(mockSession);
+    expect(mockMarkFailed).toHaveBeenCalledWith('sess-123', 'upload failed: 500');
+  });
+
+  it('retryPipeline re-runs assembly and reaches done on success', async () => {
+    const { result } = renderHook(() => useRecordingOrchestrator());
+
+    await driveToError(result);
+    expect(result.current.overlayState).toBe('error');
+
+    mockAssemble.mockResolvedValueOnce('meeting-789');
+    await act(async () => {
+      await result.current.retryPipeline();
+    });
+
+    expect(mockAssemble).toHaveBeenCalledTimes(2);
+    expect(result.current.overlayState).toBe('done');
+    expect(result.current.pipelineError).toBeNull();
+    expect(mockInvalidateQueries).toHaveBeenCalled();
+  });
+
+  it('retryPipeline re-marks the session failed when the retry also fails', async () => {
+    const { result } = renderHook(() => useRecordingOrchestrator());
+
+    await driveToError(result);
+    mockMarkFailed.mockClear();
+
+    mockAssemble.mockRejectedValueOnce(new Error('still offline'));
+    await act(async () => {
+      await result.current.retryPipeline();
+    });
+
+    expect(result.current.overlayState).toBe('error');
+    expect(result.current.pipelineError).toBe('still offline');
+    expect(mockMarkFailed).toHaveBeenCalledWith('sess-123', 'still offline');
+  });
+
+  it('retryPipeline is a no-op when not in error state', async () => {
+    const { result } = renderHook(() => useRecordingOrchestrator());
+
+    await act(async () => {
+      await result.current.retryPipeline();
+    });
+
+    expect(mockAssemble).not.toHaveBeenCalled();
+    expect(result.current.overlayState).toBe('idle');
+  });
+
+  it('canRetry is false when idle', () => {
+    const { result } = renderHook(() => useRecordingOrchestrator());
+    expect(result.current.canRetry).toBe(false);
+  });
 });

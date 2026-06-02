@@ -1469,6 +1469,7 @@ export type Database = {
           created_by: string
           id: string
           meeting_date: string
+          recording_id: string | null
           title: string
           updated_at: string
         }
@@ -1479,6 +1480,7 @@ export type Database = {
           created_by: string
           id?: string
           meeting_date: string
+          recording_id?: string | null
           title: string
           updated_at?: string
         }
@@ -1489,6 +1491,7 @@ export type Database = {
           created_by?: string
           id?: string
           meeting_date?: string
+          recording_id?: string | null
           title?: string
           updated_at?: string
         }
@@ -1498,6 +1501,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_meeting_notes_recording_id_fkey"
+            columns: ["recording_id"]
+            isOneToOne: false
+            referencedRelation: "recorded_meetings"
             referencedColumns: ["id"]
           },
         ]
@@ -7410,6 +7420,10 @@ export type Database = {
       recorded_meetings: {
         Row: {
           ata: string | null
+          ata_error: string | null
+          ata_generated_at: string | null
+          ata_json: Json | null
+          ata_status: string
           audio_file_url: string | null
           client_id: string | null
           created_at: string | null
@@ -7434,6 +7448,10 @@ export type Database = {
         }
         Insert: {
           ata?: string | null
+          ata_error?: string | null
+          ata_generated_at?: string | null
+          ata_json?: Json | null
+          ata_status?: string
           audio_file_url?: string | null
           client_id?: string | null
           created_at?: string | null
@@ -7458,6 +7476,10 @@ export type Database = {
         }
         Update: {
           ata?: string | null
+          ata_error?: string | null
+          ata_generated_at?: string | null
+          ata_json?: Json | null
+          ata_status?: string
           audio_file_url?: string | null
           client_id?: string | null
           created_at?: string | null
