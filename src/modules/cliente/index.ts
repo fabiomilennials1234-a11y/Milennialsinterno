@@ -23,3 +23,11 @@ export { lerCardUniversal } from "./lib/cardUniversal";
 export type { CardUniversal } from "./lib/cardUniversal";
 export { useCardUniversal } from "./lib/useCardUniversal";
 export { CardUniversalCliente } from "./components/CardUniversalCliente";
+
+// Slice 3 (#79) — Card Universal de Cliente (ESCRITA).
+// Contrato de edição consolidada (`cliente.editar_card_universal`) — UPSERT
+// gateado por pode_ver_cliente (42501) + existência (P0002). A escrita direta
+// em public.client_info_bank foi revogada; toda edição passa por aqui.
+export { editarCardUniversal } from "./lib/editarCardUniversal";
+export type { EdicaoCardUniversal } from "./lib/editarCardUniversal";
+export { useEditarCardUniversal } from "./lib/useEditarCardUniversal";
