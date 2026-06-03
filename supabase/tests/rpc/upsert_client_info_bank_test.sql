@@ -1,12 +1,24 @@
 -- supabase/tests/rpc/upsert_client_info_bank_test.sql
 -- pgTAP tests for client_info_bank table, upsert RPC, RLS, and data migration.
 --
--- Covers: insert, upsert, updated_by tracking, auth guard, client guard,
---         RLS read/write/delete, migration from legacy profiles.
+-- Covers: insert, upsert, updated_by tracking, RLS read/delete.
+--
+-- Slice 3 (#79): public.upsert_client_info_bank agora DELEGA a
+-- cliente.editar_card_universal — a escrita passou a ser GATEADA por
+-- cliente.pode_ver_cliente (mesmo predicado da leitura, ADR 0005). Consequências
+-- nos contratos abaixo (atualizados vs. o mundo de escrita aberta da Slice 0):
+--   * o escritor precisa SER AUTORIZADO (envolvido/admin/GP-grupo/page-grant);
+--     o seed agradece o GP como ENVOLVIDO do cliente.
+--   * caller sem autorização → 42501 (era escrita livre);
+--   * sem auth (auth.uid() NULL) → 42501 (não-autorizado), não mais 28000;
+--   * cliente inexistente, caller NÃO-admin → 42501 (gate ANTES de existência:
+--     não vaza existência a quem não pode ver). Admin nesse caso → P0002.
+-- As semânticas PRESERVADAS pela delegação (COALESCE, created_by imutável,
+-- updated_by = caller) continuam cobertas e devem permanecer verdes.
 
 BEGIN;
 
-SELECT plan(14);
+SELECT plan(15);
 
 -- ============================================================
 -- Helper: set auth.uid() without switching role
@@ -58,6 +70,14 @@ ON CONFLICT (user_id, role) DO NOTHING;
 INSERT INTO public.clients (id, name, cnpj, assigned_mktplace)
 VALUES ('bb000002-0000-0000-0000-000000000001'::uuid, 'CIB Test Client', '00000000000100', 'bb000001-0000-0000-0000-000000000001')
 ON CONFLICT (id) DO NOTHING;
+
+-- Slice 3 (#79): a escrita é gateada por cliente.pode_ver_cliente. GP e Designer
+-- escrevem como ENVOLVIDOS do cliente (caminho C). O CEO já passa por bypass (A).
+INSERT INTO cliente.client_members (client_id, user_id, papel_no_cliente)
+VALUES
+  ('bb000002-0000-0000-0000-000000000001'::uuid, 'bb000001-0000-0000-0000-000000000001'::uuid, 'gp'),
+  ('bb000002-0000-0000-0000-000000000001'::uuid, 'bb000001-0000-0000-0000-000000000002'::uuid, 'designer')
+ON CONFLICT DO NOTHING;
 
 -- ============================================================
 -- 1. RPC insert: GP creates new info bank for client
@@ -150,7 +170,9 @@ SELECT is(
 );
 
 -- ============================================================
--- 4. Auth guard: no auth context → error
+-- 4. Authz guard (Slice 3): no auth context → 42501 (não-autorizado).
+--    A delegação aplica cliente.pode_ver_cliente; auth.uid() NULL não vê
+--    nenhum cliente → escrita negada (era 28000 no contrato de escrita aberta).
 -- ============================================================
 SELECT _test_clear_auth();
 
@@ -159,24 +181,49 @@ SELECT throws_ok(
     p_client_id := 'bb000002-0000-0000-0000-000000000001'::uuid,
     p_brand_colors := 'should fail'
   )$$,
-  '28000',
+  '42501',
   NULL,
-  'No auth context raises authentication required'
+  'No auth context → 42501 (escrita gateada por pode_ver_cliente)'
+);
+
+-- 4b. Authz guard: caller autenticado mas NÃO-autorizado (não-envolvido, sem
+--     bypass, sem grant) → 42501. Prova o fechamento do furo de escrita aberta.
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, aud, role, created_at, updated_at, confirmation_token)
+VALUES ('bb000001-0000-0000-0000-0000000000ff'::uuid, '00000000-0000-0000-0000-000000000000'::uuid,
+        'cib-stranger@test.local', crypt('x', gen_salt('bf')), 'authenticated', 'authenticated', now(), now(), '')
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.profiles (user_id, name, email)
+VALUES ('bb000001-0000-0000-0000-0000000000ff'::uuid, 'CIB Stranger', 'cib-stranger@test.local')
+ON CONFLICT (user_id) DO NOTHING;
+
+SELECT _test_set_auth('bb000001-0000-0000-0000-0000000000ff'::uuid);
+
+SELECT throws_ok(
+  $$SELECT public.upsert_client_info_bank(
+    p_client_id := 'bb000002-0000-0000-0000-000000000001'::uuid,
+    p_brand_colors := 'should fail'
+  )$$,
+  '42501',
+  NULL,
+  'Caller não-autorizado → 42501 (furo de escrita aberta fechado)'
 );
 
 -- ============================================================
--- 5. Client guard: nonexistent client → error
+-- 5. Client guard: cliente inexistente, caller ADMIN → P0002.
+--    Admin passa o gate (bypass A); então o gate de existência dispara P0002.
+--    (Caller não-admin nesse caso receberia 42501 — gate antes de existência —
+--     para não vazar existência; coberto pelo contrato do kernel #79.)
 -- ============================================================
-SELECT _test_set_auth('bb000001-0000-0000-0000-000000000001'::uuid);
+SELECT _test_set_auth('bb000001-0000-0000-0000-000000000003'::uuid);
 
 SELECT throws_ok(
   $$SELECT public.upsert_client_info_bank(
     p_client_id := 'deadbeef-0000-0000-0000-000000000000'::uuid,
     p_brand_colors := 'should fail'
   )$$,
-  'P0001',
+  'P0002',
   NULL,
-  'Nonexistent client_id raises client not found'
+  'Cliente inexistente (caller admin) → P0002 (gate de existência)'
 );
 
 -- ============================================================

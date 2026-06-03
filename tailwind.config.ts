@@ -101,6 +101,11 @@ export default {
           accent: 'var(--mtech-accent)',
           'accent-muted': 'var(--mtech-accent-muted)',
           danger: 'var(--mtech-danger)',
+          // Tokens de input (definidos em design/tokens.css; wired aqui para que
+          // `bg-mtech-input-bg` / `border-mtech-input-border` sejam utilitários
+          // válidos — sem isto o input cai no default branco do browser).
+          'input-bg': 'var(--mtech-input-bg)',
+          'input-border': 'var(--mtech-input-border)',
         },
         // Kanban colors
         kanban: {

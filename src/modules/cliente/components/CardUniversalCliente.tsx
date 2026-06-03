@@ -1,9 +1,11 @@
 // Módulo `cliente` — INTERNAL. Acesso público só via barrel `index.ts`.
 //
 // Slice 1 (#77) — painel "Card Universal de Cliente" (LEITURA).
+// Slice 3 (#79) — modo EDIÇÃO in-place (progressive disclosure).
 // Visão consolidada read-mostly de fonte única (`public.client_info_bank`) via o
-// contrato `cliente.card_universal`. Audiência = Envolvidos/exec/page-grant
-// (gate na RPC + RLS; ADR 0005). A edição é #79 — este painel é read-only.
+// contrato `cliente.card_universal` (leitura) e `cliente.editar_card_universal`
+// (escrita). Audiência/autorização = Envolvidos/exec/page-grant (MESMO predicado
+// pode_ver_cliente para ver E editar; gate na RPC + RLS; ADR 0005).
 //
 // Intenção de design: um DOSSIÊ do cliente, não um formulário. O herói é a
 // legibilidade da informação. Irmão visual de EquipeDoCliente (mesma linguagem
@@ -12,20 +14,30 @@
 // suprimidos (remover > adicionar ruído de "N/A"); seção sem nenhum campo some;
 // card inteiro vazio → estado vazio elegante. Cores de marca viram swatches
 // reais; URLs viram links com afinância de link externo. Sem acesso → nada.
+//
+// A edição é PROGRESSIVE DISCLOSURE: o painel nasce read-mostly; uma affordance
+// discreta no header ("Editar") transforma o MESMO layout em campos editáveis
+// in-place (sem modal — modal legado fura o boundary do módulo). Só os campos
+// alterados são enviados (patch). Salvar invalida a leitura; 42501 vira aviso de
+// permissão. O modo leitura permanece byte-a-byte o de #77.
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   AlertTriangle,
+  Check,
   ExternalLink,
   FileText,
   Loader2,
   Palette,
+  Pencil,
   RotateCw,
   Globe,
   Clapperboard,
   Code2,
   StickyNote,
+  X,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -33,11 +45,67 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 import { useCardUniversal } from "../lib/useCardUniversal";
 import type { CardUniversal } from "../lib/cardUniversal";
+import { useEditarCardUniversal } from "../lib/useEditarCardUniversal";
+import type { EdicaoCardUniversal } from "../lib/editarCardUniversal";
 
 interface Props {
   clientId: string;
   clientName?: string;
   className?: string;
+}
+
+// Chaves de domínio editáveis (espelha EdicaoCardUniversal). Auditoria fica fora.
+type CampoEditavel = keyof EdicaoCardUniversal;
+
+// Forma do rascunho: todos os campos editáveis como string ("" = vazio).
+type Rascunho = Record<CampoEditavel, string>;
+
+const CAMPOS_EDITAVEIS: CampoEditavel[] = [
+  "brand_colors",
+  "typography",
+  "visual_style",
+  "brand_manual_url",
+  "logo_url",
+  "website_url",
+  "instagram_handle",
+  "youtube_channel",
+  "tiktok_handle",
+  "domain",
+  "editing_style",
+  "video_formats",
+  "cms_platform",
+  "figma_url",
+  "notes",
+];
+
+function rascunhoVazio(): Rascunho {
+  return Object.fromEntries(CAMPOS_EDITAVEIS.map((k) => [k, ""])) as Rascunho;
+}
+
+function rascunhoDeCard(card: CardUniversal | null | undefined): Rascunho {
+  const base = rascunhoVazio();
+  if (!card) return base;
+  for (const k of CAMPOS_EDITAVEIS) {
+    base[k] = (card[k] as string | null) ?? "";
+  }
+  return base;
+}
+
+// Patch = só os campos cujo valor mudou em relação ao card atual. "" → null
+// (limpar intencionalmente). Evita reenviar o card inteiro (UPSERT mínimo).
+function calcularPatch(
+  rascunho: Rascunho,
+  card: CardUniversal | null | undefined,
+): EdicaoCardUniversal {
+  const patch: EdicaoCardUniversal = {};
+  for (const k of CAMPOS_EDITAVEIS) {
+    const atual = ((card?.[k] as string | null) ?? "").trim();
+    const novo = rascunho[k].trim();
+    if (novo !== atual) {
+      patch[k] = novo === "" ? null : novo;
+    }
+  }
+  return patch;
 }
 
 // ── Vocabulário de apresentação ─────────────────────────────────────────────
@@ -113,6 +181,16 @@ function temValor(v: unknown): v is string {
 export function CardUniversalCliente({ clientId, clientName, className }: Props) {
   const { data: card, isLoading, isError, refetch, isRefetching } =
     useCardUniversal(clientId);
+  const editar = useEditarCardUniversal(clientId);
+
+  const [editando, setEditando] = useState(false);
+  const [rascunho, setRascunho] = useState<Rascunho>(rascunhoVazio);
+
+  // Ao entrar em edição (ou quando o card recarrega durante a edição), semeia o
+  // rascunho a partir do card. Fora da edição, o rascunho fica inerte.
+  useEffect(() => {
+    if (editando) setRascunho(rascunhoDeCard(card));
+  }, [editando, card]);
 
   // Seções com ao menos um campo preenchido (suprime ruído de vazio).
   const secoesComDados = useMemo(() => {
@@ -124,6 +202,43 @@ export function CardUniversalCliente({ clientId, clientName, className }: Props)
   }, [card]);
 
   const vazio = !card || secoesComDados.length === 0;
+  // Quem vê o card pode editá-lo (mesmo predicado pode_ver_cliente). Logo, a
+  // affordance de edição aparece sempre que o painel carregou sem erro.
+  const podeEditar = !isLoading && !isError;
+
+  const patch = useMemo(() => calcularPatch(rascunho, card), [rascunho, card]);
+  const temMudanca = Object.keys(patch).length > 0;
+
+  function abrirEdicao() {
+    setRascunho(rascunhoDeCard(card));
+    setEditando(true);
+  }
+
+  function cancelarEdicao() {
+    setEditando(false);
+    setRascunho(rascunhoVazio());
+  }
+
+  async function salvar() {
+    if (!temMudanca) {
+      setEditando(false);
+      return;
+    }
+    try {
+      await editar.mutateAsync(patch);
+      toast.success("Card atualizado");
+      setEditando(false);
+    } catch (e) {
+      const code = (e as { code?: string })?.code;
+      if (code === "42501") {
+        toast.error("Você não tem permissão para editar este cliente.");
+      } else if (code === "P0002") {
+        toast.error("Cliente não encontrado.");
+      } else {
+        toast.error("Não foi possível salvar. Tente novamente.");
+      }
+    }
+  }
 
   return (
     <section
@@ -138,14 +253,56 @@ export function CardUniversalCliente({ clientId, clientName, className }: Props)
           <FileText className="h-[18px] w-[18px] text-mtech-text-subtle" aria-hidden />
           <h3 className="text-title text-mtech-text">Card universal</h3>
         </div>
-        {card?.updated_at && !isLoading && !isError && (
-          <span
-            data-mono
-            className="text-caption text-mtech-text-subtle"
-            title={`Atualizado em ${new Date(card.updated_at).toLocaleString("pt-BR")}`}
-          >
-            {formatarQuando(card.updated_at)}
-          </span>
+
+        {editando ? (
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={cancelarEdicao}
+              disabled={editar.isPending}
+              className="h-8 gap-1.5 px-2.5 text-caption text-mtech-text-muted hover:bg-mtech-surface-elev hover:text-mtech-text"
+            >
+              <X className="h-3.5 w-3.5" aria-hidden />
+              Cancelar
+            </Button>
+            <Button
+              size="sm"
+              onClick={salvar}
+              disabled={editar.isPending || !temMudanca}
+              className="h-8 gap-1.5 bg-mtech-accent px-3 text-caption text-mtech-bg hover:bg-mtech-accent/90 disabled:opacity-50"
+            >
+              {editar.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+              ) : (
+                <Check className="h-3.5 w-3.5" aria-hidden />
+              )}
+              Salvar
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3">
+            {card?.updated_at && (
+              <span
+                data-mono
+                className="text-caption text-mtech-text-subtle"
+                title={`Atualizado em ${new Date(card.updated_at).toLocaleString("pt-BR")}`}
+              >
+                {formatarQuando(card.updated_at)}
+              </span>
+            )}
+            {podeEditar && !vazio && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={abrirEdicao}
+                className="h-8 gap-1.5 px-2.5 text-caption text-mtech-text-muted hover:bg-mtech-surface-elev hover:text-mtech-text"
+              >
+                <Pencil className="h-3.5 w-3.5" aria-hidden />
+                Editar
+              </Button>
+            )}
+          </div>
         )}
       </header>
 
@@ -156,8 +313,10 @@ export function CardUniversalCliente({ clientId, clientName, className }: Props)
         <CardSkeleton />
       ) : isError ? (
         <EstadoErro onRetry={() => refetch()} carregando={isRefetching} />
+      ) : editando ? (
+        <FormEdicao rascunho={rascunho} onChange={setRascunho} salvando={editar.isPending} />
       ) : vazio ? (
-        <EstadoVazio clientName={clientName} />
+        <EstadoVazio clientName={clientName} onAdicionar={podeEditar ? abrirEdicao : undefined} />
       ) : (
         <div className="divide-y divide-mtech-border">
           {secoesComDados.map((secao) => (
@@ -167,6 +326,85 @@ export function CardUniversalCliente({ clientId, clientName, className }: Props)
       )}
     </section>
   );
+}
+
+// ── Modo edição ───────────────────────────────────────────────────────────────
+// Mesmas seções/rótulos da leitura, agora como campos. Progressive disclosure:
+// o herói segue sendo a estrutura do dossiê; o input herda o ritmo do grid.
+
+function FormEdicao({
+  rascunho,
+  onChange,
+  salvando,
+}: {
+  rascunho: Rascunho;
+  onChange: (r: Rascunho) => void;
+  salvando: boolean;
+}) {
+  function setCampo(key: CampoEditavel, valor: string) {
+    onChange({ ...rascunho, [key]: valor });
+  }
+
+  return (
+    <div className="divide-y divide-mtech-border">
+      {SECOES.map((secao) => {
+        const { Icone } = secao;
+        return (
+          <div key={secao.id} className="px-5 py-4">
+            <div className="mb-3 flex items-center gap-2">
+              <Icone className="h-3.5 w-3.5 text-mtech-text-subtle" aria-hidden />
+              <h4 className="text-caption font-medium uppercase tracking-[0.08em] text-mtech-text-subtle">
+                {secao.titulo}
+              </h4>
+            </div>
+            <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
+              {secao.campos.map((campo) => {
+                const key = campo.key as CampoEditavel;
+                const full = campo.render === "swatches" || campo.key === "notes";
+                return (
+                  <div key={String(campo.key)} className={cn("min-w-0", full && "sm:col-span-2")}>
+                    <label
+                      htmlFor={`cu-${key}`}
+                      className="mb-1.5 block text-caption text-mtech-text-subtle"
+                    >
+                      {campo.label}
+                    </label>
+                    {campo.key === "notes" ? (
+                      <textarea
+                        id={`cu-${key}`}
+                        value={rascunho[key]}
+                        onChange={(e) => setCampo(key, e.target.value)}
+                        disabled={salvando}
+                        rows={3}
+                        className="w-full resize-y rounded-[var(--mtech-radius-md)] border border-mtech-input-border bg-mtech-input-bg px-3 py-2 text-body text-mtech-text placeholder:text-mtech-text-subtle focus:border-mtech-accent focus:outline-none focus:ring-1 focus:ring-mtech-accent/40 disabled:opacity-50"
+                      />
+                    ) : (
+                      <input
+                        id={`cu-${key}`}
+                        type="text"
+                        value={rascunho[key]}
+                        onChange={(e) => setCampo(key, e.target.value)}
+                        disabled={salvando}
+                        placeholder={placeholderDe(campo)}
+                        className="h-9 w-full rounded-[var(--mtech-radius-md)] border border-mtech-input-border bg-mtech-input-bg px-3 text-body text-mtech-text placeholder:text-mtech-text-subtle focus:border-mtech-accent focus:outline-none focus:ring-1 focus:ring-mtech-accent/40 disabled:opacity-50"
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// Placeholder discreto por tipo de campo (afinância, não instrução verbosa).
+function placeholderDe(campo: Campo): string {
+  if (campo.render === "swatches") return "#0A84FF, #111827";
+  if (campo.render === "link") return "https://…";
+  return "";
 }
 
 // ── Seção ────────────────────────────────────────────────────────────────────
@@ -280,7 +518,13 @@ function CardSkeleton() {
   );
 }
 
-function EstadoVazio({ clientName }: { clientName?: string }) {
+function EstadoVazio({
+  clientName,
+  onAdicionar,
+}: {
+  clientName?: string;
+  onAdicionar?: () => void;
+}) {
   return (
     <div className="flex flex-col items-center px-6 py-10 text-center">
       <div className="flex h-11 w-11 items-center justify-center rounded-full border border-mtech-border bg-mtech-surface-elev">
@@ -291,6 +535,16 @@ function EstadoVazio({ clientName }: { clientName?: string }) {
         O card de {clientName ?? "deste cliente"} consolida marca, presença digital, vídeo e dev em
         um só lugar. Quando a equipe preencher, aparece aqui.
       </p>
+      {onAdicionar && (
+        <Button
+          size="sm"
+          onClick={onAdicionar}
+          className="mt-5 gap-1.5 bg-mtech-accent text-mtech-bg hover:bg-mtech-accent/90"
+        >
+          <Pencil className="h-3.5 w-3.5" aria-hidden />
+          Adicionar informações
+        </Button>
+      )}
     </div>
   );
 }
