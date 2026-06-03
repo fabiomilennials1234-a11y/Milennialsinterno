@@ -143,9 +143,13 @@ SELECT throws_ok(
 );
 
 -- ============================================================
--- 6. Info bank guard: nonexistent client → error
+-- 6. Anti-órfão (#43): cliente inexistente → P0002 (cliente.existe falha).
+--    Caller = CEO (executivo): passa o gate de audiência (pode_ver_cliente) e
+--    alcança o gate de existência → P0002. (#87: GP já NÃO tem bypass total, então
+--    um GP num cliente invisível pararia em 42501 — por isso usamos o executivo
+--    para exercitar especificamente o caminho anti-órfão.)
 -- ============================================================
-SELECT _test_set_auth('bb000001-0000-0000-0000-000000000001'::uuid);
+SELECT _test_set_auth('bb000001-0000-0000-0000-000000000003'::uuid);  -- CEO
 
 SELECT throws_ok(
   $$SELECT public.upload_info_bank_file(
@@ -156,47 +160,49 @@ SELECT throws_ok(
     p_file_size    := 100,
     p_content_type := 'video/mp4'
   )$$,
-  'P0001',
+  'P0002',
   NULL,
-  'Nonexistent client raises client_info_bank not found'
+  'Cliente inexistente raises cliente não encontrado (anti-órfão #43)'
 );
 
 -- ============================================================
--- 7. RLS: authenticated can SELECT
+-- 7. RLS gateado (#43): NÃO-envolvido NÃO lê metadado. O design user não tem
+--    involvement no cliente (só o GP via assigned_mktplace), nem é admin → 0.
+--    [Antes do #43 a policy era USING(true) e isto retornava 2.]
 -- ============================================================
 SELECT _test_set_auth('bb000001-0000-0000-0000-000000000002'::uuid);
+SET LOCAL ROLE authenticated;
 
 SELECT is(
   (SELECT count(*)::int FROM public.client_info_bank_files
    WHERE client_id = 'bb000003-0000-0000-0000-000000000001'::uuid),
-  2,
-  'Authenticated user (design) can SELECT files'
-);
-
--- ============================================================
--- 8. DELETE policy exists and uses is_admin
--- ============================================================
-SELECT is(
-  (SELECT count(*)::int FROM pg_policies
-   WHERE schemaname = 'public'
-     AND tablename = 'client_info_bank_files'
-     AND cmd = 'DELETE'
-     AND qual::text LIKE '%is_admin%'),
-  1,
-  'DELETE policy exists and uses is_admin guard'
-);
-
--- ============================================================
--- 9. No DELETE policy without is_admin
--- ============================================================
-SELECT is(
-  (SELECT count(*)::int FROM pg_policies
-   WHERE schemaname = 'public'
-     AND tablename = 'client_info_bank_files'
-     AND cmd = 'DELETE'
-     AND qual::text NOT LIKE '%is_admin%'),
   0,
-  'No DELETE policy exists without is_admin'
+  'NÃO-envolvido (design) lê VAZIO de client_info_bank_files (#43 SELECT gateado)'
+);
+RESET ROLE;
+
+-- ============================================================
+-- 8. Escrita direta REVOGADA (#43): authenticated não tem grant INSERT/UPDATE/DELETE.
+-- ============================================================
+SELECT is(
+  (SELECT count(*)::int FROM information_schema.role_table_grants
+   WHERE table_schema='public' AND table_name='client_info_bank_files'
+     AND grantee='authenticated' AND privilege_type IN ('INSERT','UPDATE','DELETE')),
+  0,
+  'authenticated não tem grant direto de escrita (toda escrita via RPC #43)'
+);
+
+-- ============================================================
+-- 9. SELECT é gateado por pode_ver_cliente (não resta USING(true)).
+-- ============================================================
+SELECT is(
+  (SELECT count(*)::int FROM pg_policies
+   WHERE schemaname = 'public'
+     AND tablename = 'client_info_bank_files'
+     AND cmd = 'SELECT'
+     AND qual::text LIKE '%pode_ver_cliente%'),
+  1,
+  'SELECT gateado por pode_ver_cliente (#43)'
 );
 
 -- ============================================================

@@ -55,9 +55,12 @@ VALUES
   ('cc000001-0000-0000-0000-000000000003'::uuid, 'ceo')
 ON CONFLICT (user_id, role) DO NOTHING;
 
--- Client
-INSERT INTO public.clients (id, name, cnpj, assigned_mktplace)
-VALUES ('cc000003-0000-0000-0000-000000000001'::uuid, 'DEL Test Client', '00000000000300', 'cc000001-0000-0000-0000-000000000001')
+-- Client. #43: a escrita agora exige pode_ver_cliente (envolvimento). Tornamos
+-- AMBOS GP (assigned_mktplace) e design (assigned_ads_manager) ENVOLVIDOS, para
+-- que ambos possam fazer upload legítimo e o teste exercite a posse no DELETE.
+INSERT INTO public.clients (id, name, cnpj, assigned_mktplace, assigned_ads_manager)
+VALUES ('cc000003-0000-0000-0000-000000000001'::uuid, 'DEL Test Client', '00000000000300',
+        'cc000001-0000-0000-0000-000000000001', 'cc000001-0000-0000-0000-000000000002'::uuid)
 ON CONFLICT (id) DO NOTHING;
 
 -- Info bank record
@@ -189,16 +192,15 @@ SELECT throws_ok(
 );
 
 -- ============================================================
--- 8. Updated DELETE RLS policy allows owner (not just admin)
+-- 8. #43: escrita direta REVOGADA — não há policy DELETE de tabela; o caminho de
+--    delete é EXCLUSIVAMENTE a RPC (owner/admin + pode_ver_cliente, SECURITY DEFINER).
 -- ============================================================
 SELECT is(
-  (SELECT count(*)::int FROM pg_policies
-   WHERE schemaname = 'public'
-     AND tablename = 'client_info_bank_files'
-     AND policyname = 'delete_cib_files_owner_or_admin'
-     AND cmd = 'DELETE'),
-  1,
-  'DELETE policy updated to allow owner or admin'
+  (SELECT count(*)::int FROM information_schema.role_table_grants
+   WHERE table_schema='public' AND table_name='client_info_bank_files'
+     AND grantee='authenticated' AND privilege_type='DELETE'),
+  0,
+  'authenticated não tem grant DELETE direto — delete só via RPC (#43)'
 );
 
 -- ============================================================
