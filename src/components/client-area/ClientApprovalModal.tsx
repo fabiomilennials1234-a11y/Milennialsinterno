@@ -41,6 +41,7 @@ import type { ClientAreaItem } from '@/hooks/useClientArea';
 // Import SÓ pelo barrel do módulo `cliente` (ADR 0004 contrato-only): nada de
 // lib/hook interno aqui.
 import { EquipeDoCliente, CardUniversalCliente } from '@/modules/cliente';
+import { DemandasDoCliente } from '@/modules/demanda';
 
 interface Props {
   client: ClientAreaItem | null;
@@ -418,6 +419,13 @@ export default function ClientApprovalModal({ client, open, onOpenChange }: Prop
             + add/remove. Acoplamento ao módulo só pelo barrel (ADR 0004). */}
         <Separator className="bg-border/20" />
         <EquipeDoCliente clientId={client.id} clientName={client.name} />
+
+        {/* Slice 4 (#80) — Demandas do cliente: as unidades de trabalho (atravessando
+            áreas), fonte única `demanda.demandas` via contrato do módulo `demanda`.
+            Listar + criar + vincular um card de domínio. Audiência herdada do cliente
+            (gate na RPC + RLS; ADR 0005). Acoplamento ao módulo só pelo barrel (ADR 0004). */}
+        <Separator className="bg-border/20" />
+        <DemandasDoCliente clientId={client.id} clientName={client.name} />
       </DialogContent>
     </Dialog>
   );

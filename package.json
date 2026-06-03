@@ -19,7 +19,7 @@
     "test:boundaries": "bash scripts/test-boundaries.sh",
     "test:db:cliente": "bash scripts/sb-pgtap.sh supabase/tests/modules/cliente/skeleton_test.sql",
     "typecheck": "tsc --noEmit",
-    "supabase:gen-types": "supabase gen types typescript --linked --schema public --schema cliente > src/integrations/supabase/types.ts"
+    "supabase:gen-types": "supabase gen types typescript --linked --schema public --schema cliente --schema demanda > src/integrations/supabase/types.ts"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
