@@ -139,3 +139,33 @@ kernel `cliente`. Um módulo guarda `client_id`/`demanda_id` como `uuid` solto e
   na RPC e (2) **job de reconciliação** periódico que coloca órfãos em quarentena e alerta.
 - Consequência desejada: extrair um módulo para serviço próprio depois é trivial — troca-se a
   chamada de RPC local por gRPC/HTTP, sem refatorar o negócio.
+
+---
+## Torque CRM — board do Gestor de CRM
+
+### Torque CRM
+Produto-família de implantação de CRM da Milennials, vendido em três tiers. É o nome do
+board do Gestor de CRM. **NÃO confundir** com o tier "Torque" (abaixo).
+
+### Tier (Torque / Automation / Copilot)
+Os três níveis contratáveis do Torque CRM, em hierarquia crescente: **Torque < Automation
+< Copilot**. O tier mais alto **subsume** os inferiores (quem tem Copilot não precisa de card
+de Torque/Automation). Por isso **um cliente gera um único card**, roteado para a coluna do seu
+tier mais alto.
+
+- **Torque** é o tier-base, antes chamado **V8** (renomeado). "V8" está aposentado como termo.
+- **NÃO confundir** o tier "Torque" com a família "Torque CRM" nem com a tag de bloqueio
+  "Torque bloqueado".
+
+### Card (de implantação)
+A unidade que anda pelo board do Gestor de CRM: **um por cliente**, na coluna do seu tier mais
+alto. Nasce em **A FAZER** quando o CRM é briefado, anda por uma coluna de tier
+(Torque/Automation/Copilot) conforme o checklist avança, vai para **Apresentação** (agenda data)
+e termina em **Prontos**. **NÃO confundir** com `kanban_cards` nem com o Card Universal de Cliente.
+
+### Acompanhamento — termo sobrecarregado
+- **Acompanhamento (pós-implantação)**: board da aba **Acompanhamentos**, onde um card do
+  cliente entra ao cair em **Prontos**. Colunas: Fazer follow-up / Follow-up feito / Tasks em
+  aberto / Aguardando resposta. Ciclo de relacionamento contínuo após o CRM ficar pronto.
+- **NÃO confundir** com o antigo "Acompanhamento diário" (coluna removida, baseada em
+  `crm_daily_tracking`).
