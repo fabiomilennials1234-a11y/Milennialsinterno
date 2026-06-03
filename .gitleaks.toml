@@ -37,21 +37,15 @@ regex = '''sbp_[a-f0-9]{40,}'''
 tags = ["supabase", "access-token"]
 
 [allowlist]
-description = "Paths que podem conter referencias redacted a credenciais"
+description = "Paths e stopwords que podem conter referencias redacted a credenciais"
 paths = [
   '''docs/superpowers/security/.*\.md''',
   '''docs/superpowers/plans/.*\.md''',
   '''\.gitleaks\.toml''',
 ]
-
-# Commits passados purgados via filter-repo em 2026-04-20 — allowlist pra evitar falso positivo
-# se gitleaks revarrer history.
-[allowlist.commits]
-# Commits de limpeza/rewrite. Nao ha valor em bloquear estes.
-# (Preenchido conforme necessidade futura)
-
-[allowlist.stopwords]
-description = "Strings que devem ser ignoradas mesmo se baterem regex"
+# Strings ignoradas mesmo se baterem alguma regex (redacted/placeholders).
+# `stopwords` e `commits` sao CAMPOS de [allowlist], nao sub-tabelas — declarar como
+# sub-tabela ([allowlist.stopwords]) faz o gitleaks 8.x falhar ao carregar o config.
 stopwords = [
   "REDACTED",
   "***REDACTED***",
@@ -59,3 +53,6 @@ stopwords = [
   "example",
   "YOUR_API_KEY_HERE",
 ]
+# Commits passados purgados via filter-repo em 2026-04-20 (history reescrita).
+# Adicione SHAs aqui se gitleaks revarrer history e gerar falso positivo:
+# commits = ["<sha>"]
