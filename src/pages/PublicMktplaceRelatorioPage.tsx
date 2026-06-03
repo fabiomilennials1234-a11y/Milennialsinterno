@@ -540,7 +540,7 @@ export default function PublicMktplaceRelatorioPage() {
 
             {/* Scroll hint */}
             {sectionCount > 2 && (
-              <div className="mt-10 flex flex-col items-center gap-1 text-white/15 animate-bounce">
+              <div className="mt-10 flex flex-col items-center gap-1 text-white/15">
                 <ChevronDown size={16} aria-hidden="true" />
               </div>
             )}

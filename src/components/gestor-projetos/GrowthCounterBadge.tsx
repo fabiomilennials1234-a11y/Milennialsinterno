@@ -30,7 +30,7 @@ export default function GrowthCounterBadge({
         isDanger
           ? 'bg-danger/10 border-danger/30 text-danger'
           : 'bg-blue-500/10 border-blue-500/30 text-blue-400',
-        isAlmostLimit && 'animate-pulse',
+        isAlmostLimit && 'ring-2 ring-danger/50 border-danger/60',
       )}
     >
       <span className="text-[10px] font-semibold leading-none opacity-60">D+</span>

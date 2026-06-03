@@ -56,14 +56,14 @@ export default function ContractStatusBadge({
       shortLabel: `⚠️ ${contractInfo.daysUntilExpiration}d`,
       icon: AlertTriangle,
       variant: 'destructive' as const,
-      bgClass: 'bg-warning/20 text-warning border-warning/30 animate-pulse',
+      bgClass: 'bg-warning/20 text-warning border-warning/30',
     },
     expired: {
       label: 'Contrato expirado',
       shortLabel: '❌',
       icon: XCircle,
       variant: 'destructive' as const,
-      bgClass: 'bg-destructive/20 text-destructive border-destructive/30 animate-pulse',
+      bgClass: 'bg-destructive/20 text-destructive border-destructive/30',
     },
   };
 

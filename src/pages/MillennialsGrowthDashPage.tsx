@@ -111,7 +111,7 @@ export default function MillennialsGrowthDashPage() {
             </div>
           </div>
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-success/10 text-success text-sm font-medium">
-            <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+            <div className="w-2 h-2 rounded-full bg-success ring-2 ring-success/30" />
             Dados em tempo real
           </div>
         </div>

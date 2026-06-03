@@ -103,7 +103,7 @@ export default function ClientRegistrationBoard({ boardSlug }: ClientRegistratio
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-success/10 text-success text-xs font-medium">
-            <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+            <div className="w-1.5 h-1.5 rounded-full bg-success ring-2 ring-success/30" />
             Tempo real
           </div>
         </div>

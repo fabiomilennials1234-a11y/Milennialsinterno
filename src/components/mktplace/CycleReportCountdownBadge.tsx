@@ -22,7 +22,7 @@ const SEVERITY_STYLES: Record<Severity, string> = {
   green:  'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
   yellow: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30',
   orange: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
-  red:    'bg-destructive/10 text-destructive border-destructive/30 animate-pulse',
+  red:    'bg-destructive/10 text-destructive border-destructive/30',
 };
 
 export default function CycleReportCountdownBadge({ daysRemaining, totalDays, className }: Props) {

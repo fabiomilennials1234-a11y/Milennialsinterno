@@ -73,7 +73,7 @@ export default function DashGestoresPage() {
               Registrar 1 a 1
             </Button>
             <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-success/10 text-success font-medium">
-              <div className="w-3 h-3 rounded-full bg-success animate-pulse" />
+              <div className="w-3 h-3 rounded-full bg-success ring-2 ring-success/30" />
               Ao vivo
             </div>
           </div>

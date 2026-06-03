@@ -15,7 +15,7 @@ export default function CXValidationBadge({ clientId, className }: Props) {
   return (
     <Badge
       variant="destructive"
-      className={`text-[10px] px-1.5 py-0.5 gap-1 animate-pulse font-bold uppercase ${className || ''}`}
+      className={`text-[10px] px-1.5 py-0.5 gap-1 font-bold uppercase ${className || ''}`}
     >
       <ShieldAlert size={10} />
       Esperar Validação

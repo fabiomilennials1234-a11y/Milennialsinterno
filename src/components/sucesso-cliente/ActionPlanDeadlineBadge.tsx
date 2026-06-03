@@ -60,7 +60,7 @@ export default function ActionPlanDeadlineBadge({
         'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold',
         isCompleted && 'bg-success/10 text-success',
         isCancelled && 'bg-muted text-muted-foreground',
-        !isCompleted && !isCancelled && isOverdue && 'bg-destructive text-destructive-foreground animate-pulse',
+        !isCompleted && !isCancelled && isOverdue && 'bg-destructive text-destructive-foreground',
         !isCompleted && !isCancelled && !isOverdue && colors.bg,
         !isCompleted && !isCancelled && !isOverdue && colors.text
       )}>
@@ -99,7 +99,7 @@ export default function ActionPlanDeadlineBadge({
         'px-4 py-2 flex items-center justify-between',
         isCompleted && 'bg-success text-white',
         isCancelled && 'bg-muted text-muted-foreground',
-        !isCompleted && !isCancelled && isOverdue && 'bg-destructive text-white animate-pulse',
+        !isCompleted && !isCancelled && isOverdue && 'bg-destructive text-white',
         !isCompleted && !isCancelled && !isOverdue && colors.accent,
         !isCompleted && !isCancelled && !isOverdue && 'text-white'
       )}>

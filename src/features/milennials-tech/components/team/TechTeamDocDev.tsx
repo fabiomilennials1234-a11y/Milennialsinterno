@@ -262,7 +262,7 @@ export default function TechTeamDocDev() {
       {isLoading ? (
         <div className="grid grid-cols-1 gap-4">
           {Array.from({ length: 2 }).map((_, i) => (
-            <div key={i} className="h-64 rounded-xl bg-[var(--mtech-surface-elev)] animate-pulse" />
+            <div key={i} className="h-64 rounded-xl bg-[var(--mtech-surface-elev)]" />
           ))}
         </div>
       ) : devs.length === 0 ? (

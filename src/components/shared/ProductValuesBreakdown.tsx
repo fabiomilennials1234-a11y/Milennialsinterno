@@ -11,7 +11,7 @@ export default function ProductValuesBreakdown({ clientId, showTotal = true }: P
   const { data: productValues = [], isLoading } = useClientProductValues(clientId);
 
   if (isLoading) {
-    return <div className="h-4 w-20 bg-muted/50 animate-pulse rounded" />;
+    return <div className="h-4 w-20 bg-muted/50 skeleton-static rounded" />;
   }
 
   if (productValues.length === 0) {

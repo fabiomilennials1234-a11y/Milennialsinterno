@@ -33,7 +33,7 @@ export default function AdsReunioesSection({ compact }: Props) {
     return (
       <div className="space-y-3">
         {[1, 2].map(i => (
-          <div key={i} className="h-20 bg-muted/30 rounded-xl animate-pulse" />
+          <div key={i} className="h-20 bg-muted/30 rounded-xl skeleton-static" />
         ))}
       </div>
     );

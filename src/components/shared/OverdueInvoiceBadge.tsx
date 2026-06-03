@@ -23,7 +23,7 @@ export default function OverdueInvoiceBadge({ clientId, className, compact = fal
     return (
       <Badge 
         variant="destructive" 
-        className={`text-[8px] px-1 py-0 gap-0.5 animate-pulse ${className || ''}`}
+        className={`text-[8px] px-1 py-0 gap-0.5 ${className || ''}`}
       >
         <AlertTriangle size={8} />
         $
@@ -34,7 +34,7 @@ export default function OverdueInvoiceBadge({ clientId, className, compact = fal
   return (
     <Badge 
       variant="destructive" 
-      className={`text-[10px] px-1.5 py-0.5 gap-1 animate-pulse ${className || ''}`}
+      className={`text-[10px] px-1.5 py-0.5 gap-1 ${className || ''}`}
     >
       <AlertTriangle size={10} />
       Fatura Atrasada

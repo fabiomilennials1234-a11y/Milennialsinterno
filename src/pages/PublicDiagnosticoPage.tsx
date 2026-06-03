@@ -599,8 +599,8 @@ export default function PublicDiagnosticoPage() {
     <div className="min-h-screen text-white" style={{ background: 'linear-gradient(160deg, #0c0a09 0%, #1a1412 50%, #0c0a09 100%)' }}>
       {/* Floating ambient */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-20 left-10 w-80 h-80 rounded-full blur-3xl animate-pulse" style={{ background: 'rgba(168,85,247,0.06)' }} />
-        <div className="absolute bottom-20 right-10 w-96 h-96 rounded-full blur-3xl animate-pulse" style={{ background: 'rgba(234,179,8,0.05)', animationDelay: '1.5s' }} />
+        <div className="absolute top-20 left-10 w-80 h-80 rounded-full blur-3xl" style={{ background: 'rgba(168,85,247,0.06)' }} />
+        <div className="absolute bottom-20 right-10 w-96 h-96 rounded-full blur-3xl" style={{ background: 'rgba(234,179,8,0.05)' }} />
       </div>
 
       {/* Header */}

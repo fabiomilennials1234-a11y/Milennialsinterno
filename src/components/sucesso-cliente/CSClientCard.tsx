@@ -258,8 +258,8 @@ export default function CSClientCard({ client, onClick, showSuggestion, onboardi
           config.cardBorder,
           classification === 'critico' && !needsActionPlan && "ring-1 ring-destructive/20",
           classification === 'alerta' && !needsActionPlan && "ring-1 ring-warning/20",
-          needsActionPlan && classification === 'critico' && "ring-2 ring-destructive/40 animate-pulse-border-red",
-          needsActionPlan && classification === 'alerta' && "ring-2 ring-warning/40 animate-pulse-border-orange",
+          needsActionPlan && classification === 'critico' && "ring-2 ring-destructive/40 blocking-ring-red",
+          needsActionPlan && classification === 'alerta' && "ring-2 ring-warning/40 blocking-ring-orange",
         )}
         onClick={onClick}
       >
@@ -271,8 +271,8 @@ export default function CSClientCard({ client, onClick, showSuggestion, onboardi
             className={cn(
               "absolute top-2 right-2 z-10 h-7 px-2 gap-1 text-xs font-semibold shadow-lg",
               isCriticalContact
-                ? "bg-destructive hover:bg-destructive/90 animate-pulse" 
-                : "bg-warning hover:bg-warning/90 animate-pulse"
+                ? "bg-destructive hover:bg-destructive/90 ring-2 ring-destructive/40 ring-offset-1 ring-offset-card"
+                : "bg-warning hover:bg-warning/90 ring-2 ring-warning/40 ring-offset-1 ring-offset-card"
             )}
             onClick={(e) => {
               e.stopPropagation();
@@ -419,7 +419,7 @@ export default function CSClientCard({ client, onClick, showSuggestion, onboardi
               activeActionPlan.status === 'active' && activeActionPlan.severity === 'leve' && 'bg-success/10 border-success/30',
               activeActionPlan.status === 'active' && activeActionPlan.severity === 'moderado' && 'bg-warning/10 border-warning/30',
               activeActionPlan.status === 'active' && activeActionPlan.severity === 'critico' && 'bg-destructive/10 border-destructive/30',
-              actionPlanDisplay.isOverdue && 'animate-pulse border-destructive bg-destructive/10',
+              actionPlanDisplay.isOverdue && 'border-destructive bg-destructive/10 ring-2 ring-destructive/40',
             )}>
               <div className="flex items-center gap-2">
                 <div className={cn(
@@ -466,8 +466,8 @@ export default function CSClientCard({ client, onClick, showSuggestion, onboardi
               className={cn(
                 'rounded-lg p-2.5 border-2 cursor-pointer transition-all',
                 classification === 'critico'
-                  ? 'bg-destructive/10 border-destructive animate-pulse-border-red'
-                  : 'bg-warning/10 border-warning animate-pulse-border-orange',
+                  ? 'bg-destructive/10 border-destructive blocking-ring-red'
+                  : 'bg-warning/10 border-warning blocking-ring-orange',
               )}
               onClick={(e) => {
                 e.stopPropagation();

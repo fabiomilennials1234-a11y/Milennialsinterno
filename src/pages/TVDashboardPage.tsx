@@ -96,7 +96,7 @@ export default function TVDashboardPage() {
             </div>
           </div>
           <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 font-bold text-sm">
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-500/30" />
             AO VIVO
           </div>
         </div>
@@ -393,7 +393,7 @@ function KPICard({ label, value, icon, color, alert }: {
     <div className={cn(
       "rounded-xl border p-3 flex items-center gap-3",
       c.bg, c.border,
-      alert && "ring-2 ring-red-300 animate-pulse"
+      alert && "ring-2 ring-red-400"
     )}>
       <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center shrink-0", c.icon)}>
         {icon}

@@ -90,7 +90,7 @@ export default function FinanceiroDRESection() {
           </CardHeader>
           <CardContent className="space-y-3">
             {isLoading ? (
-              <div className="h-32 bg-muted/50 rounded animate-pulse" />
+              <div className="h-32 bg-muted/50 rounded skeleton-static" />
             ) : (
               <>
                 {/* Receita Bruta */}

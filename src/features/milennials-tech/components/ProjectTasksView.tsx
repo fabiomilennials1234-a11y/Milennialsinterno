@@ -218,7 +218,7 @@ function KanbanSection({ title, type, tasks, isLoading }: KanbanSectionProps) {
       <div className="space-y-3">
         <h3 className={sectionTitleCls}>{title}</h3>
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-16 bg-[var(--mtech-surface-elev)] rounded-xl animate-pulse" />
+          <div key={i} className="h-16 bg-[var(--mtech-surface-elev)] rounded-xl" />
         ))}
       </div>
     );

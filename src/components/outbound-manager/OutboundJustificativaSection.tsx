@@ -21,7 +21,7 @@ export default function OutboundJustificativaSection({ compact, role = 'outbound
   if (isLoading) {
     return (
       <div className="space-y-2">
-        {[1, 2].map(i => <div key={i} className="h-16 bg-muted/50 rounded-lg animate-pulse" />)}
+        {[1, 2].map(i => <div key={i} className="h-16 bg-muted/50 rounded-lg skeleton-static" />)}
       </div>
     );
   }

@@ -315,7 +315,7 @@ export default function MetaAdsDashboardPage() {
               <Badge variant="outline" className="gap-1.5 px-2 py-1 text-xs">
                 <div className={cn(
                   'w-1.5 h-1.5 rounded-full',
-                  isStale ? 'bg-amber-400' : 'bg-success animate-pulse'
+                  isStale ? 'bg-amber-400' : 'bg-success ring-2 ring-success/30'
                 )} />
                 {timeAgo(aggregates.latestFetchedAt)}
               </Badge>

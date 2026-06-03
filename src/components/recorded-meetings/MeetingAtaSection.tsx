@@ -145,7 +145,7 @@ function StatusRow({ label, status, testId, retryTestId, onRetry }: StatusRowPro
       <Badge
         variant="outline"
         data-testid={testId}
-        className={`text-xs ${statusStyle(status)} ${status === 'processing' || status === 'pending' ? 'animate-pulse' : ''}`}
+        className={`text-xs ${statusStyle(status)}`}
       >
         <StatusIcon status={status} />
         {label}: {statusLabel(status)}

@@ -35,8 +35,8 @@ export function StatusLine() {
         {activeTaskId ? (
           <span className="flex items-center gap-1.5">
             <span
-              className="inline-block w-1.5 h-1.5 rounded-full animate-pulse"
-              style={{ background: 'var(--mtech-accent)' }}
+              className="inline-block w-1.5 h-1.5 rounded-full"
+              style={{ background: 'var(--mtech-accent)', boxShadow: '0 0 0 3px color-mix(in srgb, var(--mtech-accent) 25%, transparent)' }}
             />
             <span className="truncate max-w-[300px]" title={activeTaskTitle ?? undefined}>
               {activeTaskTitle ?? 'Timer ativo'}

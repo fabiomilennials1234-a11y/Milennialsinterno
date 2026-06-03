@@ -266,7 +266,7 @@ export default function FinanceiroPage() {
                           </Badge>
                         )}
                         {column.clickable && (
-                          <Badge className="bg-white/30 hover:bg-white/40 text-white text-xs border-0 gap-1 animate-pulse">
+                          <Badge className="bg-white/30 hover:bg-white/40 text-white text-xs border-0 gap-1">
                             <ExternalLink size={10} />
                             Gerenciar
                           </Badge>

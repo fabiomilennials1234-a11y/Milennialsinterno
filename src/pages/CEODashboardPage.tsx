@@ -281,7 +281,7 @@ export default function CEODashboardPage() {
               </SelectContent>
             </Select>
             <Badge variant="outline" className="gap-1.5 px-3 py-1.5 bg-success/5 border-success/20 text-success">
-              <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+              <div className="w-1.5 h-1.5 rounded-full bg-success ring-2 ring-success/30" />
               Tempo real
             </Badge>
           </div>

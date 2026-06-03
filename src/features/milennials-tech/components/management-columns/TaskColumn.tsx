@@ -157,7 +157,7 @@ export function TaskColumn({ type }: TaskColumnProps) {
         [0, 1, 2].map((i) => (
           <div
             key={i}
-            className="h-12 rounded-[var(--mtech-radius-md)] bg-[var(--mtech-surface-elev)] animate-pulse"
+            className="h-12 rounded-[var(--mtech-radius-md)] bg-[var(--mtech-surface-elev)]"
           />
         ))}
 

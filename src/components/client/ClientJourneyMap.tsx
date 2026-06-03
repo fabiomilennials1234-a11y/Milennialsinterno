@@ -152,7 +152,6 @@ function StepDot({
               colors.dot,
               colors.glowRing,
               colors.glow,
-              'motion-safe:animate-journey-dot-pulse',
             ],
             isCompleted && ['w-2 h-2', colors.dotCompleted],
             isSkipped && 'w-1.5 h-1.5 bg-muted-foreground/30',
@@ -298,7 +297,6 @@ function PhaseStepper({
                     className={cn(
                       'h-full rounded-full transition-all duration-300',
                       colors.phaseBar,
-                      isCurrentPhase && 'motion-safe:animate-journey-bar-glow',
                     )}
                     style={{ width: `${pct}%` }}
                   />

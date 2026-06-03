@@ -102,7 +102,7 @@ export function DocDevColumn({ date }: DocDevColumnProps) {
           [0, 1].map((i) => (
             <div
               key={i}
-              className="h-12 rounded-[var(--mtech-radius-md)] bg-[var(--mtech-surface-elev)] animate-pulse"
+              className="h-12 rounded-[var(--mtech-radius-md)] bg-[var(--mtech-surface-elev)]"
             />
           ))}
 

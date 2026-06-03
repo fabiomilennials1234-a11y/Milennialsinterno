@@ -56,7 +56,7 @@ function TaskDeadlineBadge({ task }: { task: PendingTask }) {
   if (diffHours < 0) {
     const overdueDays = Math.abs(Math.floor(diffHours / 24));
     return (
-      <Badge variant="destructive" className="text-[9px] px-1.5 py-0 gap-0.5 animate-pulse">
+      <Badge variant="destructive" className="text-[9px] px-1.5 py-0 gap-0.5">
         <AlertTriangle size={8} />
         Atrasada {overdueDays}d
       </Badge>

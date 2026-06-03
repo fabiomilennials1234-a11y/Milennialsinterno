@@ -831,7 +831,7 @@ export default function PublicCycleReportPage() {
             {/* Report type + number pills */}
             <div className="flex items-center justify-center gap-2.5 mb-8">
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#FFD600]/10 border border-[#FFD600]/20">
-                <span className="w-2 h-2 rounded-full bg-[#FFD600] animate-pulse" aria-hidden="true" />
+                <span className="w-2 h-2 rounded-full bg-[#FFD600] ring-2 ring-[#FFD600]/30" aria-hidden="true" />
                 <span className="text-[11px] font-black text-[#FFD600]/90 uppercase tracking-widest">
                   {reportTypeLabel(report.report_type)}
                 </span>
@@ -871,7 +871,7 @@ export default function PublicCycleReportPage() {
 
             {/* Scroll hint */}
             {sectionCount > 2 && (
-              <div className="mt-12 flex flex-col items-center gap-1 text-white/15 animate-bounce">
+              <div className="mt-12 flex flex-col items-center gap-1 text-white/15">
                 <ChevronDown size={18} aria-hidden="true" />
               </div>
             )}

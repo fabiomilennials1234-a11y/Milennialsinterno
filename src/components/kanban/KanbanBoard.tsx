@@ -298,7 +298,7 @@ function StandardKanbanBoard({ boardSlug }: KanbanBoardProps) {
               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-primary/10 text-primary text-[12px] font-medium hover:bg-primary/15 transition-colors"
               title="Sair do modo foco (F)"
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+              <span className="w-1.5 h-1.5 rounded-full bg-primary ring-2 ring-primary/30" />
               Modo foco
             </button>
           )}
@@ -311,7 +311,7 @@ function StandardKanbanBoard({ boardSlug }: KanbanBoardProps) {
             </span>
           </div>
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-success/10 text-success text-[11px] font-medium">
-            <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+            <div className="w-1.5 h-1.5 rounded-full bg-success ring-2 ring-success/30" />
             Tempo real
           </div>
           {canCreateCard && isSpecialBoard && (

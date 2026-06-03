@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { MgrowthLogo } from '@/components/ui/MgrowthLogo';
 import mgrowthLogoDark from '@/assets/mgrowth-logo-dark.png';
 import iconBolt from '@/assets/icon-bolt.png';
-import { Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -123,7 +123,10 @@ export default function LoginPage() {
                          disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (
-                <span className="animate-pulse">Entrando...</span>
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  <span>Entrando...</span>
+                </>
               ) : (
                 <>
                   <span>Entrar</span>

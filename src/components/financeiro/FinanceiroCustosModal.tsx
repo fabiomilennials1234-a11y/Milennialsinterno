@@ -493,7 +493,7 @@ export default function FinanceiroCustosModal({
           {isLoading ? (
             <div className="p-6 space-y-4">
               {[1, 2, 3].map(i => (
-                <div key={i} className="h-24 bg-muted/50 rounded animate-pulse" />
+                <div key={i} className="h-24 bg-muted/50 rounded skeleton-static" />
               ))}
             </div>
           ) : mainTab === 'produtos' ? (

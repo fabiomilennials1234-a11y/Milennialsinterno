@@ -39,8 +39,8 @@ export default function FinanceiroMarcoSection({ marcoId }: FinanceiroMarcoSecti
       <div className="space-y-4">
         {marco.steps.map((step, i) => (
           <div key={i} className="space-y-2">
-            <div className="h-6 bg-muted/50 rounded animate-pulse w-3/4" />
-            <div className="h-16 bg-muted/50 rounded-lg animate-pulse" />
+            <div className="h-6 bg-muted/50 rounded skeleton-static w-3/4" />
+            <div className="h-16 bg-muted/50 rounded-lg skeleton-static" />
           </div>
         ))}
       </div>

@@ -163,7 +163,7 @@ export default function TreinamentosPage() {
           {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-48 rounded-2xl bg-slate-100 animate-pulse" />
+                <div key={i} className="h-48 rounded-2xl bg-slate-100 skeleton-static" />
               ))}
             </div>
           ) : filteredTrainings.length === 0 ? (

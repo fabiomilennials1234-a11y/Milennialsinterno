@@ -141,9 +141,8 @@ export default function ClientAreaMetrics({ clients }: Props) {
             </div>
             {card.highlight && (
               <div className="absolute top-2 right-2">
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500" />
+                <span className="flex h-2.5 w-2.5">
+                  <span className="inline-flex rounded-full h-2.5 w-2.5 bg-amber-500 ring-2 ring-amber-400/30" />
                 </span>
               </div>
             )}

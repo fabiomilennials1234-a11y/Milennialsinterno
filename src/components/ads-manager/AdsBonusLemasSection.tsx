@@ -32,8 +32,8 @@ export default function AdsBonusLemasSection() {
   if (isLoading) {
     return (
       <div className="space-y-2">
-        <div className="h-16 bg-muted/50 rounded-lg animate-pulse" />
-        <div className="h-16 bg-muted/50 rounded-lg animate-pulse" />
+        <div className="h-16 bg-muted/50 rounded-lg skeleton-static" />
+        <div className="h-16 bg-muted/50 rounded-lg skeleton-static" />
       </div>
     );
   }

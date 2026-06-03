@@ -27,7 +27,7 @@ const ADMIN_CONFIG_HINT =
 function CredentialCardSkeleton() {
   return (
     <div
-      className="kanban-card p-4 motion-safe:animate-pulse"
+      className="kanban-card p-4 skeleton-static"
       style={{ borderLeft: '3px solid hsl(258 90% 66% / 0.3)' }}
       aria-hidden="true"
     >

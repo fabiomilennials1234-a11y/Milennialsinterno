@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -216,16 +216,6 @@ function AlreadyAnsweredState({ score }: { score: number }) {
 // ── Thank You (after submit) ──
 
 function ThankYouState() {
-  const checkRef = useRef<SVGSVGElement>(null);
-
-  useEffect(() => {
-    const el = checkRef.current;
-    if (!el) return;
-    el.classList.add('animate-bounce');
-    const t = setTimeout(() => el.classList.remove('animate-bounce'), 1500);
-    return () => clearTimeout(t);
-  }, []);
-
   return (
     <div className="min-h-screen flex items-center justify-center px-6" style={{ background: '#000' }}>
       {/* Ambient gradient */}
@@ -244,8 +234,7 @@ function ThankYouState() {
         />
         <div className="w-20 h-20 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto">
           <CheckCircle2
-            ref={checkRef}
-            className="w-10 h-10 text-emerald-400"
+            className="w-10 h-10 text-emerald-400 animate-scale-in"
           />
         </div>
         <h1

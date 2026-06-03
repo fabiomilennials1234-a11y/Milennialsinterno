@@ -381,7 +381,7 @@ export function ProjectTaskTemplatesModal({ open, onOpenChange }: ProjectTaskTem
               {[1, 2, 3].map((i) => (
                 <div
                   key={i}
-                  className="h-12 bg-[var(--mtech-surface-elev)] rounded-[var(--mtech-radius-md)] animate-pulse"
+                  className="h-12 bg-[var(--mtech-surface-elev)] rounded-[var(--mtech-radius-md)]"
                 />
               ))}
             </div>

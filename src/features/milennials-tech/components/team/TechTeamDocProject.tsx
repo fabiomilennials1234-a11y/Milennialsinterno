@@ -311,7 +311,7 @@ export default function TechTeamDocProject() {
       {isLoading ? (
         <div className="grid grid-cols-1 gap-4">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-72 rounded-xl bg-[var(--mtech-surface-elev)] animate-pulse" />
+            <div key={i} className="h-72 rounded-xl bg-[var(--mtech-surface-elev)]" />
           ))}
         </div>
       ) : allProjects.length === 0 ? (

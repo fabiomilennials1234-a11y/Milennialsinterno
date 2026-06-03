@@ -72,9 +72,8 @@ export default function ClientTagBadge({
           className,
         )}
       >
-        <span aria-hidden className="relative flex shrink-0">
-          <span className="w-1.5 h-1.5 rounded-full bg-danger" />
-          <span className="absolute inset-0 w-1.5 h-1.5 rounded-full bg-danger animate-ping opacity-50" />
+        <span aria-hidden className="flex shrink-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-danger ring-2 ring-danger/25" />
         </span>
         <span className="opacity-70">{name}</span>
         <span className="font-mono tabular-nums normal-case tracking-normal">
@@ -115,9 +114,8 @@ function LiveBadge({
           className,
         )}
       >
-        <span aria-hidden className="relative flex shrink-0">
-          <span className="w-1.5 h-1.5 rounded-full bg-danger" />
-          <span className="absolute inset-0 w-1.5 h-1.5 rounded-full bg-danger animate-ping opacity-50" />
+        <span aria-hidden className="flex shrink-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-danger ring-2 ring-danger/25" />
         </span>
         <span className="opacity-70">{name}</span>
         <span className="font-mono tabular-nums normal-case tracking-normal">0d</span>
@@ -137,9 +135,8 @@ function LiveBadge({
             className,
           )}
         >
-          <span aria-hidden className="relative flex shrink-0">
-            <span className="w-1.5 h-1.5 rounded-full bg-danger" />
-            <span className="absolute inset-0 w-1.5 h-1.5 rounded-full bg-danger animate-ping opacity-50" />
+          <span aria-hidden className="flex shrink-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-danger ring-2 ring-danger/25" />
           </span>
           {name}
         </span>
@@ -177,9 +174,8 @@ function LiveBadge({
       )}
     >
       {isDanger ? (
-        <span aria-hidden className="relative flex shrink-0">
-          <span className="w-1.5 h-1.5 rounded-full bg-danger" />
-          <span className="absolute inset-0 w-1.5 h-1.5 rounded-full bg-danger animate-ping opacity-50" />
+        <span aria-hidden className="flex shrink-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-danger ring-2 ring-danger/25" />
         </span>
       ) : (
         <Clock size={s.icon} className={cn('shrink-0 opacity-60', isWarning ? 'text-warning' : 'text-emerald-400')} />
@@ -224,7 +220,7 @@ function ElapsedBadge({
       className={cn(
         BASE, s.pill,
         isOverThreshold
-          ? 'bg-danger/10 border border-danger/30 text-danger animate-pulse'
+          ? 'bg-danger/10 border border-danger/30 text-danger'
           : 'bg-blue-500/10 border border-blue-500/30 text-blue-400',
         className,
       )}

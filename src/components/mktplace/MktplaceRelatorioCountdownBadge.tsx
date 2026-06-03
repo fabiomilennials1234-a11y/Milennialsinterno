@@ -9,12 +9,12 @@ interface Props {
   alwaysShow?: boolean;
 }
 
-const BAND_STYLES: Record<RelatorioStatusColor, { border: string; text: string; bg: string; pulse: boolean }> = {
-  green:   { border: 'border-green-500/30',  text: 'text-green-400',  bg: '',                     pulse: false },
-  yellow:  { border: 'border-yellow-500/40', text: 'text-yellow-400', bg: '',                     pulse: false },
-  orange:  { border: 'border-orange-500/50', text: 'text-orange-400', bg: 'bg-orange-500/[0.08]', pulse: false },
-  red:     { border: 'border-red-500/50',    text: 'text-red-400',    bg: 'bg-red-500/10',        pulse: true  },
-  overdue: { border: 'border-red-500/50',    text: 'text-red-500',    bg: 'bg-red-500/10',        pulse: true  },
+const BAND_STYLES: Record<RelatorioStatusColor, { border: string; text: string; bg: string; ring: string }> = {
+  green:   { border: 'border-green-500/30',  text: 'text-green-400',  bg: '',                     ring: '' },
+  yellow:  { border: 'border-yellow-500/40', text: 'text-yellow-400', bg: '',                     ring: '' },
+  orange:  { border: 'border-orange-500/50', text: 'text-orange-400', bg: 'bg-orange-500/[0.08]', ring: '' },
+  red:     { border: 'border-red-500/50',    text: 'text-red-400',    bg: 'bg-red-500/10',        ring: 'ring-1 ring-red-500/40' },
+  overdue: { border: 'border-red-500/50',    text: 'text-red-500',    bg: 'bg-red-500/10',        ring: 'ring-1 ring-red-500/50' },
 };
 
 export default function MktplaceRelatorioCountdownBadge({ clientId, trackingType, className, alwaysShow }: Props) {
@@ -50,7 +50,7 @@ export default function MktplaceRelatorioCountdownBadge({ clientId, trackingType
   return (
     <Badge
       variant="outline"
-      className={`text-[10px] px-2 py-0.5 gap-1 ${band.border} ${band.text} ${band.bg} ${band.pulse ? 'animate-pulse' : ''} ${className || ''}`}
+      className={`text-[10px] px-2 py-0.5 gap-1 ${band.border} ${band.text} ${band.bg} ${band.ring} ${className || ''}`}
     >
       <Icon size={10} />
       {label}

@@ -152,14 +152,14 @@ export function BacklogTab() {
         <div className="rounded-[var(--mtech-radius-md)] border border-[var(--mtech-border)] bg-[var(--mtech-surface)] overflow-hidden">
           <div className="flex items-center gap-3 h-9 px-3 border-b border-[var(--mtech-border)] bg-[var(--mtech-surface-elev)]">
             {[88, 200, 80, 64, 64, 64, 56].map((w, i) => (
-              <div key={i} className="animate-pulse rounded bg-[var(--mtech-surface)] h-3" style={{ width: w }} />
+              <div key={i} className="rounded bg-[var(--mtech-surface)] h-3" style={{ width: w }} />
             ))}
           </div>
           {[0, 1, 2, 3, 4].map((i) => (
             <div key={i} className="flex items-center gap-3 h-10 px-3 border-b border-[var(--mtech-border)]">
-              <div className="w-[88px] flex-shrink-0"><div className="h-4 w-16 rounded-full bg-[var(--mtech-surface-elev)] animate-pulse" /></div>
-              <div className="flex-1"><div className="h-4 rounded bg-[var(--mtech-surface-elev)] animate-pulse" style={{ width: `${60 + (i * 7) % 30}%` }} /></div>
-              <div className="w-20 flex-shrink-0"><div className="h-3 w-14 ml-auto rounded bg-[var(--mtech-surface-elev)] animate-pulse" /></div>
+              <div className="w-[88px] flex-shrink-0"><div className="h-4 w-16 rounded-full bg-[var(--mtech-surface-elev)]" /></div>
+              <div className="flex-1"><div className="h-4 rounded bg-[var(--mtech-surface-elev)]" style={{ width: `${60 + (i * 7) % 30}%` }} /></div>
+              <div className="w-20 flex-shrink-0"><div className="h-3 w-14 ml-auto rounded bg-[var(--mtech-surface-elev)]" /></div>
             </div>
           ))}
         </div>

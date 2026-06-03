@@ -137,7 +137,7 @@ function ClientCard({ client }: { client: any }) {
                   className={cn(
                     "text-[10px] px-1.5 py-0 gap-0.5 w-fit",
                     deadlineInfo.isOverdue
-                      ? "border-destructive text-destructive bg-destructive/10 animate-pulse"
+                      ? "border-destructive text-destructive bg-destructive/10"
                       : deadlineInfo.isUrgent
                       ? "border-orange-500 text-orange-600 bg-orange-50 dark:bg-orange-950/20"
                       : "border-muted-foreground/30 text-muted-foreground"

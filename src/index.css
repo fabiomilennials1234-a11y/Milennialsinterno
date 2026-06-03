@@ -891,13 +891,13 @@
    * Convertidas em ESTADO ESTÁTICO: ring sólido + cor. Urgência continua legível
    * por contraste/cor, sem nenhum movimento. NÃO reintroduzir `animation` aqui.
    */
-  .animate-pulse-border-red,
+  .blocking-ring-red,
   .tag-blocking-pulse,
   .growth-blocking-pulse-danger {
     box-shadow: 0 0 0 1.5px hsl(var(--danger) / 0.45);
   }
 
-  .animate-pulse-border-orange,
+  .blocking-ring-orange,
   .growth-blocking-pulse-warning {
     box-shadow: 0 0 0 1.5px hsl(var(--warning) / 0.45);
   }

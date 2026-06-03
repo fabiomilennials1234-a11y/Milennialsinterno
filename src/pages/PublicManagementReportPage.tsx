@@ -525,7 +525,7 @@ export default function PublicManagementReportPage() {
               </p>
             )}
 
-            <ChevronDown size={16} className="mx-auto mt-10 text-white/15 animate-bounce" aria-hidden="true" />
+            <ChevronDown size={16} className="mx-auto mt-10 text-white/15" aria-hidden="true" />
           </div>
         </Section>
 

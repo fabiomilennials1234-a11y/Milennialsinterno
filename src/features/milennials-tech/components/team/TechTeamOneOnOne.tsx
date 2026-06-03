@@ -101,7 +101,7 @@ function ContextPanel({ devId, weekStart }: { devId: string; weekStart: string }
 
   if (isLoading) {
     return (
-      <div className="rounded-lg bg-[var(--mtech-surface-elev)] p-3 animate-pulse h-20" />
+      <div className="rounded-lg bg-[var(--mtech-surface-elev)] p-3 h-20" />
     );
   }
 

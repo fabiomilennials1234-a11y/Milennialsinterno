@@ -96,7 +96,7 @@ function TaskCard({ task, onStatusChange, onDelete, onArchive, isBlockedByBriefi
                   className={cn(
                     "text-[10px] px-1.5 py-0 gap-0.5",
                     deadlineInfo.isOverdue
-                      ? "border-destructive text-destructive bg-destructive/10 animate-pulse"
+                      ? "border-destructive text-destructive bg-destructive/10"
                       : deadlineInfo.isUrgent
                       ? "border-orange-500 text-orange-600 bg-orange-50 dark:bg-orange-950/20"
                       : "border-muted-foreground/30 text-muted-foreground"
@@ -112,7 +112,7 @@ function TaskCard({ task, onStatusChange, onDelete, onArchive, isBlockedByBriefi
               )}
             </div>
             {isBlockedByBriefing && (
-              <div className="flex items-center gap-1.5 mt-1.5 px-2 py-1 bg-danger/10 border border-danger/20 rounded-md animate-pulse">
+              <div className="flex items-center gap-1.5 mt-1.5 px-2 py-1 bg-danger/10 border border-danger/20 rounded-md">
                 <ShieldAlert size={11} className="text-danger shrink-0" />
                 <span className="text-[10px] font-bold text-danger uppercase tracking-wider">
                   Aguardando Briefing

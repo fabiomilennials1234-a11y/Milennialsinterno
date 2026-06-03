@@ -479,7 +479,7 @@ ${bodyContent}
                               </Badge>
                             )}
                             {meeting.transcript_status === 'processing' && (
-                              <Badge variant="outline" className="text-xs border-amber-500/30 text-amber-600 animate-pulse">
+                              <Badge variant="outline" className="text-xs border-amber-500/30 text-amber-600">
                                 <Loader2 size={12} className="mr-1 animate-spin" />
                                 Transcrevendo...
                               </Badge>

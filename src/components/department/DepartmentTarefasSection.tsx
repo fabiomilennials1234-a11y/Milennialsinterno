@@ -146,7 +146,7 @@ export default function DepartmentTarefasSection({ department, type = 'daily' }:
     return (
       <div className="space-y-3">
         {[1, 2, 3].map(i => (
-          <div key={i} className="h-16 bg-muted/30 rounded-xl animate-pulse" />
+          <div key={i} className="h-16 bg-muted/30 rounded-xl skeleton-static" />
         ))}
       </div>
     );
@@ -243,9 +243,9 @@ export default function DepartmentTarefasSection({ department, type = 'daily' }:
                                 status.borderClass,
                                 isDone && 'opacity-60',
                                 isOverdue && 'border-l-danger bg-danger/5',
-                                !isOverdue && !isDone && isNPSHighlight && 'border-l-purple-500 bg-purple-500/8 ring-1 ring-purple-500/30 animate-pulse',
+                                !isOverdue && !isDone && isNPSHighlight && 'border-l-purple-500 bg-purple-500/8 ring-2 ring-purple-500/40',
                                 !isOverdue && !isDone && !isNPSHighlight && isHighPriority && 'border-l-amber-500 bg-amber-500/5 ring-1 ring-amber-500/20',
-                                !isOverdue && !isDone && !isNPSHighlight && isHighPriority && task.status === 'todo' && 'animate-pulse',
+                                !isOverdue && !isDone && !isNPSHighlight && isHighPriority && task.status === 'todo' && 'ring-2 ring-amber-500/40',
                                 snapshot.isDragging && 'dragging'
                               )}
                             >

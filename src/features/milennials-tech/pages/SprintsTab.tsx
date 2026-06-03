@@ -72,21 +72,21 @@ export function SprintsTab() {
       <div className="flex gap-6 min-h-[60vh]">
         <div className="w-72 flex-shrink-0">
           <div className="flex items-center justify-between mb-4">
-            <div className="h-6 w-16 rounded bg-[var(--mtech-surface-elev)] animate-pulse" />
-            <div className="h-8 w-28 rounded-md bg-[var(--mtech-surface-elev)] animate-pulse" />
+            <div className="h-6 w-16 rounded bg-[var(--mtech-surface-elev)]" />
+            <div className="h-8 w-28 rounded-md bg-[var(--mtech-surface-elev)]" />
           </div>
           {[0, 1, 2].map((i) => (
             <div key={i} className="flex items-center gap-2 px-3 py-2.5 mb-1 rounded-[var(--mtech-radius-sm)] border border-[var(--mtech-border)]">
               <div className="flex-1 space-y-1.5">
-                <div className="h-4 w-24 rounded bg-[var(--mtech-surface-elev)] animate-pulse" />
-                <div className="h-3 w-32 rounded bg-[var(--mtech-surface-elev)] animate-pulse" />
+                <div className="h-4 w-24 rounded bg-[var(--mtech-surface-elev)]" />
+                <div className="h-3 w-32 rounded bg-[var(--mtech-surface-elev)]" />
               </div>
-              <div className="h-4 w-16 rounded-full bg-[var(--mtech-surface-elev)] animate-pulse" />
+              <div className="h-4 w-16 rounded-full bg-[var(--mtech-surface-elev)]" />
             </div>
           ))}
         </div>
         <div className="flex-1 flex items-center justify-center">
-          <div className="h-5 w-32 rounded bg-[var(--mtech-surface-elev)] animate-pulse" />
+          <div className="h-5 w-32 rounded bg-[var(--mtech-surface-elev)]" />
         </div>
       </div>
     );
@@ -266,13 +266,13 @@ export function SprintsTab() {
                 <div className="rounded-[var(--mtech-radius-md)] border border-[var(--mtech-border)] bg-[var(--mtech-surface)] overflow-hidden">
                   <div className="flex items-center gap-3 h-9 px-3 border-b border-[var(--mtech-border)] bg-[var(--mtech-surface-elev)]">
                     {[88, 200, 80, 64, 64, 64, 56].map((w, i) => (
-                      <div key={i} className="animate-pulse rounded bg-[var(--mtech-surface)] h-3" style={{ width: w }} />
+                      <div key={i} className="rounded bg-[var(--mtech-surface)] h-3" style={{ width: w }} />
                     ))}
                   </div>
                   {[0, 1, 2].map((i) => (
                     <div key={i} className="flex items-center gap-3 h-10 px-3 border-b border-[var(--mtech-border)]">
-                      <div className="w-[88px] flex-shrink-0"><div className="h-4 w-16 rounded-full bg-[var(--mtech-surface-elev)] animate-pulse" /></div>
-                      <div className="flex-1"><div className="h-4 rounded bg-[var(--mtech-surface-elev)] animate-pulse" style={{ width: `${60 + (i * 7) % 30}%` }} /></div>
+                      <div className="w-[88px] flex-shrink-0"><div className="h-4 w-16 rounded-full bg-[var(--mtech-surface-elev)]" /></div>
+                      <div className="flex-1"><div className="h-4 rounded bg-[var(--mtech-surface-elev)]" style={{ width: `${60 + (i * 7) % 30}%` }} /></div>
                     </div>
                   ))}
                 </div>

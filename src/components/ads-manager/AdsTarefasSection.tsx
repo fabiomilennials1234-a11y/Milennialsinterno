@@ -508,7 +508,7 @@ export default function AdsTarefasSection({ type, compact }: Props) {
     return (
       <div className="space-y-3">
         {[1, 2, 3].map(i => (
-          <div key={i} className="h-16 bg-muted/30 rounded-xl animate-pulse" />
+          <div key={i} className="h-16 bg-muted/30 rounded-xl skeleton-static" />
         ))}
       </div>
     );
@@ -697,7 +697,7 @@ export default function AdsTarefasSection({ type, compact }: Props) {
                                     )}
 
                                     {taskBlocked && (
-                                      <div className="flex items-center gap-1.5 mt-1.5 px-2 py-1 bg-danger/10 border border-danger/20 rounded-md animate-pulse">
+                                      <div className="flex items-center gap-1.5 mt-1.5 px-2 py-1 bg-danger/10 border border-danger/20 rounded-md">
                                         <ShieldAlert size={11} className="text-danger shrink-0" />
                                         <span className="text-[10px] font-bold text-danger uppercase tracking-wider">
                                           Aguardando Briefing

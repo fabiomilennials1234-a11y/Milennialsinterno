@@ -412,7 +412,7 @@ export function ProjectDetailModal({ project, open, onOpenChange }: ProjectDetai
               {tasksLoading ? (
                 <div className="space-y-2">
                   {[0, 1, 2].map((i) => (
-                    <div key={i} className="h-8 rounded bg-[var(--mtech-surface-elev)] animate-pulse" />
+                    <div key={i} className="h-8 rounded bg-[var(--mtech-surface-elev)]" />
                   ))}
                 </div>
               ) : tasksTotal === 0 ? (
@@ -551,7 +551,7 @@ export function ProjectDetailModal({ project, open, onOpenChange }: ProjectDetai
               {membersLoading ? (
                 <div className="space-y-2">
                   {[0, 1].map((i) => (
-                    <div key={i} className="h-10 rounded bg-[var(--mtech-surface-elev)] animate-pulse" />
+                    <div key={i} className="h-10 rounded bg-[var(--mtech-surface-elev)]" />
                   ))}
                 </div>
               ) : members.length === 0 ? (

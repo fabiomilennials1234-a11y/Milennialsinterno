@@ -136,7 +136,7 @@ export default function DashboardPage() {
                 </p>
               </div>
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-success/20 text-success text-sm font-medium border border-success/20">
-                <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+                <div className="w-2 h-2 rounded-full bg-success ring-2 ring-success/30" />
                 Ao vivo
               </div>
             </div>
@@ -234,7 +234,7 @@ export default function DashboardPage() {
               </div>
               <h3>Atividade Recente</h3>
               <span className="ml-auto text-xs text-muted-foreground font-normal normal-case tracking-normal flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+                <div className="w-1.5 h-1.5 rounded-full bg-success ring-2 ring-success/30" />
                 Tempo real
               </span>
             </div>

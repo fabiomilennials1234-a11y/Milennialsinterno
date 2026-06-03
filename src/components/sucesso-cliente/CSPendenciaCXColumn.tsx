@@ -91,7 +91,7 @@ export default function CSPendenciaCXColumn({ clients }: Props) {
                         <p className="text-xs text-muted-foreground mt-0.5">{client.niche}</p>
                       )}
                     </div>
-                    <Badge variant="destructive" className="text-[10px] shrink-0 animate-pulse">
+                    <Badge variant="destructive" className="text-[10px] shrink-0">
                       Pendente
                     </Badge>
                   </div>

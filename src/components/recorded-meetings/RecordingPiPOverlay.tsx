@@ -165,13 +165,8 @@ const CSS = `
 .rpip-spacer { flex: 1; }
 
 .rpip-dot { width: 9px; height: 9px; border-radius: 999px; flex: none; }
-.rpip-dot--rec { background: var(--rpip-rec); animation: rpipRecPulse 1.6s ease-in-out infinite; }
+.rpip-dot--rec { background: var(--rpip-rec); box-shadow: 0 0 0 3px hsl(0 84% 62% / 0.22); }
 .rpip-dot--pause { background: var(--rpip-pause); }
-
-@keyframes rpipRecPulse {
-  0%, 100% { box-shadow: 0 0 0 0 hsl(0 84% 62% / 0.55); }
-  50%      { box-shadow: 0 0 0 5px hsl(0 84% 62% / 0); }
-}
 
 /* ── timer: the hero. tabular, large, tight tracking ── */
 .rpip-timer {
@@ -275,9 +270,8 @@ const CSS = `
 }
 .rpip-health-dot { width: 6px; height: 6px; border-radius: 999px; }
 .rpip-health-dot--ok { background: var(--rpip-ok); }
-.rpip-health-dot--warning { background: var(--rpip-pause); animation: rpipBlink 1.2s ease-in-out infinite; }
-.rpip-health-dot--critical { background: var(--rpip-rec); animation: rpipBlink 0.7s ease-in-out infinite; }
-@keyframes rpipBlink { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+.rpip-health-dot--warning { background: var(--rpip-pause); box-shadow: 0 0 0 2px hsl(38 95% 55% / 0.28); }
+.rpip-health-dot--critical { background: var(--rpip-rec); box-shadow: 0 0 0 3px hsl(0 84% 62% / 0.32); }
 
 /* ── processing / done / error bodies ── */
 .rpip-process-head { display: flex; align-items: center; gap: 9px; }
@@ -315,12 +309,8 @@ const CSS = `
 
 .rpip-done-icon { color: var(--rpip-ok); flex: none; }
 
-/* reduced motion */
+/* reduced motion — only the kept loaders (spin/progress) need taming */
 @media (prefers-reduced-motion: reduce) {
-  .rpip-root *,
-  .rpip-dot--rec,
-  .rpip-health-dot--warning,
-  .rpip-health-dot--critical,
   .rpip-spin,
   .rpip-progress-fill { animation: none !important; }
 }

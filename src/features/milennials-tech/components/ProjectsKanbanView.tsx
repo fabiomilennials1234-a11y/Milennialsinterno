@@ -138,7 +138,7 @@ export function ProjectsKanbanView({ projects, isLoading }: ProjectsKanbanViewPr
       <div className="flex gap-5 overflow-hidden">
         {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} className="flex-shrink-0" style={{ width: 370 }}>
-            <div className="h-4 w-24 rounded bg-[var(--mtech-surface-elev)] animate-pulse mb-4" />
+            <div className="h-4 w-24 rounded bg-[var(--mtech-surface-elev)] mb-4" />
             <div className="flex flex-col gap-2.5">
               {Array.from({ length: 2 - (i % 2) }).map((_, j) => (
                 <div
@@ -146,9 +146,9 @@ export function ProjectsKanbanView({ projects, isLoading }: ProjectsKanbanViewPr
                   className="rounded-[var(--mtech-radius-md)] border border-[var(--mtech-border)] bg-[var(--mtech-surface)] p-3.5 space-y-2.5"
                   style={{ width: 340 }}
                 >
-                  <div className="h-3.5 w-3/4 rounded bg-[var(--mtech-surface-elev)] animate-pulse" />
-                  <div className="h-1 w-full rounded-full bg-[var(--mtech-surface-elev)] animate-pulse" />
-                  <div className="h-3 w-1/2 rounded bg-[var(--mtech-surface-elev)] animate-pulse" />
+                  <div className="h-3.5 w-3/4 rounded bg-[var(--mtech-surface-elev)]" />
+                  <div className="h-1 w-full rounded-full bg-[var(--mtech-surface-elev)]" />
+                  <div className="h-3 w-1/2 rounded bg-[var(--mtech-surface-elev)]" />
                 </div>
               ))}
             </div>

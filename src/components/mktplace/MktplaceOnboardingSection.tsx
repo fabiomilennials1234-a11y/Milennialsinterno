@@ -129,7 +129,7 @@ export default function MktplaceOnboardingSection() {
                             </div>
 
                             {hasBriefingBlock && (
-                              <div className="flex items-center gap-1.5 px-2 py-1 bg-danger/10 border border-danger/20 rounded-md animate-pulse">
+                              <div className="flex items-center gap-1.5 px-2 py-1 bg-danger/10 border border-danger/20 rounded-md">
                                 <ShieldAlert size={11} className="text-danger shrink-0" />
                                 <span className="text-[10px] font-bold text-danger uppercase tracking-wider">
                                   Aguardando Briefing

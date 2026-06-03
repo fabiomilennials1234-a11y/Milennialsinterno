@@ -101,7 +101,7 @@ export default function TechTeamDevCards() {
         {Array.from({ length: 3 }).map((_, i) => (
           <div
             key={i}
-            className="h-24 rounded-xl bg-[var(--mtech-surface-elev)] animate-pulse"
+            className="h-24 rounded-xl bg-[var(--mtech-surface-elev)]"
           />
         ))}
       </div>

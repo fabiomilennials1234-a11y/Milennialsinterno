@@ -83,14 +83,14 @@ export default function ClientTagDelayJustificationsSection({
           >
             <div className="px-4 pt-3 pb-2 flex items-center justify-between gap-3">
               <div className="space-y-2 flex-1">
-                <div className="h-3 w-20 bg-muted/40 rounded animate-pulse" />
-                <div className="h-4 w-1/2 bg-muted/40 rounded animate-pulse" />
+                <div className="h-3 w-20 bg-muted/40 rounded skeleton-static" />
+                <div className="h-4 w-1/2 bg-muted/40 rounded skeleton-static" />
               </div>
-              <div className="h-3 w-16 bg-muted/40 rounded animate-pulse" />
+              <div className="h-3 w-16 bg-muted/40 rounded skeleton-static" />
             </div>
             <div className="px-4 py-3">
-              <div className="h-4 w-3/4 bg-muted/40 rounded animate-pulse" />
-              <div className="h-3 w-1/2 bg-muted/40 rounded animate-pulse mt-2" />
+              <div className="h-4 w-3/4 bg-muted/40 rounded skeleton-static" />
+              <div className="h-3 w-1/2 bg-muted/40 rounded skeleton-static mt-2" />
             </div>
           </div>
         ))}
@@ -149,7 +149,7 @@ function PendingTagCard({
         <span className="text-xs tabular-nums shrink-0 inline-flex items-center gap-1.5 text-danger font-semibold">
           <span
             aria-hidden
-            className="w-1.5 h-1.5 rounded-full bg-danger animate-pulse motion-reduce:animate-none"
+            className="w-1.5 h-1.5 rounded-full bg-danger ring-2 ring-danger/30"
           />
           Expirada há {days}d
         </span>

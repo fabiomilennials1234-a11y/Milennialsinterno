@@ -121,7 +121,7 @@ export default function AdsChurnSection() {
     return (
       <div className="space-y-2">
         {[1, 2].map(i => (
-          <div key={i} className="h-20 bg-muted/50 rounded-lg animate-pulse" />
+          <div key={i} className="h-20 bg-muted/50 rounded-lg skeleton-static" />
         ))}
       </div>
     );
