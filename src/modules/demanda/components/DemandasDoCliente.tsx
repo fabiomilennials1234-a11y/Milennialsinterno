@@ -13,6 +13,7 @@
 import { useState } from "react";
 import {
   AlertTriangle,
+  Clock3,
   Link2,
   ListTodo,
   Loader2,
@@ -35,6 +36,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+// Slice 6 (#83) — wiring da Presença ao vivo + Tempo-na-demanda. Import módulo→módulo
+// SÓ pelo barrel (ADR 0004; boundaries default-allow proíbe só furar barrel).
+import {
+  usePresencaDoCliente,
+  useTempoNaDemanda,
+  formatarTempo,
+  BadgeAtuando,
+  type PresencaNaDemanda,
+} from "@/modules/presenca";
+
 import { useDemandas, useDemandaMutations } from "../lib/useDemandas";
 import type { Demanda } from "../lib/demandas";
 
@@ -54,6 +65,11 @@ export function DemandasDoCliente({ clientId, clientName, className }: Props) {
   const { data: demandas, isLoading, isError, refetch, isRefetching } =
     useDemandas(clientId);
   const { criar, vincular } = useDemandaMutations(clientId);
+
+  // Slice 6 (#83) — Presença viva (quem atua AGORA, por demanda) + Tempo acumulado.
+  // Um canal por cliente; uma query de tempo por cliente. Cada linha recebe sua fatia.
+  const presencaPorDemanda = usePresencaDoCliente(clientId);
+  const { porDemanda: tempoPorDemanda } = useTempoNaDemanda(clientId);
 
   const [criarAberto, setCriarAberto] = useState(false);
   const [vincularAlvo, setVincularAlvo] = useState<Demanda | null>(null);
@@ -107,7 +123,13 @@ export function DemandasDoCliente({ clientId, clientName, className }: Props) {
         ) : (
           <ul className="space-y-0.5">
             {demandas!.map((d) => (
-              <LinhaDemanda key={d.id} demanda={d} onVincular={() => setVincularAlvo(d)} />
+              <LinhaDemanda
+                key={d.id}
+                demanda={d}
+                pessoas={presencaPorDemanda[d.id] ?? []}
+                segundos={tempoPorDemanda[d.id] ?? 0}
+                onVincular={() => setVincularAlvo(d)}
+              />
             ))}
           </ul>
         )}
@@ -160,9 +182,15 @@ export function DemandasDoCliente({ clientId, clientName, className }: Props) {
 
 function LinhaDemanda({
   demanda,
+  pessoas,
+  segundos,
   onVincular,
 }: {
   demanda: Demanda;
+  /** quem está nesta demanda agora (presença viva agregada). Slice 6 (#83). */
+  pessoas: PresencaNaDemanda[];
+  /** Tempo-na-demanda acumulado, em segundos (soma dos intervalos). Slice 6 (#83). */
+  segundos: number;
   onVincular: () => void;
 }) {
   return (
@@ -178,20 +206,48 @@ function LinhaDemanda({
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
           <ChipStatus status={demanda.status} />
           {demanda.dominio && <ChipDominio dominio={demanda.dominio} />}
+          {/* Tempo-na-demanda: fato medido (não status) → mono, neutro, discreto.
+              Só renderiza quando há tempo — zero não vira ruído "0 min". */}
+          <ChipTempo segundos={segundos} />
           <span className="text-caption text-mtech-text-subtle">{tempoRelativo(demanda.created_at)}</span>
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={onVincular}
-        aria-label={`Vincular card à demanda ${demanda.titulo}`}
-        className="mt-0.5 inline-flex h-7 items-center gap-1.5 rounded-[var(--mtech-radius-md)] px-2 text-caption text-mtech-text-subtle opacity-70 transition-all hover:bg-mtech-surface hover:text-mtech-text focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-mtech-border-strong [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-70 hover:!opacity-100"
-      >
-        <Link2 className="h-3.5 w-3.5" />
-        Vincular card
-      </button>
+      {/* Presença AO VIVO: o único elemento "agora" da linha — quem atua nesta
+          demanda neste instante. Right-aligned, antes da ação, para o olho cair
+          em "quem trabalha agora". Some quando ninguém está presente. */}
+      <div className="mt-0.5 flex shrink-0 items-center gap-2">
+        {pessoas.length > 0 && <BadgeAtuando pessoas={pessoas} max={3} />}
+        <button
+          type="button"
+          onClick={onVincular}
+          aria-label={`Vincular card à demanda ${demanda.titulo}`}
+          className="inline-flex h-7 items-center gap-1.5 rounded-[var(--mtech-radius-md)] px-2 text-caption text-mtech-text-subtle opacity-70 transition-all hover:bg-mtech-surface hover:text-mtech-text focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-mtech-border-strong [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-70 hover:!opacity-100"
+        >
+          <Link2 className="h-3.5 w-3.5" />
+          Vincular card
+        </button>
+      </div>
     </li>
+  );
+}
+
+/** Tempo-na-demanda: uma QUANTIDADE medida, não uma categoria. Por isso é
+ *  borderless (glyph + número mono carregam) — lê mais leve que o pill categórico
+ *  de domínio, editorial à la Stripe/Vercel. Renderiza só com tempo > 0
+ *  (formatarTempo devolve "—" para zero → escondemos). */
+function ChipTempo({ segundos }: { segundos: number }) {
+  if (!Number.isFinite(segundos) || segundos <= 0) return null;
+  const rotulo = formatarTempo(segundos);
+  return (
+    <span
+      data-mono
+      title={`${rotulo} de atuação acumulada`}
+      className="inline-flex items-center gap-1 text-caption font-medium tabular-nums text-mtech-text-muted"
+    >
+      <Clock3 className="h-3 w-3 text-mtech-text-subtle" aria-hidden />
+      {rotulo}
+    </span>
   );
 }
 
