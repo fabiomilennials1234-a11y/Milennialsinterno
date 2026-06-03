@@ -85,6 +85,7 @@ export default function SucessoClientePage() {
   }, [clients, managers]);
 
   // Filter clients by classification - exclude closed clients from alert/critical
+  const normalClients = useMemo(() => clients.filter(c => c.cs_classification === 'normal' && !isClientClosed(c)), [clients]);
   const alertClients = useMemo(() => clients.filter(c => c.cs_classification === 'alerta' && !isClientClosed(c)), [clients]);
   const criticalClients = useMemo(() => clients.filter(c => c.cs_classification === 'critico' && !isClientClosed(c)), [clients]);
   const closedClients = useMemo(() => clients.filter(c => isClientClosed(c)), [clients]);
@@ -239,6 +240,9 @@ export default function SucessoClientePage() {
 
                 {/* GP Clients column - after managers, before classification */}
                 <CSGPClientsColumn clients={clients} onClientClick={handleClientClick} />
+
+                {/* Normal (healthy) column - opens classification block */}
+                <CSClassificationColumn classification="normal" clients={normalClients} onClientClick={handleCSClientClick} />
 
                 {/* Alert column - uses CSClientDetailModal */}
                 <CSClassificationColumn classification="alerta" clients={alertClients} onClientClick={handleCSClientClick} />
