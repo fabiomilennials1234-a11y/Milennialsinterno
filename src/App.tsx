@@ -76,6 +76,12 @@ const SprintsTab = lazy(() => import("./features/milennials-tech/pages/SprintsTa
 const ProjectsTab = lazy(() => import("./features/milennials-tech/pages/ProjectsTab").then(m => ({ default: m.ProjectsTab })));
 const SubmitTaskPage = lazy(() => import("./features/milennials-tech/pages/SubmitTaskPage").then(m => ({ default: m.SubmitTaskPage })));
 
+// DEV-ONLY (#81): harness da Presença ao vivo para evidência E2E de duas sessões.
+// Só existe quando import.meta.env.DEV — nunca em build de produção.
+const PresencaHarnessPage = import.meta.env.DEV
+  ? lazy(() => import("./pages/__dev__/PresencaHarnessPage"))
+  : null;
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -575,6 +581,15 @@ function AppRoutes() {
       <Route path="/submit-task" element={
         <ProtectedRoute><SubmitTaskPage /></ProtectedRoute>
       } />
+
+      {/* DEV-ONLY (#81): harness da Presença ao vivo (evidência E2E de 2 sessões).
+          Guardado por import.meta.env.DEV no topo — não existe em produção.
+          Qualquer logado entra; o canal private + RLS é o gate real de audiência. */}
+      {PresencaHarnessPage && (
+        <Route path="/__presenca_harness" element={
+          <ProtectedRoute><PresencaHarnessPage /></ProtectedRoute>
+        } />
+      )}
 
       {/* 404 */}
       <Route path="*" element={<NotFound />} />
