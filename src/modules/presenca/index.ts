@@ -23,3 +23,8 @@ export type {
   PresencaNaDemanda,
   PresencaCrua,
 } from "./lib/atuacao";
+
+// Slice 6 (#83) — Tempo-na-demanda PERSISTIDO. Soma dos intervalos de atuação
+// (o "há quanto tempo" honesto). Leitura por cliente (uma query) + formatador.
+// A escrita (registrar_intervalo) é interna ao usePresencaDemanda — não pública.
+export { useTempoNaDemanda, formatarTempo } from "./lib/useTempoNaDemanda";
