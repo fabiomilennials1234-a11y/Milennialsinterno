@@ -25,13 +25,16 @@ SELECT plan(13);
 -- 0. Estrutura — a policy reorientada existe, delega a e_envolvido, e a policy
 --    secondary legada foi removida (involvement agora é só client_members).
 -- ============================================================
+-- #87: a policy passou a DELEGAR ao predicado único cliente.pode_ver_cliente
+-- (que internamente chama e_envolvido). A involvement (C)+(C') segue coberta —
+-- provada de ponta a ponta pelos casos (C)/(C') abaixo (tests 4/5/6).
 SELECT is(
   (SELECT count(*)::int FROM pg_policies
      WHERE schemaname='public' AND tablename='clients'
        AND policyname='clients_select_visao_total'
-       AND qual LIKE '%e_envolvido%'),
+       AND qual LIKE '%pode_ver_cliente%'),
   1,
-  'clients_select_visao_total existe e delega a e_envolvido');
+  'clients_select_visao_total existe e delega a cliente.pode_ver_cliente (#87)');
 
 SELECT is(
   (SELECT count(*)::int FROM pg_policies
@@ -40,17 +43,16 @@ SELECT is(
   0,
   'policy secondary_manager_can_view_client foi removida (involvement em client_members)');
 
--- A policy reorientada PRESERVA os bypasses (A/B/D): grep de que ainda referencia
--- is_admin, gestor_projetos+group_id e can_access_page_data.
+-- #87: a policy SELECT da tabela-base agora DELEGA ao predicado único
+-- cliente.pode_ver_cliente (cópia inline eliminada). A taxonomia A/B/C/D vive
+-- DENTRO do predicado; aqui validamos a delegação (sem literal de role na policy).
 SELECT is(
   (SELECT count(*)::int FROM pg_policies
      WHERE schemaname='public' AND tablename='clients'
        AND policyname='clients_select_visao_total'
-       AND qual LIKE '%is_admin%'
-       AND qual LIKE '%get_user_group_id%'
-       AND qual LIKE '%can_access_page_data%'),
+       AND qual LIKE '%pode_ver_cliente%'),
   1,
-  'policy reorientada preserva is_admin (A), escopo-grupo GP (B) e page-grant (D)');
+  'policy clients_select_visao_total delega a cliente.pode_ver_cliente (#87)');
 
 -- ============================================================
 -- Seed — usuários cobrindo cada grupo.
@@ -186,21 +188,18 @@ SELECT is(
 RESET ROLE;
 
 -- ============================================================
--- (B) gestor_projetos. ATENÇÃO — descoberta: is_admin() INCLUI gestor_projetos
--- (ceo/cto/gestor_projetos), então o GP é BYPASS TOTAL de visibilidade de
--- cliente. A clause `(has_role('gestor_projetos') AND group_id=...)` da policy
--- é, na prática, REDUNDANTE — o is_admin já abre tudo. Comportamento PRESERVADO
--- do original (o backup tinha exatamente os mesmos dois termos). O teste valida
--- a realidade: GP vê CY E CZ (via is_admin), não só o seu grupo.
--- [Ponto de sign-off HITL: o escopo-grupo do GP é ilusório hoje. Manter? Ver
---  matriz de não-regressão no reporte.]
+-- (B) gestor_projetos — #87: DECISÃO DO FUNDADOR (restringir). O GP NÃO tem mais
+-- bypass total (que era via is_admin). Agora a clause (B) é EFETIVA: o GP vê SÓ
+-- clientes do PRÓPRIO grupo. b1 está no grupo G1; CY está em G1, CZ tem group NULL.
+--   - GP VÊ CY (mesmo grupo G1) — escopo-grupo efetivo.
+--   - GP NÃO VÊ CZ (grupo NULL / fora do seu grupo) — restrição #87 ativa.
 -- ============================================================
 SELECT _nr_auth('d0000000-0000-0000-0000-0000000000b1'::uuid);
 SET LOCAL ROLE authenticated;
 SELECT is(_nr_sees('d0000000-0000-0000-0000-0000000c2200'::uuid), true,
-  '(B/A) gestor_projetos vê CY (via is_admin — bypass preservado)');
-SELECT is(_nr_sees('d0000000-0000-0000-0000-0000000c3300'::uuid), true,
-  '(B/A) gestor_projetos vê CZ também (is_admin inclui GP — comportamento preservado do original)');
+  '(B) gestor_projetos VÊ CY (mesmo grupo G1 — escopo-grupo efetivo #87)');
+SELECT is(_nr_sees('d0000000-0000-0000-0000-0000000c3300'::uuid), false,
+  '(B) gestor_projetos NÃO vê CZ (fora do seu grupo — restrição #87)');
 RESET ROLE;
 
 -- ============================================================
