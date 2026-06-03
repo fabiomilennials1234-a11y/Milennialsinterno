@@ -140,10 +140,25 @@ test.describe('[live] Equipe do cliente — vertical slice contra DB vivo', () =
     }
 
     // Screenshot focado no painel real montado, com dados reais.
+    // IMPORTANTE: evidência durável vai para e2e/__evidence__/, NÃO para
+    // test-results/ — o Playwright limpa o `outputDir` (default test-results/)
+    // no início de CADA run, então screenshots gravados ali são apagados pelo
+    // run seguinte. __evidence__ não é tocado pelo runner (persiste em disco).
+    const EVID = 'e2e/__evidence__';
     const painel = dialog.locator('section').filter({ hasText: 'Equipe do cliente' }).first();
     await painel.scrollIntoViewIfNeeded();
-    await painel.screenshot({ path: 'test-results/equipe-do-cliente-painel.png' });
-    await page.screenshot({ path: 'test-results/equipe-do-cliente-live.png', fullPage: true });
+    await expect(painel).toBeVisible();
+    await painel.screenshot({ path: `${EVID}/equipe-do-cliente-painel.png` });
+    await page.screenshot({ path: `${EVID}/equipe-do-cliente-live.png`, fullPage: true });
+
+    // Slice 1 (#77) — Card Universal montado no MESMO modal, acima da equipe.
+    // Evidência visual do painel read-only com dados reais do cliente.
+    const cardPanel = dialog.locator('section').filter({ hasText: 'Card universal' }).first();
+    if (await cardPanel.count()) {
+      await cardPanel.scrollIntoViewIfNeeded();
+      await expect(cardPanel).toBeVisible();
+      await cardPanel.screenshot({ path: `${EVID}/card-universal-painel.png` });
+    }
 
     // 4) ADD — admin como Gestor Secundário (não espelha assigned_*; reversível).
     await dialog.getByRole('button', { name: 'Adicionar' }).click();

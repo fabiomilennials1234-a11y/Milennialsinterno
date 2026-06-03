@@ -46,8 +46,11 @@ verdade** (`client_info_bank`). Substitui a leitura fragmentada das 3 profile ta
 (`client_design_profiles`, `client_dev_profiles`, `client_video_profiles`) e dos campos
 duplicados (`instagram_handle`, `website_url`, `domain`, `notes`).
 
-- **Audiência**: todos os **Envolvidos** no cliente veem o **mesmo** card — não a empresa
-  inteira. É universal-**de-leitura entre envolvidos**, não universal-global.
+- **Audiência**: **quem pode ver o cliente** vê o **mesmo** card — não a empresa inteira.
+  Determinada pelo predicado único `cliente.pode_ver_cliente` (= os **Envolvidos** via
+  `client_members`, mais a cúpula que já enxerga o cliente: executivo/admin, GP no grupo,
+  e page-grants de "visão total"). Coerente: quem enxerga o cliente enxerga o card dele.
+  Não é universal-global, e a leitura de `client_info_bank` é escopada por esse mesmo predicado.
 - **NÃO confundir** com `kanban_cards` ("card" sobrecarregado): o card universal é a entidade
   de informação do cliente, não um card de tarefa em board.
 - Propósito: eliminar o **Ruído de Comunicação** (info divergente entre departamentos) pela
