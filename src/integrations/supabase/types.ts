@@ -121,6 +121,67 @@ export type Database = {
       [_ in never]: never
     }
   }
+  demanda: {
+    Tables: {
+      demandas: {
+        Row: {
+          client_id: string
+          created_at: string
+          dominio: string | null
+          id: string
+          status: string
+          titulo: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          dominio?: string | null
+          id?: string
+          status?: string
+          titulo: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          dominio?: string | null
+          id?: string
+          status?: string
+          titulo?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      criar: {
+        Args: { p_client_id: string; p_dominio?: string; p_titulo: string }
+        Returns: string
+      }
+      do_cliente: {
+        Args: { p_client_id: string }
+        Returns: {
+          client_id: string
+          created_at: string
+          dominio: string
+          id: string
+          status: string
+          titulo: string
+        }[]
+      }
+      vincular_card: {
+        Args: { p_card_ref: string; p_demanda_id: string }
+        Returns: undefined
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       _internal_config: {
@@ -4766,6 +4827,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           creatives_quantity: number | null
+          demanda_id: string | null
           description: string | null
           due_date: string | null
           id: string
@@ -4790,6 +4852,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           creatives_quantity?: number | null
+          demanda_id?: string | null
           description?: string | null
           due_date?: string | null
           id?: string
@@ -4814,6 +4877,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           creatives_quantity?: number | null
+          demanda_id?: string | null
           description?: string | null
           due_date?: string | null
           id?: string
@@ -10125,6 +10189,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           creatives_quantity: number | null
+          demanda_id: string | null
           description: string | null
           due_date: string | null
           id: string
@@ -10171,6 +10236,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           creatives_quantity: number | null
+          demanda_id: string | null
           description: string | null
           due_date: string | null
           id: string
@@ -10210,6 +10276,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           creatives_quantity: number | null
+          demanda_id: string | null
           description: string | null
           due_date: string | null
           id: string
@@ -10652,6 +10719,9 @@ export type CompositeTypes<
 
 export const Constants = {
   cliente: {
+    Enums: {},
+  },
+  demanda: {
     Enums: {},
   },
   public: {
