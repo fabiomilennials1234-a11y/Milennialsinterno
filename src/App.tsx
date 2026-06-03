@@ -76,6 +76,9 @@ const SprintsTab = lazy(() => import("./features/milennials-tech/pages/SprintsTa
 const ProjectsTab = lazy(() => import("./features/milennials-tech/pages/ProjectsTab").then(m => ({ default: m.ProjectsTab })));
 const SubmitTaskPage = lazy(() => import("./features/milennials-tech/pages/SubmitTaskPage").then(m => ({ default: m.SubmitTaskPage })));
 
+// Slice 8 (#84) — Painel de Demandas: a vista de pássaro "Monday" agregada.
+const PainelDemandasPage = lazy(() => import("./pages/PainelDemandasPage"));
+
 // DEV-ONLY (#81): harness da Presença ao vivo para evidência E2E de duas sessões.
 // Só existe quando import.meta.env.DEV — nunca em build de produção.
 const PresencaHarnessPage = import.meta.env.DEV
@@ -317,6 +320,15 @@ function AppRoutes() {
       <Route path="/reunioes-gravadas" element={
         <ProtectedRoute>
           <RecordedMeetingsPage />
+        </ProtectedRoute>
+      } />
+
+      {/* Slice 8 (#84): Painel de Demandas — vista de pássaro "Monday" agregada.
+          Acesso: qualquer autenticado; DADOS auto-escopados pela RPC
+          (pode_ver_cliente, ADR 0005). Sem 5ª visibilidade / page-grant novo. */}
+      <Route path="/painel-demandas" element={
+        <ProtectedRoute>
+          <PainelDemandasPage />
         </ProtectedRoute>
       } />
       
