@@ -125,7 +125,7 @@ export const clientSchema = z.object({
   // Valores mensais por produto - objeto dinâmico
   product_values: z.record(z.string(), z.string()).default({}),
   // Sub-produtos do Torque CRM (V8, Automation, Copilot) — obrigatório se 'torque-crm' estiver contratado
-  torque_crm_products: z.array(z.enum(['v8', 'automation', 'copilot'])).default([]),
+  torque_crm_products: z.array(z.enum(['torque', 'automation', 'copilot'])).default([]),
   sales_percentage: z
     .number()
     .min(0, 'Porcentagem deve ser entre 0 e 100')
@@ -406,8 +406,8 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
     }
   }, [form]);
 
-  const toggleTorqueSubproduct = useCallback((sub: 'v8' | 'automation' | 'copilot', checked: boolean) => {
-    const current = (form.getValues('torque_crm_products') as ('v8' | 'automation' | 'copilot')[]) || [];
+  const toggleTorqueSubproduct = useCallback((sub: 'torque' | 'automation' | 'copilot', checked: boolean) => {
+    const current = (form.getValues('torque_crm_products') as ('torque' | 'automation' | 'copilot')[]) || [];
     if (checked) {
       if (!current.includes(sub)) {
         form.setValue('torque_crm_products', [...current, sub], { shouldValidate: true });
@@ -585,9 +585,9 @@ export default function ClientRegistrationForm({ onSuccess, compact = false }: C
                     control={form.control}
                     name="torque_crm_products"
                     render={() => {
-                      const subProducts = (form.watch('torque_crm_products') || []) as ('v8' | 'automation' | 'copilot')[];
-                      const TORQUE_SUBS: { slug: 'v8' | 'automation' | 'copilot'; name: string }[] = [
-                        { slug: 'v8', name: 'V8' },
+                      const subProducts = (form.watch('torque_crm_products') || []) as ('torque' | 'automation' | 'copilot')[];
+                      const TORQUE_SUBS: { slug: 'torque' | 'automation' | 'copilot'; name: string }[] = [
+                        { slug: 'torque', name: 'Torque' },
                         { slug: 'automation', name: 'Automation' },
                         { slug: 'copilot', name: 'Copilot' },
                       ];

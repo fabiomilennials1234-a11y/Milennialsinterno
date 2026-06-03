@@ -114,8 +114,12 @@ export function useCreateUpsell() {
       // Não mexe em contracted_products — o trigger process_upsell já cuida
       // desse campo automaticamente.
       if (upsell.product_slug.startsWith('torque-crm-')) {
-        const sub = upsell.product_slug.replace('torque-crm-', '');
-        if (['v8', 'automation', 'copilot'].includes(sub)) {
+        // Slug financeiro legado 'torque-crm-v8' mapeia para o tier 'torque'
+        // (ex-v8 renomeado, ADR 0006). O slug de billing fica intacto; só o
+        // VALOR DE TIER escrito em clients.torque_crm_products é normalizado.
+        const rawSub = upsell.product_slug.replace('torque-crm-', '');
+        const sub = rawSub === 'v8' ? 'torque' : rawSub;
+        if (['torque', 'automation', 'copilot'].includes(sub)) {
           const { data: clientRow } = await supabase
             .from('clients')
             .select('torque_crm_products, name, razao_social, assigned_comercial' as any)

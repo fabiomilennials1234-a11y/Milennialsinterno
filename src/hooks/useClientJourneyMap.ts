@@ -251,7 +251,7 @@ export function buildCrmPipeline(
     id: `crm-${produto}`,
     label: `Gestor CRM — ${CRM_PRODUTO_LABEL[produto]}`,
     icon: 'Settings',
-    color: produto === 'v8' ? 'sky' : produto === 'automation' ? 'violet' : 'amber',
+    color: produto === 'torque' ? 'sky' : produto === 'automation' ? 'violet' : 'amber',
     steps,
     currentStepIndex: effectiveIndex,
     isCompleted: isFinalizado,

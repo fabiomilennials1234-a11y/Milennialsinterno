@@ -1200,6 +1200,90 @@
   .crm-mtech .skeleton-static {
     background: var(--mtech-surface-elev);
   }
+
+  /* ─────────────────────────────────────────────────────────────────────
+   * Vocabulário COMPARTILHADO de card (Torque CRM). Unifica os dois boards
+   * (implantação + acompanhamentos): mesma elevação, raio, sombra e hover.
+   * O Kanban herda via .bg-card (shadcn <Card>); o board de Acompanhamentos
+   * usa <div className="crm-card"> direto. Um produto, uma superfície.
+   * ───────────────────────────────────────────────────────────────────── */
+  .crm-mtech .crm-card {
+    background: var(--mtech-surface-elev);
+    border: 1px solid var(--mtech-border);
+    border-radius: var(--mtech-radius-md);
+    box-shadow: var(--mtech-shadow-card);
+    color: var(--mtech-text);
+    transition: border-color 120ms ease-out, transform 120ms ease-out;
+  }
+  .crm-mtech .crm-card:hover {
+    border-color: var(--mtech-border-strong);
+    transform: translateY(-1px);
+  }
+  /* Card sendo arrastado (@hello-pangea/dnd): firma a borda no acento e
+     levanta a sombra. Estático — sem keyframes. */
+  .crm-mtech .crm-card--dragging {
+    border-color: color-mix(in srgb, var(--mtech-accent) 45%, transparent);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+    transform: none;
+  }
+
+  /* Badge de progresso — MESMO chip nos dois boards. Mono tabular, peso
+     medium (não bold: não compete com o nome do cliente), tom subtle em
+     andamento, success só quando completo. Cor = informação. */
+  .crm-mtech .crm-progress {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-family: 'Geist Mono', ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 10px;
+    font-weight: 500;
+    line-height: 1;
+    padding: 0.15rem 0.4rem;
+    border-radius: var(--mtech-radius-sm);
+    background: color-mix(in srgb, var(--mtech-text-subtle) 12%, transparent);
+    color: var(--mtech-text-muted);
+  }
+  .crm-mtech .crm-progress--done {
+    background: color-mix(in srgb, var(--mtech-success) 14%, transparent);
+    color: var(--mtech-success);
+  }
+
+  /* Estado vazio — desenhado, não cru. Ícone fantasma + label subtle,
+     centrado com respiro. Linear/Stripe desenham o vazio. */
+  .crm-mtech .crm-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 2rem 1rem;
+    text-align: center;
+  }
+  .crm-mtech .crm-empty svg {
+    width: 20px;
+    height: 20px;
+    color: var(--mtech-text-subtle);
+    opacity: 0.4;
+  }
+  .crm-mtech .crm-empty p {
+    font-size: 11px;
+    color: var(--mtech-text-subtle);
+    letter-spacing: 0.01em;
+  }
+
+  /* Checkbox do checklist — alvo de clique legível em rest, firma no hover.
+     Sem o anel quase invisível /30. Transição de cor curta, sem loop. */
+  .crm-mtech .crm-check {
+    color: color-mix(in srgb, var(--mtech-text-subtle) 65%, transparent);
+    transition: color 120ms ease-out;
+  }
+  .crm-mtech .crm-check:hover {
+    color: var(--mtech-text-muted);
+  }
+  .crm-mtech .crm-check--done {
+    color: var(--mtech-success);
+  }
 }
 
 /*

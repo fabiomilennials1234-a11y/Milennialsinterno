@@ -84,7 +84,7 @@ export interface NewClientData {
   contract_duration_months?: number;
   payment_due_day?: number;
   contracted_products?: string[];
-  torque_crm_products?: ('v8' | 'automation' | 'copilot')[];
+  torque_crm_products?: ('torque' | 'automation' | 'copilot')[];
   product_values?: ProductValueInput[];
 }
 

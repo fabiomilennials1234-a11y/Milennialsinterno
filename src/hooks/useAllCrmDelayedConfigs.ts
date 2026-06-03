@@ -7,7 +7,8 @@ import { useAuth } from '@/contexts/AuthContext';
 // evitar N+1 (joins acontecem na mesma round-trip).
 //
 // `delayed_days` calculado no client a partir de `crm_configuracoes.created_at`
-// + deadline do produto (mesma lógica do useCrmKanban.CRM_CONFIG_DEADLINE_DAYS).
+// + deadline do produto (tabela local PRODUTO_DEADLINE_DAYS abaixo; o antigo
+// CRM_CONFIG_DEADLINE_DAYS foi aposentado na limpeza #97).
 
 const PRODUTO_DEADLINE_DAYS: Record<string, number> = {
   v8: 7,

@@ -209,7 +209,7 @@ describe('buildMktplacePipeline — Gestao', () => {
 
 // ===================== CRM =====================
 
-const CRM_PRODUCTS: CrmProduto[] = ['v8', 'automation', 'copilot'];
+const CRM_PRODUCTS: CrmProduto[] = ['torque', 'automation', 'copilot'];
 
 describe('buildCrmPipeline', () => {
   it.each(CRM_PRODUCTS)('%s: first step current when currentStep is first', (produto) => {
@@ -273,8 +273,8 @@ describe('buildCrmPipeline', () => {
 
 describe('buildCrmPhases', () => {
   it('all completed when finalizado', () => {
-    const phases = CRM_PHASES_BY_PRODUTO['v8'];
-    const steps = CRM_STEPS_BY_PRODUTO['v8'];
+    const phases = CRM_PHASES_BY_PRODUTO['torque'];
+    const steps = CRM_STEPS_BY_PRODUTO['torque'];
     const result = buildCrmPhases(phases, steps.length, steps, true);
     for (const phase of result.phases) {
       expect(phase.completedCount).toBe(phase.stepCount);
@@ -283,8 +283,8 @@ describe('buildCrmPhases', () => {
   });
 
   it('currentPhaseIndex points to correct phase', () => {
-    const phases = CRM_PHASES_BY_PRODUTO['v8'];
-    const steps = CRM_STEPS_BY_PRODUTO['v8'];
+    const phases = CRM_PHASES_BY_PRODUTO['torque'];
+    const steps = CRM_STEPS_BY_PRODUTO['torque'];
     // Step index 0 = first phase
     const result0 = buildCrmPhases(phases, 0, steps, false);
     expect(result0.currentPhaseIndex).toBe(0);
@@ -324,7 +324,7 @@ describe('Edge cases', () => {
   });
 
   it('buildCrmPipeline with unknown step defaults to index 0', () => {
-    const p = buildCrmPipeline('v8', 'nonexistent', false);
+    const p = buildCrmPipeline('torque', 'nonexistent', false);
     expect(p.currentStepIndex).toBe(0);
     expect(p.steps[0].status).toBe('current');
   });

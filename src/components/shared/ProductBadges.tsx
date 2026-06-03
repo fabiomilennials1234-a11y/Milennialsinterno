@@ -23,7 +23,11 @@ export const PRODUCT_CONFIG: Record<string, { name: string; color: string }> = {
 
 // Sub-produtos do Torque CRM (V8 / Automation / Copilot)
 export const TORQUE_CRM_SUBPRODUCT_CONFIG: Record<string, { name: string; color: string }> = {
-  v8: { name: 'V8', color: 'bg-sky-500/10 text-sky-700 border-sky-500/30' },
+  // Tier-base renomeado v8→torque (ADR 0006). Mantém-se a chave 'v8' como alias
+  // defensivo para qualquer linha legada não migrada (não deveria existir após
+  // a migration, mas evita badge vazia se aparecer).
+  torque: { name: 'Torque', color: 'bg-sky-500/10 text-sky-700 border-sky-500/30' },
+  v8: { name: 'Torque', color: 'bg-sky-500/10 text-sky-700 border-sky-500/30' },
   automation: { name: 'Automation', color: 'bg-violet-500/10 text-violet-700 border-violet-500/30' },
   copilot: { name: 'Copilot', color: 'bg-amber-500/10 text-amber-700 border-amber-500/30' },
 };

@@ -21,7 +21,7 @@ function baseValid() {
     payment_due_day: 10,
     contracted_products: [] as string[],
     product_values: {} as Record<string, string>,
-    torque_crm_products: [] as ('v8' | 'automation' | 'copilot')[],
+    torque_crm_products: [] as ('torque' | 'automation' | 'copilot')[],
     group_id: '',
     squad_id: '',
     assigned_ads_manager: '',
@@ -164,7 +164,7 @@ describe('clientSchema — Growth conditional fields', () => {
       ...baseValid(),
       contracted_products: ['torque-crm'],
       product_values: { 'torque-crm': '2.000,00' },
-      torque_crm_products: ['v8'] as ('v8' | 'automation' | 'copilot')[],
+      torque_crm_products: ['torque'] as ('torque' | 'automation' | 'copilot')[],
       assigned_crm: '',
     };
     const result = clientSchema.safeParse(data);

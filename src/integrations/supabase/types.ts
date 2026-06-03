@@ -3000,10 +3000,54 @@ export type Database = {
           },
         ]
       }
+      crm_acompanhamentos: {
+        Row: {
+          checklist: Json
+          client_id: string
+          closed_at: string | null
+          coluna: string
+          created_at: string
+          gestor_id: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          checklist?: Json
+          client_id: string
+          closed_at?: string | null
+          coluna?: string
+          created_at?: string
+          gestor_id?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          checklist?: Json
+          client_id?: string
+          closed_at?: string | null
+          coluna?: string
+          created_at?: string
+          gestor_id?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_acompanhamentos_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_configuracoes: {
         Row: {
           activation_at: string | null
+          apresentacao_at: string | null
           blocked_until: string | null
+          board_status: string
+          checklist: Json
           checklist_state: Json
           client_id: string
           created_at: string
@@ -3026,12 +3070,15 @@ export type Database = {
         }
         Insert: {
           activation_at?: string | null
+          apresentacao_at?: string | null
           blocked_until?: string | null
+          board_status?: string
+          checklist?: Json
           checklist_state?: Json
           client_id: string
           created_at?: string
           created_by?: string | null
-          current_step?: string
+          current_step: string
           delay_justification?: string | null
           delay_justification_category?: string | null
           delay_justified_at?: string | null
@@ -3049,7 +3096,10 @@ export type Database = {
         }
         Update: {
           activation_at?: string | null
+          apresentacao_at?: string | null
           blocked_until?: string | null
+          board_status?: string
+          checklist?: Json
           checklist_state?: Json
           client_id?: string
           created_at?: string
@@ -9756,6 +9806,8 @@ export type Database = {
       _cron_generate_project_weekly_tasks: { Args: never; Returns: undefined }
       _cron_generate_recurring_tasks: { Args: never; Returns: number }
       _nps_map_label: { Args: { p_score: number }; Returns: string }
+      _torque_step_label: { Args: { _step: string }; Returns: string }
+      _torque_steps: { Args: { _produto: string }; Returns: string[] }
       admin_reconcile_user_page_grants: {
         Args: {
           _additional_pages?: string[]
@@ -10439,6 +10491,10 @@ export type Database = {
         Returns: boolean
       }
       tech_unblock_task: { Args: { _task_id: string }; Returns: undefined }
+      torque_step_to_checklist: {
+        Args: { _current_step: string; _produto: string }
+        Returns: Json
+      }
       trigger_oracle_summaries: { Args: never; Returns: undefined }
       trigger_reconcile_recordings: { Args: never; Returns: undefined }
       trigger_sync_meta_ads: { Args: never; Returns: undefined }

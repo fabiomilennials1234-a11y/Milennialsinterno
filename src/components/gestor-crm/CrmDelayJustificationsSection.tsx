@@ -12,7 +12,7 @@ import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const PRODUTO_LABEL: Record<string, string> = {
-  v8: 'V8',
+  torque: 'Torque',
   automation: 'Automation',
   copilot: 'Copilot',
 };

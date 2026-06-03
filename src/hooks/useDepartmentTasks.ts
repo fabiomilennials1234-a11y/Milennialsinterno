@@ -576,7 +576,7 @@ export function useUpdateDepartmentTaskStatus(department: string) {
           desc.startsWith('crm-config:')
         ) {
           const produto = desc.slice('crm-config:'.length) as CrmProduto;
-          if (['v8', 'automation', 'copilot'].includes(produto)) {
+          if (['torque', 'automation', 'copilot'].includes(produto)) {
             const { data: cfg } = await (supabase as any)
               .from('crm_configuracoes')
               .select('id, current_step, is_finalizado, created_at')
@@ -608,7 +608,10 @@ export function useUpdateDepartmentTaskStatus(department: string) {
                   crmConfigFinalized = true;
                 } else {
                   // Step advanced by RPC — no task creation needed.
-                  // Steps are now managed via CrmValidationGate checklist.
+                  // NOTE (#97): este motor server-side (advance_crm_step via
+                  // tasks 'crm-config:') é resíduo da máquina antiga. O board
+                  // novo (ADR 0006) usa checklist via torque_board_*; aqui fica
+                  // como caminho live-but-orphaned até a limpeza destrutiva futura.
                   crmConfigAdvanced = true;
                 }
               }
