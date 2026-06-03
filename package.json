@@ -16,8 +16,10 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:db": "supabase db test",
+    "test:boundaries": "bash scripts/test-boundaries.sh",
+    "test:db:cliente": "bash scripts/sb-pgtap.sh supabase/tests/modules/cliente/skeleton_test.sql",
     "typecheck": "tsc --noEmit",
-    "supabase:gen-types": "supabase gen types typescript --linked --schema public > src/integrations/supabase/types.ts"
+    "supabase:gen-types": "supabase gen types typescript --linked --schema public --schema cliente > src/integrations/supabase/types.ts"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
@@ -85,6 +87,7 @@
     "@eslint/js": "^9.32.0",
     "@playwright/test": "^1.59.1",
     "@tailwindcss/typography": "^0.5.16",
+    "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
@@ -96,6 +99,8 @@
     "@vitest/ui": "^4.1.4",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.32.0",
+    "eslint-import-resolver-typescript": "^3.6.3",
+    "eslint-plugin-boundaries": "^6.0.2",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "fake-indexeddb": "^6.2.5",

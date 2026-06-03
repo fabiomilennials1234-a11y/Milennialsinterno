@@ -37,6 +37,9 @@ import { useAllManagerOptions } from '@/hooks/useAllManagerOptions';
 import { useApproveClient, useRejectClient } from '@/hooks/useClientApproval';
 import { PRODUCT_CONFIG } from '@/components/shared/ProductBadges';
 import type { ClientAreaItem } from '@/hooks/useClientArea';
+// Slice 2 (#78) — Equipe do cliente (Envolvidos). Import SÓ pelo barrel do
+// módulo `cliente` (ADR 0004 contrato-only): nada de lib/hook interno aqui.
+import { EquipeDoCliente } from '@/modules/cliente';
 
 interface Props {
   client: ClientAreaItem | null;
@@ -400,6 +403,13 @@ export default function ClientApprovalModal({ client, open, onOpenChange }: Prop
             </div>
           </div>
         )}
+
+        {/* Slice 2 (#78) — Equipe do cliente: quem atende este cliente
+            (Envolvidos), fonte única `cliente.client_members` via contrato do
+            módulo. Sempre visível (independe do status de validação) — leitura
+            + add/remove. Acoplamento ao módulo só pelo barrel (ADR 0004). */}
+        <Separator className="bg-border/20" />
+        <EquipeDoCliente clientId={client.id} clientName={client.name} />
       </DialogContent>
     </Dialog>
   );

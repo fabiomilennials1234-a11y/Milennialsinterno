@@ -12,6 +12,88 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
+  cliente: {
+    Tables: {
+      client_members: {
+        Row: {
+          client_id: string
+          entrou_em: string
+          papel_no_cliente: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          entrou_em?: string
+          papel_no_cliente: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          entrou_em?: string
+          papel_no_cliente?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      modulo_health: {
+        Row: {
+          checked_at: string
+          id: string
+          note: string
+        }
+        Insert: {
+          checked_at?: string
+          id?: string
+          note?: string
+        }
+        Update: {
+          checked_at?: string
+          id?: string
+          note?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      adicionar_membro: {
+        Args: { p_client_id: string; p_papel: string; p_user_id: string }
+        Returns: undefined
+      }
+      clientes_de: {
+        Args: { p_user_id: string }
+        Returns: {
+          client_id: string
+          papel_no_cliente: string
+        }[]
+      }
+      e_envolvido: {
+        Args: { p_client_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      existe: { Args: { p_client_id: string }; Returns: boolean }
+      membros: {
+        Args: { p_client_id: string }
+        Returns: {
+          entrou_em: string
+          papel_no_cliente: string
+          user_id: string
+        }[]
+      }
+      remover_membro: {
+        Args: { p_client_id: string; p_papel: string; p_user_id: string }
+        Returns: undefined
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       _internal_config: {
@@ -10264,6 +10346,7 @@ export type Database = {
       }
       tech_unblock_task: { Args: { _task_id: string }; Returns: undefined }
       trigger_oracle_summaries: { Args: never; Returns: undefined }
+      trigger_reconcile_recordings: { Args: never; Returns: undefined }
       trigger_sync_meta_ads: { Args: never; Returns: undefined }
       trigger_sync_meta_ads_mode: {
         Args: { p_mode: string }
@@ -10541,6 +10624,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  cliente: {
+    Enums: {},
+  },
   public: {
     Enums: {
       info_bank_file_section: ["anuncios", "criativos", "marca", "videos"],
