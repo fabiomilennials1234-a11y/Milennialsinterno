@@ -37,9 +37,10 @@ import { useAllManagerOptions } from '@/hooks/useAllManagerOptions';
 import { useApproveClient, useRejectClient } from '@/hooks/useClientApproval';
 import { PRODUCT_CONFIG } from '@/components/shared/ProductBadges';
 import type { ClientAreaItem } from '@/hooks/useClientArea';
-// Slice 2 (#78) — Equipe do cliente (Envolvidos). Import SÓ pelo barrel do
-// módulo `cliente` (ADR 0004 contrato-only): nada de lib/hook interno aqui.
-import { EquipeDoCliente } from '@/modules/cliente';
+// Slice 2 (#78) — Equipe do cliente (Envolvidos). Slice 1 (#77) — Card Universal.
+// Import SÓ pelo barrel do módulo `cliente` (ADR 0004 contrato-only): nada de
+// lib/hook interno aqui.
+import { EquipeDoCliente, CardUniversalCliente } from '@/modules/cliente';
 
 interface Props {
   client: ClientAreaItem | null;
@@ -403,6 +404,13 @@ export default function ClientApprovalModal({ client, open, onOpenChange }: Prop
             </div>
           </div>
         )}
+
+        {/* Slice 1 (#77) — Card Universal: visão consolidada read-mostly do
+            cliente, fonte única `client_info_bank` via contrato `cliente.
+            card_universal`. Read-only nesta slice (edição é #79). Audiência =
+            Envolvidos/exec/page-grant (gate na RPC + RLS; ADR 0005). */}
+        <Separator className="bg-border/20" />
+        <CardUniversalCliente clientId={client.id} clientName={client.name} />
 
         {/* Slice 2 (#78) — Equipe do cliente: quem atende este cliente
             (Envolvidos), fonte única `cliente.client_members` via contrato do

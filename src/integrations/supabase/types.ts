@@ -62,6 +62,29 @@ export type Database = {
         Args: { p_client_id: string; p_papel: string; p_user_id: string }
         Returns: undefined
       }
+      card_universal: {
+        Args: { p_client_id: string }
+        Returns: {
+          brand_colors: string
+          brand_manual_url: string
+          client_id: string
+          cms_platform: string
+          domain: string
+          editing_style: string
+          figma_url: string
+          instagram_handle: string
+          logo_url: string
+          notes: string
+          tiktok_handle: string
+          typography: string
+          updated_at: string
+          updated_by: string
+          video_formats: string
+          visual_style: string
+          website_url: string
+          youtube_channel: string
+        }[]
+      }
       clientes_de: {
         Args: { p_user_id: string }
         Returns: {
@@ -81,6 +104,10 @@ export type Database = {
           papel_no_cliente: string
           user_id: string
         }[]
+      }
+      pode_ver_cliente: {
+        Args: { p_client_id: string; p_user_id: string }
+        Returns: boolean
       }
       remover_membro: {
         Args: { p_client_id: string; p_papel: string; p_user_id: string }

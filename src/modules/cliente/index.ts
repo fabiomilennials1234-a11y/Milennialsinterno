@@ -15,3 +15,11 @@ export type { Envolvido, PapelNoCliente } from "./lib/envolvidos";
 // + a resolução de identidade para a tela. Quem monta a área do cliente importa
 // SÓ isto — nada de hooks/lib internos cruzando o barrel.
 export { EquipeDoCliente } from "./components/EquipeDoCliente";
+
+// Slice 1 (#77) — Card Universal de Cliente (LEITURA).
+// Contrato de leitura consolidada (`cliente.card_universal`) + painel read-only.
+// Audiência = Envolvidos/exec/page-grant (gate na RPC + RLS; ADR 0005).
+export { lerCardUniversal } from "./lib/cardUniversal";
+export type { CardUniversal } from "./lib/cardUniversal";
+export { useCardUniversal } from "./lib/useCardUniversal";
+export { CardUniversalCliente } from "./components/CardUniversalCliente";
