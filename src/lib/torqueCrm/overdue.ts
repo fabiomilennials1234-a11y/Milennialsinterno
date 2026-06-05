@@ -23,10 +23,23 @@ export interface OverdueInput {
   tz?: string;
 }
 
+/**
+ * Estado de urgência derivado — único eixo de decisão visual do card.
+ * - 'neutro'   : sem SLA (slaDays=null) ou sem entrada válida. Não conta, não atrasa.
+ * - 'ok'       : no prazo, folga >= 2 dias (diasRestantes >= 2).
+ * - 'iminente' : no prazo, último dia ou véspera (diasRestantes 0 ou 1).
+ * - 'atrasado' : diasNaColuna > slaDays.
+ */
+export type OverdueEstado = 'neutro' | 'ok' | 'iminente' | 'atrasado';
+
 export interface OverdueResult {
   diasNaColuna: number;
   atrasado: boolean;
   diasAlemPrazo: number;
+  /** Dias-calendário até atrasar (slaDays - diasNaColuna). 0 = vence hoje;
+   *  negativo = já atrasado; null = sem SLA ou sem entrada (não há prazo a contar). */
+  diasRestantes: number | null;
+  estado: OverdueEstado;
 }
 
 const DEFAULT_TZ = 'America/Sao_Paulo';
@@ -56,7 +69,14 @@ function calendarDaysBetween(a: Date, b: Date, tz: string): number {
   return Math.round((ub - ua) / 86_400_000);
 }
 
-const NO_OVERDUE: OverdueResult = { diasNaColuna: 0, atrasado: false, diasAlemPrazo: 0 };
+// Sem entrada/sem prazo: não conta nem atrasa. diasRestantes null (não há prazo).
+const NO_OVERDUE: OverdueResult = {
+  diasNaColuna: 0,
+  atrasado: false,
+  diasAlemPrazo: 0,
+  diasRestantes: null,
+  estado: 'neutro',
+};
 
 export function computeOverdue(input: OverdueInput): OverdueResult {
   const { stageEnteredAt, slaDays, now, tz = DEFAULT_TZ } = input;
@@ -68,15 +88,24 @@ export function computeOverdue(input: OverdueInput): OverdueResult {
   // Nunca negativo: relógio do servidor pode estar marginalmente à frente do client.
   const diasNaColuna = Math.max(0, calendarDaysBetween(entered, now, tz));
 
-  // Sem SLA (coluna terminal/sem prazo) -> nunca atrasa.
+  // Sem SLA (coluna terminal/sem prazo) -> nunca atrasa, sem contador.
   if (slaDays == null) {
-    return { diasNaColuna, atrasado: false, diasAlemPrazo: 0 };
+    return { diasNaColuna, atrasado: false, diasAlemPrazo: 0, diasRestantes: null, estado: 'neutro' };
   }
 
   const atrasado = diasNaColuna > slaDays;
+  // Dias-calendário até a fronteira de atraso. Coerente com #130 (dias>sla atrasa):
+  // 0 = vence hoje (último dia, ainda no prazo); negativo = já atrasado.
+  const diasRestantes = slaDays - diasNaColuna;
+
+  // 'iminente' = no prazo E folga <= 1 dia (vence hoje ou véspera). Senão 'ok'.
+  const estado: OverdueEstado = atrasado ? 'atrasado' : diasRestantes <= 1 ? 'iminente' : 'ok';
+
   return {
     diasNaColuna,
     atrasado,
     diasAlemPrazo: atrasado ? diasNaColuna - slaDays : 0,
+    diasRestantes,
+    estado,
   };
 }

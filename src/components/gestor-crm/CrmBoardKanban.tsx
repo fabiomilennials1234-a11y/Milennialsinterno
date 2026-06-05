@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   ListTodo, Wrench, Settings, Bot, CalendarClock, CheckCircle2,
-  ListChecks, ChevronLeft, ChevronRight, Plus, X, Check, CalendarPlus,
+  ListChecks, ChevronLeft, ChevronRight, Plus, X, Check, CalendarPlus, Clock,
 } from 'lucide-react';
 import {
   useCrmConfiguracoes,
@@ -213,11 +213,30 @@ function BoardCard({ cfg, columnId, slaMap }: { cfg: CrmConfigRow; columnId: Boa
   });
 
   return (
-    <Card className={cn('border-subtle', overdue.atrasado && 'border-l-4 border-l-danger bg-danger/5')}>
+    <Card
+      className={cn(
+        'border-subtle',
+        overdue.estado === 'atrasado' && 'border-l-4 border-l-danger bg-danger/5',
+        overdue.estado === 'iminente' && 'border-l-4 border-l-warning bg-warning/5',
+      )}
+    >
       <CardContent className="p-3 space-y-2.5">
-        {overdue.atrasado && (
+        {/* SLA — estado de urgência derivado (módulo puro, fuso SP). Único eixo. */}
+        {overdue.estado === 'atrasado' && (
           <div className="flex items-center gap-1 text-[10px] font-bold text-danger">
             ⚠️ Atrasado — {overdue.diasAlemPrazo}d além do prazo
+          </div>
+        )}
+        {overdue.estado === 'iminente' && (
+          <div className="flex items-center gap-1 text-[10px] font-bold text-warning">
+            <Clock size={10} />
+            {overdue.diasRestantes === 0 ? 'Vence hoje' : 'Falta 1d'}
+          </div>
+        )}
+        {overdue.estado === 'ok' && (
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground/70">
+            <Clock size={10} />
+            Faltam {overdue.diasRestantes}d para o prazo
           </div>
         )}
         <div className="flex items-start justify-between gap-2">
