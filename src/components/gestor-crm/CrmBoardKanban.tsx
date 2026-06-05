@@ -22,6 +22,8 @@ import { podeConcluir, toSpInputValue, fromSpInputValue } from '@/lib/torqueCrm/
 import { boardEntryLabel } from '@/lib/torqueCrm/boardEntry';
 import { resolveSlaDays, type SlaMap } from '@/lib/torqueCrm/crmSla';
 import { computeOverdue } from '@/lib/torqueCrm/overdue';
+import { crmBoardMode } from '@/lib/torqueCrm/boardMode';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -92,6 +94,12 @@ export default function CrmBoardKanban() {
   const configs = configsRaw as unknown as CrmConfigRow[];
   // SLA por coluna (#130): atraso é DERIVADO em render, nunca persistido.
   const { data: slaMap = {} } = useCrmSla();
+
+  // Slice 3 (#138): modo do board por papel. gestor_ads acompanha read-only —
+  // os controles de operação somem; o conteúdo (checklist/datas) fica visível.
+  // Fronteira real é RPC/RLS (#136/#137); isto é a camada de UX.
+  const { user } = useAuth();
+  const readonly = user ? crmBoardMode(user.role) === 'readonly' : true;
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canLeft, setCanLeft] = useState(false);
@@ -181,7 +189,7 @@ export default function CrmBoardKanban() {
                       <p>Nenhum card</p>
                     </div>
                   ) : (
-                    cards.map((cfg) => <BoardCard key={cfg.id} cfg={cfg} columnId={column.id} slaMap={slaMap} />)
+                    cards.map((cfg) => <BoardCard key={cfg.id} cfg={cfg} columnId={column.id} slaMap={slaMap} readonly={readonly} />)
                   )}
                 </div>
               </div>
@@ -193,7 +201,7 @@ export default function CrmBoardKanban() {
   );
 }
 
-function BoardCard({ cfg, columnId, slaMap }: { cfg: CrmConfigRow; columnId: BoardColumnId; slaMap: SlaMap }) {
+function BoardCard({ cfg, columnId, slaMap, readonly = false }: { cfg: CrmConfigRow; columnId: BoardColumnId; slaMap: SlaMap; readonly?: boolean }) {
   const clientName = cfg.clients?.razao_social || cfg.clients?.name || 'Cliente';
   const { done, total } = checklistProgress(cfg.checklist);
   const complete = total > 0 && done === total;
@@ -263,14 +271,16 @@ function BoardCard({ cfg, columnId, slaMap }: { cfg: CrmConfigRow; columnId: Boa
         )}
 
         {/* Apresentação (Slice #94): agendar/reagendar data+hora e — a partir de
-            00h do dia agendado (fuso SP) — concluir (PRONTO) ou reagendar. */}
+            00h do dia agendado (fuso SP) — concluir (PRONTO) ou reagendar.
+            readonly (#138): só exibe a data, sem controles. */}
         {columnId === 'apresentacao' && (
-          <ApresentacaoCard configId={cfg.id} apresentacaoAt={cfg.apresentacao_at} />
+          <ApresentacaoCard configId={cfg.id} apresentacaoAt={cfg.apresentacao_at} readonly={readonly} />
         )}
 
         {/* Começar — só em A FAZER. Promove o card pra coluna do seu tier
-            (board_status a_fazer -> tier) via RPC torque_board_comecar. */}
-        {columnId === 'a_fazer' && (
+            (board_status a_fazer -> tier) via RPC torque_board_comecar.
+            readonly (#138): escondido — ads acompanha, não opera. */}
+        {columnId === 'a_fazer' && !readonly && (
           <Button
             size="sm"
             variant="secondary"
@@ -282,11 +292,10 @@ function BoardCard({ cfg, columnId, slaMap }: { cfg: CrmConfigRow; columnId: Boa
           </Button>
         )}
 
-        {/* Checklist EDITÁVEL (Slice #93) — só nas colunas de tier, onde é o foco
-            de trabalho. Marcar TODOS auto-move o card pra Apresentação (decidido
-            no servidor pela RPC torque_board_checklist_set). */}
+        {/* Checklist (Slice #93) — só nas colunas de tier. readonly (#138):
+            itens visíveis, sem editar/marcar/adicionar/remover. */}
         {isTierColumn && (
-          <EditableChecklist configId={cfg.id} checklist={checklist} />
+          <EditableChecklist configId={cfg.id} checklist={checklist} readonly={readonly} />
         )}
       </CardContent>
     </Card>
@@ -299,12 +308,40 @@ function BoardCard({ cfg, columnId, slaMap }: { cfg: CrmConfigRow; columnId: Boa
  * mutação computa o próximo array com o módulo PURO checklist.ts e persiste o
  * array inteiro via useSetChecklist → RPC (que decide o auto-move atômico).
  */
-function EditableChecklist({ configId, checklist }: { configId: string; checklist: ChecklistItem[] }) {
+export function EditableChecklist({ configId, checklist, readonly = false }: { configId: string; checklist: ChecklistItem[]; readonly?: boolean }) {
   const setChecklist = useSetChecklist();
   const [adding, setAdding] = useState(false);
   const [newLabel, setNewLabel] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState('');
+
+  // readonly (#138): lista estática — status + label, sem nenhum controle.
+  // O conteúdo é o que o gestor_ads acompanha; a edição fica fora.
+  if (readonly) {
+    if (checklist.length === 0) return null;
+    return (
+      <div className="pt-1 border-t border-border/30 space-y-1">
+        {checklist.map((item) => (
+          <div key={item.id} className="flex items-start gap-1.5 text-[11px]">
+            <span
+              aria-hidden
+              className={cn('crm-check mt-0.5 shrink-0', item.done && 'crm-check--done')}
+            >
+              <CheckCircle2 size={12} />
+            </span>
+            <span
+              className={cn(
+                'flex-1 min-w-0 break-words',
+                item.done ? 'text-muted-foreground line-through' : 'text-foreground',
+              )}
+            >
+              {item.label}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   const persist = (next: ChecklistItem[]) => setChecklist.mutate({ configId, checklist: next });
   const busy = setChecklist.isPending;
@@ -430,7 +467,7 @@ function EditableChecklist({ configId, checklist }: { configId: string; checklis
  *     no servidor) e REAGENDAR (reabre o seletor de data). O botão é só UX; a
  *     verdade do gate é no servidor.
  */
-function ApresentacaoCard({ configId, apresentacaoAt }: { configId: string; apresentacaoAt: string | null }) {
+export function ApresentacaoCard({ configId, apresentacaoAt, readonly = false }: { configId: string; apresentacaoAt: string | null; readonly?: boolean }) {
   const agendar = useAgendarApresentacao();
   const pronto = useMarcarPronto();
 
@@ -440,6 +477,22 @@ function ApresentacaoCard({ configId, apresentacaoAt }: { configId: string; apre
 
   const liberado = podeConcluir(apresentacaoAt);
   const busy = agendar.isPending || pronto.isPending;
+
+  // readonly (#138): só a data marcada, sem agendar/Pronto/Reagendar/Alterar.
+  if (readonly) {
+    return (
+      <div className="space-y-1.5">
+        <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+          <CalendarClock size={10} />
+          {apresentacaoAt
+            ? new Date(apresentacaoAt).toLocaleString('pt-BR', {
+                dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Sao_Paulo',
+              })
+            : 'Sem data'}
+        </span>
+      </div>
+    );
+  }
 
   const salvar = () => {
     const iso = fromSpInputValue(value);
