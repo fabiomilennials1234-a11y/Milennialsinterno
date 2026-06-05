@@ -18,6 +18,7 @@ import {
   toggle, add, remove, rename, progress, type ChecklistItem,
 } from '@/lib/torqueCrm/checklist';
 import { podeConcluir, toSpInputValue, fromSpInputValue } from '@/lib/torqueCrm/dateGate';
+import { boardEntryLabel } from '@/lib/torqueCrm/boardEntry';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -62,6 +63,8 @@ interface CrmConfigRow {
   board_status: BoardColumnId;
   checklist: ChecklistItem[] | null;
   apresentacao_at: string | null;
+  /** quando o card entrou no board (timestamptz). Origem do "No board desde". */
+  created_at: string | null;
   clients?: { name?: string; razao_social?: string; client_label?: string | null } | null;
 }
 
@@ -190,6 +193,8 @@ function BoardCard({ cfg, columnId }: { cfg: CrmConfigRow; columnId: BoardColumn
   const isTierColumn = columnId === 'torque' || columnId === 'automation' || columnId === 'copilot';
   const checklist = Array.isArray(cfg.checklist) ? cfg.checklist : [];
   const comecar = useComecarCard();
+  // "No board desde DD/MM" (#128) — em TODA coluna; fuso SP no módulo puro.
+  const entryLabel = boardEntryLabel(cfg.created_at);
 
   return (
     <Card className="border-subtle">
@@ -208,6 +213,14 @@ function BoardCard({ cfg, columnId }: { cfg: CrmConfigRow; columnId: BoardColumn
             {CRM_PRODUTO_LABEL[cfg.produto]}
           </Badge>
         </div>
+
+        {/* "No board desde DD/MM" (#128) — toda coluna. Fuso SP no módulo puro. */}
+        {entryLabel && (
+          <span className="flex items-center gap-1 text-[10px] text-muted-foreground/70">
+            <CalendarClock size={10} />
+            {entryLabel}
+          </span>
+        )}
 
         {/* Apresentação (Slice #94): agendar/reagendar data+hora e — a partir de
             00h do dia agendado (fuso SP) — concluir (PRONTO) ou reagendar. */}
