@@ -5,6 +5,7 @@ import { useDataScope } from '@/hooks/useDataScope';
 import { toast } from 'sonner';
 import { gerarCardBoard, comecarCardBoard, setChecklistBoard, agendarApresentacao, marcarProntoCard } from '@/lib/torqueCrm/boardRpc';
 import type { ChecklistItem } from '@/lib/torqueCrm/checklist';
+import type { SlaMap, SlaColumn } from '@/lib/torqueCrm/crmSla';
 
 // =============================================================
 // Gestor de CRM — Hook central (board Torque CRM, ADR 0006)
@@ -457,5 +458,32 @@ export function useMarcarPronto() {
     onError: (err: Error) => {
       toast.error('Erro ao concluir a apresentação', { description: err.message });
     },
+  });
+}
+
+/**
+ * SLA por coluna do board (#129/#130). Lê a tabela crm_sla e devolve o SlaMap
+ * (coluna -> max_days) consumido pelo resolver puro crmSla. Config raramente
+ * muda — staleTime alto evita refetch a cada render do board.
+ */
+export function useCrmSla() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ['crm-sla'],
+    queryFn: async (): Promise<SlaMap> => {
+      // crm_sla (#129) ainda não está nos types gerados; cast pontual no nome da
+      // tabela (`as never`, sem `any` — mantém o lint clean do hook novo).
+      const { data, error } = await supabase
+        .from('crm_sla' as never)
+        .select('coluna, max_days');
+      if (error) throw error;
+      const map: SlaMap = {};
+      for (const row of (data ?? []) as { coluna: SlaColumn; max_days: number | null }[]) {
+        map[row.coluna] = row.max_days;
+      }
+      return map;
+    },
+    enabled: !!user?.id,
+    staleTime: 5 * 60_000,
   });
 }

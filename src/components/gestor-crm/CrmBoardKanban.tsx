@@ -11,6 +11,7 @@ import {
   useSetChecklist,
   useAgendarApresentacao,
   useMarcarPronto,
+  useCrmSla,
   CRM_PRODUTO_LABEL,
   type CrmProduto,
 } from '@/hooks/useCrmKanban';
@@ -19,6 +20,8 @@ import {
 } from '@/lib/torqueCrm/checklist';
 import { podeConcluir, toSpInputValue, fromSpInputValue } from '@/lib/torqueCrm/dateGate';
 import { boardEntryLabel } from '@/lib/torqueCrm/boardEntry';
+import { resolveSlaDays, type SlaMap } from '@/lib/torqueCrm/crmSla';
+import { computeOverdue } from '@/lib/torqueCrm/overdue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -65,6 +68,8 @@ interface CrmConfigRow {
   apresentacao_at: string | null;
   /** quando o card entrou no board (timestamptz). Origem do "No board desde". */
   created_at: string | null;
+  /** quando o card entrou na coluna atual (#129). Relógio do SLA. */
+  stage_entered_at: string | null;
   clients?: { name?: string; razao_social?: string; client_label?: string | null } | null;
 }
 
@@ -85,6 +90,8 @@ function columnOf(cfg: CrmConfigRow): BoardColumnId {
 export default function CrmBoardKanban() {
   const { data: configsRaw = [], isLoading } = useCrmConfiguracoes();
   const configs = configsRaw as unknown as CrmConfigRow[];
+  // SLA por coluna (#130): atraso é DERIVADO em render, nunca persistido.
+  const { data: slaMap = {} } = useCrmSla();
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canLeft, setCanLeft] = useState(false);
@@ -174,7 +181,7 @@ export default function CrmBoardKanban() {
                       <p>Nenhum card</p>
                     </div>
                   ) : (
-                    cards.map((cfg) => <BoardCard key={cfg.id} cfg={cfg} columnId={column.id} />)
+                    cards.map((cfg) => <BoardCard key={cfg.id} cfg={cfg} columnId={column.id} slaMap={slaMap} />)
                   )}
                 </div>
               </div>
@@ -186,7 +193,7 @@ export default function CrmBoardKanban() {
   );
 }
 
-function BoardCard({ cfg, columnId }: { cfg: CrmConfigRow; columnId: BoardColumnId }) {
+function BoardCard({ cfg, columnId, slaMap }: { cfg: CrmConfigRow; columnId: BoardColumnId; slaMap: SlaMap }) {
   const clientName = cfg.clients?.razao_social || cfg.clients?.name || 'Cliente';
   const { done, total } = checklistProgress(cfg.checklist);
   const complete = total > 0 && done === total;
@@ -196,9 +203,23 @@ function BoardCard({ cfg, columnId }: { cfg: CrmConfigRow; columnId: BoardColumn
   // "No board desde DD/MM" (#128) — em TODA coluna; fuso SP no módulo puro.
   const entryLabel = boardEntryLabel(cfg.created_at);
 
+  // Atraso por SLA da coluna (#130). DERIVADO em render, nunca persistido.
+  // Prontos não tem SLA (resolveSlaDays -> null -> computeOverdue nunca atrasa).
+  const slaDays = resolveSlaDays(slaMap, cfg.board_status, cfg.produto);
+  const overdue = computeOverdue({
+    stageEnteredAt: cfg.stage_entered_at,
+    slaDays,
+    now: new Date(),
+  });
+
   return (
-    <Card className="border-subtle">
+    <Card className={cn('border-subtle', overdue.atrasado && 'border-l-4 border-l-danger bg-danger/5')}>
       <CardContent className="p-3 space-y-2.5">
+        {overdue.atrasado && (
+          <div className="flex items-center gap-1 text-[10px] font-bold text-danger">
+            ⚠️ Atrasado — {overdue.diasAlemPrazo}d além do prazo
+          </div>
+        )}
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1 space-y-1.5">
             <h4 className="font-medium text-sm text-foreground line-clamp-2 leading-snug">{clientName}</h4>
