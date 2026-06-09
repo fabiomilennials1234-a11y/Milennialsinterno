@@ -226,6 +226,12 @@ alto. Nasce em **A FAZER** quando o CRM é briefado, anda por uma coluna de tier
 (Torque/Automation/Copilot) conforme o checklist avança, vai para **Apresentação** (agenda data)
 e termina em **Prontos**. **NÃO confundir** com `kanban_cards` nem com o Card Universal de Cliente.
 
+- **Briefar** = criar o card. É ação **aberta a qualquer usuário com visão do board do CRM**
+  (`has_page_access('gestor-crm')` / cúpula) — disparável tanto do **olhinho do cliente** quanto
+  direto da coluna **A FAZER** do board. Quem briefa **pede**; o Gestor de CRM **executa** (briefar
+  ≠ ser o gestor do card). O card só existe para cliente **com Torque CRM contratado** — não há
+  brief de implantação fora do Torque CRM.
+
 ### Funil (A / B) — preset de pipeline escolhido pela estratégia de ADS
 O **funil** de um cliente é qual dos **dois presets de pipeline de qualificação de lead** o CRM
 segue: **Funil A** ou **Funil B**. Não são etapas de campanha de tráfego — são as colunas que o

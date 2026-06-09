@@ -1156,12 +1156,41 @@
   .crm-mtech .crm-column--danger .crm-column-header svg { color: var(--mtech-danger); }
   .crm-mtech .crm-column--success .crm-column-header svg { color: var(--mtech-success); }
   .crm-mtech .crm-column-count {
-    margin-left: auto;
     font-family: 'Geist Mono', ui-monospace, monospace;
     font-variant-numeric: tabular-nums;
     font-size: 11px;
     color: var(--mtech-text-subtle);
   }
+  /* Cluster à direita do header (contador + ação). Substitui o margin-left:auto
+     que antes vivia só no contador. */
+  .crm-mtech .crm-column-header-end {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  /* Ação de header (ex.: Brifar). Quieta em rest — mesma família do contador;
+     firma no acento no hover. Cor = intenção, coerente com o board. */
+  .crm-mtech .crm-column-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--mtech-radius-sm);
+    color: var(--mtech-text-subtle);
+    background: transparent;
+    transition: color 120ms ease-out, background-color 120ms ease-out;
+  }
+  .crm-mtech .crm-column-action:hover {
+    color: var(--mtech-accent);
+    background: color-mix(in srgb, var(--mtech-accent) 12%, transparent);
+  }
+  .crm-mtech .crm-column-action:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--mtech-accent) 50%, transparent);
+  }
+  .crm-mtech .crm-column-action svg { width: 14px; height: 14px; }
 
   /* Corpo da coluna */
   .crm-mtech .crm-column-body {

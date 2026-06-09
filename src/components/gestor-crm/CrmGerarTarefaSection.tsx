@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import CrmTarefaFormModal from './CrmTarefaFormModal';
 import { CRM_PRODUTO_LABEL, CRM_PRODUTO_COLOR, CRM_STEP_LABEL, type CrmProduto, getTorqueCrmProducts, getHighestProduct } from '@/hooks/useCrmKanban';
+import { useCrmGestors } from '@/hooks/useCrmGestors';
 
 interface Props {
   clientId: string;
@@ -57,27 +58,9 @@ export default function CrmGerarTarefaSection({ clientId, clientName }: Props) {
     },
   });
 
-  // Fetch available CRM gestors for the selector (when client has no assigned_crm)
-  const { data: crmGestors = [] } = useQuery({
-    queryKey: ['crm-gestors-list'],
-    queryFn: async () => {
-      const { data: roles, error: rolesErr } = await supabase
-        .from('user_roles')
-        .select('user_id')
-        .eq('role', 'gestor_crm');
-      if (rolesErr) throw rolesErr;
-      if (!roles || roles.length === 0) return [];
-
-      const ids = roles.map(r => r.user_id);
-      const { data: profiles, error: profErr } = await supabase
-        .from('profiles')
-        .select('user_id, name')
-        .in('user_id', ids);
-      if (profErr) throw profErr;
-      return (profiles || []) as { user_id: string; name: string }[];
-    },
-    staleTime: 5 * 60 * 1000,
-  });
+  // Gestores de CRM para o seletor (quando o cliente não tem assigned_crm).
+  // Fonte única extraída em useCrmGestors — reusada também pelo modo board.
+  const { data: crmGestors = [] } = useCrmGestors();
 
   if (!client) return null;
 

@@ -3,8 +3,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   ListTodo, Wrench, Settings, Bot, CalendarClock, CheckCircle2,
-  ListChecks, ChevronLeft, ChevronRight, Plus, X, Check, CalendarPlus, Clock,
+  ListChecks, ChevronLeft, ChevronRight, Plus, X, Check, CalendarPlus, Clock, Wand2,
 } from 'lucide-react';
+import CrmTarefaFormModal from './CrmTarefaFormModal';
 import {
   useCrmConfiguracoes,
   useComecarCard,
@@ -101,6 +102,12 @@ export default function CrmBoardKanban() {
   const { user } = useAuth();
   const readonly = user ? crmBoardMode(user.role) === 'readonly' : true;
 
+  // Brifar tarefa (modo board) — abre o modal SEM cliente pré-selecionado.
+  // Só quem opera o board (!readonly) vê o botão; é a MESMA audiência que já
+  // pode escrever o card (_torque_board_pode_escrever via has_page_access/
+  // is_admin). Zero porta nova: nenhuma mudança de DB/RLS/RPC.
+  const [brifarOpen, setBrifarOpen] = useState(false);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(true);
@@ -178,9 +185,22 @@ export default function CrmBoardKanban() {
                 <div className="crm-column-header">
                   <Icon />
                   <h2 className="crm-column-title truncate">{column.title}</h2>
-                  {cards.length > 0 && (
-                    <span className="crm-column-count">{cards.length}</span>
-                  )}
+                  <div className="crm-column-header-end">
+                    {cards.length > 0 && (
+                      <span className="crm-column-count">{cards.length}</span>
+                    )}
+                    {column.id === 'a_fazer' && !readonly && (
+                      <button
+                        type="button"
+                        className="crm-column-action"
+                        aria-label="Brifar tarefa"
+                        title="Brifar tarefa"
+                        onClick={() => setBrifarOpen(true)}
+                      >
+                        <Wand2 />
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="crm-column-body flex-1 overflow-y-auto p-3 space-y-2 scrollbar-apple">
                   {cards.length === 0 ? (
@@ -197,6 +217,13 @@ export default function CrmBoardKanban() {
           })}
         </div>
       </div>
+
+      {/* Brifar tarefa — modo board: abre sem cliente, combobox filtra Torque CRM. */}
+      <CrmTarefaFormModal
+        mode="board"
+        isOpen={brifarOpen}
+        onClose={() => setBrifarOpen(false)}
+      />
     </div>
   );
 }

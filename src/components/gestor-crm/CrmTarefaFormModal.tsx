@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { ClientCombobox } from '@/components/ui/client-combobox';
-import { Plus, X, Wand2, CheckCircle2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, X, Wand2, CheckCircle2, UserCheck, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   CRM_PRODUTOS_VALIDOS,
@@ -18,6 +19,8 @@ import {
   type CrmProduto,
 } from '@/hooks/useCrmKanban';
 import { useAllActiveClients } from '@/hooks/useAllActiveClients';
+import { useTorqueCrmClients } from '@/hooks/useTorqueCrmClients';
+import { useCrmGestors } from '@/hooks/useCrmGestors';
 import {
   FUNIL_ETAPAS,
   FUNIL_LABEL,
@@ -45,14 +48,24 @@ const emptyFormData = (): CrmConfigFormData => ({
 });
 
 // ========== PROPS ==========
+//
+// Dois modos (mesma RPC, mesmo público de escrita):
+//   - 'client' (olhinho): cliente/gestor/produtos vêm FIXOS por prop. Fluxo
+//     histórico — quem abre já resolveu tudo.
+//   - 'board'  (coluna A FAZER): abre SEM cliente. O combobox lista só clientes
+//     Torque CRM; ao escolher, produtos e gestor são RESOLVIDOS do próprio
+//     cliente (e o gestor, se ausente, é selecionado inline). Self-contained.
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  clientId: string;
-  clientName: string;
-  gestorId: string;
-  availableProdutos: CrmProduto[];
+  /** 'client' (default, olhinho) | 'board' (coluna A Fazer). */
+  mode?: 'client' | 'board';
+  /** Obrigatórios em 'client'; ignorados em 'board' (resolvidos do combobox). */
+  clientId?: string;
+  clientName?: string;
+  gestorId?: string;
+  availableProdutos?: CrmProduto[];
   onSuccess?: () => void;
 }
 
@@ -61,45 +74,81 @@ interface Props {
 export default function CrmTarefaFormModal({
   isOpen,
   onClose,
-  clientId,
-  clientName,
-  gestorId,
-  availableProdutos,
+  mode = 'client',
+  clientId = '',
+  clientName = '',
+  gestorId: gestorIdProp = '',
+  availableProdutos: availableProdutosProp = [],
   onSuccess,
 }: Props) {
+  const isBoard = mode === 'board';
   const createConfigs = useCreateCrmConfiguracoes();
-  const { data: allClients = [], isLoading: isLoadingClients } = useAllActiveClients();
 
-  const highestProduct = availableProdutos.length > 0 ? getHighestProduct(availableProdutos) : null;
-  const [selected, setSelected] = useState<CrmProduto[]>(highestProduct ? [highestProduct] : []);
+  // Fonte de clientes do combobox depende do modo:
+  //  - board: só clientes Torque CRM (com produtos + gestor embutidos);
+  //  - client: lista ativa mínima (troca de cliente preserva o fluxo do olhinho).
+  // Cada fonte só dispara no modo em que é usada (enabled), sem fetch ocioso.
+  const { data: torqueClients = [], isLoading: isLoadingTorque } = useTorqueCrmClients(isBoard);
+  const { data: allClients = [], isLoading: isLoadingAll } = useAllActiveClients();
+  const { data: crmGestors = [] } = useCrmGestors();
+  const isLoadingClients = isBoard ? isLoadingTorque : isLoadingAll;
+
   const [currentClient, setCurrentClient] = useState<{ id: string; name: string }>(() => ({
     id: clientId,
     name: clientName,
   }));
+  // Gestor escolhido inline (board, cliente sem assigned_crm). Vazio até escolher.
+  const [pickedGestor, setPickedGestor] = useState<string>('');
   const [formData, setFormData] = useState<CrmConfigFormData>(emptyFormData);
+
+  // Cliente Torque CRM selecionado (board) — fonte de produtos + gestor resolvido.
+  const boardClient = useMemo(
+    () => (isBoard ? torqueClients.find(c => c.id === currentClient.id) ?? null : null),
+    [isBoard, torqueClients, currentClient.id],
+  );
+
+  // Produtos disponíveis: FIXOS por prop (client) ou DERIVADOS do cliente (board).
+  const availableProdutos: CrmProduto[] = isBoard ? (boardClient?.produtos ?? []) : availableProdutosProp;
+  const highestProduct = availableProdutos.length > 0 ? getHighestProduct(availableProdutos) : null;
+
+  // Gestor resolvido: assigned_crm do cliente (board) ou prop (client). Quando
+  // ausente em board, cai no seletor inline (pickedGestor).
+  const resolvedAssigned = isBoard ? (boardClient?.assigned_crm ?? null) : (gestorIdProp || null);
+  const effectiveGestorId = resolvedAssigned ?? (isBoard ? (pickedGestor || null) : null);
+
+  const [selected, setSelected] = useState<CrmProduto[]>(highestProduct ? [highestProduct] : []);
 
   const produtosKey = availableProdutos.slice().sort().join(',');
 
+  // Reset ao (re)abrir ou trocar de cliente: limpa form, gestor inline e seleção
+  // de produto (deriva o mais alto). Em board, clientId/'' apenas zera no open.
   useEffect(() => {
     setCurrentClient({ id: clientId, name: clientName });
     setFormData(emptyFormData());
-    const newHighest = availableProdutos.length > 0 ? getHighestProduct(availableProdutos) : null;
+    setPickedGestor('');
+    const newHighest = availableProdutosProp.length > 0 ? getHighestProduct(availableProdutosProp) : null;
     setSelected(newHighest ? [newHighest] : []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientId, clientName, produtosKey]);
+  }, [isOpen, clientId, clientName]);
+
+  // Em board, a seleção de produto segue o cliente escolhido (deriva o mais alto).
+  useEffect(() => {
+    if (!isBoard) return;
+    setSelected(highestProduct ? [highestProduct] : []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isBoard, currentClient.id, produtosKey]);
 
   const clientOptions = useMemo(
     () =>
-      allClients.map(c => ({
-        id: c.id,
-        name: c.name,
-        razao_social: c.razao_social ?? null,
-      })),
-    [allClients],
+      isBoard
+        ? torqueClients.map(c => ({ id: c.id, name: c.name, razao_social: c.razao_social }))
+        : allClients.map(c => ({ id: c.id, name: c.name, razao_social: c.razao_social ?? null })),
+    [isBoard, torqueClients, allClients],
   );
 
   const handleClientChange = (id: string, name: string) => {
     setCurrentClient({ id, name });
+    setPickedGestor(''); // troca de cliente zera o gestor inline pendente
   };
 
   const handleSubmit = async () => {
@@ -109,6 +158,10 @@ export default function CrmTarefaFormModal({
     }
     if (selected.length === 0) {
       toast.error('Selecione ao menos um produto');
+      return;
+    }
+    if (!effectiveGestorId) {
+      toast.error('Selecione o Gestor de CRM');
       return;
     }
     if (!formData.funil) {
@@ -135,7 +188,7 @@ export default function CrmTarefaFormModal({
       await createConfigs.mutateAsync({
         clientId: currentClient.id,
         clientName: currentClient.name,
-        gestorId,
+        gestorId: effectiveGestorId,
         produtos: [finalProduto],
         funil,
         formDataByProduto,
@@ -159,7 +212,9 @@ export default function CrmTarefaFormModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Wand2 size={18} className="text-primary" />
-            Gerar Tarefa — {currentClient.name}
+            {isBoard
+              ? (currentClient.name ? `Brifar tarefa — ${currentClient.name}` : 'Brifar tarefa')
+              : `Gerar Tarefa — ${currentClient.name}`}
           </DialogTitle>
         </DialogHeader>
 
@@ -171,17 +226,42 @@ export default function CrmTarefaFormModal({
               value={currentClient.id}
               onChange={handleClientChange}
               clients={clientOptions}
-              currentFallback={{ id: clientId, name: clientName }}
+              currentFallback={isBoard ? null : { id: clientId, name: clientName }}
               isLoading={isLoadingClients}
               disabled={saving}
-              placeholder="Selecionar cliente…"
-              emptyMessage="Nenhum cliente ativo encontrado."
+              placeholder={isBoard ? 'Selecionar cliente…' : 'Selecionar cliente…'}
+              emptyMessage={isBoard ? 'Nenhum cliente com Torque CRM contratado.' : 'Nenhum cliente ativo encontrado.'}
             />
             <p className="text-[11px] text-muted-foreground">
-              Pré-selecionado a partir do cliente aberto. Troque caso queira gerar a tarefa para outro.
+              {isBoard
+                ? 'Só clientes com Torque CRM contratado aparecem aqui.'
+                : 'Pré-selecionado a partir do cliente aberto. Troque caso queira gerar a tarefa para outro.'}
             </p>
           </div>
 
+          {/* Gestor de CRM — só no modo board. Resolve do cliente; se ausente,
+              seletor inline (atribuído junto ao gerar). Não bloqueia, não manda
+              pro olhinho — self-contained (CONTEXT "Card de implantação"). */}
+          {isBoard && boardClient && (
+            <GestorField
+              resolvedAssigned={resolvedAssigned}
+              gestors={crmGestors}
+              picked={pickedGestor}
+              onPick={setPickedGestor}
+              disabled={saving}
+            />
+          )}
+
+          {/* Em board, sem cliente escolhido ainda: não mostra produto/form.
+              O combobox é o primeiro passo do fluxo. */}
+          {isBoard && !boardClient ? (
+            <div className="rounded-xl border border-dashed border-border/60 bg-muted/5 p-6 text-center">
+              <p className="text-sm text-muted-foreground">
+                Escolha um cliente com Torque CRM para configurar a tarefa.
+              </p>
+            </div>
+          ) : (
+          <>
           {/* Seleção de produtos */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold">Produto a configurar</Label>
@@ -271,12 +351,18 @@ export default function CrmTarefaFormModal({
               </div>
             </div>
           )}
+          </>
+          )}
 
           {/* ========= Submit ========= */}
           <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
             <Button variant="ghost" onClick={onClose} disabled={saving}>Cancelar</Button>
-            <Button onClick={handleSubmit} disabled={saving || selected.length === 0 || !formData.funil} className="gap-2">
-              {saving ? 'Gerando...' : (<><CheckCircle2 size={16} /> Gerar e criar cards</>)}
+            <Button
+              onClick={handleSubmit}
+              disabled={saving || !currentClient.id || selected.length === 0 || !effectiveGestorId || !formData.funil}
+              className="gap-2"
+            >
+              {saving ? 'Gerando...' : (<><CheckCircle2 size={16} /> {isBoard ? 'Brifar tarefa' : 'Gerar e criar cards'}</>)}
             </Button>
           </div>
         </div>
@@ -286,6 +372,71 @@ export default function CrmTarefaFormModal({
 }
 
 // ===================== Subcomponentes =====================
+
+/**
+ * Campo "Gestor de CRM" do modo board. Dois estados:
+ *   - cliente JÁ tem assigned_crm → linha read-only (confirma pra quem briefa).
+ *     Briefar ≠ ser o gestor: mostrar reforça a separação (CONTEXT).
+ *   - cliente SEM gestor → Select inline (lista useCrmGestors). A atribuição
+ *     acontece junto do "Brifar tarefa" (a RPC grava o gestor no card); sem
+ *     botão Atribuir intermediário (passo morto). Borda: nenhum gestor
+ *     cadastrado → erro + submit travado a montante (effectiveGestorId null).
+ */
+function GestorField({
+  resolvedAssigned,
+  gestors,
+  picked,
+  onPick,
+  disabled,
+}: {
+  resolvedAssigned: string | null;
+  gestors: { user_id: string; name: string }[];
+  picked: string;
+  onPick: (id: string) => void;
+  disabled: boolean;
+}) {
+  if (resolvedAssigned) {
+    const name = gestors.find(g => g.user_id === resolvedAssigned)?.name;
+    return (
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <UserCheck size={14} className="text-success shrink-0" />
+        <span>
+          Gestor de CRM: <span className="text-foreground font-medium">{name ?? 'atribuído'}</span>
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-sm font-semibold flex items-center gap-1.5">
+        <UserPlus size={14} className="text-warning" />
+        Gestor de CRM *
+      </Label>
+      {gestors.length === 0 ? (
+        <p className="text-[11px] text-destructive">
+          Nenhum usuário com papel Gestor de CRM cadastrado.
+        </p>
+      ) : (
+        <>
+          <Select value={picked} onValueChange={onPick} disabled={disabled}>
+            <SelectTrigger className="w-full h-9 text-sm">
+              <SelectValue placeholder="Selecionar gestor…" />
+            </SelectTrigger>
+            <SelectContent>
+              {gestors.map(g => (
+                <SelectItem key={g.user_id} value={g.user_id}>{g.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-[11px] text-warning">
+            Cliente sem Gestor de CRM. Escolha um — será atribuído ao brifar.
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
 
 function FieldWrap({ label, children }: { label: string; children: React.ReactNode }) {
   return (
