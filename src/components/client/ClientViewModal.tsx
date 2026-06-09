@@ -45,6 +45,7 @@ import ClientMeetingNotesSection from './ClientMeetingNotesSection';
 import ClientCallFormSection from './ClientCallFormSection';
 import OverdueInvoiceBadge from '@/components/shared/OverdueInvoiceBadge';
 import ClientLabelBadge, { type ClientLabel } from '@/components/shared/ClientLabelBadge';
+import { FunilBadge, FunilReadonlyView } from '@/components/crm/FunilBadge';
 import ClientLabelSelector from '@/components/shared/ClientLabelSelector';
 import { useClientInfo, useClientCallForm, useSaveClientCallForm, useUpdateClientInfo, ClientCallForm } from '@/hooks/useClientCallForm';
 import StrategyBuilderSection from '@/components/strategy/StrategyBuilderSection';
@@ -396,6 +397,7 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
               </div>
               <ClientLabelBadge label={clientInfo?.client_label as ClientLabel} size="sm" />
               <ClientTierBadge clientId={clientId} />
+              <FunilBadge funil={clientInfo?.funil ?? null} size="sm" />
               {mktplaceId && responsibleNames[mktplaceId] && (
                 <Badge
                   variant="outline"
@@ -534,6 +536,12 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
                       <TorqueCRMProductBadges products={(clientInfo as any).torque_crm_products} size="md" />
                     </div>
                   )}
+
+                  {/* ADR 0010 — Funil A/B (read-only). Escolha do Gestor de ADS; aqui só leitura. */}
+                  <div className="mt-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold mb-1.5">Funil de qualificação</p>
+                    <FunilReadonlyView funil={clientInfo?.funil ?? null} />
+                  </div>
                 </div>
               )}
 

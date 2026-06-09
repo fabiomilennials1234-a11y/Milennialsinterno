@@ -292,12 +292,16 @@ export function useCreateCrmConfiguracoes() {
       clientId,
       gestorId,
       produtos,
+      funil,
       formDataByProduto,
     }: {
       clientId: string;
       clientName: string;
       gestorId: string;
       produtos: CrmProduto[];
+      /** ADR 0010 — preset de funil (A|B) gravado atomicamente em clients.funil
+       *  pela RPC. Opcional pra compat; o modal sempre envia. */
+      funil?: 'A' | 'B' | null;
       /** Dados do formulário específicos por produto (JSON livre) */
       formDataByProduto: Partial<Record<CrmProduto, Record<string, unknown>>>;
     }) => {
@@ -328,6 +332,7 @@ export function useCreateCrmConfiguracoes() {
             clientId,
             gestorId,
             produto,
+            funil: funil ?? null,
             formData: formDataByProduto[produto] || {},
           });
 

@@ -83,6 +83,8 @@ export interface ClientInfo {
   paddock_onboarding_step: string | null;
   mktplace_status: string | null;
   torque_crm_products: string[] | null;
+  /** ADR 0010 — preset de funil A/B do CRM. NULL até a primeira geração. */
+  funil: 'A' | 'B' | null;
 }
 
 export function useClientCallForm(clientId: string) {
@@ -108,7 +110,7 @@ export function useClientInfo(clientId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('clients')
-        .select('id, name, niche, expected_investment, general_info, razao_social, cnpj, contracted_products, assigned_ads_manager, assigned_comercial, assigned_mktplace, created_at, client_label, comercial_status, paddock_onboarding_step, mktplace_status, torque_crm_products')
+        .select('id, name, niche, expected_investment, general_info, razao_social, cnpj, contracted_products, assigned_ads_manager, assigned_comercial, assigned_mktplace, created_at, client_label, comercial_status, paddock_onboarding_step, mktplace_status, torque_crm_products, funil')
         .eq('id', clientId)
         .single();
 

@@ -226,6 +226,25 @@ alto. Nasce em **A FAZER** quando o CRM é briefado, anda por uma coluna de tier
 (Torque/Automation/Copilot) conforme o checklist avança, vai para **Apresentação** (agenda data)
 e termina em **Prontos**. **NÃO confundir** com `kanban_cards` nem com o Card Universal de Cliente.
 
+### Funil (A / B) — preset de pipeline escolhido pela estratégia de ADS
+O **funil** de um cliente é qual dos **dois presets de pipeline de qualificação de lead** o CRM
+segue: **Funil A** ou **Funil B**. Não são etapas de campanha de tráfego — são as colunas que o
+lead percorre **dentro do CRM** (Novo Lead → Pré Qualificar → … → Fechado/Perdido).
+
+- **Funil A** e **Funil B** divergem no miolo: A tem ramo de **Automação / Qualificando /
+  Qualificado Quente**; B tem **Cadência / Coletando Informações / Criando Proposta / Agendado**.
+  A escolha é **mutuamente exclusiva** por cliente — um cliente segue um único funil.
+- **Dono da decisão: o Gestor de ADS.** O funil é a tradução, no CRM, da **estratégia de
+  aquisição** que o ADS desenhou. Quem **escolhe** A ou B é o ADS, **no ato de gerar a tarefa do
+  Gestor de CRM** (o seletor vive no modal "Gerar tarefa Gestor de CRM", substituindo o antigo
+  radio `Padrão (14 etapas) / Personalizado`).
+- **CRM executa, não decide**: o Gestor de CRM recebe o pipeline já montado pelo funil escolhido e
+  trabalha as etapas. Não troca o funil.
+- **Visível aos dois lados**: o funil escolhido é atributo do cliente — o ADS o **visualiza** para
+  saber qual jornada o cliente segue; o CRM o executa. Fonte única de escrita: o modal de geração.
+- **NÃO confundir** com o "pipeline personalizado" (escape hatch de etapas livres) nem com o
+  **tier** (Torque/Automation/Copilot, que é outra dimensão — qual produto, não qual funil).
+
 ### Acompanhamento — termo sobrecarregado
 - **Acompanhamento (pós-implantação)**: board da aba **Acompanhamentos**, onde um card do
   cliente entra ao cair em **Prontos**. Colunas: Fazer follow-up / Follow-up feito / Tasks em

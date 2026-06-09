@@ -36,6 +36,8 @@ export interface Client {
   sales_percentage: number;
   entry_date: string | null;
   client_label?: 'otimo' | 'bom' | 'medio' | 'ruim' | null;
+  /** ADR 0010 — preset de funil A/B do CRM (read-only no board do ADS). */
+  funil?: 'A' | 'B' | null;
 }
 
 export interface AdsTask {
@@ -150,7 +152,7 @@ export function useAssignedClients() {
   return useQuery({
     queryKey: ['assigned-clients', effectiveUserId, shouldFilterByManager],
     queryFn: async () => {
-      const selectFields = 'id,name,cnpj,cpf,razao_social,general_info,expected_investment,group_id,squad_id,assigned_ads_manager,status,onboarding_started_at,campaign_published_at,created_at,updated_at,archived,archived_at,sales_percentage,entry_date,client_label,contracted_products,torque_crm_products';
+      const selectFields = 'id,name,cnpj,cpf,razao_social,general_info,expected_investment,group_id,squad_id,assigned_ads_manager,status,onboarding_started_at,campaign_published_at,created_at,updated_at,archived,archived_at,sales_percentage,entry_date,client_label,contracted_products,torque_crm_products,funil';
       let query = supabase
         .from('clients')
         .select(selectFields)

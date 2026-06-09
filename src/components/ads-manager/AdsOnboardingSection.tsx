@@ -12,6 +12,7 @@ import OverdueInvoiceBadge from '@/components/shared/OverdueInvoiceBadge';
 import ContractStatusBadge from '@/components/shared/ContractStatusBadge';
 import ClientLabelBadge, { type ClientLabel } from '@/components/shared/ClientLabelBadge';
 import ClientTagsList, { TAG_TORQUE_BLOQUEADO } from '@/components/client-tags/ClientTagsList';
+import { FunilBadge } from '@/components/crm/FunilBadge';
 
 interface MilestoneCard {
   id: string;
@@ -224,6 +225,12 @@ export default function AdsOnboardingSection() {
                               excludeNames={[TAG_TORQUE_BLOQUEADO]}
                               className="mt-0"
                             />
+
+                            {/* ADR 0010 — funil read-only no milestone criar_estrategia,
+                                onde o ADS pensa a estratégia de aquisição. */}
+                            {card.stepKey === 'criar_estrategia' && (
+                              <FunilBadge funil={(client as { funil?: 'A' | 'B' | null }).funil ?? null} size="sm" />
+                            )}
 
                             <Button
                               size="sm" 

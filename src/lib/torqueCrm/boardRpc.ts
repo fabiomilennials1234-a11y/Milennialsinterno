@@ -28,6 +28,8 @@ export async function gerarCardBoard(params: {
   clientId: string;
   gestorId: string;
   produto: CrmProduto;
+  /** ADR 0010 — preset de funil (A|B) gravado em clients.funil pela RPC. */
+  funil?: "A" | "B" | null;
   formData?: Record<string, unknown>;
 }): Promise<string> {
   const { data, error } = await rpcClient.rpc<string>("torque_board_gerar", {
@@ -35,6 +37,7 @@ export async function gerarCardBoard(params: {
     p_gestor_id: params.gestorId,
     p_produto: params.produto,
     p_form_data: params.formData ?? {},
+    p_funil: params.funil ?? null,
   });
   if (error) throw new Error(error.message);
   return data as string;

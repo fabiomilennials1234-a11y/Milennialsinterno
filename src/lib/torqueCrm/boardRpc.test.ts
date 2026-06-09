@@ -22,7 +22,7 @@ const CONFIG = "22222222-2222-2222-2222-222222222222";
 const GESTOR = "33333333-3333-3333-3333-333333333333";
 
 describe("gerarCardBoard", () => {
-  it("chama torque_board_gerar com o contrato (p_client_id/p_gestor_id/p_produto/p_form_data)", async () => {
+  it("chama torque_board_gerar com o contrato (p_client_id/p_gestor_id/p_produto/p_form_data/p_funil)", async () => {
     rpc.mockResolvedValue({ data: CONFIG, error: null });
     await gerarCardBoard({ clientId: CLIENT, gestorId: GESTOR, produto: "torque" });
     expect(rpc).toHaveBeenCalledWith("torque_board_gerar", {
@@ -30,6 +30,8 @@ describe("gerarCardBoard", () => {
       p_gestor_id: GESTOR,
       p_produto: "torque",
       p_form_data: {},
+      // ADR 0010 — funil é parte do contrato; ausente vira null (não apaga funil existente no DB).
+      p_funil: null,
     });
   });
 
@@ -41,6 +43,15 @@ describe("gerarCardBoard", () => {
     });
     expect(rpc).toHaveBeenCalledWith("torque_board_gerar",
       expect.objectContaining({ p_produto: "automation", p_form_data: { foo: "bar" } }));
+  });
+
+  it("encaminha o funil (A|B) como p_funil quando informado (ADR 0010)", async () => {
+    rpc.mockResolvedValue({ data: CONFIG, error: null });
+    await gerarCardBoard({
+      clientId: CLIENT, gestorId: GESTOR, produto: "torque", funil: "B",
+    });
+    expect(rpc).toHaveBeenCalledWith("torque_board_gerar",
+      expect.objectContaining({ p_funil: "B" }));
   });
 
   it("retorna o id do card criado", async () => {
