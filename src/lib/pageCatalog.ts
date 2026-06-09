@@ -20,6 +20,7 @@ export const ALL_PAGES = [
   { id: 'cliente-list', label: 'Lista de Clientes', icon: '📝' },
   { id: 'cadastro-clientes', label: 'Cadastro de Clientes', icon: '➕' },
   { id: 'upsells', label: 'UP Sells', icon: '📈' },
+  { id: 'concessoes', label: 'Concessões', icon: '🫶' },
   { id: 'comissoes', label: 'Comissões', icon: '💵' },
 ] as const;
 

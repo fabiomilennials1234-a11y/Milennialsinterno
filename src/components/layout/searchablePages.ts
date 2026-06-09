@@ -55,6 +55,7 @@ export const SEARCHABLE_PAGES: readonly SearchablePage[] = [
   { path: '/upsells', label: 'UP Sells', category: 'Financeiro' },
   { path: '/comissoes', label: 'Comissões', category: 'Financeiro' },
   { path: '/provas-sociais', label: 'Provas Sociais', category: 'Vendas' },
+  { path: '/concessoes', label: 'Concessões', category: 'Vendas', allowedRoles: ['sucesso_cliente'] },
   { path: '/financeiro-dashboard', label: 'Financeiro Dashboard', category: 'Financeiro' },
   { path: '/treinamentos', label: 'Treinamentos', category: 'Outros' },
   { path: '/admin/usuarios', label: 'Gestão de Usuários', category: 'Admin' },

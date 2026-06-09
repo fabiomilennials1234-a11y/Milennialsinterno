@@ -28,6 +28,7 @@ export const ROUTE_GUARDS_BY_PATH: Record<string, UserRole[]> = {
   '/design': getRolesAllowedForPath('/design'),
   '/devs': getRolesAllowedForPath('/devs'),
   '/rh': getRolesAllowedForPath('/rh'),
+  '/concessoes': getRolesAllowedForPath('/concessoes'),
 };
 
 /**

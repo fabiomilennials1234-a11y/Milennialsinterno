@@ -62,6 +62,7 @@ const PublicCycleReportPage = lazy(() => import("./pages/PublicCycleReportPage")
 const PublicClientNpsPage = lazy(() => import("./pages/PublicClientNpsPage"));
 const PublicManagementReportPage = lazy(() => import("./pages/PublicManagementReportPage"));
 const UpsellsPage = lazy(() => import("./pages/UpsellsPage"));
+const ConcessoesPage = lazy(() => import("./pages/ConcessoesPage"));
 const ComissoesPage = lazy(() => import("./pages/ComissoesPage"));
 const ProvasSociaisPage = lazy(() => import("./pages/ProvasSociaisPage"));
 const DashGestoresPage = lazy(() => import("./pages/DashGestoresPage"));
@@ -473,6 +474,13 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
       
+      {/* Concessões Route - CS e Admins (ADR 0009). Guard canônico por página. */}
+      <Route path="/concessoes" element={
+        <PageAccessRoute pageSlug="concessoes" fallbackRoles={getRouteGuardRoles('/concessoes')}>
+          <ConcessoesPage />
+        </PageAccessRoute>
+      } />
+
       {/* Comissões Route - Financeiro and Admins */}
       <Route path="/comissoes" element={
         <ProtectedRoute>
