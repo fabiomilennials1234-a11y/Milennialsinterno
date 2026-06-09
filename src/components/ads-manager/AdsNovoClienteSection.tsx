@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { useAssignedClients } from '@/hooks/useAdsManager';
+import { useState, useMemo } from 'react';
+import { useAssignedClients, useClientOnboarding } from '@/hooks/useAdsManager';
+import { getOnboardingClientIds, type OnboardingRecord } from '@/lib/adsOnboarding/onboardingMembership';
 import { useOnboardingTasks, getDaysSinceCreation, TASK_TYPE_LABELS } from '@/hooks/useOnboardingTasks';
 import { useAutoCreateTaskForNewClients } from '@/hooks/useOnboardingAutomation';
 import { UserPlus, ArrowRight, Clock, Building2, Timer, CheckCircle, Target, Eye } from 'lucide-react';
@@ -19,13 +20,23 @@ import { useClientTagsBatch } from '@/hooks/useClientTags';
 export default function AdsNovoClienteSection() {
   const { data: clients = [], isLoading: clientsLoading, error: clientsError } = useAssignedClients();
   const { data: tasks = [], isLoading: tasksLoading } = useOnboardingTasks();
+  // Onboarding é a fonte da verdade: "Novo Cliente" = new_client MENOS quem
+  // já renderiza num card de milestone do Onboarding. Sem isso, todo new_client
+  // (que recebe backfill de milestone 2 / dar_boas_vindas) aparecia nas DUAS colunas.
+  const { data: onboardingData = [], isLoading: onboardingLoading } = useClientOnboarding();
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
 
   // Auto-create tasks for new clients
   useAutoCreateTaskForNewClients(clients);
 
-  // Filter new clients and get their pending tasks
-  const newClients = clients.filter(c => c.status === 'new_client');
+  // Subtrai o conjunto que renderiza no Onboarding (predicado compartilhado).
+  const onboardingClientIds = useMemo(
+    () => getOnboardingClientIds(clients, (onboardingData as unknown as OnboardingRecord[]) ?? []),
+    [clients, onboardingData],
+  );
+  const newClients = clients.filter(
+    c => c.status === 'new_client' && !onboardingClientIds.has(c.id),
+  );
 
   // Tags batch — 1 query pra todos os cards visíveis (evita N+1).
   const { data: tagsByClient } = useClientTagsBatch(newClients.map(c => c.id));
@@ -33,7 +44,9 @@ export default function AdsNovoClienteSection() {
   // Get pending tasks for display (carregam em paralelo; clientes aparecem primeiro)
   const pendingTasks = tasks.filter(t => t.status === 'pending');
 
-  if (clientsLoading) {
+  // Segura o render enquanto clientes OU onboarding ainda carregam — sem o
+  // conjunto de onboarding não dá pra subtrair, e mostrar antes pisca duplicata.
+  if (clientsLoading || onboardingLoading) {
     return (
       <div className="space-y-2">
         {[1, 2, 3].map(i => (

@@ -13,81 +13,8 @@ import ContractStatusBadge from '@/components/shared/ContractStatusBadge';
 import ClientLabelBadge, { type ClientLabel } from '@/components/shared/ClientLabelBadge';
 import ClientTagsList, { TAG_TORQUE_BLOQUEADO } from '@/components/client-tags/ClientTagsList';
 import { FunilBadge } from '@/components/crm/FunilBadge';
-
-interface MilestoneCard {
-  id: string;
-  title: string;
-  clientName?: string;
-  description?: string;
-  daysInMilestone?: number;
-  taskId?: string;
-  taskType?: string;
-  isInstructionCard?: boolean;
-  stepKey?: string;
-}
-
-// Conteúdo de instrução para cards especiais
-const INSTRUCTION_CARD_CONTENT: Record<string, string> = {
-  'm2-5': `**O que enviar junto a estratégia? (Usar a exata ordem):**
-
-LEMBRE: ANEXE NA DESCRICAO TUDO A BAIXO NO GRUPO DO CLIENTE.
-
-Segue as copys para aprovar.
-
-[COPY ANUNCIOS]
-[COPY LP OU SITE INSTITUCIONAL]
-PDF do Marco
-Link do mapa mental: [Link]
-[AUDIO Lembrando que ele precisa aprovar o material]`,
-  'm3-2': `**IMPORTANTE -- NAO ESQUECER**
-
-Apos brifar os criativos, avisar o cliente que os materiais ja foram brifados e informar o prazo de entrega previsto (Data X).`,
-};
-
-// Mapeamento de step para card ID
-const STEP_TO_CARD_ID: Record<string, string> = {
-  'dar_boas_vindas': 'm2-1',
-  'criar_estrategia': 'm2-2',
-  'marcar_apresentacao_estrategia': 'm2-3',
-  'realizar_apresentacao_estrategia': 'm2-4',
-  'brifar_criativos': 'm3-1',
-  'criativos_brifados': 'm3-2',
-  'elencar_otimizacoes': 'm4-1',
-  'configurar_conta_anuncios': 'm5-1',
-  'marcar_call_apresentacao_torque': 'm5-2',
-  'esperando_criativos': 'm5-3',
-};
-
-// Estrutura dos Marcos conforme especificado
-// Marco 1 (Call #1) removido — Call 1 agora e responsabilidade do GP
-const MILESTONE_CARDS: Record<number, MilestoneCard[]> = {
-  2: [
-    { id: 'm2-1', title: 'Dar Boas Vindas', stepKey: 'dar_boas_vindas' },
-    { id: 'm2-2', title: 'Criar Estratégia', stepKey: 'criar_estrategia' },
-    { id: 'm2-3', title: 'Marcar Apresentação Estratégia', stepKey: 'marcar_apresentacao_estrategia' },
-    { id: 'm2-4', title: 'Realizar Apresentação Estratégia', stepKey: 'realizar_apresentacao_estrategia' },
-    { id: 'm2-5', title: 'Estratégia Apresentada [LER ESSE CARD]', isInstructionCard: true },
-  ],
-  3: [
-    { id: 'm3-1', title: 'Brifar Criativos', stepKey: 'brifar_criativos' },
-    { id: 'm3-2', title: '[3] Criativos Brifados [LER ESSE CARD]', isInstructionCard: true, stepKey: 'criativos_brifados' },
-  ],
-  4: [
-    { id: 'm4-1', title: 'Elencar Otimizações Pendentes', stepKey: 'elencar_otimizacoes' },
-  ],
-  5: [
-    { id: 'm5-1', title: 'Configurar Conta de Anúncios', stepKey: 'configurar_conta_anuncios' },
-    { id: 'm5-2', title: 'Marcar Call Apresentação Torque', stepKey: 'marcar_call_apresentacao_torque' },
-    { id: 'm5-3', title: 'Publicar campanha', stepKey: 'esperando_criativos' },
-  ],
-};
-
-const MILESTONES = [
-  { number: 2, title: 'Estratégia PRO+ [Marco 2]', maxDays: 7, emoji: '2️⃣', color: 'bg-purple', borderColor: 'border-l-purple' },
-  { number: 3, title: 'Criativos PRO+ [Marco 3]', maxDays: 5, emoji: '3️⃣', color: 'bg-success', borderColor: 'border-l-success' },
-  { number: 4, title: 'Otimizações PRO+ [Marco 4]', maxDays: 6, emoji: '4️⃣', color: 'bg-warning', borderColor: 'border-l-warning' },
-  { number: 5, title: 'Início [Marco 5]', maxDays: 14, emoji: '5️⃣', color: 'bg-primary', borderColor: 'border-l-primary' },
-];
+import { MILESTONE_CARDS, MILESTONES, type MilestoneCard } from '@/lib/adsOnboarding/milestones';
+import { clientRendersInOnboarding, type OnboardingRecord } from '@/lib/adsOnboarding/onboardingMembership';
 
 export default function AdsOnboardingSection() {
   const { data: clients = [] } = useAssignedClients();
@@ -99,15 +26,17 @@ export default function AdsOnboardingSection() {
   const [isInstructionModalOpen, setIsInstructionModalOpen] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
 
-  // Retorna clientes que estão em um step específico dentro de um milestone
+  // Retorna clientes que estão em um step específico dentro de um milestone.
+  // Membership ("renders in onboarding?") delega ao predicado compartilhado
+  // — a mesma fonte da verdade que AdsNovoClienteSection usa para subtrair,
+  // garantindo exclusão mútua entre as duas colunas.
   const getClientsForStep = (stepKey: string, milestoneNumber: number) => {
+    const records = (onboardingData as unknown as OnboardingRecord[]) ?? [];
     return clients.filter(client => {
-      // Aceitar clientes em onboarding ou new_client (que já iniciaram processo)
-      if (client.status !== 'onboarding' && client.status !== 'new_client') return false;
-      const onboarding = onboardingData.find((o: any) => o.client_id === client.id);
-      if (!onboarding) return false;
-      const clientMilestone = onboarding.current_milestone || 1;
-      const clientStep = onboarding.current_step;
+      if (!clientRendersInOnboarding(client, records)) return false;
+      const onboarding = records.find(o => o.client_id === client.id);
+      const clientMilestone = onboarding?.current_milestone || 1;
+      const clientStep = onboarding?.current_step;
       return clientMilestone === milestoneNumber && clientStep === stepKey;
     });
   };
