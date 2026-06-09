@@ -22,6 +22,8 @@ import { cn } from '@/lib/utils';
 import { classifyExpiry, countExpiringSoon } from '@/lib/concessaoExpiry';
 import { useConcessoes, type Concessao, type ConcessaoMotivo, type ConcessaoStatus } from '@/hooks/useConcessoes';
 import { getAnyProductName } from '@/components/shared/ProductBadges';
+import { RevogarConcessaoDialog } from '@/components/concessao/RevogarConcessaoDialog';
+import { ConverterConcessaoModal } from '@/components/concessao/ConverterConcessaoModal';
 
 const MOTIVO_LABEL: Record<ConcessaoMotivo, string> = {
   risco_churn: 'Risco de churn',
@@ -96,6 +98,8 @@ export default function ConcessoesPage() {
   const { data: concessoes = [], isLoading } = useConcessoes();
   const [statusFilter, setStatusFilter] = useState<ConcessaoStatus | 'all'>('all');
   const [motivoFilter, setMotivoFilter] = useState<ConcessaoMotivo | 'all'>('all');
+  const [revogarTarget, setRevogarTarget] = useState<Concessao | null>(null);
+  const [converterTarget, setConverterTarget] = useState<Concessao | null>(null);
 
   const filtered = useMemo(() => {
     return concessoes.filter((c) => {
@@ -249,16 +253,21 @@ export default function ConcessoesPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        {/* Comportamento em slices futuros (#150/#151). Desabilitado por ora. */}
-                        <DropdownMenuItem disabled>
+                        {/* Só concessões ativas têm transição: convertida/revogada são terminais. */}
+                        <DropdownMenuItem
+                          disabled={c.status !== 'ativa'}
+                          onClick={() => setConverterTarget(c)}
+                        >
                           <RotateCcw className="h-4 w-4 mr-2" aria-hidden="true" />
                           Converter em pago
-                          <span className="ml-auto text-[10px] text-muted-foreground">em breve</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem disabled>
+                        <DropdownMenuItem
+                          disabled={c.status !== 'ativa'}
+                          onClick={() => setRevogarTarget(c)}
+                          className="text-destructive focus:text-destructive"
+                        >
                           <Ban className="h-4 w-4 mr-2" aria-hidden="true" />
                           Revogar
-                          <span className="ml-auto text-[10px] text-muted-foreground">em breve</span>
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -269,6 +278,17 @@ export default function ConcessoesPage() {
           </div>
         )}
       </div>
+
+      <RevogarConcessaoDialog
+        open={!!revogarTarget}
+        onOpenChange={(open) => !open && setRevogarTarget(null)}
+        concessao={revogarTarget}
+      />
+      <ConverterConcessaoModal
+        open={!!converterTarget}
+        onOpenChange={(open) => !open && setConverterTarget(null)}
+        concessao={converterTarget}
+      />
     </MainLayout>
   );
 }

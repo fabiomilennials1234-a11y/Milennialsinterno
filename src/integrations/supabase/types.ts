@@ -3008,6 +3008,7 @@ export type Database = {
         Row: {
           client_id: string
           contract_expires_at: string | null
+          converted_to_upsell_id: string | null
           created_at: string
           granted_by: string
           granted_by_name: string
@@ -3016,12 +3017,15 @@ export type Database = {
           motivo: Database["public"]["Enums"]["concessao_motivo"]
           product_name: string
           product_slug: string
+          revoked_at: string | null
+          revoked_by: string | null
           status: Database["public"]["Enums"]["concessao_status"]
           updated_at: string
         }
         Insert: {
           client_id: string
           contract_expires_at?: string | null
+          converted_to_upsell_id?: string | null
           created_at?: string
           granted_by: string
           granted_by_name: string
@@ -3030,12 +3034,15 @@ export type Database = {
           motivo: Database["public"]["Enums"]["concessao_motivo"]
           product_name: string
           product_slug: string
+          revoked_at?: string | null
+          revoked_by?: string | null
           status?: Database["public"]["Enums"]["concessao_status"]
           updated_at?: string
         }
         Update: {
           client_id?: string
           contract_expires_at?: string | null
+          converted_to_upsell_id?: string | null
           created_at?: string
           granted_by?: string
           granted_by_name?: string
@@ -3044,6 +3051,8 @@ export type Database = {
           motivo?: Database["public"]["Enums"]["concessao_motivo"]
           product_name?: string
           product_slug?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
           status?: Database["public"]["Enums"]["concessao_status"]
           updated_at?: string
         }
@@ -10095,6 +10104,14 @@ export type Database = {
         }
         Returns: string
       }
+      converter_concessao: {
+        Args: {
+          p_concessao_id: string
+          p_monthly_value: number
+          p_sold_by: string
+        }
+        Returns: string
+      }
       create_client_with_automations: {
         Args: { p_idempotency_key?: string; p_payload: Json }
         Returns: Json
@@ -10601,6 +10618,10 @@ export type Database = {
           _reason: string
         }
         Returns: Json
+      }
+      revogar_concessao: {
+        Args: { p_concessao_id: string; p_revoke_reason?: string }
+        Returns: string
       }
       revoke_page: {
         Args: { _page_slug: string; _reason?: string; _user_id: string }

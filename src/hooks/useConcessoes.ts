@@ -63,3 +63,72 @@ export function useConcederProduto() {
     },
   });
 }
+
+export interface RevogarConcessaoInput {
+  concessaoId: string;
+  clientId: string;
+  /** Motivo livre da revogação (auditoria). Opcional. */
+  revokeReason?: string | null;
+}
+
+// Revoga via RPC revogar_concessao — ÚNICA porta de revogação (contract-only, ADR
+// 0004). NUNCA from('concessoes').update(). A RPC arquiva o card de entrega e
+// remove o produto do cliente atomicamente.
+export function useRevogarConcessao() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: RevogarConcessaoInput): Promise<string> => {
+      const { data, error } = await supabase.rpc('revogar_concessao', {
+        p_concessao_id: input.concessaoId,
+        p_revoke_reason: input.revokeReason ?? undefined,
+      });
+
+      if (error) throw error;
+      return data as string;
+    },
+    onSuccess: (_id, input) => {
+      queryClient.invalidateQueries({ queryKey: ['concessoes'] });
+      queryClient.invalidateQueries({ queryKey: ['client-info', input.clientId] });
+      queryClient.invalidateQueries({ queryKey: ['clients-with-sales'] });
+      queryClient.invalidateQueries({ queryKey: ['financeiro-active-clients'] });
+    },
+  });
+}
+
+export interface ConverterConcessaoInput {
+  concessaoId: string;
+  clientId: string;
+  monthlyValue: number;
+  /** CS que recebe a comissão (p_sold_by da RPC). */
+  csUserId: string;
+}
+
+// Converte via RPC converter_concessao — ÚNICA porta de conversão (contract-only,
+// ADR 0004). Encerra a cortesia: gera comissão, entra no MRR. NUNCA
+// from('concessoes').update(). O produto já entregue não é recriado.
+export function useConverterConcessao() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: ConverterConcessaoInput): Promise<string> => {
+      const { data, error } = await supabase.rpc('converter_concessao', {
+        p_concessao_id: input.concessaoId,
+        p_monthly_value: input.monthlyValue,
+        p_sold_by: input.csUserId,
+      });
+
+      if (error) throw error;
+      return data as string;
+    },
+    onSuccess: (_id, input) => {
+      queryClient.invalidateQueries({ queryKey: ['concessoes'] });
+      queryClient.invalidateQueries({ queryKey: ['upsells'] });
+      queryClient.invalidateQueries({ queryKey: ['upsell-commissions'] });
+      queryClient.invalidateQueries({ queryKey: ['mrr-changes'] });
+      queryClient.invalidateQueries({ queryKey: ['financeiro-active-clients'] });
+      queryClient.invalidateQueries({ queryKey: ['clients-with-sales'] });
+      queryClient.invalidateQueries({ queryKey: ['client-info', input.clientId] });
+    },
+  });
+}
