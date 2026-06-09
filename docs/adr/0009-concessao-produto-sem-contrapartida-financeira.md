@@ -76,10 +76,22 @@ a revisitar "ainda vale dar de graça?").
 
 ### 5. Superfície de UI
 
-- **Conceder** — no **Card Universal do cliente** (`ClientViewModal`): ato contextual, onde a
-  decisão de retenção nasce.
+- **Conceder** — na **página de Upsell (`/upsells`)**, com **seleção de cliente** (cliente é o
+  primeiro campo; produto/motivo derivam dele). Botão âmbar secundário ao CTA de venda, gated a
+  `admin`/CEO/`sucesso_cliente`.
 - **Gerenciar** (listar, revogar, converter) — **página própria "Concessões"**: portfólio de
   margem concedida para CS/admin (visão agregada de governança).
+
+> **Nota de revisão (2026-06-08).** A superfície de **Conceder** mudou: saiu do **Card Universal
+> do cliente** (`ClientViewModal`) e foi para a **página de Upsell (`/upsells`)**, com seleção de
+> cliente. Motivo: o gesto de *anexar-produto* convive melhor na área de Upsell (mesmo eixo mental:
+> "que produto a mais este cliente recebe"). A **distinção concessão × venda permanece intacta** —
+> botão, modal, cor (âmbar vs esmeralda) e vocabulário ("conceder", nunca "vender"/"upsell") são
+> separados, mesmo compartilhando a página. Implementação: `ConcederProdutoUpsellsModal`
+> (standalone, seleção de cliente) substitui o par `ConcederProdutoSection` + modal prop-driven,
+> ambos removidos. Gating de UI espelha exato o `canSetClientLabel` que gateava no card; a RPC
+> `conceder_produto` segue re-checando server-side (defesa em profundidade). RPC e modelo de dados
+> **não mudaram** — só a superfície.
 
 ### 6. Propriedade de módulo
 

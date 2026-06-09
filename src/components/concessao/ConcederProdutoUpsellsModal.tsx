@@ -5,17 +5,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PRODUCT_CONFIG, UPSELL_ONLY_PRODUCT_CONFIG } from '@/components/shared/ProductBadges';
+import { useClientsWithSales } from '@/hooks/useClientList';
 import { useConcederProduto, type ConcessaoMotivo } from '@/hooks/useConcessoes';
-import { HandHeart, CalendarClock, Loader2, AlertTriangle } from 'lucide-react';
+import { HandHeart, CalendarClock, Loader2, AlertTriangle, User } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface ConcederProdutoModalProps {
+interface ConcederProdutoUpsellsModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  clientId: string;
-  clientName: string;
-  contractedProducts: string[];
-  torqueCrmProducts?: string[];
 }
 
 const MOTIVO_OPTIONS: { value: ConcessaoMotivo; label: string }[] = [
@@ -25,36 +22,49 @@ const MOTIVO_OPTIONS: { value: ConcessaoMotivo; label: string }[] = [
   { value: 'cortesia_estrategica', label: 'Cortesia estratégica' },
 ];
 
-export function ConcederProdutoModal({
-  open,
-  onOpenChange,
-  clientId,
-  clientName,
-  contractedProducts,
-  torqueCrmProducts,
-}: ConcederProdutoModalProps) {
+/**
+ * Variante standalone do ConcederProdutoModal para a página /upsells.
+ *
+ * Diferença estrutural do ConcederProdutoModal (prop-driven, lançado do Card
+ * Universal): aqui não há contexto de cliente. O cliente é o PRIMEIRO campo —
+ * tudo abaixo (produto) deriva da escolha dele. Espelha o select de cliente do
+ * CreateUpsellModal (ícone User, label "Cliente"), mas mantém integralmente a
+ * paleta/copy/intenção do fluxo de Concessão (âmbar, HandHeart, sem receita).
+ *
+ * Gating de QUEM pode conceder é re-checado server-side na RPC conceder_produto.
+ */
+export function ConcederProdutoUpsellsModal({ open, onOpenChange }: ConcederProdutoUpsellsModalProps) {
+  const [clientId, setClientId] = useState('');
   const [productSlug, setProductSlug] = useState('');
   const [motivo, setMotivo] = useState<ConcessaoMotivo | ''>('');
   const [reviewDate, setReviewDate] = useState('');
 
+  const { data: clients = [], isLoading: isLoadingClients } = useClientsWithSales();
   const concederProduto = useConcederProduto();
 
-  // Catálogo principal + sub-produtos Torque CRM, removendo o que o cliente já tem.
-  // Mesma lógica do CreateUpsellModal (linhas 78-87) — duplicada de propósito (~8
-  // linhas; não vale extrair). torque-crm-<sub> mapeia para o tier <sub>.
-  const clientTorqueSubs = torqueCrmProducts || [];
+  // Mesma regra do CreateUpsellModal: só clientes ativos.
+  const activeClients = clients.filter((c) => !c.archived && c.status !== 'churned');
+
+  const selectedClient = activeClients.find((c) => c.id === clientId);
+  const clientName = selectedClient?.name ?? '';
+  const clientProducts = selectedClient?.contracted_products || [];
+  const clientTorqueSubs =
+    (selectedClient as { torque_crm_products?: string[] } | undefined)?.torque_crm_products || [];
+
+  // Catálogo principal + sub-produtos Torque CRM, removendo o que o cliente já
+  // tem. Mesma lógica do CreateUpsellModal/ConcederProdutoModal — torque-crm-<sub>
+  // mapeia para o tier <sub>.
   const catalogProducts = Object.entries(PRODUCT_CONFIG).filter(
-    ([slug]) => !contractedProducts.includes(slug)
+    ([slug]) => !clientProducts.includes(slug)
   );
-  const torqueSubProducts = Object.entries(UPSELL_ONLY_PRODUCT_CONFIG).filter(
-    ([slug]) => {
-      const sub = slug.replace('torque-crm-', '');
-      return !clientTorqueSubs.includes(sub);
-    }
-  );
+  const torqueSubProducts = Object.entries(UPSELL_ONLY_PRODUCT_CONFIG).filter(([slug]) => {
+    const sub = slug.replace('torque-crm-', '');
+    return !clientTorqueSubs.includes(sub);
+  });
   const availableProducts = [...catalogProducts, ...torqueSubProducts];
 
   const resetForm = () => {
+    setClientId('');
     setProductSlug('');
     setMotivo('');
     setReviewDate('');
@@ -65,8 +75,14 @@ export function ConcederProdutoModal({
     onOpenChange(next);
   };
 
+  // Trocar de cliente invalida o produto escolhido (catálogo disponível muda).
+  const handleClientChange = (next: string) => {
+    setClientId(next);
+    setProductSlug('');
+  };
+
   const handleSubmit = async () => {
-    if (!productSlug || !motivo) return;
+    if (!clientId || !productSlug || !motivo) return;
 
     const productName =
       PRODUCT_CONFIG[productSlug]?.name ||
@@ -105,6 +121,8 @@ export function ConcederProdutoModal({
     }
   };
 
+  const noProductsAvailable = !!clientId && availableProducts.length === 0;
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
@@ -114,8 +132,8 @@ export function ConcederProdutoModal({
             Conceder produto
           </DialogTitle>
           <DialogDescription>
-            {clientName} recebe este produto sem custo. Registramos o motivo para auditoria — nada de
-            receita ou comissão é gerado.
+            Anexa um produto a um cliente sem custo, como alavanca de retenção. Registramos o motivo
+            para auditoria — nada de receita ou comissão é gerado.
           </DialogDescription>
         </DialogHeader>
 
@@ -131,15 +149,47 @@ export function ConcederProdutoModal({
             </p>
           </div>
 
-          {/* Produto */}
+          {/* Cliente — primeiro campo. Tudo abaixo deriva daqui. */}
           <div className="space-y-2">
-            <Label>Produto</Label>
-            <Select value={productSlug} onValueChange={setProductSlug}>
+            <Label className="flex items-center gap-2">
+              <User className="h-4 w-4" aria-hidden="true" />
+              Cliente
+            </Label>
+            <Select value={clientId} onValueChange={handleClientChange}>
               <SelectTrigger>
-                <SelectValue placeholder="Selecione o produto a conceder" />
+                <SelectValue placeholder="Selecione o cliente" />
               </SelectTrigger>
               <SelectContent>
-                {availableProducts.length === 0 ? (
+                {isLoadingClients ? (
+                  <SelectItem value="loading" disabled>
+                    Carregando…
+                  </SelectItem>
+                ) : activeClients.length === 0 ? (
+                  <SelectItem value="none" disabled>
+                    Nenhum cliente ativo
+                  </SelectItem>
+                ) : (
+                  activeClients.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.name}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Produto — disabled até cliente escolhido. */}
+          <div className="space-y-2">
+            <Label>Produto</Label>
+            <Select value={productSlug} onValueChange={setProductSlug} disabled={!clientId}>
+              <SelectTrigger>
+                <SelectValue
+                  placeholder={clientId ? 'Selecione o produto a conceder' : 'Selecione um cliente primeiro'}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {noProductsAvailable ? (
                   <SelectItem value="none" disabled>
                     Este cliente já possui todos os produtos
                   </SelectItem>
@@ -152,12 +202,17 @@ export function ConcederProdutoModal({
                 )}
               </SelectContent>
             </Select>
+            {noProductsAvailable && (
+              <p className="text-xs text-muted-foreground">
+                Este cliente já possui todos os produtos. Não há nada a conceder.
+              </p>
+            )}
           </div>
 
           {/* Motivo */}
           <div className="space-y-2">
             <Label>Motivo</Label>
-            <Select value={motivo} onValueChange={(v) => setMotivo(v as ConcessaoMotivo)}>
+            <Select value={motivo} onValueChange={(v) => setMotivo(v as ConcessaoMotivo)} disabled={!clientId}>
               <SelectTrigger>
                 <SelectValue placeholder="Por que estamos concedendo?" />
               </SelectTrigger>
@@ -182,6 +237,7 @@ export function ConcederProdutoModal({
               type="date"
               value={reviewDate}
               onChange={(e) => setReviewDate(e.target.value)}
+              disabled={!clientId}
             />
             <p className="text-xs text-muted-foreground">
               Força revisitar se ainda vale conceder. Deixe em branco para concessão sem prazo.
@@ -195,7 +251,7 @@ export function ConcederProdutoModal({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={!productSlug || !motivo || concederProduto.isPending}
+            disabled={!clientId || !productSlug || !motivo || concederProduto.isPending}
             className="bg-amber-600 text-white hover:bg-amber-700"
           >
             {concederProduto.isPending ? (

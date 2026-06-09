@@ -4,20 +4,23 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
-  TrendingUp, 
-  Plus, 
-  DollarSign, 
-  Package, 
+  TrendingUp,
+  Plus,
+  DollarSign,
+  Package,
   User,
   CheckCircle2,
   Clock,
   XCircle,
   ChevronLeft,
   ChevronRight,
-  Calendar
+  Calendar,
+  HandHeart
 } from 'lucide-react';
 import { useUpsells, useUpdateUpsellStatus } from '@/hooks/useUpsells';
 import { CreateUpsellModal } from '@/components/upsells/CreateUpsellModal';
+import { ConcederProdutoUpsellsModal } from '@/components/concessao/ConcederProdutoUpsellsModal';
+import { useAuth } from '@/contexts/AuthContext';
 import { PRODUCT_CONFIG } from '@/components/shared/ProductBadges';
 import { format, addMonths, subMonths, isSameMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -25,9 +28,17 @@ import MainLayout from '@/layouts/MainLayout';
 
 export default function UpsellsPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isConcederModalOpen, setIsConcederModalOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const { data: upsells = [], isLoading } = useUpsells();
   const updateStatus = useUpdateUpsellStatus();
+
+  // /upsells é só ProtectedRoute (qualquer autenticado entra), então este gate é
+  // a ÚNICA barreira de UI para o ato de conceder — espelha exato o canSetClientLabel
+  // que gateava o gesto no Card Universal. A RPC conceder_produto re-checa
+  // server-side (42501): defesa em profundidade, não a primeira linha.
+  const { user, isAdminUser, isCEO } = useAuth();
+  const canConceder = isCEO || isAdminUser || user?.role === 'sucesso_cliente';
 
   // Filter upsells by selected month
   const filteredUpsells = useMemo(() => {
@@ -81,7 +92,7 @@ export default function UpsellsPage() {
     <MainLayout>
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <TrendingUp className="h-6 w-6 text-emerald-500" />
@@ -91,7 +102,7 @@ export default function UpsellsPage() {
             Registre vendas adicionais para clientes existentes
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {/* Month Selector */}
           <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-1">
             <Button
@@ -119,7 +130,20 @@ export default function UpsellsPage() {
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
-          <Button 
+          {/* Conceder — gesto de retenção (âmbar, sem receita). Secundário ao CTA
+              de venda: outline tingido, fica à esquerda para não disputar a posição
+              de ação primária (extrema direita). Só para admin/CEO/CS. */}
+          {canConceder && (
+            <Button
+              variant="outline"
+              onClick={() => setIsConcederModalOpen(true)}
+              className="gap-1.5 border-amber-500/30 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 hover:text-amber-600 dark:text-amber-500 dark:hover:text-amber-500"
+            >
+              <HandHeart className="h-4 w-4" />
+              Conceder produto
+            </Button>
+          )}
+          <Button
             onClick={() => setIsCreateModalOpen(true)}
             className="bg-emerald-600 hover:bg-emerald-700"
           >
@@ -298,10 +322,19 @@ export default function UpsellsPage() {
       </Card>
 
       {/* Create Modal */}
-      <CreateUpsellModal 
-        open={isCreateModalOpen} 
-        onOpenChange={setIsCreateModalOpen} 
+      <CreateUpsellModal
+        open={isCreateModalOpen}
+        onOpenChange={setIsCreateModalOpen}
       />
+
+      {/* Conceder Modal — fluxo de retenção, vocabulário sem venda. Montado só
+          para quem pode conceder (mesmo gate do botão). */}
+      {canConceder && (
+        <ConcederProdutoUpsellsModal
+          open={isConcederModalOpen}
+          onOpenChange={setIsConcederModalOpen}
+        />
+      )}
     </div>
     </MainLayout>
   );
