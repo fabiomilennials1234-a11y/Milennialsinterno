@@ -212,6 +212,10 @@ export const ROLE_PAGE_MATRIX: RolePageMatrix = {
       pageSlug: 'upsells',
       proPlusRoute: { path: '/upsells', label: 'UP Sells' },
     },
+    {
+      pageSlug: 'concessoes',
+      proPlusRoute: { path: '/concessoes', label: 'Concessões' },
+    },
   ],
 
   design: [

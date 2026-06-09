@@ -21,6 +21,7 @@ import {
   UserPlus,
   List,
   TrendingUp,
+  HandHeart,
   ShoppingCart,
   GraduationCap,
   Cloud,
@@ -1477,6 +1478,17 @@ export default function AppSidebar() {
               >
                 <TrendingUp size={20} />
                 <span>UP Sells</span>
+              </NavLink>
+            )}
+
+            {/* Concessões - visível para CS, CEO e Gestor de Projetos (ADR 0009) */}
+            {(isAdminUser || user?.role === 'sucesso_cliente') && (
+              <NavLink
+                to="/concessoes"
+                className={({ isActive }) => cn("sidebar-item", isActive && "active")}
+              >
+                <HandHeart size={20} />
+                <span>Concessões</span>
               </NavLink>
             )}
             

@@ -140,6 +140,69 @@ kernel `cliente`. Um módulo guarda `client_id`/`demanda_id` como `uuid` solto e
 - Consequência desejada: extrair um módulo para serviço próprio depois é trivial — troca-se a
   chamada de RPC local por gRPC/HTTP, sem refatorar o negócio.
 
+### Plataforma (camada técnica) vs. Módulo de negócio
+Nem tudo vira módulo. **Módulo de negócio** = bounded context com linguagem própria e dono
+(ex.: `ads`, `mtech`, `identidade`) — schema Postgres dedicado + contrato RPC + barrel front.
+**Plataforma** = plumbing técnico que **todo** módulo pisa: helpers de autorização
+(`is_ceo`/`is_admin`/`is_executive`), infra de notifications, `audit_log`, `feature_flags`,
+storage glue. Plataforma **permanece em `public`** — não ganha schema-módulo nem contrato, porque
+contrato sobre fundação compartilhada é **indireção pura, não isolamento** (Galego: pagar o custo
+só onde ele compra isolamento real; "se não tenho o problema, não quero o custo").
+
+- **Régua de done** da modularização ponta-a-ponta: **nenhuma tabela de _negócio_ sobra em
+  `public`**; `public` retém só plataforma. (Decidido no grill 2026-06-03; alvo do épico.)
+- Distingue-se de "estrangulamento seletivo" (parar no meio) e de "purista total" (forçar contrato
+  até em plumbing) — ambos rejeitados.
+
+---
+## Mapa de Módulos do sistema
+
+Decomposição canônica em bounded contexts (grill 2026-06-03, princípio **P3**: um módulo por
+**dono organizacional**, split só onde a **linguagem ubíqua** diverge). Cada módulo de negócio =
+schema Postgres dedicado + contrato RPC + barrel front.
+
+### Shared kernels (referenciados por ~todos via contrato)
+- **`cliente`** — `client_id`. Card universal, envolvidos, info bank. (vivo)
+- **`identidade`** — `user_id`. Pessoa: nome, avatar, papel-display, pertencimento a squad. É o
+  segundo kernel; hoje preso em `cliente/lib/diretorio.ts`. Todo módulo referencia `user_id` por
+  contrato `identidade.*`, sem ler `profiles` direto.
+
+### Módulos de negócio
+- **`demanda`** — unidade de trabalho do cliente. (vivo)
+- **`presenca`** — presença/atuação ao vivo + tempo-na-demanda. (vivo)
+- **`ads`** — gestão de tráfego Meta; `ads_*`, `meta_*` (Meta Ads = área interna).
+- **`mktplace`** — consultoria de marketplace; `mktplace_*`, paddock. Dept distinto de `ads`.
+- **`comercial`** — closing/consultor; `comercial_*`. Recebe lead de `outbound` por contrato.
+- **`outbound`** — prospecção fria/SDR; `outbound_*`. Dono distinto de `comercial`.
+- **`mtech`** — Milennials Tech (dev interno, **billável**); `tech_*`. Linguagem billável ≠ entrega.
+- **`entregas`** — produção por área (design/dev/video/produtora/atrizes) sobre engine kanban
+  compartilhado (plataforma). Um módulo, áreas internas.
+- **`crm`** — Torque CRM (board do Gestor de CRM); `crm_*`. Dono: fundador (ver ADR 0006).
+- **`sucesso-cliente`** — CS/retenção; `cs_*`, `churn_*`.
+- **`financeiro`** — `financeiro_*`, invoices, sales, comissões, mrr, **upsells** (área interna).
+- **`resultados`** — geração de relatório de 30d + share por token + transform IA; `*_reports`.
+- **`reunioes`** — reuniões gravadas; `recorded_meetings`, `recording_sessions`, folders, oracle.
+- **`rh`** — jornada de equipe, vagas, candidatos; `rh_*`.
+- **`trainings`** — treinamentos + pro tools; `trainings`, `training_lessons`, `pro_tools`.
+- **`gestao`** — OKRs, weekly summaries, war room. Linguagem executiva ≠ `painel`.
+- **`publicas`** — **módulo de borda (DMZ)**: dono de TODA superfície anônima (forms públicos,
+  submissões cruas, share por token). Entrega ao módulo dono por contrato. Consolida o attack
+  surface público num lugar auditável.
+
+### Consumidores (só leem outros módulos via contrato)
+- **`painel`** — dashboards read-only (modo Monday). (vivo)
+
+### Front-only (pasta+barrel, sem schema próprio)
+- **`acesso`** — UI de admin de RBAC; escreve via RPC de `public`. Os **dados** de RBAC são
+  plataforma (abaixo), não módulo.
+
+### Plataforma (permanece em `public`, sem contrato — ver "Plataforma vs Módulo de negócio")
+RBAC (`user_roles`, `custom_roles`, `*_grants`, `app_capabilities`, `app_pages`, `page_access_audit`,
+`organization_groups`, `squads`) + helpers `is_ceo`/`is_admin`/`is_executive` (leem RBAC direto, mesmo
+schema) · notifications infra (tabelas de notif **de domínio** ficam no módulo dono) · `feature_flags` ·
+`api_keys`/`api_logs` (API REST M2M) · audit/idempotency · `reconciliacao` (integridade de contrato) ·
+**engine kanban genérico** (`kanban_*`, `card_*` — usado por `entregas`+`crm`+`financeiro`).
+
 ---
 ## Torque CRM — board do Gestor de CRM
 
@@ -169,3 +232,30 @@ e termina em **Prontos**. **NÃO confundir** com `kanban_cards` nem com o Card U
   aberto / Aguardando resposta. Ciclo de relacionamento contínuo após o CRM ficar pronto.
 - **NÃO confundir** com o antigo "Acompanhamento diário" (coluna removida, baseada em
   `crm_daily_tracking`).
+
+---
+
+## Adição de produto a cliente — Upsell vs Concessão
+
+Anexar um produto a um cliente acontece por **dois atos distintos**. Mesma consequência de
+**entrega** (produto entra em `contracted_products`, gera card de board, é entregue de verdade);
+consequência **financeira oposta**. Sempre use o termo certo.
+
+### Upsell
+Venda de produto adicional a um cliente, **com contrapartida financeira**. Gera comissão (hoje
+7% do `monthly_value`), expande o MRR e entra no ticket. É o ato comercial. Vive em `upsells`
+(+ `upsell_commissions`). Termo reservado para **venda** — não usar para produto dado de graça.
+
+### Concessão
+Produto **concedido** a um cliente **sem contrapartida financeira** — tipicamente retenção de
+cliente em risco (ex.: cliente entra só com Growth, em risco recebe Torque Copilot). Entrega é
+idêntica à do upsell (board, envolvidos, tier subsume), mas:
+
+- **Zero comissão** — não gera `upsell_commissions`.
+- **Zero variação de MRR** — não gera `mrr_changes`; não infla ticket.
+- Aparece em `financeiro_active_clients` com **`monthly_value = 0`** — financeiro enxerga o
+  produto (auditoria: "quantas concessões ativas, por qual motivo"), sem valor que mexa no MRR.
+
+- **NÃO confundir** com Upsell: upsell é venda (gera dinheiro e comissão), concessão é cortesia
+  de retenção (não gera nem um nem outro). Um "upsell de R$0" é contradição — o ato sem
+  contrapartida é uma Concessão.

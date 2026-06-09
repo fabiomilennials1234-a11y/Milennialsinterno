@@ -96,6 +96,27 @@ export type Database = {
         Args: { p_client_id: string; p_user_id: string }
         Returns: boolean
       }
+      editar_card_universal: {
+        Args: {
+          p_brand_colors?: string
+          p_brand_manual_url?: string
+          p_client_id: string
+          p_cms_platform?: string
+          p_domain?: string
+          p_editing_style?: string
+          p_figma_url?: string
+          p_instagram_handle?: string
+          p_logo_url?: string
+          p_notes?: string
+          p_tiktok_handle?: string
+          p_typography?: string
+          p_video_formats?: string
+          p_visual_style?: string
+          p_website_url?: string
+          p_youtube_channel?: string
+        }
+        Returns: string
+      }
       existe: { Args: { p_client_id: string }; Returns: boolean }
       membros: {
         Args: { p_client_id: string }
@@ -108,6 +129,17 @@ export type Database = {
       pode_ver_cliente: {
         Args: { p_client_id: string; p_user_id: string }
         Returns: boolean
+      }
+      registrar_arquivo_info_bank: {
+        Args: {
+          p_client_id: string
+          p_content_type: string
+          p_file_name: string
+          p_file_path: string
+          p_file_size: number
+          p_section: Database["public"]["Enums"]["info_bank_file_section"]
+        }
+        Returns: string
       }
       remover_membro: {
         Args: { p_client_id: string; p_papel: string; p_user_id: string }
@@ -167,6 +199,19 @@ export type Database = {
           dominio: string
           id: string
           status: string
+          titulo: string
+        }[]
+      }
+      painel_do_usuario: {
+        Args: never
+        Returns: {
+          client_id: string
+          client_nome: string
+          created_at: string
+          demanda_id: string
+          dominio: string
+          status: string
+          tempo_segundos: number
           titulo: string
         }[]
       }
@@ -2959,6 +3004,60 @@ export type Database = {
         }
         Relationships: []
       }
+      concessoes: {
+        Row: {
+          client_id: string
+          contract_expires_at: string | null
+          converted_to_upsell_id: string | null
+          created_at: string
+          granted_by: string
+          granted_by_name: string
+          id: string
+          monthly_value: number
+          motivo: Database["public"]["Enums"]["concessao_motivo"]
+          product_name: string
+          product_slug: string
+          revoked_at: string | null
+          revoked_by: string | null
+          status: Database["public"]["Enums"]["concessao_status"]
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          contract_expires_at?: string | null
+          converted_to_upsell_id?: string | null
+          created_at?: string
+          granted_by: string
+          granted_by_name: string
+          id?: string
+          monthly_value?: number
+          motivo: Database["public"]["Enums"]["concessao_motivo"]
+          product_name: string
+          product_slug: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          status?: Database["public"]["Enums"]["concessao_status"]
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          contract_expires_at?: string | null
+          converted_to_upsell_id?: string | null
+          created_at?: string
+          granted_by?: string
+          granted_by_name?: string
+          id?: string
+          monthly_value?: number
+          motivo?: Database["public"]["Enums"]["concessao_motivo"]
+          product_name?: string
+          product_slug?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          status?: Database["public"]["Enums"]["concessao_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       contas_receber_value_adjustments: {
         Row: {
           contas_receber_id: string
@@ -3064,6 +3163,7 @@ export type Database = {
           is_finalizado: boolean
           produto: string
           reset_count: number
+          stage_entered_at: string | null
           step_entered_at: string | null
           training_at: string | null
           updated_at: string
@@ -3090,6 +3190,7 @@ export type Database = {
           is_finalizado?: boolean
           produto: string
           reset_count?: number
+          stage_entered_at?: string | null
           step_entered_at?: string | null
           training_at?: string | null
           updated_at?: string
@@ -3116,6 +3217,7 @@ export type Database = {
           is_finalizado?: boolean
           produto?: string
           reset_count?: number
+          stage_entered_at?: string | null
           step_entered_at?: string | null
           training_at?: string | null
           updated_at?: string
@@ -3303,6 +3405,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      crm_sla: {
+        Row: {
+          coluna: string
+          max_days: number | null
+          updated_at: string
+        }
+        Insert: {
+          coluna: string
+          max_days?: number | null
+          updated_at?: string
+        }
+        Update: {
+          coluna?: string
+          max_days?: number | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       crm_step_validations: {
         Row: {
@@ -6324,6 +6444,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      onboarding_writeback_log: {
+        Row: {
+          ads_task_id: string | null
+          ads_task_title: string | null
+          created_at: string
+          details: Json
+          id: string
+          raw_client_id: string | null
+          reason: string
+          task_type: string | null
+        }
+        Insert: {
+          ads_task_id?: string | null
+          ads_task_title?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          raw_client_id?: string | null
+          reason: string
+          task_type?: string | null
+        }
+        Update: {
+          ads_task_id?: string | null
+          ads_task_title?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          raw_client_id?: string | null
+          reason?: string
+          task_type?: string | null
+        }
+        Relationships: []
       }
       oracle_summaries: {
         Row: {
@@ -9800,12 +9953,47 @@ export type Database = {
       }
     }
     Functions: {
+      _ads_owns_client: {
+        Args: { _caller: string; _client_id: string }
+        Returns: boolean
+      }
+      _concessao_pode_conceder: {
+        Args: { p_caller: string; p_client_id: string }
+        Returns: boolean
+      }
       _cron_check_project_delays: { Args: never; Returns: number }
       _cron_generate_crm_stalled_tasks: { Args: never; Returns: number }
       _cron_generate_project_daily_tasks: { Args: never; Returns: undefined }
       _cron_generate_project_weekly_tasks: { Args: never; Returns: undefined }
       _cron_generate_recurring_tasks: { Args: never; Returns: number }
+      _cron_torque_acomp_reset_segunda: { Args: never; Returns: number }
+      _entregar_produto: {
+        Args: {
+          p_client_id: string
+          p_created_by?: string
+          p_monthly_value: number
+          p_product_name: string
+          p_product_slug: string
+        }
+        Returns: undefined
+      }
       _nps_map_label: { Args: { p_score: number }; Returns: string }
+      _torque_board_pode_escrever: {
+        Args: { _caller: string; _client_id?: string; _gestor_id: string }
+        Returns: boolean
+      }
+      _torque_checklist_completo: {
+        Args: { _checklist: Json }
+        Returns: boolean
+      }
+      _torque_checklist_shape_ok: {
+        Args: { _checklist: Json }
+        Returns: boolean
+      }
+      _torque_pode_concluir: {
+        Args: { _apresentacao_at: string }
+        Returns: boolean
+      }
       _torque_step_label: { Args: { _step: string }; Returns: string }
       _torque_steps: { Args: { _produto: string }; Returns: string[] }
       admin_reconcile_user_page_grants: {
@@ -9906,6 +10094,23 @@ export type Database = {
       cleanup_user_references: {
         Args: { target_user_id: string }
         Returns: undefined
+      }
+      conceder_produto: {
+        Args: {
+          p_client_id: string
+          p_contract_expires_at?: string
+          p_motivo: Database["public"]["Enums"]["concessao_motivo"]
+          p_product_slug: string
+        }
+        Returns: string
+      }
+      converter_concessao: {
+        Args: {
+          p_concessao_id: string
+          p_monthly_value: number
+          p_sold_by: string
+        }
+        Returns: string
       }
       create_client_with_automations: {
         Args: { p_idempotency_key?: string; p_payload: Json }
@@ -10414,6 +10619,10 @@ export type Database = {
         }
         Returns: Json
       }
+      revogar_concessao: {
+        Args: { p_concessao_id: string; p_revoke_reason?: string }
+        Returns: string
+      }
       revoke_page: {
         Args: { _page_slug: string; _reason?: string; _user_id: string }
         Returns: boolean
@@ -10491,6 +10700,36 @@ export type Database = {
         Returns: boolean
       }
       tech_unblock_task: { Args: { _task_id: string }; Returns: undefined }
+      torque_acomp_checklist_set: {
+        Args: { p_acomp_id: string; p_checklist: Json }
+        Returns: string
+      }
+      torque_acomp_mover: {
+        Args: { p_acomp_id: string; p_coluna: string }
+        Returns: undefined
+      }
+      torque_board_agendar: {
+        Args: { p_apresentacao_at: string; p_config_id: string }
+        Returns: undefined
+      }
+      torque_board_checklist_set: {
+        Args: { p_checklist: Json; p_config_id: string }
+        Returns: string
+      }
+      torque_board_comecar: {
+        Args: { p_config_id: string }
+        Returns: undefined
+      }
+      torque_board_gerar: {
+        Args: {
+          p_client_id: string
+          p_form_data?: Json
+          p_gestor_id: string
+          p_produto: string
+        }
+        Returns: string
+      }
+      torque_board_pronto: { Args: { p_config_id: string }; Returns: undefined }
       torque_step_to_checklist: {
         Args: { _current_step: string; _produto: string }
         Returns: Json
@@ -10626,6 +10865,12 @@ export type Database = {
       }
     }
     Enums: {
+      concessao_motivo:
+        | "risco_churn"
+        | "compensacao_falha"
+        | "negociacao_renovacao"
+        | "cortesia_estrategica"
+      concessao_status: "ativa" | "convertida" | "revogada"
       info_bank_file_section: "anuncios" | "criativos" | "marca" | "videos"
       tech_sprint_status: "PLANNING" | "ACTIVE" | "COMPLETED"
       tech_task_priority: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW"
@@ -10782,6 +11027,13 @@ export const Constants = {
   },
   public: {
     Enums: {
+      concessao_motivo: [
+        "risco_churn",
+        "compensacao_falha",
+        "negociacao_renovacao",
+        "cortesia_estrategica",
+      ],
+      concessao_status: ["ativa", "convertida", "revogada"],
       info_bank_file_section: ["anuncios", "criativos", "marca", "videos"],
       tech_sprint_status: ["PLANNING", "ACTIVE", "COMPLETED"],
       tech_task_priority: ["CRITICAL", "HIGH", "MEDIUM", "LOW"],

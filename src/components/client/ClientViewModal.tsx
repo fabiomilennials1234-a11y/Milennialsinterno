@@ -60,6 +60,7 @@ import ClientNpsSection from '@/components/management-report/ClientNpsSection';
 import PaddockDiagnosticoSection from '@/components/comercial/PaddockDiagnosticoSection';
 import PaddockDiagnosticoListSection from '@/components/comercial/PaddockDiagnosticoListSection';
 import CrmGerarTarefaSection from '@/components/gestor-crm/CrmGerarTarefaSection';
+import { ConcederProdutoSection } from '@/components/concessao/ConcederProdutoSection';
 import ClientTierBadge, { ClientCreativesLimit } from '@/components/shared/ClientTierBadge';
 import ClientCreativesHistory from '@/components/shared/ClientCreativesHistory';
 import { PRODUCT_CONFIG, TorqueCRMProductBadges } from '@/components/shared/ProductBadges';
@@ -792,6 +793,18 @@ export default function ClientViewModal({ isOpen, onClose, clientId }: ClientVie
                 <CrmGerarTarefaSection
                   clientId={clientId}
                   clientName={clientInfo.name}
+                />
+              )}
+
+              {/* Conceder produto (retenção sem custo, ADR 0009). Gated igual ao
+                  canSetClientLabel: admin || CEO || sucesso_cliente. A RPC re-checa
+                  a autoria server-side (defesa em profundidade). */}
+              {clientInfo && canSetClientLabel && (
+                <ConcederProdutoSection
+                  clientId={clientId}
+                  clientName={clientInfo.name}
+                  contractedProducts={clientInfo.contracted_products ?? []}
+                  torqueCrmProducts={clientInfo.torque_crm_products ?? undefined}
                 />
               )}
             </div>
