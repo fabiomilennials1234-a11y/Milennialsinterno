@@ -109,44 +109,26 @@ export function useCreateUpsell() {
 
       if (error) throw error;
 
-      // Upsell de sub-produto Torque CRM (v8/automation/copilot):
-      // adiciona o sub em clients.torque_crm_products (idempotente).
-      // Não mexe em contracted_products — o trigger process_upsell já cuida
-      // desse campo automaticamente.
+      // Upsell de sub-produto Torque CRM (v8/automation/copilot).
+      // A SINCRONIZAÇÃO das colunas de produto (base 'torque-crm' em
+      // contracted_products + tier em torque_crm_products) é garantida
+      // TRANSACIONALMENTE no server, em public._entregar_produto (acionado pelo
+      // trigger process_upsell). Inclui o mapeamento de tier legado v8→torque.
+      // Ver ADR 0013 (opção C: duas colunas + invariante de sync na origem).
+      // Aqui só permanece a criação da tarefa de briefing do Treinador Comercial,
+      // que NÃO é coberta pelo server.
       if (upsell.product_slug.startsWith('torque-crm-')) {
         // Slug financeiro legado 'torque-crm-v8' mapeia para o tier 'torque'
-        // (ex-v8 renomeado, ADR 0006). O slug de billing fica intacto; só o
-        // VALOR DE TIER escrito em clients.torque_crm_products é normalizado.
+        // (ex-v8 renomeado, ADR 0006). Usado só para o label da tarefa de briefing.
         const rawSub = upsell.product_slug.replace('torque-crm-', '');
         const sub = rawSub === 'v8' ? 'torque' : rawSub;
         if (['torque', 'automation', 'copilot'].includes(sub)) {
           const { data: clientRow } = await supabase
             .from('clients')
-            .select('torque_crm_products, name, razao_social, assigned_comercial' as any)
+            .select('name, razao_social, assigned_comercial' as any)
             .eq('id', upsell.client_id)
             .single();
           const clientAny = clientRow as any;
-          const current = (clientAny?.torque_crm_products as string[] | null) || [];
-          if (!current.includes(sub)) {
-            await supabase
-              .from('clients')
-              .update({ torque_crm_products: [...current, sub] } as any)
-              .eq('id', upsell.client_id);
-          }
-          // Garante que torque-crm principal também esteja em contracted_products
-          // caso o cliente tenha sido cadastrado sem ele (caso raro).
-          const { data: cp } = await supabase
-            .from('clients')
-            .select('contracted_products')
-            .eq('id', upsell.client_id)
-            .single();
-          const prods = (cp?.contracted_products as string[] | null) || [];
-          if (!prods.includes('torque-crm')) {
-            await supabase
-              .from('clients')
-              .update({ contracted_products: [...prods, 'torque-crm'] })
-              .eq('id', upsell.client_id);
-          }
 
           // Cria tarefa automática para o Treinador Comercial:
           // "Briefar configuração [Produto Torque] [Cliente]". A description
