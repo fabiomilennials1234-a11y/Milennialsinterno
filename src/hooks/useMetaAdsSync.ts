@@ -33,15 +33,27 @@ export function useMetaAdsSync() {
 
   const canSync = cooldownRemaining === 0 && !isSyncing;
 
-  const sync = useCallback(async (opts?: { mode?: 'leads' | 'insights' | 'full' | 'backfill' }) => {
+  const sync = useCallback(async (opts?: {
+    mode?: 'leads' | 'insights' | 'full' | 'backfill';
+    accountId?: string;
+  }) => {
     if (!canSync) return;
 
     setIsSyncing(true);
     setSyncError(null);
 
     try {
+      // account_id scopes the sync to a single on-demand client account; omit it
+      // for the default (cron-policy) accounts. 'all' is a UI sentinel, never a
+      // real account id, so it's never forwarded.
+      const accountId =
+        opts?.accountId && opts.accountId !== 'all' ? opts.accountId : undefined;
+
       const { data, error } = await supabase.functions.invoke('sync-meta-ads', {
-        body: { mode: opts?.mode ?? 'full' },
+        body: {
+          mode: opts?.mode ?? 'full',
+          ...(accountId ? { account_id: accountId } : {}),
+        },
       });
 
       if (error) {

@@ -1,18 +1,12 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import MainLayout from '@/layouts/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { format, subDays, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { DateRange } from 'react-day-picker';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { MetaAdAccountSelector } from '@/components/meta-ads/MetaAdAccountSelector';
 import { Calendar } from '@/components/ui/calendar';
 import {
   BarChart3,
@@ -26,7 +20,7 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useMetaAdsInsights } from '@/hooks/useMetaAdsInsights';
-import { useMetaAdsAccounts } from '@/hooks/useMetaAdsAccounts';
+import { useMetaAdsAccounts, resolveDefaultAccountId } from '@/hooks/useMetaAdsAccounts';
 import { useMetaAdsSync } from '@/hooks/useMetaAdsSync';
 import { getDatePresets } from '@/lib/meta-ads-utils';
 import MetaAdsOverviewTab from './meta-ads/MetaAdsOverviewTab';
@@ -76,7 +70,14 @@ const TABS: { key: TabKey; label: string }[] = [
 export default function MetaAdsDashboardPage() {
   const { isCEO } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [accountFilter, setAccountFilter] = useState('all');
+  // null until accounts load — then defaults to the principal account (Milennials).
+  // 'all' and explicit account_ids are user choices. We track "did the user pick"
+  // separately so the principal default doesn't clobber an explicit selection.
+  const [accountFilter, setAccountFilter] = useState<string | null>(null);
+  // account_id whose on-demand sync we kicked off on switch — drives the inline
+  // spinner in the selector. Cleared once the global isSyncing flag settles.
+  const [syncingAccountId, setSyncingAccountId] = useState<string | null>(null);
+  const userPickedAccountRef = useRef(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [presetLabel, setPresetLabel] = useState('Ultimos 30 dias');
 
@@ -159,8 +160,45 @@ export default function MetaAdsDashboardPage() {
   }, [setSearchParams]);
 
   const { data: accounts = [] } = useMetaAdsAccounts();
-  const { data: insights, isLoading, aggregates } = useMetaAdsInsights({ dateFrom, dateTo, accountId: accountFilter });
   const { sync, isSyncing, canSync, cooldownRemaining, syncError } = useMetaAdsSync();
+
+  const defaultAccountId = useMemo(() => resolveDefaultAccountId(accounts), [accounts]);
+
+  // Default the selector to the principal account once accounts load, unless the
+  // user already picked. resolveDefaultAccountId falls back to 'all'.
+  useEffect(() => {
+    if (userPickedAccountRef.current || accountFilter !== null || accounts.length === 0) return;
+    setAccountFilter(defaultAccountId);
+  }, [accounts.length, defaultAccountId, accountFilter]);
+
+  const effectiveAccountId = accountFilter ?? defaultAccountId;
+
+  const { data: insights, isLoading, aggregates } = useMetaAdsInsights({
+    dateFrom,
+    dateTo,
+    accountId: effectiveAccountId,
+  });
+
+  const handleAccountChange = useCallback((value: string) => {
+    userPickedAccountRef.current = true;
+    setAccountFilter(value);
+
+    // On-demand accounts aren't pulled by the cron, so their data is stale (or
+    // empty) until we ask. Fire a scoped sync on switch. cron/principal accounts
+    // already have fresh data — don't waste a Graph call. Cooldown still applies.
+    const account = accounts.find(a => a.account_id === value);
+    if (account && account.sync_policy === 'on_demand') {
+      setSyncingAccountId(value);
+      sync({ mode: 'insights', accountId: value });
+    } else {
+      setSyncingAccountId(null);
+    }
+  }, [accounts, sync]);
+
+  // Clear the per-account spinner once the scoped sync finishes.
+  useEffect(() => {
+    if (!isSyncing) setSyncingAccountId(null);
+  }, [isSyncing]);
 
   if (!isCEO) {
     return <Navigate to="/" replace />;
@@ -183,18 +221,13 @@ export default function MetaAdsDashboardPage() {
   return (
     <MainLayout>
       <div className="p-4 md:p-6 space-y-6 animate-fade-in max-w-7xl mx-auto">
-        {/* Header */}
+        {/* Topbar editorial A — título + sub à esquerda; controles como pills glass à direita */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="icon-circle bg-gradient-to-br from-blue-500 to-indigo-600 text-white">
-              <BarChart3 size={22} />
-            </div>
-            <div>
-              <h1 className="font-display text-xl md:text-2xl font-bold uppercase tracking-wide text-foreground">
-                Meta Ads
-              </h1>
-              <p className="text-muted-foreground text-xs md:text-sm">Performance de campanhas</p>
-            </div>
+          <div>
+            <h1 className="text-[26px] font-semibold tracking-[-0.03em] leading-none text-foreground">
+              Meta Ads
+            </h1>
+            <p className="text-[13px] text-muted-foreground mt-2">Performance de campanhas</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -204,7 +237,7 @@ export default function MetaAdsDashboardPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="gap-2 min-w-[190px] justify-start font-normal"
+                  className="glass gap-2 min-w-[190px] justify-start font-normal"
                   aria-label={`Período selecionado: ${presetLabel}. Alterar.`}
                 >
                   <CalendarDays size={14} className="text-muted-foreground shrink-0" />
@@ -229,7 +262,7 @@ export default function MetaAdsDashboardPage() {
                           'text-left text-[0.8rem] px-2.5 py-1.5 rounded-md transition-colors whitespace-nowrap',
                           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                           p.label === presetLabel
-                            ? 'bg-foreground/[0.08] text-foreground font-medium'
+                            ? 'farol-active font-medium'
                             : 'text-muted-foreground hover:bg-foreground/[0.05] hover:text-foreground'
                         )}
                       >
@@ -279,20 +312,13 @@ export default function MetaAdsDashboardPage() {
               </PopoverContent>
             </Popover>
 
-            {/* Account filter */}
-            <Select value={accountFilter} onValueChange={setAccountFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Conta" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas as contas</SelectItem>
-                {accounts.map(acc => (
-                  <SelectItem key={acc.account_id} value={acc.account_id}>
-                    {acc.account_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Account selector — Combobox built for 184+ accounts */}
+            <MetaAdAccountSelector
+              accounts={accounts}
+              value={effectiveAccountId}
+              onChange={handleAccountChange}
+              syncingAccountId={syncingAccountId}
+            />
 
             {/* Sync button */}
             <Button
@@ -300,7 +326,7 @@ export default function MetaAdsDashboardPage() {
               size="sm"
               onClick={() => sync({ mode: 'full' })}
               disabled={!canSync}
-              className="gap-1.5"
+              className="glass gap-1.5"
             >
               <RefreshCw size={14} className={cn(isSyncing && 'animate-spin')} />
               {isSyncing
@@ -312,10 +338,10 @@ export default function MetaAdsDashboardPage() {
 
             {/* Last sync badge */}
             {aggregates.latestFetchedAt && (
-              <Badge variant="outline" className="gap-1.5 px-2 py-1 text-xs">
+              <Badge variant="outline" className="glass gap-1.5 px-2.5 py-1 text-xs">
                 <div className={cn(
                   'w-1.5 h-1.5 rounded-full',
-                  isStale ? 'bg-amber-400' : 'bg-success ring-2 ring-success/30'
+                  isStale ? 'bg-warning' : 'bg-success ring-2 ring-success/30'
                 )} />
                 {timeAgo(aggregates.latestFetchedAt)}
               </Badge>
@@ -323,36 +349,36 @@ export default function MetaAdsDashboardPage() {
           </div>
         </div>
 
-        {/* Alerts */}
+        {/* Alerts — glass com cor semântica (tratamento A) */}
         {syncError && (
-          <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm">
-            <AlertTriangle size={16} />
+          <div className="glass flex items-center gap-2 px-4 py-2.5 border-destructive/30 text-destructive text-sm">
+            <AlertTriangle size={16} className="shrink-0" />
             Erro na sincronizacao: {syncError}
           </div>
         )}
         {isStale && !syncError && (
-          <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 text-sm">
-            <AlertTriangle size={16} />
+          <div className="glass flex items-center gap-2 px-4 py-2.5 border-warning/30 text-warning text-sm">
+            <AlertTriangle size={16} className="shrink-0" />
             Dados podem estar desatualizados. Ultima sincronizacao {timeAgo(aggregates.latestFetchedAt)}.
           </div>
         )}
 
-        {/* Tab bar */}
-        <div className="flex gap-1 border-b border-border/50">
+        {/* Tab bar — tratamento A: hairline base + ativo em farol-active pill + underline Farol */}
+        <div className="flex gap-1 border-b border-border">
           {TABS.map(tab => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className={cn(
-                'px-4 py-2.5 text-xs font-semibold uppercase tracking-wider transition-colors relative',
+                'px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.08em] transition-colors relative rounded-t-lg',
                 activeTab === tab.key
-                  ? 'text-primary'
+                  ? 'text-foreground'
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
               {tab.label}
               {activeTab === tab.key && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t" />
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-farol rounded-t glow-farol-sm" />
               )}
             </button>
           ))}
@@ -366,7 +392,7 @@ export default function MetaAdsDashboardPage() {
           <MetaAdsLeadsTab
             dateFrom={dateFrom}
             dateTo={dateTo}
-            accountId={accountFilter}
+            accountId={effectiveAccountId}
             aggregates={aggregates}
           />
         )}
@@ -374,7 +400,7 @@ export default function MetaAdsDashboardPage() {
           <MetaAdsSalesTab
             dateFrom={dateFrom}
             dateTo={dateTo}
-            accountId={accountFilter}
+            accountId={effectiveAccountId}
             aggregates={aggregates}
           />
         )}
@@ -382,13 +408,13 @@ export default function MetaAdsDashboardPage() {
           <MetaAdsCreativesTab
             dateFrom={dateFrom}
             dateTo={dateTo}
-            accountId={accountFilter}
+            accountId={effectiveAccountId}
           />
         )}
 
         {/* Empty state (overview only) */}
         {activeTab === 'overview' && insights.length === 0 && !isLoading && (
-          <div className="text-center py-16 space-y-3">
+          <div className="glass grain text-center py-16 px-6 space-y-3" style={{ borderRadius: 24 }}>
             <BarChart3 size={48} className="mx-auto text-muted-foreground/30" />
             <p className="text-muted-foreground">Nenhum dado para o periodo selecionado</p>
             <Button

@@ -9,12 +9,19 @@ import { corsHeaders } from "../_shared/cors.ts";
 // Marketing API and upserts into meta_ads_insights / meta_leads.
 //
 // Supports sync modes:
-//   - mode='leads'    -> pages/forms/leads only, last 2 days (cron: */5 min)
-//   - mode='insights' -> campaign + ad insights + thumbnails, last 2 days (cron: */30 min)
-//   - mode='full'     -> everything, last 7 days (cron: daily 3AM BRT)
-//   - mode='backfill' -> everything, last 90 days (manual only)
+//   - mode='leads'         -> pages/forms/leads only, last 2 days (cron: */5 min)
+//   - mode='insights'      -> campaign + ad insights + thumbnails, last 2 days (cron: */30 min)
+//   - mode='full'          -> everything, last 7 days (cron: daily 3AM BRT)
+//   - mode='backfill'      -> everything, last 90 days (manual only)
+//   - mode='seed-accounts' -> discover client ad accounts from /me/adaccounts and
+//                             register them as on_demand (CEO/CTO only, NEVER cron)
 //
 // Backward compat: backfill=true (no mode) maps to 'backfill'.
+//
+// Account scope (multi-conta — desacoplado de is_active):
+//   - source='cron'             -> processes ONLY sync_policy='cron' accounts
+//   - authenticated + account_id -> processes ONLY that one account (must be is_active)
+//   - authenticated, no account_id -> processes ALL sync_policy='cron' (legacy default)
 //
 // Auth:
 //   - source='cron' -> no JWT check (called via pg_net with anon key)
@@ -562,6 +569,114 @@ async function enrichMissingThumbnails(
   return { updated, missing: missingAdIds.length, truncated };
 }
 
+// ---------- Meta API: Ad account discovery (seed-accounts mode) ----------
+
+interface RawAdAccount {
+  // `id` already carries the act_ prefix (e.g. act_123). `account_id` is the
+  // bare numeric id. We persist `id` to match meta_ads_insights.ad_account_id.
+  id: string;
+  account_id: string;
+  name?: string;
+  account_status?: number;
+}
+
+async function fetchOwnedAdAccounts(
+  userAccessToken: string,
+): Promise<{ accounts: RawAdAccount[]; error?: string }> {
+  const accounts: RawAdAccount[] = [];
+  let url =
+    `${META_GRAPH_URL}/me/adaccounts` +
+    `?fields=account_id,name,account_status,id` +
+    `&limit=200` +
+    `&access_token=${userAccessToken}`;
+  let pageCount = 0;
+
+  while (url && pageCount < MAX_PAGES) {
+    pageCount++;
+    const response = await fetch(url, { signal: AbortSignal.timeout(30000) });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error(`[SyncMetaAds] adaccounts API error: ${response.status} ${errText}`);
+      return { accounts, error: `adaccounts API ${response.status}: ${errText.slice(0, 200)}` };
+    }
+
+    const data = await response.json();
+    accounts.push(...(data.data || []));
+    url = data.paging?.next || null;
+  }
+
+  return { accounts };
+}
+
+/**
+ * Discover active (account_status===1) ad accounts the token can see and
+ * register them as on_demand, is_active=true. Idempotent via upsert on the
+ * unique account_id. Never sets is_principal and never touches sync_policy of
+ * existing rows beyond the upsert default — the principal (Milennials) is set in
+ * migration and must NOT be demoted here, so we only insert/refresh name and
+ * leave sync_policy='on_demand' for newcomers via DEFAULT.
+ */
+async function seedAdAccounts(
+  supabase: SupabaseClient,
+  accessToken: string,
+): Promise<{ seeded: number; skipped: number; total: number; error?: string }> {
+  const { accounts, error } = await fetchOwnedAdAccounts(accessToken);
+  if (error && accounts.length === 0) {
+    return { seeded: 0, skipped: 0, total: 0, error };
+  }
+
+  const active = accounts.filter((a) => a.account_status === 1);
+  const skipped = accounts.length - active.length;
+
+  if (active.length === 0) {
+    return { seeded: 0, skipped, total: accounts.length, error };
+  }
+
+  // Read existing account_ids to avoid clobbering sync_policy/is_principal of
+  // rows already configured (e.g. Milennials principal+cron). Upsert with
+  // onConflict=account_id only ADDS new on_demand rows; existing rows keep their
+  // current policy because we don't include sync_policy for known accounts.
+  const { data: existing } = await supabase
+    .from("meta_ad_accounts")
+    .select("account_id");
+  const knownIds = new Set((existing ?? []).map((r) => r.account_id as string));
+
+  const newRows = active
+    .filter((a) => !knownIds.has(a.id))
+    .map((a) => ({
+      account_id: a.id,
+      account_name: a.name ?? a.id,
+      sync_policy: "on_demand" as const,
+      is_active: true,
+    }));
+
+  // Refresh names for accounts we already know, without touching policy/principal.
+  const refreshRows = active
+    .filter((a) => knownIds.has(a.id))
+    .map((a) => ({ account_id: a.id, account_name: a.name ?? a.id }));
+
+  let seeded = 0;
+  if (newRows.length > 0) {
+    const { error: insertErr } = await supabase
+      .from("meta_ad_accounts")
+      .upsert(newRows, { onConflict: "account_id", ignoreDuplicates: false });
+    if (insertErr) {
+      return { seeded: 0, skipped, total: accounts.length, error: insertErr.message };
+    }
+    seeded = newRows.length;
+  }
+
+  for (const r of refreshRows) {
+    await supabase
+      .from("meta_ad_accounts")
+      .update({ account_name: r.account_name })
+      .eq("account_id", r.account_id);
+  }
+
+  return { seeded, skipped, total: accounts.length, error };
+}
+
 // ---------- Main Handler ----------
 
 serve(async (req) => {
@@ -583,11 +698,21 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body = await req.json().catch(() => ({}));
-    const { backfill = false, source, mode: rawMode } = body as {
+    const { backfill = false, source, mode: rawMode, account_id: rawAccountId } = body as {
       backfill?: boolean;
       source?: string;
       mode?: string;
+      account_id?: string;
     };
+
+    // seed-accounts is a discovery mode, not a sync mode — handled separately and
+    // NEVER reachable from cron (see auth gate below).
+    const isSeedAccounts = rawMode === "seed-accounts";
+
+    // On-demand single-account scope. Only honored on the authenticated path;
+    // used solely in a parametrized .eq() (no raw SQL), so injection-safe.
+    const requestedAccountId =
+      typeof rawAccountId === "string" && rawAccountId.length > 0 ? rawAccountId : null;
 
     // Resolve sync mode: explicit mode takes precedence, then backfill compat
     const validModes: SyncMode[] = ["leads", "insights", "full", "backfill"];
@@ -599,6 +724,17 @@ serve(async (req) => {
           : "full";
 
     // ---------- Auth ----------
+    // seed-accounts and on-demand single-account scope are privileged operations
+    // that MUST run authenticated (CEO/CTO). The cron path bypasses JWT, so it is
+    // explicitly forbidden from triggering account discovery or arbitrary scoped
+    // syncs — defense in depth against a forged source='cron' body.
+    if (source === "cron" && (isSeedAccounts || requestedAccountId)) {
+      return new Response(
+        JSON.stringify({ error: "cron cannot run seed-accounts or scoped on-demand sync" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     if (source !== "cron") {
       const authHeader = req.headers.get("Authorization");
       if (!authHeader) {
@@ -635,11 +771,33 @@ serve(async (req) => {
       }
     }
 
-    // ---------- Fetch active accounts ----------
-    const { data: accounts, error: accountsError } = await supabase
+    // ---------- seed-accounts: discover + register, then return ----------
+    if (isSeedAccounts) {
+      const result = await seedAdAccounts(supabase, metaAccessToken);
+      console.log(`[SyncMetaAds] seed-accounts: seeded=${result.seeded}, skipped=${result.skipped}, total=${result.total}`);
+      return new Response(
+        JSON.stringify({ mode: "seed-accounts", ...result }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ---------- Fetch accounts to process ----------
+    // Cron auto-syncs only sync_policy='cron' accounts (keeps the 40 client
+    // accounts off the */30 cron → no Graph rate-limit blowup). An authenticated
+    // on-demand call with account_id targets exactly one selectable account.
+    let accountsQuery = supabase
       .from("meta_ad_accounts")
-      .select("account_id, account_name")
-      .eq("is_active", true);
+      .select("account_id, account_name");
+
+    if (requestedAccountId) {
+      accountsQuery = accountsQuery
+        .eq("account_id", requestedAccountId)
+        .eq("is_active", true);
+    } else {
+      accountsQuery = accountsQuery.eq("sync_policy", "cron");
+    }
+
+    const { data: accounts, error: accountsError } = await accountsQuery;
 
     if (accountsError) {
       throw new Error(`Failed to fetch ad accounts: ${accountsError.message}`);
@@ -655,7 +813,11 @@ serve(async (req) => {
     // ---------- Determine date range ----------
     const { since, until } = buildDateRange(mode);
     const doInsights = mode !== "leads";
-    const doLeads = mode !== "insights";
+    // Leads are sourced from the token's Pages (Milennials' lead forms), not
+    // per-ad-account. A scoped on-demand sync of a single client account must NOT
+    // re-walk every Page — it would be slow, unrelated to that account, and would
+    // tag leads with the wrong ad_account_id. Skip leads when account-scoped.
+    const doLeads = mode !== "insights" && !requestedAccountId;
     console.log(`[SyncMetaAds] Syncing ${accounts.length} accounts, range ${since}->${until}, mode=${mode}`);
 
     // Thumbnail enrichment is time-bounded only in backfill (large ad universe,

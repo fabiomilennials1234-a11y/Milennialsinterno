@@ -132,4 +132,27 @@ describe('useMetaAdsInsights — query restricts to campaign-level rows', () => 
     expect(result.current.aggregates.totalSpend).toBe(516.79);
     expect(result.current.aggregates.totalLeads).toBe(11);
   });
+
+  it("scopes to one account via .eq('ad_account_id', id) when a real id is given", async () => {
+    const { result } = renderHook(
+      () => useMetaAdsInsights({ dateFrom: '2026-05-31', dateTo: '2026-05-31', accountId: 'act_client_42' }),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(calls.eq ?? []).toContainEqual(['ad_account_id', 'act_client_42']);
+  });
+
+  it("does NOT scope by account when accountId is the 'all' sentinel", async () => {
+    const { result } = renderHook(
+      () => useMetaAdsInsights({ dateFrom: '2026-05-31', dateTo: '2026-05-31', accountId: 'all' }),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const accountEqCalls = (calls.eq ?? []).filter(c => c[0] === 'ad_account_id');
+    expect(accountEqCalls).toHaveLength(0);
+  });
 });
