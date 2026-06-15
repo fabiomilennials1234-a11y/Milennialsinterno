@@ -9,6 +9,7 @@ import { useClientsWithSales } from '@/hooks/useClientList';
 import { useConcederProduto, type ConcessaoMotivo } from '@/hooks/useConcessoes';
 import { HandHeart, CalendarClock, Loader2, AlertTriangle, User } from 'lucide-react';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 interface ConcederProdutoUpsellsModalProps {
   open: boolean;
@@ -39,6 +40,7 @@ export function ConcederProdutoUpsellsModal({ open, onOpenChange }: ConcederProd
   const [motivo, setMotivo] = useState<ConcessaoMotivo | ''>('');
   const [reviewDate, setReviewDate] = useState('');
 
+  const navigate = useNavigate();
   const { data: clients = [], isLoading: isLoadingClients } = useClientsWithSales();
   const concederProduto = useConcederProduto();
 
@@ -99,7 +101,19 @@ export function ConcederProdutoUpsellsModal({ open, onOpenChange }: ConcederProd
       });
 
       toast.success('Produto concedido', {
-        description: `${productName} concedido a ${clientName} sem custo. Aparece em Concessões.`,
+        description: `${productName} para ${clientName}. Sem custo, registrado em Concessões.`,
+        duration: 8000,
+        action: {
+          label: 'Ver em Concessões',
+          onClick: () => navigate('/concessoes'),
+        },
+        // Override por-chamada: o actionButton global é bg-primary (esmeralda =
+        // cor de venda). Concessão é âmbar. `!` força sobre o global, cuja ordem
+        // no stylesheet não é garantida. Não tocar no sonner.tsx global.
+        classNames: {
+          actionButton:
+            '!bg-amber-500/15 !text-amber-600 dark:!text-amber-500 hover:!bg-amber-500/25',
+        },
       });
       resetForm();
       onOpenChange(false);
