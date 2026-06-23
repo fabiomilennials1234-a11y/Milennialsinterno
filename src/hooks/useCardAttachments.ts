@@ -66,18 +66,44 @@ export const ALLOWED_FILE_TYPES = [
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'application/vnd.ms-excel',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  // Design assets (PSD/AI/EPS). Browsers report inconsistent or empty MIME
+  // for these, so extension fallback below is the real gate.
+  'image/vnd.adobe.photoshop',
+  'application/x-photoshop',
+  'application/postscript',
+  'application/illustrator',
+  'application/eps',
+  'application/x-eps',
 ];
 
-// Max file size: No limit for videos, 10MB for others
-export function getMaxFileSize(fileType: string): number {
-  if (fileType.startsWith('video/')) {
-    return Infinity; // No limit for videos
+// Design asset extensions. CLOSED whitelist — used as the extension fallback
+// when File.type comes empty/unrecognized (common for .psd in browsers).
+export const DESIGN_ASSET_EXTENSIONS = ['.psd', '.ai', '.eps'];
+
+function hasDesignAssetExtension(fileName?: string): boolean {
+  if (!fileName) return false;
+  const lower = fileName.toLowerCase();
+  return DESIGN_ASSET_EXTENSIONS.some((ext) => lower.endsWith(ext));
+}
+
+// Max file size: No limit for videos or design assets (PSD/AI/EPS), 10MB others.
+export function getMaxFileSize(fileType: string, fileName?: string): number {
+  if (fileType.startsWith('video/') || hasDesignAssetExtension(fileName)) {
+    return Infinity;
   }
   return 10 * 1024 * 1024; // 10MB for others
 }
 
-export function isAllowedFileType(fileType: string): boolean {
-  return ALLOWED_FILE_TYPES.includes(fileType) || 
-    fileType.startsWith('image/') || 
-    fileType.startsWith('video/');
+export function isAllowedFileType(fileType: string, fileName?: string): boolean {
+  if (
+    ALLOWED_FILE_TYPES.includes(fileType) ||
+    fileType.startsWith('image/') ||
+    fileType.startsWith('video/')
+  ) {
+    return true;
+  }
+  // Empty/unrecognized MIME (e.g. .psd on some browsers): only allow when the
+  // extension matches the closed design-asset whitelist. NEVER pass arbitrary
+  // empty-type files — that would let a MIME-less malicious file through.
+  return hasDesignAssetExtension(fileName);
 }

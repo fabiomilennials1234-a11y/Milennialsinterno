@@ -66,19 +66,18 @@ export default function CardAttachmentsTab({
 
     for (const file of Array.from(files)) {
       // Check file type
-      if (!isAllowedFileType(file.type)) {
+      if (!isAllowedFileType(file.type, file.name)) {
         toast.error(`Tipo de arquivo não permitido: ${file.name}`);
         continue;
       }
 
-      // Check file size (only for non-videos)
-      if (!file.type.startsWith('video/')) {
-        const maxSize = getMaxFileSize(file.type);
-        if (file.size > maxSize) {
-          const maxSizeMB = maxSize / (1024 * 1024);
-          toast.error(`${file.name} é muito grande (máx ${maxSizeMB}MB)`);
-          continue;
-        }
+      // Check file size. Infinity for videos/design assets, so the comparison
+      // is always false for those — single uniform guard.
+      const maxSize = getMaxFileSize(file.type, file.name);
+      if (file.size > maxSize) {
+        const maxSizeMB = maxSize / (1024 * 1024);
+        toast.error(`${file.name} é muito grande (máx ${maxSizeMB}MB)`);
+        continue;
       }
 
       try {
@@ -173,7 +172,7 @@ export default function CardAttachmentsTab({
           onChange={handleFileUpload}
           disabled={uploadAttachment.isPending || attachments.length >= MAX_ATTACHMENTS_PER_CARD}
           className="hidden"
-          accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx"
+          accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.psd,.ai,.eps,image/vnd.adobe.photoshop,application/x-photoshop,application/postscript"
           multiple
         />
         <button
