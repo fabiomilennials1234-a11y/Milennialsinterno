@@ -16,7 +16,8 @@ import { sprintFormSchema, type SprintFormValues } from '../schemas/task';
 import { useCreateTechSprint, useUpdateTechSprint } from '../hooks/useTechSprints';
 import { useTechTasks, useUpdateTechTask } from '../hooks/useTechTasks';
 import { useProfileMap, getInitials } from '../hooks/useProfiles';
-import { TYPE_LABEL_FRIENDLY } from '../lib/statusLabels';
+import { getFriendlyTypeLabel } from '../lib/statusLabels';
+import { getTaskTypeVisual } from '../lib/taskTypeVisual';
 import type { TechSprint } from '../types';
 
 interface SprintFormModalProps {
@@ -245,7 +246,8 @@ export function SprintFormModal({ open, onOpenChange, sprint }: SprintFormModalP
               <div className="flex flex-col gap-1 max-h-[240px] overflow-y-auto rounded-[var(--mtech-radius-md)] border border-[var(--mtech-border)] bg-[var(--mtech-bg)] p-1">
                 {availableTasks.map((task) => {
                   const isSelected = selectedTaskIds.has(task.id);
-                  const typeFriendly = TYPE_LABEL_FRIENDLY[task.type];
+                  const typeFriendly = getFriendlyTypeLabel(task.type);
+                  const typeVisual = getTaskTypeVisual(task.type);
                   const resolvedAssigneeName = task.assignee_id ? profileMap[task.assignee_id] ?? null : null;
                   const assigneeInitials = task.assignee_id
                     ? (resolvedAssigneeName ? getInitials(resolvedAssigneeName) : '??')
@@ -285,8 +287,8 @@ export function SprintFormModal({ open, onOpenChange, sprint }: SprintFormModalP
                       <span
                         className="flex-shrink-0 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
                         style={{
-                          color: task.type === 'BUG' ? '#E5484D' : task.type === 'HOTFIX' ? '#F97316' : task.type === 'FEATURE' ? '#3B82F6' : '#8A8A95',
-                          background: task.type === 'BUG' ? 'rgba(229,72,77,0.12)' : task.type === 'HOTFIX' ? 'rgba(249,115,22,0.12)' : task.type === 'FEATURE' ? 'rgba(59,130,246,0.12)' : 'rgba(138,138,149,0.12)',
+                          color: typeVisual.color,
+                          background: typeVisual.bg,
                         }}
                       >
                         {typeFriendly.label}

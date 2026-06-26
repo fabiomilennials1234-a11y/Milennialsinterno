@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion';
-import { Bug, Sparkles, Flame, Wrench, Lock, FolderKanban } from 'lucide-react';
-import type { TechTask, TechTaskType, TechTaskPriority } from '../types';
-import { TYPE_LABEL_FRIENDLY } from '../lib/statusLabels';
+import { Lock, FolderKanban } from 'lucide-react';
+import type { TechTask, TechTaskPriority } from '../types';
+import { getFriendlyTypeLabel } from '../lib/statusLabels';
+import { getTaskTypeVisual } from '../lib/taskTypeVisual';
 import { useProfileMap, getInitials } from '../hooks/useProfiles';
 import { useProjectNameMap } from '../hooks/useTechProjects';
 import { TimerButton } from './TimerButton';
@@ -13,17 +14,6 @@ interface TaskCardProps {
   task: TechTask;
   onClick: () => void;
 }
-
-// ---------------------------------------------------------------------------
-// Type icon mapping
-// ---------------------------------------------------------------------------
-
-const TYPE_CONFIG: Record<TechTaskType, { icon: typeof Bug; color: string; bg: string }> = {
-  BUG: { icon: Bug, color: '#E5484D', bg: 'rgba(229,72,77,0.12)' },
-  FEATURE: { icon: Sparkles, color: '#3B82F6', bg: 'rgba(59,130,246,0.12)' },
-  HOTFIX: { icon: Flame, color: '#F97316', bg: 'rgba(249,115,22,0.12)' },
-  CHORE: { icon: Wrench, color: '#8A8A95', bg: 'rgba(138,138,149,0.12)' },
-};
 
 const PRIORITY_DOT_COLOR: Record<TechTaskPriority, string> = {
   CRITICAL: 'var(--mtech-accent)',
@@ -37,7 +27,7 @@ const PRIORITY_DOT_COLOR: Record<TechTaskPriority, string> = {
 // ---------------------------------------------------------------------------
 
 export function TaskCard({ task, onClick }: TaskCardProps) {
-  const { icon: TypeIcon, color: typeColor, bg: typeBg } = TYPE_CONFIG[task.type];
+  const { icon: TypeIcon, color: typeColor, bg: typeBg } = getTaskTypeVisual(task.type);
   const dotColor = PRIORITY_DOT_COLOR[task.priority];
   const profileMap = useProfileMap();
   const projectNameMap = useProjectNameMap();
@@ -86,7 +76,7 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
           style={{ color: typeColor, backgroundColor: typeBg }}
         >
           <TypeIcon className="h-3 w-3" />
-          {TYPE_LABEL_FRIENDLY[task.type].label}
+          {getFriendlyTypeLabel(task.type).label}
         </span>
 
         {task.is_blocked && (

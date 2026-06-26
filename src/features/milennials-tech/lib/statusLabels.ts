@@ -15,6 +15,8 @@ export const TYPE_LABEL: Record<TechTaskType, string> = {
   FEATURE: 'Feature',
   HOTFIX: 'Hotfix',
   CHORE: 'Chore',
+  STORY: 'Story',
+  TASK: 'Task',
 };
 
 /** Friendly labels for the creation form (non-technical users) */
@@ -23,7 +25,20 @@ export const TYPE_LABEL_FRIENDLY: Record<TechTaskType, { label: string; hint: st
   FEATURE: { label: 'Melhoria', hint: 'Algo novo que precisa ser construído' },
   HOTFIX: { label: 'Urgente', hint: 'Precisa ser resolvido imediatamente' },
   CHORE: { label: 'Tarefa', hint: 'Manutenção, organização, ajustes' },
+  STORY: { label: 'História', hint: 'Entrega de valor pro usuário final' },
+  TASK: { label: 'Tarefa técnica', hint: 'Trabalho técnico ou de manutenção' },
 };
+
+const DEFAULT_TYPE_FRIENDLY = { label: 'Item', hint: 'Tipo não reconhecido' };
+
+/**
+ * Safe accessor for {@link TYPE_LABEL_FRIENDLY}. Returns a neutral fallback for
+ * any unmapped enum value instead of throwing on `.label` — guards the kanban
+ * cards against future `tech_task_type` expansion (tsc does not enforce it).
+ */
+export function getFriendlyTypeLabel(type: TechTaskType): { label: string; hint: string } {
+  return TYPE_LABEL_FRIENDLY[type] ?? DEFAULT_TYPE_FRIENDLY;
+}
 
 export const PRIORITY_LABEL: Record<TechTaskPriority, string> = {
   CRITICAL: 'Crítica',

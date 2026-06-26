@@ -1,7 +1,8 @@
 import { useCallback } from 'react';
 import { X } from 'lucide-react';
 import type { TechTaskType, TechTaskPriority, TechTaskStatus } from '../types';
-import { TYPE_LABEL_FRIENDLY, PRIORITY_LABEL } from '../lib/statusLabels';
+import { getFriendlyTypeLabel, PRIORITY_LABEL } from '../lib/statusLabels';
+import { TECH_TASK_TYPES, getTaskTypeVisual } from '../lib/taskTypeVisual';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -28,12 +29,11 @@ interface BacklogFilterBarProps {
 // Config
 // ---------------------------------------------------------------------------
 
-const TYPE_OPTIONS: { key: TechTaskType; label: string; color: string; bg: string }[] = [
-  { key: 'BUG', label: TYPE_LABEL_FRIENDLY.BUG.label, color: '#E5484D', bg: 'rgba(229,72,77,0.12)' },
-  { key: 'FEATURE', label: TYPE_LABEL_FRIENDLY.FEATURE.label, color: '#3B82F6', bg: 'rgba(59,130,246,0.12)' },
-  { key: 'HOTFIX', label: TYPE_LABEL_FRIENDLY.HOTFIX.label, color: '#F97316', bg: 'rgba(249,115,22,0.12)' },
-  { key: 'CHORE', label: TYPE_LABEL_FRIENDLY.CHORE.label, color: '#8A8A95', bg: 'rgba(138,138,149,0.12)' },
-];
+const TYPE_OPTIONS: { key: TechTaskType; label: string; color: string; bg: string }[] =
+  TECH_TASK_TYPES.map((key) => {
+    const visual = getTaskTypeVisual(key);
+    return { key, label: getFriendlyTypeLabel(key).label, color: visual.color, bg: visual.bg };
+  });
 
 const PRIORITY_OPTIONS: { key: TechTaskPriority; label: string; color: string; bg: string }[] = [
   { key: 'CRITICAL', label: PRIORITY_LABEL.CRITICAL, color: '#E5484D', bg: 'rgba(229,72,77,0.10)' },

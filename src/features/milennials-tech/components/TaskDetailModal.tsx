@@ -21,10 +21,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
-  Bug,
-  Sparkles,
-  Flame,
-  Wrench,
   Lock,
   Unlock,
   Trash2,
@@ -42,14 +38,15 @@ import { useTechTasks, useUpdateTechTask, useDeleteTechTask } from '../hooks/use
 import { useTechTaskActivities } from '../hooks/useTechTaskActivities';
 import { useTechTimer } from '../hooks/useTechTimer';
 import { canEditTask, canApprove } from '../lib/permissions';
-import { TYPE_LABEL_FRIENDLY, STATUS_LABEL_PT, PRIORITY_LABEL_FRIENDLY, ACTIVITY_LABEL } from '../lib/statusLabels';
+import { getFriendlyTypeLabel, STATUS_LABEL_PT, PRIORITY_LABEL_FRIENDLY, ACTIVITY_LABEL } from '../lib/statusLabels';
+import { getTaskTypeVisual } from '../lib/taskTypeVisual';
 import { TimerButton } from './TimerButton';
 import { TagPicker } from './TagPicker';
 import { useProfileMap } from '../hooks/useProfiles';
 import { useTechAttachments, getAttachmentUrl } from '../hooks/useTechAttachments';
 import { downloadStorageFile } from '@/lib/storageUpload';
 import { useTechTimeTotals, formatTimeTotal } from '../hooks/useTechTimeTotals';
-import type { TechTask, TechTaskType, TechTaskPriority, ChecklistItem } from '../types';
+import type { TechTask, TechTaskPriority, ChecklistItem } from '../types';
 
 interface TaskDetailModalProps {
   taskId: string;
@@ -61,20 +58,6 @@ interface TaskDetailModalProps {
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
-
-const TYPE_ICON: Record<TechTaskType, typeof Bug> = {
-  BUG: Bug,
-  FEATURE: Sparkles,
-  HOTFIX: Flame,
-  CHORE: Wrench,
-};
-
-const TYPE_COLOR: Record<TechTaskType, string> = {
-  BUG: '#E5484D',
-  FEATURE: '#3B82F6',
-  HOTFIX: '#F97316',
-  CHORE: '#8A8A95',
-};
 
 const PRIORITY_DOT: Record<TechTaskPriority, string> = {
   CRITICAL: 'var(--mtech-accent)',
@@ -163,7 +146,7 @@ export function TaskDetailModal({ taskId, open, onOpenChange, onClose }: TaskDet
     );
   }
 
-  const TypeIcon = TYPE_ICON[task.type];
+  const { icon: TypeIcon, color: typeColor, bg: typeBg } = getTaskTypeVisual(task.type);
   const checklist = (task.checklist as ChecklistItem[] | null) ?? [];
 
   return (
@@ -223,12 +206,12 @@ export function TaskDetailModal({ taskId, open, onOpenChange, onClose }: TaskDet
               <span
                 className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide select-none"
                 style={{
-                  color: TYPE_COLOR[task.type],
-                  backgroundColor: `${TYPE_COLOR[task.type]}1F`,
+                  color: typeColor,
+                  backgroundColor: typeBg,
                 }}
               >
                 <TypeIcon className="h-3 w-3" />
-                {TYPE_LABEL_FRIENDLY[task.type].label}
+                {getFriendlyTypeLabel(task.type).label}
               </span>
 
               <span className="inline-flex items-center gap-1.5 text-xs text-[var(--mtech-text-muted)]">

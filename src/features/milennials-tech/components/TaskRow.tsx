@@ -1,6 +1,7 @@
-import { Bug, Sparkles, Flame, Wrench, FolderKanban } from 'lucide-react';
-import type { TechTask, TechTaskType } from '../types';
+import { FolderKanban } from 'lucide-react';
+import type { TechTask } from '../types';
 import { TYPE_LABEL, STATUS_LABEL_PT, PRIORITY_LABEL } from '../lib/statusLabels';
+import { getTaskTypeVisual } from '../lib/taskTypeVisual';
 import { useProfileMap, getInitials } from '../hooks/useProfiles';
 import { useProjectNameMap } from '../hooks/useTechProjects';
 import { TimerButton } from './TimerButton';
@@ -11,38 +12,13 @@ interface TaskRowProps {
 }
 
 // ---------------------------------------------------------------------------
-// Config
-// ---------------------------------------------------------------------------
-
-const TYPE_ICON: Record<TechTaskType, typeof Bug> = {
-  BUG: Bug,
-  FEATURE: Sparkles,
-  HOTFIX: Flame,
-  CHORE: Wrench,
-};
-
-const TYPE_COLOR: Record<TechTaskType, string> = {
-  BUG: '#E5484D',
-  FEATURE: '#3B82F6',
-  HOTFIX: '#F97316',
-  CHORE: '#8A8A95',
-};
-
-const TYPE_BG: Record<TechTaskType, string> = {
-  BUG: 'rgba(229,72,77,0.12)',
-  FEATURE: 'rgba(59,130,246,0.12)',
-  HOTFIX: 'rgba(249,115,22,0.12)',
-  CHORE: 'rgba(138,138,149,0.12)',
-};
-
-// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export function TaskRow({ task, onClick }: TaskRowProps) {
   const profileMap = useProfileMap();
   const projectNameMap = useProjectNameMap();
-  const TypeIcon = TYPE_ICON[task.type];
+  const { icon: TypeIcon, color: typeColor, bg: typeBg } = getTaskTypeVisual(task.type);
 
   // project_id exists in DB but not in generated TS types yet — suppress until types regenerated
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -69,7 +45,7 @@ export function TaskRow({ task, onClick }: TaskRowProps) {
       {/* Type badge */}
       <span
         className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide select-none flex-shrink-0"
-        style={{ color: TYPE_COLOR[task.type], backgroundColor: TYPE_BG[task.type] }}
+        style={{ color: typeColor, backgroundColor: typeBg }}
       >
         <TypeIcon className="h-3 w-3" />
         {TYPE_LABEL[task.type]}

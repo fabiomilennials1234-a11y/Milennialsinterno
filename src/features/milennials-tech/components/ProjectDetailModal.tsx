@@ -61,8 +61,9 @@ import {
   type ProjectPriority,
   type ProjectMemberRole,
 } from '../lib/projectSteps';
-import { STATUS_LABEL_PT, TYPE_LABEL_FRIENDLY } from '../lib/statusLabels';
-import type { TechTask, TechTaskType, TechTaskPriority } from '../types';
+import { STATUS_LABEL_PT, getFriendlyTypeLabel } from '../lib/statusLabels';
+import { getTaskTypeVisual } from '../lib/taskTypeVisual';
+import type { TechTask, TechTaskPriority } from '../types';
 
 // ---------------------------------------------------------------------------
 // Styles (reuse mtech patterns)
@@ -82,13 +83,6 @@ const PRIORITY_DOT_COLOR: Record<TechTaskPriority, string> = {
   HIGH: '#E5484D',
   MEDIUM: '#EAB308',
   LOW: '#5A5A66',
-};
-
-const TYPE_COLOR: Record<TechTaskType, string> = {
-  BUG: '#E5484D',
-  FEATURE: '#3B82F6',
-  HOTFIX: '#F97316',
-  CHORE: '#8A8A95',
 };
 
 // ---------------------------------------------------------------------------
@@ -446,9 +440,9 @@ export function ProjectDetailModal({ project, open, onOpenChange }: ProjectDetai
                           />
                           <span
                             className="text-[10px] font-semibold uppercase tracking-wide flex-shrink-0"
-                            style={{ color: TYPE_COLOR[task.type] }}
+                            style={{ color: getTaskTypeVisual(task.type).color }}
                           >
-                            {TYPE_LABEL_FRIENDLY[task.type].label}
+                            {getFriendlyTypeLabel(task.type).label}
                           </span>
                           <span className="flex-1 truncate text-xs text-[var(--mtech-text)]">
                             {task.title}
