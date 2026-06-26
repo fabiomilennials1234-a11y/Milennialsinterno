@@ -38,6 +38,7 @@ export interface TechProjectMemberInfo {
 export interface TechProjectRow {
   id: string;
   name: string;
+  key_prefix: string | null;
   description: string | null;
   type: string;
   status: string;
@@ -68,12 +69,15 @@ export function useTechProjects(filters?: TechProjectFilters) {
     queryKey: techProjectKeys.list(filters),
     queryFn: async () => {
       // Base query with join to profiles for lead name
+      // NOTE: no client:clients embed — foundation #153 dropped
+      // tech_projects_client_id_fkey, so PostgREST can no longer resolve that
+      // relation (it would 400 at runtime). client_name stays null until a
+      // FK-less client linkage lands in a later slice.
       let query = (supabase as any)
         .from('tech_projects')
         .select(`
           *,
           lead:profiles!tech_projects_lead_id_profiles_fkey(name),
-          client:clients!tech_projects_client_id_fkey(name),
           members_detail:tech_project_members(user_id, role, profile:profiles!tech_project_members_user_id_profiles_fkey(name)),
           tasks:tech_tasks!tech_tasks_project_id_fkey(id, status)
         `);
@@ -90,6 +94,7 @@ export function useTechProjects(filters?: TechProjectFilters) {
       return (data || []).map((row: any) => ({
         id: row.id,
         name: row.name,
+        key_prefix: row.key_prefix ?? null,
         description: row.description,
         type: row.type,
         status: row.status,
@@ -140,6 +145,11 @@ export interface CreateProjectInput {
   created_by: string;
 }
 
+/**
+ * @deprecated Legacy DML-direct create (no key_prefix, no server-side staff
+ * gate). Kept alive only for the old ProjectFormModal until the #154 cutover.
+ * New surfaces MUST use {@link useCreateTechProjectRpc}.
+ */
 export function useCreateTechProject() {
   const qc = useQueryClient();
 
@@ -170,6 +180,51 @@ export function useCreateTechProject() {
     },
     onError: (err: Error) => {
       toast.error('Erro ao criar projeto', { description: err.message });
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// RPC-backed create (canonical path — server gates staff + validates contract)
+// ---------------------------------------------------------------------------
+
+export interface CreateProjectRpcInput {
+  name: string;
+  key_prefix: string;
+  type: 'internal' | 'client';
+  description?: string | null;
+  priority?: ProjectPriority;
+  lead_id?: string | null;
+  client_id?: string | null;
+}
+
+/**
+ * Creates a tech project through the SECURITY DEFINER RPC `tech_project_create`.
+ * Zero direct DML: the RPC asserts tech staff and validates the contract
+ * server-side, and returns the new project id. Throws the raw PostgrestError so
+ * callers can branch on `code` (e.g. 23505 → duplicate key_prefix) — translate
+ * via `translateProjectCreateError`. Toasts are intentionally NOT fired here so
+ * the container can route a duplicate to an inline field error instead.
+ */
+export function useCreateTechProjectRpc() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: CreateProjectRpcInput): Promise<string> => {
+      const { data, error } = await supabase.rpc('tech_project_create', {
+        p_name: input.name,
+        p_key_prefix: input.key_prefix,
+        p_type: input.type,
+        p_description: input.description ?? null,
+        p_priority: input.priority ?? 'medium',
+        p_lead_id: input.lead_id ?? null,
+        p_client_id: input.client_id ?? null,
+      });
+      if (error) throw error;
+      return data as string;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: techProjectKeys.all });
     },
   });
 }

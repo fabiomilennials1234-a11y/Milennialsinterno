@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { TechSprint } from '../types';
 import type { Database } from '@/integrations/supabase/types';
 import { techTaskKeys } from './useTechTasks';
+import { backlogIssueKeys } from './useTechIssues';
 
 type TechSprintInsert = Database['public']['Tables']['tech_sprints']['Insert'];
 type TechSprintUpdate = Database['public']['Tables']['tech_sprints']['Update'];
@@ -114,21 +115,39 @@ export function useStartSprint() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: techSprintKeys.all });
       qc.invalidateQueries({ queryKey: techTaskKeys.all });
+      qc.invalidateQueries({ queryKey: backlogIssueKeys.all });
+      // sprintBurndownKeys.all — inlined to avoid an import cycle (#162).
+      qc.invalidateQueries({ queryKey: ['tech', 'sprint-burndown'] });
     },
   });
 }
 
-export function useEndSprint() {
+export interface CloseSprintInput {
+  sprintId: string;
+  /** PLANNING sprint to carry incomplete issues into. Omit to dump to backlog. */
+  moveTo?: string | null;
+}
+
+export function useCloseSprint() {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.rpc('tech_end_sprint', { _sprint_id: id });
+    mutationFn: async ({ sprintId, moveTo }: CloseSprintInput) => {
+      // tech_close_sprint isn't in the WIP-regenerated types yet — localized
+      // cast on the client, same pattern as the rest of the tech RPC hooks.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any).rpc('tech_close_sprint', {
+        _sprint_id: sprintId,
+        _move_to: moveTo ?? undefined,
+      });
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: techSprintKeys.all });
       qc.invalidateQueries({ queryKey: techTaskKeys.all });
+      qc.invalidateQueries({ queryKey: backlogIssueKeys.all });
+      // sprintBurndownKeys.all — inlined to avoid an import cycle (#162).
+      qc.invalidateQueries({ queryKey: ['tech', 'sprint-burndown'] });
     },
   });
 }

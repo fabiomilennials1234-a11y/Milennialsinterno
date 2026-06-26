@@ -19,6 +19,60 @@
   --mtech-input-bg: #1A1A22;
   --mtech-input-border: rgba(255, 255, 255, 0.14);
   --mtech-input-focus: rgba(244, 196, 48, 0.4);
+
+  /* ----------------------------------------------------------------------- */
+  /* Issue system — added by #154 (visual system for #156/#157/roadmap).     */
+  /* Domain model per PRD #152. Dark-first. Jira IA, house polish.           */
+  /* ----------------------------------------------------------------------- */
+
+  /* Issue type — Jira convention: Story=green, Bug=red, Task=blue.          */
+  /* The solid color fills the type glyph chip (Jira signature square).      */
+  --mtech-type-story: #34B27B;
+  --mtech-type-story-bg: rgba(52, 178, 123, 0.14);
+  --mtech-type-bug: #E5484D;
+  --mtech-type-bug-bg: rgba(229, 72, 77, 0.14);
+  --mtech-type-task: #4C9AFF;
+  --mtech-type-task-bg: rgba(76, 154, 255, 0.14);
+
+  /* Workflow status — semantic spectrum across the fixed 7-state flow.      */
+  /* Gold on AWAITING_APPROVAL is intentional: it is the founder's stamp.    */
+  --mtech-status-backlog: #6E6E7A;
+  --mtech-status-backlog-bg: rgba(110, 110, 122, 0.14);
+  --mtech-status-todo: #8A93A0;
+  --mtech-status-todo-bg: rgba(138, 147, 160, 0.14);
+  --mtech-status-in-progress: #4C9AFF;
+  --mtech-status-in-progress-bg: rgba(76, 154, 255, 0.14);
+  --mtech-status-review: #9B8AFB;
+  --mtech-status-review-bg: rgba(155, 138, 251, 0.14);
+  --mtech-status-awaiting: #F4C430;
+  --mtech-status-awaiting-bg: rgba(244, 196, 48, 0.15);
+  --mtech-status-changes: #F5803E;
+  --mtech-status-changes-bg: rgba(245, 128, 62, 0.14);
+  --mtech-status-done: #30A46C;
+  --mtech-status-done-bg: rgba(48, 164, 108, 0.14);
+
+  /* Exception states — orthogonal to status, can stack on a card.          */
+  --mtech-state-blocked: #E5484D;
+  --mtech-state-blocked-bg: rgba(229, 72, 77, 0.14);
+  --mtech-state-changes: #F5803E;
+  --mtech-state-changes-bg: rgba(245, 128, 62, 0.14);
+  --mtech-state-awaiting: #F4C430;
+  --mtech-state-awaiting-bg: rgba(244, 196, 48, 0.15);
+
+  /* Epic / Project categorical palette — consumed via epicColorFromKey().   */
+  /* 8 hues, tuned for legibility on #09090B, deliberately distinct.         */
+  --mtech-epic-1: #4C9AFF; /* blue   */
+  --mtech-epic-2: #34B27B; /* green  */
+  --mtech-epic-3: #9B8AFB; /* violet */
+  --mtech-epic-4: #F5803E; /* orange */
+  --mtech-epic-5: #E5709B; /* pink   */
+  --mtech-epic-6: #2DD4BF; /* teal   */
+  --mtech-epic-7: #F4C430; /* gold   */
+  --mtech-epic-8: #A1A1AA; /* slate  */
+
+  /* Swimlane — squad grouping rows on the board.                            */
+  --mtech-swimlane-header-bg: rgba(255, 255, 255, 0.025);
+  --mtech-swimlane-header-border: rgba(255, 255, 255, 0.08);
 }
 
 .mtech-scope {

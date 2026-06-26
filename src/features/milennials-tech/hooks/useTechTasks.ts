@@ -116,6 +116,10 @@ export function useUpdateTechTask() {
     onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: techTaskKeys.all });
       qc.invalidateQueries({ queryKey: techTaskKeys.one(variables.id) });
+      // Assigning a task to an ACTIVE sprint is a scope-add — refresh burndown.
+      // backlogIssueKeys/sprintBurndownKeys inlined to avoid an import cycle (#162).
+      qc.invalidateQueries({ queryKey: ['tech', 'backlog'] });
+      qc.invalidateQueries({ queryKey: ['tech', 'sprint-burndown'] });
     },
   });
 }

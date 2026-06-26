@@ -11,6 +11,8 @@ const BASE_TABS = [
   { to: 'backlog', label: 'Backlog' },
   { to: 'kanban', label: 'Kanban' },
   { to: 'sprints', label: 'Sprints' },
+  { to: 'roadmap', label: 'Roadmap' },
+  { to: 'projetos-tracer', label: 'Projetos (novo)' },
 ];
 
 export function MilennialsTechPage() {
@@ -18,7 +20,12 @@ export function MilennialsTechPage() {
   useTechRealtime();
 
   const tabs = isExecutive(user?.role)
-    ? [...BASE_TABS, { to: 'projetos', label: 'Projetos' }]
+    ? [
+        ...BASE_TABS,
+        { to: 'projetos', label: 'Projetos' },
+        { to: 'time', label: 'Time' },
+        { to: 'billing', label: 'Billing' },
+      ]
     : BASE_TABS;
 
   return (

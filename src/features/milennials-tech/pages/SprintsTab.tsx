@@ -1,17 +1,28 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Plus, Play, Square, Pencil, CalendarDays, Inbox } from 'lucide-react';
+import { Plus, Play, Square, Pencil, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   useTechSprints,
   useStartSprint,
-  useEndSprint,
+  useCloseSprint,
 } from '../hooks/useTechSprints';
-import { useTechTasks } from '../hooks/useTechTasks';
+import { useSprintIssues } from '../hooks/useTechIssues';
 import { canApprove } from '../lib/permissions';
-import { TaskRow } from '../components/TaskRow';
+import {
+  computeDonePoints,
+  computePlannedPoints,
+  partitionOnClose,
+} from '../lib/sprintLifecycle';
+import { useSprintBurndown } from '../hooks/useSprintBurndown';
+import { useTechVelocity } from '../hooks/useTechVelocity';
+import { SprintVelocityChart } from '../components/SprintVelocityChart';
 import { TaskDetailModal } from '../components/TaskDetailModal';
 import { SprintFormModal } from '../components/SprintFormModal';
+import { SprintBoardContainer } from '../components/SprintBoardContainer';
+import { SprintBurndownChart } from '../components/SprintBurndownChart';
+import { SprintCommitment } from '../components/SprintCommitment';
+import { SprintCloseModal, type SprintCloseTarget } from '../components/SprintCloseModal';
 import type { TechSprint, TechSprintStatus } from '../types';
 
 // ---------------------------------------------------------------------------
@@ -32,7 +43,10 @@ export function SprintsTab() {
   const { user } = useAuth();
   const { data: sprints = [], isLoading: sprintsLoading } = useTechSprints();
   const startSprint = useStartSprint();
-  const endSprint = useEndSprint();
+  const closeSprint = useCloseSprint();
+
+  // Velocity is cross-sprint (every closed sprint), not tied to the selection.
+  const { series: velocitySeries } = useTechVelocity();
 
   const isExec = canApprove(user?.role);
 
@@ -40,6 +54,7 @@ export function SprintsTab() {
   const [showSprintForm, setShowSprintForm] = useState(false);
   const [editingSprint, setEditingSprint] = useState<TechSprint | undefined>(undefined);
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
+  const [showCloseModal, setShowCloseModal] = useState(false);
 
   const handleOpenTask = useCallback((id: string) => {
     setOpenTaskId(id);
@@ -52,9 +67,42 @@ export function SprintsTab() {
     return null;
   }, [sprints, selectedSprintId]);
 
-  // Fetch tasks for the selected sprint
-  const { data: sprintTasks = [], isLoading: tasksLoading } = useTechTasks(
-    activeSprint ? { sprintId: activeSprint.id } : undefined,
+  // Issues scoped to the selected sprint — shares the backlog query cache.
+  const { data: sprintIssues = [] } = useSprintIssues(activeSprint?.id);
+
+  // Burndown — only ACTIVE/COMPLETED sprints with a committed baseline render it.
+  const { series: burndownSeries, isEnabled: showBurndown } = useSprintBurndown(
+    activeSprint?.id,
+  );
+
+  const donePoints = useMemo(() => computeDonePoints(sprintIssues), [sprintIssues]);
+  const plannedPoints = useMemo(() => computePlannedPoints(sprintIssues), [sprintIssues]);
+  const { completed, incomplete } = useMemo(
+    () => partitionOnClose(sprintIssues),
+    [sprintIssues],
+  );
+
+  // PLANNING sprints (excluding the one being closed) can receive carry-over.
+  const nextSprints = useMemo(
+    () =>
+      sprints
+        .filter((s) => s.status === 'PLANNING' && s.id !== activeSprint?.id)
+        .map((s) => ({ id: s.id, name: s.name })),
+    [sprints, activeSprint?.id],
+  );
+
+  const handleConfirmClose = useCallback(
+    (target: SprintCloseTarget) => {
+      if (!activeSprint) return;
+      closeSprint.mutate(
+        {
+          sprintId: activeSprint.id,
+          moveTo: target.kind === 'sprint' ? target.id : null,
+        },
+        { onSuccess: () => setShowCloseModal(false) },
+      );
+    },
+    [activeSprint, closeSprint],
   );
 
   const handleCreateSprint = () => {
@@ -94,6 +142,9 @@ export function SprintsTab() {
 
   return (
     <>
+      {/* Velocity — cross-sprint throughput, sprint over sprint (#163) */}
+      <SprintVelocityChart series={velocitySeries} className="mb-6" />
+
       <div className="flex gap-6 min-h-[60vh]">
         {/* Left panel: sprint list */}
         <div className="w-72 flex-shrink-0 flex flex-col">
@@ -195,44 +246,53 @@ export function SprintsTab() {
                   </span>
                 </div>
 
-                {isExec && (
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleEditSprint(activeSprint)}
-                      className="text-[var(--mtech-text-muted)] gap-1.5 h-8"
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                      Editar
-                    </Button>
+                <div className="flex items-center gap-4">
+                  <SprintCommitment
+                    committedPoints={activeSprint.committed_points_snapshot}
+                    donePoints={donePoints}
+                    plannedPoints={plannedPoints}
+                    status={activeSprint.status}
+                  />
 
-                    {activeSprint.status === 'PLANNING' && (
+                  {isExec && (
+                    <div className="flex items-center gap-2">
                       <Button
                         size="sm"
-                        onClick={() => startSprint.mutate(activeSprint.id)}
-                        disabled={startSprint.isPending}
-                        className="bg-[var(--mtech-accent)] text-[var(--mtech-bg)] hover:bg-[var(--mtech-accent)]/90 font-semibold gap-1.5 h-8"
+                        variant="ghost"
+                        onClick={() => handleEditSprint(activeSprint)}
+                        className="text-[var(--mtech-text-muted)] gap-1.5 h-8"
                       >
-                        <Play className="h-3.5 w-3.5" />
-                        {startSprint.isPending ? 'Iniciando...' : 'Iniciar Sprint'}
+                        <Pencil className="h-3.5 w-3.5" />
+                        Editar
                       </Button>
-                    )}
 
-                    {activeSprint.status === 'ACTIVE' && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => endSprint.mutate(activeSprint.id)}
-                        disabled={endSprint.isPending}
-                        className="border-[var(--mtech-border)] text-[var(--mtech-text)] gap-1.5 h-8"
-                      >
-                        <Square className="h-3.5 w-3.5" />
-                        {endSprint.isPending ? 'Encerrando...' : 'Encerrar Sprint'}
-                      </Button>
-                    )}
-                  </div>
-                )}
+                      {activeSprint.status === 'PLANNING' && (
+                        <Button
+                          size="sm"
+                          onClick={() => startSprint.mutate(activeSprint.id)}
+                          disabled={startSprint.isPending}
+                          className="bg-[var(--mtech-accent)] text-[var(--mtech-bg)] hover:bg-[var(--mtech-accent)]/90 font-semibold gap-1.5 h-8"
+                        >
+                          <Play className="h-3.5 w-3.5" />
+                          {startSprint.isPending ? 'Iniciando...' : 'Iniciar Sprint'}
+                        </Button>
+                      )}
+
+                      {activeSprint.status === 'ACTIVE' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setShowCloseModal(true)}
+                          disabled={closeSprint.isPending}
+                          className="border-[var(--mtech-border)] text-[var(--mtech-text)] gap-1.5 h-8"
+                        >
+                          <Square className="h-3.5 w-3.5" />
+                          Encerrar Sprint
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Sprint meta */}
@@ -261,50 +321,13 @@ export function SprintsTab() {
                 </span>
               </div>
 
-              {/* Tasks table */}
-              {tasksLoading ? (
-                <div className="rounded-[var(--mtech-radius-md)] border border-[var(--mtech-border)] bg-[var(--mtech-surface)] overflow-hidden">
-                  <div className="flex items-center gap-3 h-9 px-3 border-b border-[var(--mtech-border)] bg-[var(--mtech-surface-elev)]">
-                    {[88, 200, 80, 64, 64, 64, 56].map((w, i) => (
-                      <div key={i} className="rounded bg-[var(--mtech-surface)] h-3" style={{ width: w }} />
-                    ))}
-                  </div>
-                  {[0, 1, 2].map((i) => (
-                    <div key={i} className="flex items-center gap-3 h-10 px-3 border-b border-[var(--mtech-border)]">
-                      <div className="w-[88px] flex-shrink-0"><div className="h-4 w-16 rounded-full bg-[var(--mtech-surface-elev)]" /></div>
-                      <div className="flex-1"><div className="h-4 rounded bg-[var(--mtech-surface-elev)]" style={{ width: `${60 + (i * 7) % 30}%` }} /></div>
-                    </div>
-                  ))}
-                </div>
-              ) : sprintTasks.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 gap-3">
-                  <Inbox className="h-10 w-10 text-[var(--mtech-text-subtle)] opacity-40" />
-                  <p className="text-sm text-[var(--mtech-text-muted)]">Nenhuma task nesta sprint.</p>
-                  <p className="text-xs text-[var(--mtech-text-subtle)]">Atribua tasks do backlog a esta sprint.</p>
-                </div>
-              ) : (
-                <div className="rounded-[var(--mtech-radius-md)] border border-[var(--mtech-border)] bg-[var(--mtech-surface)] overflow-hidden">
-                  {/* Header */}
-                  <div className="flex items-center gap-3 h-9 px-3 border-b border-[var(--mtech-border)] bg-[var(--mtech-surface-elev)] text-[10px] font-semibold uppercase tracking-widest text-[var(--mtech-text-subtle)]">
-                    <span className="w-[88px] flex-shrink-0">Tipo</span>
-                    <span className="flex-1">Título</span>
-                    <span className="w-20 text-right flex-shrink-0">Responsável</span>
-                    <span className="w-16 text-center flex-shrink-0">Sprint</span>
-                    <span className="w-16 text-center flex-shrink-0">Prazo</span>
-                    <span className="w-16 text-center flex-shrink-0">Status</span>
-                    <span className="w-14 text-center flex-shrink-0">Prio</span>
-                    <span className="w-8 flex-shrink-0" />
-                  </div>
-
-                  {sprintTasks.map((task) => (
-                    <TaskRow
-                      key={task.id}
-                      task={task}
-                      onClick={() => handleOpenTask(task.id)}
-                    />
-                  ))}
-                </div>
+              {/* Burndown — scope-change story for active/completed sprints */}
+              {showBurndown && (
+                <SprintBurndownChart series={burndownSeries} className="mb-5" />
               )}
+
+              {/* Sprint board — squad swimlanes */}
+              <SprintBoardContainer sprintId={activeSprint.id} onOpenCard={handleOpenTask} />
             </>
           )}
         </div>
@@ -316,6 +339,19 @@ export function SprintsTab() {
         onOpenChange={setShowSprintForm}
         sprint={editingSprint}
       />
+
+      {/* Sprint close modal */}
+      {activeSprint && (
+        <SprintCloseModal
+          open={showCloseModal}
+          onOpenChange={setShowCloseModal}
+          incompleteCount={incomplete.length}
+          completedCount={completed.length}
+          nextSprints={nextSprints}
+          onConfirm={handleConfirmClose}
+          isPending={closeSprint.isPending}
+        />
+      )}
 
       {/* Task detail modal */}
       {openTaskId && (

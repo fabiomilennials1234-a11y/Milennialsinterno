@@ -75,6 +75,10 @@ const BacklogTab = lazy(() => import("./features/milennials-tech/pages/BacklogTa
 const KanbanTab = lazy(() => import("./features/milennials-tech/pages/KanbanTab").then(m => ({ default: m.KanbanTab })));
 const SprintsTab = lazy(() => import("./features/milennials-tech/pages/SprintsTab").then(m => ({ default: m.SprintsTab })));
 const ProjectsTab = lazy(() => import("./features/milennials-tech/pages/ProjectsTab").then(m => ({ default: m.ProjectsTab })));
+const ProjectTracerTab = lazy(() => import("./features/milennials-tech/pages/ProjectTracerTab").then(m => ({ default: m.ProjectTracerTab })));
+const RoadmapTab = lazy(() => import("./features/milennials-tech/pages/RoadmapTab").then(m => ({ default: m.RoadmapTab })));
+const TeamReportTab = lazy(() => import("./features/milennials-tech/pages/TeamReportTab").then(m => ({ default: m.TeamReportTab })));
+const BillingTab = lazy(() => import("./features/milennials-tech/pages/BillingTab").then(m => ({ default: m.BillingTab })));
 const SubmitTaskPage = lazy(() => import("./features/milennials-tech/pages/SubmitTaskPage").then(m => ({ default: m.SubmitTaskPage })));
 
 // Slice 8 (#84) — Painel de Demandas: a vista de pássaro "Monday" agregada.
@@ -594,7 +598,11 @@ function AppRoutes() {
         <Route path="backlog" element={<BacklogTab />} />
         <Route path="kanban" element={<KanbanTab />} />
         <Route path="sprints" element={<SprintsTab />} />
+        <Route path="roadmap" element={<RoadmapTab />} />
         <Route path="projetos" element={<ProjectsTab />} />
+        <Route path="projetos-tracer" element={<ProjectTracerTab />} />
+        <Route path="time" element={<TeamReportTab />} />
+        <Route path="billing" element={<BillingTab />} />
       </Route>
 
       {/* Submit Task — shared form (any logged-in user) */}

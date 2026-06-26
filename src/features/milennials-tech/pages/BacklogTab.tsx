@@ -1,224 +1,186 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Search, Inbox, Share2, X, FolderKanban } from 'lucide-react';
+import { Plus, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
-import { isExecutive } from '@/types/auth';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { useTechTasks, type TechTaskFilters } from '../hooks/useTechTasks';
-import { useTechProjects } from '../hooks/useTechProjects';
 import {
-  BacklogFilterBar,
-  EMPTY_FILTERS,
+  useBacklogIssues,
+  useCreateIssue,
+  useReorderIssue,
+  useUpdateStoryPoints,
+} from '../hooks/useTechIssues';
+import { useTechProjects } from '../hooks/useTechProjects';
+import { useTechClients } from '../hooks/useClients';
+import { useTechProfiles } from '../hooks/useProfiles';
+import { computeReorderNeighbors } from '../lib/backlogRanking';
+import type { StoryPointValue } from '../lib/issueSystem';
+import {
+  EMPTY_BACKLOG_FILTERS,
+  hasAnyFilter,
   type BacklogFilters,
-} from '../components/BacklogTabs';
-import { TaskRow } from '../components/TaskRow';
-import { TaskFormModal } from '../components/TaskFormModal';
+  type ProjectOption,
+  type ClientOption,
+  type AssigneeOption,
+} from '../components/backlogTypes';
+import { BacklogQueue } from '../components/BacklogQueue';
+import { BacklogFilterBar } from '../components/BacklogFilterBar';
+import { IssueCreateModal, type IssueCreatePayload } from '../components/IssueCreateModal';
 import { TaskDetailModal } from '../components/TaskDetailModal';
 
 export function BacklogTab() {
-  const { user } = useAuth();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const projectFilter = searchParams.get('project') ?? undefined;
+  const [searchParams] = useSearchParams();
+  const projectParam = searchParams.get('project');
 
-  const { data: allProjects = [] } = useTechProjects();
+  const [filters, setFilters] = useState<BacklogFilters>(() =>
+    projectParam
+      ? { ...EMPTY_BACKLOG_FILTERS, projectIds: [projectParam] }
+      : EMPTY_BACKLOG_FILTERS,
+  );
+  const [showCreate, setShowCreate] = useState(false);
+  const [openIssueId, setOpenIssueId] = useState<string | null>(null);
 
-  const filterProjectName = useMemo(() => {
-    if (!projectFilter) return null;
-    return allProjects.find((p) => p.id === projectFilter)?.name ?? 'Projeto';
-  }, [projectFilter, allProjects]);
+  const { data: issues = [], isLoading } = useBacklogIssues(filters);
+  const { data: projects = [] } = useTechProjects();
+  const { data: clients = [] } = useTechClients();
+  const { data: profiles = [] } = useTechProfiles();
 
-  const clearProjectFilter = useCallback(() => {
-    setSearchParams((prev) => {
-      prev.delete('project');
-      return prev;
-    });
-  }, [setSearchParams]);
+  const createIssue = useCreateIssue();
+  const reorderIssue = useReorderIssue();
+  const updateStoryPoints = useUpdateStoryPoints();
 
-  const [chipFilters, setChipFilters] = useState<BacklogFilters>(EMPTY_FILTERS);
-  const [search, setSearch] = useState('');
-  const [openTaskId, setOpenTaskId] = useState<string | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const isExec = isExecutive(user?.role);
+  const projectOptions = useMemo<ProjectOption[]>(
+    () => projects.map((p) => ({ id: p.id, name: p.name, prefix: p.key_prefix ?? '' })),
+    [projects],
+  );
+  const clientOptions = useMemo<ClientOption[]>(
+    () => clients.map((c) => ({ id: c.id, name: c.name })),
+    [clients],
+  );
+  const assigneeOptions = useMemo<AssigneeOption[]>(
+    () => profiles.map((p) => ({ id: p.user_id, name: p.name })),
+    [profiles],
+  );
+
+  const isFiltered = hasAnyFilter(filters);
+
+  const handleReorder = useCallback(
+    (movedId: string, targetIndex: number) => {
+      const neighbors = computeReorderNeighbors(
+        issues.map((i) => ({ id: i.id, rank: i.rank })),
+        movedId,
+        targetIndex,
+      );
+      reorderIssue.mutate(
+        { id: movedId, ...neighbors },
+        { onError: () => toast.error('Não foi possível reordenar. Tente de novo.') },
+      );
+    },
+    [issues, reorderIssue],
+  );
+
+  const handleEstimate = useCallback(
+    (issueId: string, points: StoryPointValue) => {
+      updateStoryPoints.mutate(
+        { id: issueId, points },
+        { onError: () => toast.error('Não foi possível salvar a estimativa.') },
+      );
+    },
+    [updateStoryPoints],
+  );
+
+  const handleCreate = useCallback(
+    (payload: IssueCreatePayload) => {
+      createIssue.mutate(
+        {
+          projectId: payload.projectId,
+          title: payload.title,
+          type: payload.type,
+          priority: payload.priority,
+          squad: payload.squad,
+          storyPoints: payload.storyPoints,
+          assigneeId: payload.assigneeId,
+          description: payload.description,
+        },
+        {
+          onSuccess: () => {
+            toast.success('Issue criada.');
+            setShowCreate(false);
+          },
+          onError: () => toast.error('Não foi possível criar a issue.'),
+        },
+      );
+    },
+    [createIssue],
+  );
 
   const handleCopyFormLink = useCallback(() => {
-    const url = `${window.location.origin}/submit-task`;
-    navigator.clipboard.writeText(url);
-    toast.success('Link copiado! Cole e envie para quem precisar.');
+    navigator.clipboard.writeText(`${window.location.origin}/submit-task`);
+    toast.success('Link copiado.');
   }, []);
-
-  const handleOpenForm = useCallback(() => {
-    window.open('/submit-task', '_blank');
-  }, []);
-
-  const handleOpenTask = useCallback((id: string) => {
-    setOpenTaskId(id);
-  }, []);
-
-  // Build query filters from chip state
-  const filters = useMemo<TechTaskFilters>(() => {
-    const f: TechTaskFilters = {};
-    if (search) f.search = search;
-    if (projectFilter) f.projectId = projectFilter;
-
-    // Type filters
-    if (chipFilters.types.length > 0) {
-      f.types = chipFilters.types;
-    }
-    // Priority filters
-    if (chipFilters.priorities.length > 0) {
-      f.priorities = chipFilters.priorities;
-    }
-    // Status filters
-    if (chipFilters.statuses.length > 0) {
-      f.statuses = chipFilters.statuses;
-    }
-
-    return f;
-  }, [chipFilters, search, projectFilter]);
-
-  const { data: tasks = [], isLoading } = useTechTasks(filters);
 
   return (
     <>
-      {/* Toolbar */}
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <h2 className="text-lg font-medium text-[var(--mtech-text)]">Backlog</h2>
-          {filterProjectName && (
-            <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium bg-[var(--mtech-accent-muted)] text-[var(--mtech-accent)] border border-[var(--mtech-accent)]/20">
-              <FolderKanban className="h-3 w-3" />
-              {filterProjectName}
-              <button
-                onClick={clearProjectFilter}
-                className="ml-0.5 hover:text-white transition-colors"
-                title="Limpar filtro de projeto"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </span>
-          )}
-        </div>
+        <h2 className="text-lg font-medium text-[var(--mtech-text)]">Backlog</h2>
         <div className="flex items-center gap-2">
-          {isExec && (
-            <>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleOpenForm}
-                className="border-[var(--mtech-border)] text-[var(--mtech-text-muted)] hover:text-[var(--mtech-text)] hover:border-[var(--mtech-border-strong)] gap-1.5"
-              >
-                Abrir formulário
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleCopyFormLink}
-                className="border-[var(--mtech-border)] text-[var(--mtech-text-muted)] hover:text-[var(--mtech-text)] hover:border-[var(--mtech-border-strong)] gap-1.5"
-              >
-                <Share2 className="h-3.5 w-3.5" />
-                Copiar link
-              </Button>
-            </>
-          )}
           <Button
             size="sm"
-            onClick={() => setShowCreateModal(true)}
+            variant="outline"
+            onClick={handleCopyFormLink}
+            className="border-[var(--mtech-border)] text-[var(--mtech-text-muted)] hover:text-[var(--mtech-text)] hover:border-[var(--mtech-border-strong)] gap-1.5"
+          >
+            <Share2 className="h-3.5 w-3.5" />
+            Copiar link
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => setShowCreate(true)}
             className="bg-[var(--mtech-accent)] text-[var(--mtech-bg)] hover:bg-[var(--mtech-accent)]/90 font-semibold gap-1.5"
           >
             <Plus className="h-4 w-4" />
-            Nova Task
+            Nova Issue
           </Button>
         </div>
       </div>
 
-      {/* Search + filters */}
-      <div className="flex flex-col gap-4 mb-4">
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--mtech-text-subtle)]" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar tasks..."
-            className="pl-9 border-[var(--mtech-input-border)] bg-[var(--mtech-input-bg)] text-[var(--mtech-text)] placeholder:text-[var(--mtech-text-subtle)]"
-          />
-        </div>
-        <BacklogFilterBar filters={chipFilters} onChange={setChipFilters} />
+      <div className="mb-4">
+        <BacklogFilterBar
+          projects={projectOptions}
+          clients={clientOptions}
+          assignees={assigneeOptions}
+          filters={filters}
+          onChange={setFilters}
+        />
       </div>
 
-      {/* Task table */}
-      {isLoading ? (
-        <div className="rounded-[var(--mtech-radius-md)] border border-[var(--mtech-border)] bg-[var(--mtech-surface)] overflow-hidden">
-          <div className="flex items-center gap-3 h-9 px-3 border-b border-[var(--mtech-border)] bg-[var(--mtech-surface-elev)]">
-            {[88, 200, 80, 64, 64, 64, 56].map((w, i) => (
-              <div key={i} className="rounded bg-[var(--mtech-surface)] h-3" style={{ width: w }} />
-            ))}
-          </div>
-          {[0, 1, 2, 3, 4].map((i) => (
-            <div key={i} className="flex items-center gap-3 h-10 px-3 border-b border-[var(--mtech-border)]">
-              <div className="w-[88px] flex-shrink-0"><div className="h-4 w-16 rounded-full bg-[var(--mtech-surface-elev)]" /></div>
-              <div className="flex-1"><div className="h-4 rounded bg-[var(--mtech-surface-elev)]" style={{ width: `${60 + (i * 7) % 30}%` }} /></div>
-              <div className="w-20 flex-shrink-0"><div className="h-3 w-14 ml-auto rounded bg-[var(--mtech-surface-elev)]" /></div>
-            </div>
-          ))}
-        </div>
-      ) : tasks.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 gap-3">
-          <Inbox className="h-12 w-12 text-[var(--mtech-text-subtle)] opacity-40" />
-          <p className="text-sm text-[var(--mtech-text-muted)]">
-            {search || chipFilters.types.length > 0 || chipFilters.priorities.length > 0 || chipFilters.statuses.length > 0
-              ? 'Nenhuma task corresponde aos filtros.'
-              : 'Nenhuma task encontrada.'}
-          </p>
-          {!search && chipFilters.types.length === 0 && chipFilters.priorities.length === 0 && chipFilters.statuses.length === 0 && (
-            <Button
-              size="sm"
-              onClick={() => setShowCreateModal(true)}
-              className="bg-[var(--mtech-accent)] text-[var(--mtech-bg)] hover:bg-[var(--mtech-accent)]/90 font-semibold gap-1.5 mt-1"
-            >
-              <Plus className="h-4 w-4" />
-              Criar primeira task
-            </Button>
-          )}
-        </div>
-      ) : (
-        <div className="rounded-[var(--mtech-radius-md)] border border-[var(--mtech-border)] bg-[var(--mtech-surface)] overflow-hidden">
-          {/* Header */}
-          <div className="flex items-center gap-3 h-9 px-3 border-b border-[var(--mtech-border)] bg-[var(--mtech-surface-elev)] text-[10px] font-semibold uppercase tracking-widest text-[var(--mtech-text-subtle)]">
-            <span className="w-[88px] flex-shrink-0">Tipo</span>
-            <span className="flex-1">Título</span>
-            <span className="w-20 text-right flex-shrink-0">Responsável</span>
-            <span className="w-16 text-center flex-shrink-0">Sprint</span>
-            <span className="w-16 text-center flex-shrink-0">Prazo</span>
-            <span className="w-16 text-center flex-shrink-0">Status</span>
-            <span className="w-14 text-center flex-shrink-0">Prio</span>
-            <span className="w-8 flex-shrink-0" />
-          </div>
-
-          {/* Rows */}
-          {tasks.map((task) => (
-            <TaskRow
-              key={task.id}
-              task={task}
-              onClick={() => handleOpenTask(task.id)}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Modals */}
-      <TaskFormModal
-        open={showCreateModal}
-        onOpenChange={setShowCreateModal}
+      <BacklogQueue
+        issues={issues}
+        isLoading={isLoading}
+        isFiltered={isFiltered}
+        selectedId={openIssueId}
+        onReorder={handleReorder}
+        onIssueClick={setOpenIssueId}
+        onEstimate={handleEstimate}
+        onCreateClick={() => setShowCreate(true)}
+        onClearFilters={() => setFilters(EMPTY_BACKLOG_FILTERS)}
       />
 
-      {openTaskId && (
+      <IssueCreateModal
+        open={showCreate}
+        onOpenChange={setShowCreate}
+        projects={projectOptions}
+        assignees={assigneeOptions}
+        onSubmit={handleCreate}
+        isSubmitting={createIssue.isPending}
+        defaultProjectId={projectParam}
+      />
+
+      {openIssueId && (
         <TaskDetailModal
-          taskId={openTaskId}
-          open={!!openTaskId}
+          taskId={openIssueId}
+          open={!!openIssueId}
           onOpenChange={(open) => {
-            if (!open) setOpenTaskId(null);
+            if (!open) setOpenIssueId(null);
           }}
         />
       )}
