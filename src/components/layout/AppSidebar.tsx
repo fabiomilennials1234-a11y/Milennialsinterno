@@ -48,6 +48,7 @@ import {
 import { useAllTreinadorClientCounts, useAllGestorClientCounts, useAllCrmClientCounts, useAllOutboundClientCounts, useAllMktplaceClientCounts } from '@/hooks/useTreinadorClientCount';
 import { useUsers } from '@/hooks/useUsers';
 import SidebarBadge from '@/components/justificativas/SidebarBadge';
+import { KANBAN_DEV_CUTOVER } from '@/features/milennials-tech/cutover';
 
 // Ícones das categorias independentes
 const categoryIcons: Record<string, React.ElementType> = {
@@ -248,6 +249,9 @@ export default function AppSidebar() {
     if (!user?.role) return null;
 
     return visibleBoards
+      // Cutover slice #167: board devs migrou pro Milennials Tech. Some a entrada
+      // de nav do board devs quando cortado (read-only). Apenas o slug 'devs'.
+      .filter(board => !(KANBAN_DEV_CUTOVER && board.slug === 'devs'))
       .filter(board => userCanViewBoard(board.slug))
       .filter(board => {
         // Se o usuário tem rota especial (PRO+), não duplicar o board próprio do cargo
