@@ -8,8 +8,6 @@ export const STATUS_LABEL_PT: Record<TechTaskStatus, string> = {
   DONE: 'Feito',
 };
 
-export const KANBAN_COLUMNS: TechTaskStatus[] = ['TODO', 'IN_PROGRESS', 'REVIEW', 'DONE'];
-
 export const TYPE_LABEL: Record<TechTaskType, string> = {
   BUG: 'Bug',
   FEATURE: 'Feature',

@@ -2,8 +2,12 @@ import { Layers } from 'lucide-react';
 import { BoardSwimlane } from './BoardColumn';
 import { WorkflowBoard } from './WorkflowBoard';
 import { SQUAD_CONFIG, type IssueSquad } from './backlogTypes';
-import type { BoardColumnModel } from '../lib/boardModel';
+import type { SprintBoardLane } from '../lib/boardModel';
 import type { WorkflowBoardProps } from './workflowBoardContract';
+
+// SprintBoardLane is owned by lib/boardModel (it is data); re-exported here so
+// existing import sites (`from './SprintBoard'`) keep working unchanged.
+export type { SprintBoardLane } from '../lib/boardModel';
 
 // ---------------------------------------------------------------------------
 // SprintBoard (#161) — the sprint surface, grouped into squad swimlanes.
@@ -22,12 +26,6 @@ import type { WorkflowBoardProps } from './workflowBoardContract';
 // is a callback out, forwarded verbatim to each WorkflowBoard. The container
 // owns membership, legality and persistence.
 // ---------------------------------------------------------------------------
-
-export interface SprintBoardLane {
-  squad: IssueSquad | null;
-  columns: BoardColumnModel[];
-  count: number;
-}
 
 export interface SprintBoardProps {
   /** Ordered: FRONT, BACK, then null ("Sem squad") when it carries issues. */

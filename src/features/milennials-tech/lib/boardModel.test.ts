@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildBoardColumns, isLegalTarget } from './boardModel';
+import { buildBoardColumns, buildSquadLanes, isLegalTarget } from './boardModel';
 import { toIssueCardData } from './issueCardAdapter';
 import { BOARD_STATUS_ORDER } from './issueSystem';
 import type { BacklogIssue } from '../components/backlogTypes';
@@ -74,6 +74,43 @@ describe('toIssueCardData', () => {
     const card = toIssueCardData(makeIssue({ blocked: true, blockerReason: 'waiting on API' }));
     expect(card.isBlocked).toBe(true);
     expect(card.blockerReason).toBe('waiting on API');
+  });
+});
+
+describe('buildSquadLanes', () => {
+  it('emits lanes in fixed order: FRONT, BACK, then null', () => {
+    const lanes = buildSquadLanes([]);
+    expect(lanes.map((l) => l.squad)).toEqual(['FRONT', 'BACK', null]);
+  });
+
+  it('routes squad=null issues into the null lane with the right count', () => {
+    const lanes = buildSquadLanes([
+      makeIssue({ id: 'f', squad: 'FRONT', status: 'TODO' }),
+      makeIssue({ id: 'n1', squad: null, status: 'AWAITING_APPROVAL' }),
+      makeIssue({ id: 'n2', squad: null, status: 'IN_PROGRESS' }),
+    ]);
+    const front = lanes.find((l) => l.squad === 'FRONT')!;
+    const back = lanes.find((l) => l.squad === 'BACK')!;
+    const none = lanes.find((l) => l.squad === null)!;
+
+    expect(front.count).toBe(1);
+    expect(back.count).toBe(0);
+    expect(none.count).toBe(2);
+    expect(none.columns.flatMap((c) => c.issues).map((i) => i.id).sort()).toEqual(['n1', 'n2']);
+  });
+
+  it('keeps the null lane present with count>0 — mirrors the migrated devs cards', () => {
+    const lanes = buildSquadLanes([makeIssue({ id: 'm', squad: null, status: 'AWAITING_APPROVAL' })]);
+    const none = lanes.find((l) => l.squad === null)!;
+    expect(none).toBeDefined();
+    expect(none.count).toBe(1);
+  });
+
+  it('gives every lane the full BOARD_STATUS_ORDER column set', () => {
+    const lanes = buildSquadLanes([makeIssue({ id: 'f', squad: 'FRONT' })]);
+    for (const lane of lanes) {
+      expect(lane.columns.map((c) => c.status)).toEqual(BOARD_STATUS_ORDER);
+    }
   });
 });
 

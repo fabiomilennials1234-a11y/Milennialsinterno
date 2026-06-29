@@ -1,4 +1,4 @@
-import type { BacklogIssue } from '../components/backlogTypes';
+import { SQUAD_ORDER, type BacklogIssue, type IssueSquad } from '../components/backlogTypes';
 import type { IssueCardData } from '../components/IssueCard';
 import { BOARD_STATUS_ORDER, type IssueStatus } from './issueSystem';
 import { toIssueCardData } from './issueCardAdapter';
@@ -45,5 +45,32 @@ export function isLegalTarget(issues: BacklogIssue[], id: string, to: IssueStatu
   return canTransition(issue.status, to, {
     hasClient: issue.clientId != null,
     isBlocked: issue.blocked,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Squad swimlanes (#168) — the shape the squad-grouped boards (sprint + kanban)
+// render. Lives here, in lib, because it is data — SprintBoard re-exports it so
+// existing import sites keep working without a lib->component dependency.
+// ---------------------------------------------------------------------------
+
+export interface SprintBoardLane {
+  squad: IssueSquad | null;
+  columns: BoardColumnModel[];
+  count: number;
+}
+
+const SQUAD_LANE_GROUPS: Array<IssueSquad | null> = [...SQUAD_ORDER, null];
+
+/**
+ * Group issues into one lane per squad, in fixed order (FRONT, BACK, then the
+ * null "Sem squad" bucket). Every lane is always emitted, count 0 included —
+ * the board decides which lanes earn a row. Each lane's columns are the full
+ * BOARD_STATUS_ORDER set for that squad's subset.
+ */
+export function buildSquadLanes(issues: BacklogIssue[]): SprintBoardLane[] {
+  return SQUAD_LANE_GROUPS.map((squad) => {
+    const subset = issues.filter((issue) => (issue.squad ?? null) === squad);
+    return { squad, columns: buildBoardColumns(subset), count: subset.length };
   });
 }
