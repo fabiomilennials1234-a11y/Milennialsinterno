@@ -10,6 +10,7 @@ import {
   useUpdateStoryPoints,
 } from '../hooks/useTechIssues';
 import { useTechProjects } from '../hooks/useTechProjects';
+import { useTechEpics } from '../hooks/useTechEpics';
 import { useTechClients } from '../hooks/useClients';
 import { useTechProfiles } from '../hooks/useProfiles';
 import { computeReorderNeighbors } from '../lib/backlogRanking';
@@ -25,6 +26,8 @@ import {
 import { BacklogQueue } from '../components/BacklogQueue';
 import { BacklogFilterBar } from '../components/BacklogFilterBar';
 import { IssueCreateModal, type IssueCreatePayload } from '../components/IssueCreateModal';
+import { BacklogEpicCreate } from '../components/BacklogEpicCreate';
+import type { EpicSelectOption } from '../components/EpicSelect';
 import { TaskDetailModal } from '../components/TaskDetailModal';
 
 export function BacklogTab() {
@@ -43,6 +46,7 @@ export function BacklogTab() {
   const { data: projects = [] } = useTechProjects();
   const { data: clients = [] } = useTechClients();
   const { data: profiles = [] } = useTechProfiles();
+  const { data: epics = [] } = useTechEpics();
 
   const createIssue = useCreateIssue();
   const reorderIssue = useReorderIssue();
@@ -60,8 +64,20 @@ export function BacklogTab() {
     () => profiles.map((p) => ({ id: p.user_id, name: p.name })),
     [profiles],
   );
+  const epicOptions = useMemo<EpicSelectOption[]>(
+    () => epics.map((e) => ({ id: e.id, title: e.title, key: e.key, projectId: e.projectId })),
+    [epics],
+  );
 
   const isFiltered = hasAnyFilter(filters);
+
+  // An epic needs a project: the backlog's "current project" is the deep-link
+  // param or a filter narrowed to exactly one project — otherwise none.
+  const currentProjectId =
+    projectParam ?? (filters.projectIds.length === 1 ? filters.projectIds[0] : null);
+  const currentProjectLabel = currentProjectId
+    ? projectOptions.find((p) => p.id === currentProjectId)?.name ?? null
+    : null;
 
   const handleReorder = useCallback(
     (movedId: string, targetIndex: number) => {
@@ -99,6 +115,7 @@ export function BacklogTab() {
           squad: payload.squad,
           storyPoints: payload.storyPoints,
           assigneeId: payload.assigneeId,
+          epicId: payload.epicId,
           description: payload.description,
         },
         {
@@ -132,6 +149,7 @@ export function BacklogTab() {
             <Share2 className="h-3.5 w-3.5" />
             Copiar link
           </Button>
+          <BacklogEpicCreate projectId={currentProjectId} projectLabel={currentProjectLabel} />
           <Button
             size="sm"
             onClick={() => setShowCreate(true)}
@@ -170,6 +188,7 @@ export function BacklogTab() {
         onOpenChange={setShowCreate}
         projects={projectOptions}
         assignees={assigneeOptions}
+        epics={epicOptions}
         onSubmit={handleCreate}
         isSubmitting={createIssue.isPending}
         defaultProjectId={projectParam}

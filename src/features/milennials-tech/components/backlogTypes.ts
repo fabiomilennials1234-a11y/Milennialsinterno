@@ -45,6 +45,11 @@ export interface BacklogIssue {
   blockerReason: string | null;
   /** True when the issue joined its sprint after that sprint went ACTIVE (#162). */
   addedAfterStart: boolean;
+  /**
+   * Aggregated sub-task completion (#171), derived by the backlog read model.
+   * Absent when the issue owns no sub-tasks (or wasn't enriched) -> no badge.
+   */
+  subtaskProgress?: { done: number; total: number };
 }
 
 /** Active filter state. Empty arrays / empty string = no constraint. */

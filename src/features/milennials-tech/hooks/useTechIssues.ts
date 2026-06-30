@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { applyBacklogFilters } from '../lib/backlogFilter';
+import { buildSubtaskProgressMap } from '../lib/subtaskProgress';
 import type { IssueStatus, IssueType, StoryPointValue } from '../lib/issueSystem';
 import {
   type BacklogIssue,
@@ -54,7 +55,7 @@ async function fetchBacklogIssues(): Promise<BacklogIssue[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
 
-  const [tasksRes, projectsRes, clientsRes, profilesRes] = await Promise.all([
+  const [tasksRes, subtasksRes, projectsRes, clientsRes, profilesRes] = await Promise.all([
     sb
       .from('tech_tasks')
       .select(
@@ -62,15 +63,26 @@ async function fetchBacklogIssues(): Promise<BacklogIssue[]> {
       )
       .is('parent_id', null)
       .order('rank', { ascending: true }),
+    // Every sub-task in ONE pass (#171). Cross-project, lightweight (parent + status
+    // only), aggregated client-side into a per-parent progress map — never per row.
+    sb.from('tech_tasks').select('parent_id, status').not('parent_id', 'is', null),
     sb.from('tech_projects').select('id, name, key_prefix, client_id'),
     sb.from('clients').select('id, name'),
     sb.from('profiles').select('user_id, name, avatar'),
   ]);
 
   if (tasksRes.error) throw tasksRes.error;
+  if (subtasksRes.error) throw subtasksRes.error;
   if (projectsRes.error) throw projectsRes.error;
   if (clientsRes.error) throw clientsRes.error;
   if (profilesRes.error) throw profilesRes.error;
+
+  const subtaskProgress = buildSubtaskProgressMap(
+    (subtasksRes.data ?? []).map((s: { parent_id: string; status: IssueStatus }) => ({
+      parentId: s.parent_id,
+      status: s.status,
+    })),
+  );
 
   const projectMap = new Map<string, { name: string; prefix: string; clientId: string | null }>();
   for (const p of projectsRes.data ?? []) {
@@ -117,6 +129,7 @@ async function fetchBacklogIssues(): Promise<BacklogIssue[]> {
       blocked: row.blocked ?? false,
       blockerReason: row.blocker_reason ?? null,
       addedAfterStart: row.added_after_start ?? false,
+      subtaskProgress: subtaskProgress.get(row.id),
     };
   });
 }
@@ -233,14 +246,16 @@ export function useCreateSubtask() {
 }
 
 // ---------------------------------------------------------------------------
-// Re-link issue -> epic. tech_issue_update COALESCEs p_epic_id, so this only
-// sets/keeps an epic — it can't clear one (matches the update contract). The DB
-// rejects relinking a sub-task (subtask nao tem epic). Top-level issues only.
+// Re-link / unlink issue -> epic (#169.1). ONE write path: tech_issue_set_epic
+// assigns epic_id UNCONDITIONALLY (a non-null id sets/swaps, null clears) — no
+// COALESCE, so it can do what tech_issue_update can't. SECURITY DEFINER gates
+// tech staff and, for a non-null epic, that the epic shares the issue's project.
+// The DB rejects an epic on a sub-task (subtask nao tem epic). Top-level only.
 // ---------------------------------------------------------------------------
 
 export interface RelinkIssueEpicInput {
   id: string;
-  epicId: string;
+  epicId: string | null;
 }
 
 export function useRelinkIssueEpic() {
@@ -248,11 +263,11 @@ export function useRelinkIssueEpic() {
 
   return useMutation({
     mutationFn: async ({ id, epicId }: RelinkIssueEpicInput): Promise<void> => {
-      const { error } = await supabase.rpc('tech_issue_update', {
-        p_id: id,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any).rpc('tech_issue_set_epic', {
+        p_issue_id: id,
         p_epic_id: epicId,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any);
+      });
       if (error) throw error;
     },
     onMutate: async ({ id, epicId }: RelinkIssueEpicInput) => {
@@ -273,6 +288,10 @@ export function useRelinkIssueEpic() {
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: backlogIssueKeys.all });
+      // The issue detail (TaskDetailModal) reads the legacy useTechTasks cache,
+      // not the backlog — refresh it too so the epic field reflects the relink.
+      // Key inlined as ['tech','tasks'] to avoid an import cycle (see #162).
+      qc.invalidateQueries({ queryKey: ['tech', 'tasks'] });
     },
   });
 }

@@ -5,6 +5,7 @@ import {
   epicColorFromKey,
 } from '../lib/issueSystem';
 import { IssueTypeBadge } from './IssueTypeBadge';
+import { SubtaskIndicator } from './SubtaskIndicator';
 import { StoryPointsPicker } from './StoryPointsPicker';
 import type { StoryPointValue } from '../lib/issueSystem';
 import {
@@ -265,6 +266,16 @@ export function IssueRow({
         {issue.squad && (
           <span className="hidden lg:inline-flex">
             <SquadPill squad={issue.squad} />
+          </span>
+        )}
+
+        {issue.subtaskProgress && issue.subtaskProgress.total > 0 && (
+          <span className="hidden sm:inline-flex">
+            <SubtaskIndicator
+              variant="has-subtasks"
+              total={issue.subtaskProgress.total}
+              done={issue.subtaskProgress.done}
+            />
           </span>
         )}
 

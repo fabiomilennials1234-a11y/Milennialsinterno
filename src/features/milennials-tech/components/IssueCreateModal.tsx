@@ -34,6 +34,7 @@ import {
   type IssueSquad,
   type ProjectOption,
 } from './backlogTypes';
+import { EpicSelect, type EpicSelectOption } from './EpicSelect';
 
 // ---------------------------------------------------------------------------
 // IssueCreateModal — create one issue into the backlog.
@@ -55,6 +56,7 @@ export interface IssueCreatePayload {
   squad: IssueSquad | null;
   storyPoints: number | null;
   assigneeId: string | null;
+  epicId: string | null;
   description: string | null;
 }
 
@@ -63,6 +65,8 @@ export interface IssueCreateModalProps {
   onOpenChange: (open: boolean) => void;
   projects: ProjectOption[];
   assignees: AssigneeOption[];
+  /** Epics across every project; narrowed to the chosen project by EpicSelect. */
+  epics: EpicSelectOption[];
   onSubmit: (payload: IssueCreatePayload) => void;
   isSubmitting?: boolean;
   /** Pre-selected project (e.g. opened from a project context). */
@@ -87,6 +91,7 @@ export function IssueCreateModal({
   onOpenChange,
   projects,
   assignees,
+  epics,
   onSubmit,
   isSubmitting = false,
   defaultProjectId = null,
@@ -99,6 +104,7 @@ export function IssueCreateModal({
   const [squad, setSquad] = useState<IssueSquad | null>(null);
   const [storyPoints, setStoryPoints] = useState<number | null>(null);
   const [assigneeId, setAssigneeId] = useState<string | null>(null);
+  const [epicId, setEpicId] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [touched, setTouched] = useState<{ project?: boolean; title?: boolean }>({});
 
@@ -112,6 +118,7 @@ export function IssueCreateModal({
       setSquad(null);
       setStoryPoints(null);
       setAssigneeId(null);
+      setEpicId(null);
       setDescription('');
       setTouched({});
     }
@@ -147,6 +154,7 @@ export function IssueCreateModal({
       squad,
       storyPoints,
       assigneeId,
+      epicId,
       description: description.trim() || null,
     });
   }
@@ -213,10 +221,13 @@ export function IssueCreateModal({
               value={projectId || undefined}
               onValueChange={(v) => {
                 setProjectId(v);
+                // Epics are project-scoped — a link from the old project can't survive.
+                setEpicId(null);
                 setTouched((t) => ({ ...t, project: true }));
               }}
             >
               <SelectTrigger
+                aria-label="Projeto"
                 className={`${inputCls} ${projectError ? 'border-[var(--mtech-danger)]/60' : ''}`}
                 aria-invalid={!!projectError}
               >
@@ -278,6 +289,14 @@ export function IssueCreateModal({
                 {titleError}
               </p>
             )}
+          </div>
+
+          {/* Epic — optional, scoped to the chosen project */}
+          <div className="space-y-1">
+            <Label className={labelCls}>
+              Epic <span className={optionalCls}>opcional</span>
+            </Label>
+            <EpicSelect epics={epics} projectId={projectId || null} value={epicId} onChange={setEpicId} />
           </div>
 
           {/* Priority + Squad */}

@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { useCreateIssue } from '../hooks/useTechIssues';
 import { useTechProjects } from '../hooks/useTechProjects';
+import { useTechEpics } from '../hooks/useTechEpics';
 import { useTechProfiles } from '../hooks/useProfiles';
 import {
   EMPTY_BACKLOG_FILTERS,
@@ -14,6 +15,7 @@ import {
 } from '../components/backlogTypes';
 import { KanbanBoardContainer } from '../components/KanbanBoardContainer';
 import { IssueCreateModal, type IssueCreatePayload } from '../components/IssueCreateModal';
+import type { EpicSelectOption } from '../components/EpicSelect';
 import { TaskDetailModal } from '../components/TaskDetailModal';
 
 // ---------------------------------------------------------------------------
@@ -41,6 +43,7 @@ export function KanbanTab() {
 
   const { data: projects = [] } = useTechProjects();
   const { data: profiles = [] } = useTechProfiles();
+  const { data: epics = [] } = useTechEpics();
   const createIssue = useCreateIssue();
 
   const projectOptions = useMemo<ProjectOption[]>(
@@ -50,6 +53,10 @@ export function KanbanTab() {
   const assigneeOptions = useMemo<AssigneeOption[]>(
     () => profiles.map((p) => ({ id: p.user_id, name: p.name })),
     [profiles],
+  );
+  const epicOptions = useMemo<EpicSelectOption[]>(
+    () => epics.map((e) => ({ id: e.id, title: e.title, key: e.key, projectId: e.projectId })),
+    [epics],
   );
 
   const filterProjectName = useMemo(() => {
@@ -75,6 +82,7 @@ export function KanbanTab() {
           squad: payload.squad,
           storyPoints: payload.storyPoints,
           assigneeId: payload.assigneeId,
+          epicId: payload.epicId,
           description: payload.description,
         },
         {
@@ -125,6 +133,7 @@ export function KanbanTab() {
         onOpenChange={setShowCreate}
         projects={projectOptions}
         assignees={assigneeOptions}
+        epics={epicOptions}
         onSubmit={handleCreate}
         isSubmitting={createIssue.isPending}
         defaultProjectId={projectParam}

@@ -35,6 +35,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useTechTasks, useUpdateTechTask, useDeleteTechTask } from '../hooks/useTechTasks';
+import { useTechEpics } from '../hooks/useTechEpics';
+import { useRelinkIssueEpic } from '../hooks/useTechIssues';
+import { EpicSelect, type EpicSelectOption } from './EpicSelect';
 import { useTechTaskActivities } from '../hooks/useTechTaskActivities';
 import { useTechTimer } from '../hooks/useTechTimer';
 import { canEditTask, canApprove } from '../lib/permissions';
@@ -84,6 +87,14 @@ export function TaskDetailModal({ taskId, open, onOpenChange, onClose }: TaskDet
   const { sendToReview, approve, reject, block, unblock } = useTechTimer();
   const updateTask = useUpdateTechTask();
   const deleteTask = useDeleteTechTask();
+  const relinkEpic = useRelinkIssueEpic();
+  const { data: allEpics = [] } = useTechEpics();
+  const epicOptions: EpicSelectOption[] = allEpics.map((e) => ({
+    id: e.id,
+    title: e.title,
+    key: e.key,
+    projectId: e.projectId,
+  }));
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
@@ -129,6 +140,20 @@ export function TaskDetailModal({ taskId, open, onOpenChange, onClose }: TaskDet
     setShowBlockInput(false);
     setBlockReason('');
   }, [task, blockReason, block]);
+
+  const handleEpicChange = useCallback(
+    (epicId: string | null) => {
+      if (!task) return;
+      relinkEpic.mutate(
+        { id: task.id, epicId },
+        {
+          onSuccess: () => toast.success(epicId ? 'Epic vinculada' : 'Epic desvinculada'),
+          onError: () => toast.error('Não foi possível atualizar a epic'),
+        },
+      );
+    },
+    [task, relinkEpic],
+  );
 
   if (!task) {
     return (
@@ -367,6 +392,23 @@ export function TaskDetailModal({ taskId, open, onOpenChange, onClose }: TaskDet
                 <p className="text-sm text-[var(--mtech-text)]">
                   {profileMap[task.assignee_id!] ?? task.assignee_id}
                 </p>
+              </div>
+            )}
+
+            {/* Epic — editable link (#169). Sub-tasks never carry an epic. */}
+            {!task.parent_id && (
+              <div>
+                <h3 className="text-xs font-medium text-[var(--mtech-text-muted)] uppercase tracking-wide mb-1">
+                  Epic
+                </h3>
+                <EpicSelect
+                  epics={epicOptions}
+                  projectId={task.project_id}
+                  value={task.epic_id}
+                  onChange={handleEpicChange}
+                  disabled={!canEdit || relinkEpic.isPending}
+                  className="max-w-xs"
+                />
               </div>
             )}
 

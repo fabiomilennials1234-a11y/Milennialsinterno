@@ -113,6 +113,9 @@ export {
   type IssueCreateModalProps,
   type IssueCreatePayload,
 } from './components/IssueCreateModal';
+export { EpicSelect, type EpicSelectProps, type EpicSelectOption } from './components/EpicSelect';
+export { epicsForProject } from './lib/epicSelection';
+export { BacklogEpicCreate, type BacklogEpicCreateProps } from './components/BacklogEpicCreate';
 
 // ---------------------------------------------------------------------------
 // Epic + Sub-task + rollup (#158).
