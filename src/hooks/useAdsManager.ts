@@ -136,6 +136,31 @@ export interface ClientOnboarding {
   completed_at: string | null;
 }
 
+// Status que ainda pertencem ao ciclo de onboarding do cliente. Só esses podem
+// ser promovidos a 'new_client' na visão do gestor secundário — um cliente
+// churned/active/churning com row secundária stale (phase='onboarding') NÃO
+// pode ser forçado a 'new_client', senão vaza pra coluna "Novo Cliente" do
+// board do secundário (ex.: ZapLub, churned + onboarding M6 completo).
+const ONBOARDING_CYCLE_STATUSES = new Set(['new_client', 'onboarding']);
+
+/**
+ * Aplica o override de "novo cliente" da visão do gestor secundário.
+ * Promove a `new_client` apenas quando a row secundária está em fase de
+ * onboarding E o status REAL do cliente ainda está no ciclo de onboarding.
+ * Clientes fora do ciclo (active/churning/churned) mantêm o status real.
+ */
+export function applySecondaryOnboardingOverride(
+  clients: Client[],
+  phaseMap: Map<string, string | null | undefined>,
+): Client[] {
+  return clients.map(c => {
+    if (phaseMap.get(c.id) === 'onboarding' && ONBOARDING_CYCLE_STATUSES.has(c.status)) {
+      return { ...c, status: 'new_client' };
+    }
+    return c;
+  });
+}
+
 // Fetch assigned clients for ads manager
 // Now filters by the target manager ID from context
 export function useAssignedClients() {
@@ -205,15 +230,11 @@ export function useAssignedClients() {
             }
 
             if (secondaryClients) {
-              // Override status for onboarding-phase secondary clients
-              // Secondary sees client as "new_client" regardless of actual status
               const phaseMap = new Map(secondaryRecords.map(r => [r.client_id, r.phase]));
-              const adjusted = secondaryClients.map(c => {
-                if (phaseMap.get(c.id) === 'onboarding') {
-                  return { ...c, status: 'new_client' as const };
-                }
-                return c;
-              });
+              const adjusted = applySecondaryOnboardingOverride(
+                secondaryClients as unknown as Client[],
+                phaseMap,
+              );
               return [...(data || []), ...adjusted] as Client[];
             }
           }

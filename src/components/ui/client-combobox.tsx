@@ -19,6 +19,16 @@ export interface ClientComboboxItem {
   razao_social?: string | null;
 }
 
+/**
+ * Nome canônico do cliente para exibição. razao_social ("Nome Completo / Razão
+ * Social", obrigatório no cadastro) é o identificador; name ("nome fantasia ou
+ * apelido") é fallback quando razao_social está vazio.
+ */
+export function clientDisplayName(item: ClientComboboxItem): string {
+  const razao = item.razao_social?.trim();
+  return razao || item.name;
+}
+
 interface ClientComboboxProps {
   value: string | null;
   onChange: (id: string, name: string) => void;
@@ -61,7 +71,7 @@ export function ClientCombobox({
     (fallbackOutsideList && fallbackOutsideList.id === value ? fallbackOutsideList : null);
 
   const triggerLabel = selected
-    ? selected.name
+    ? clientDisplayName(selected)
     : isLoading
       ? 'Carregando clientes…'
       : placeholder;
@@ -116,7 +126,7 @@ export function ClientCombobox({
                     item={fallbackOutsideList}
                     selected={value === fallbackOutsideList.id}
                     onSelect={() => {
-                      onChange(fallbackOutsideList.id, fallbackOutsideList.name);
+                      onChange(fallbackOutsideList.id, clientDisplayName(fallbackOutsideList));
                       setOpen(false);
                     }}
                   />
@@ -132,7 +142,7 @@ export function ClientCombobox({
                   item={c}
                   selected={value === c.id}
                   onSelect={() => {
-                    onChange(c.id, c.name);
+                    onChange(c.id, clientDisplayName(c));
                     setOpen(false);
                   }}
                 />
@@ -154,10 +164,11 @@ function ClientItem({
   selected: boolean;
   onSelect: () => void;
 }) {
-  const showRazao =
-    item.razao_social && item.razao_social.trim() && item.razao_social !== item.name;
+  const primary = clientDisplayName(item);
+  // Secundário = nome fantasia/apelido, só quando difere do principal (razão social).
+  const secondary = item.name.trim() && item.name.trim() !== primary ? item.name : null;
 
-  // value combina os campos pesquisáveis pra cmdk filtrar bem
+  // value combina os campos pesquisáveis pra cmdk filtrar bem (fantasia E empresa)
   const searchValue = `${item.name} ${item.razao_social ?? ''}`.trim();
 
   return (
@@ -173,9 +184,9 @@ function ClientItem({
         )}
       />
       <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium text-foreground truncate">{item.name}</div>
-        {showRazao && (
-          <div className="text-[11px] text-muted-foreground truncate">{item.razao_social}</div>
+        <div className="text-sm font-medium text-foreground truncate">{primary}</div>
+        {secondary && (
+          <div className="text-[11px] text-muted-foreground truncate">{secondary}</div>
         )}
       </div>
     </CommandItem>
