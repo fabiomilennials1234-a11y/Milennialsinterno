@@ -10,7 +10,8 @@ import {
   useUpdateStoryPoints,
 } from '../hooks/useTechIssues';
 import { useTechProjects } from '../hooks/useTechProjects';
-import { useTechEpics } from '../hooks/useTechEpics';
+import { useTechEpics, useEpicRollupMap } from '../hooks/useTechEpics';
+import { groupIssuesByEpic, type GroupEpic } from '../lib/groupByEpic';
 import { useTechClients } from '../hooks/useClients';
 import { useTechProfiles } from '../hooks/useProfiles';
 import { computeReorderNeighbors } from '../lib/backlogRanking';
@@ -41,12 +42,15 @@ export function BacklogTab() {
   );
   const [showCreate, setShowCreate] = useState(false);
   const [openIssueId, setOpenIssueId] = useState<string | null>(null);
+  const [grouped, setGrouped] = useState(true);
+  const [collapsedEpicIds, setCollapsedEpicIds] = useState<Set<string>>(() => new Set());
 
   const { data: issues = [], isLoading } = useBacklogIssues(filters);
   const { data: projects = [] } = useTechProjects();
   const { data: clients = [] } = useTechClients();
   const { data: profiles = [] } = useTechProfiles();
   const { data: epics = [] } = useTechEpics();
+  const rollupMap = useEpicRollupMap();
 
   const createIssue = useCreateIssue();
   const reorderIssue = useReorderIssue();
@@ -68,6 +72,20 @@ export function BacklogTab() {
     () => epics.map((e) => ({ id: e.id, title: e.title, key: e.key, projectId: e.projectId })),
     [epics],
   );
+
+  const sections = useMemo(() => {
+    const groupEpics: GroupEpic[] = epics.map((e) => ({ id: e.id, title: e.title, key: e.key }));
+    return groupIssuesByEpic(issues, groupEpics, rollupMap);
+  }, [issues, epics, rollupMap]);
+
+  const handleToggleCollapse = useCallback((key: string) => {
+    setCollapsedEpicIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
 
   const isFiltered = hasAnyFilter(filters);
 
@@ -168,6 +186,8 @@ export function BacklogTab() {
           assignees={assigneeOptions}
           filters={filters}
           onChange={setFilters}
+          grouped={grouped}
+          onGroupedChange={setGrouped}
         />
       </div>
 
@@ -181,6 +201,10 @@ export function BacklogTab() {
         onEstimate={handleEstimate}
         onCreateClick={() => setShowCreate(true)}
         onClearFilters={() => setFilters(EMPTY_BACKLOG_FILTERS)}
+        grouped={grouped}
+        sections={sections}
+        collapsedEpicIds={collapsedEpicIds}
+        onToggleCollapse={handleToggleCollapse}
       />
 
       <IssueCreateModal

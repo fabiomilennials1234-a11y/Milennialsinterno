@@ -54,3 +54,24 @@ describe('IssueRow — sub-task progress badge (#171)', () => {
     expect(screen.queryByLabelText(/sub-tarefas concluídas/)).not.toBeInTheDocument();
   });
 });
+
+describe('IssueRow — epic chip (#170)', () => {
+  it('shows the epic chip in flat mode (showEpicChip)', () => {
+    render(
+      <IssueRow issue={makeIssue({ epicId: 'e1', epicKey: 'CHK-E1' })} showEpicChip />,
+    );
+    expect(screen.getByText('CHK-E1')).toBeInTheDocument();
+  });
+
+  it('hides the epic chip when grouped (rail + header carry identity)', () => {
+    render(
+      <IssueRow issue={makeIssue({ epicId: 'e1', epicKey: 'CHK-E1' })} showEpicChip={false} />,
+    );
+    expect(screen.queryByText('CHK-E1')).not.toBeInTheDocument();
+  });
+
+  it('shows no chip when the issue has no epic, even in flat mode', () => {
+    render(<IssueRow issue={makeIssue({ epicId: null, epicKey: null })} showEpicChip />);
+    expect(screen.queryByLabelText(/^Epic:/)).not.toBeInTheDocument();
+  });
+});

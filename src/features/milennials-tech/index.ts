@@ -116,6 +116,17 @@ export {
 export { EpicSelect, type EpicSelectProps, type EpicSelectOption } from './components/EpicSelect';
 export { epicsForProject } from './lib/epicSelection';
 export { BacklogEpicCreate, type BacklogEpicCreateProps } from './components/BacklogEpicCreate';
+export {
+  BacklogEpicSection,
+  type BacklogEpicSectionProps,
+} from './components/BacklogEpicSection';
+export {
+  groupIssuesByEpic,
+  sectionKey,
+  NO_EPIC_KEY,
+  type EpicSection,
+  type GroupEpic,
+} from './lib/groupByEpic';
 
 // ---------------------------------------------------------------------------
 // Epic + Sub-task + rollup (#158).

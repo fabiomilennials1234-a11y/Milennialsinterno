@@ -42,6 +42,8 @@ export interface IssueRowProps {
   isDragging?: boolean;
   /** Spread onto the grip handle by the parent (from @hello-pangea/dnd). */
   dragHandleProps?: DragHandleProps;
+  /** Show the epic chip — true in flat mode, false when grouped (#170). */
+  showEpicChip?: boolean;
   className?: string;
 }
 
@@ -91,6 +93,36 @@ function ClientChip({ name }: { name: string }) {
     >
       <Building2 className="h-3 w-3 flex-shrink-0" aria-hidden />
       <span className="truncate">{name}</span>
+    </span>
+  );
+}
+
+function EpicChip({
+  epicId,
+  epicKey,
+  epicTitle,
+}: {
+  epicId: string;
+  epicKey: string;
+  epicTitle: string | null;
+}) {
+  return (
+    <span
+      title={`Epic: ${epicTitle ?? epicKey}`}
+      aria-label={`Epic: ${epicTitle ?? epicKey}`}
+      className="inline-flex max-w-[120px] items-center gap-1.5 rounded-full border border-[var(--mtech-border)] bg-[var(--mtech-surface-elev)] py-0.5 pl-1.5 pr-2 select-none"
+    >
+      <span
+        aria-hidden
+        className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
+        style={{ backgroundColor: epicColorFromKey(epicId) }}
+      />
+      <span
+        data-mono
+        className="truncate text-[10px] font-semibold tracking-[0.04em] text-[var(--mtech-text-muted)]"
+      >
+        {epicKey}
+      </span>
     </span>
   );
 }
@@ -170,6 +202,7 @@ export function IssueRow({
   isSelected = false,
   isDragging = false,
   dragHandleProps,
+  showEpicChip = false,
   className = '',
 }: IssueRowProps) {
   const clickable = !!onClick;
@@ -260,6 +293,16 @@ export function IssueRow({
         {issue.clientName && (
           <span className="hidden xl:inline-flex">
             <ClientChip name={issue.clientName} />
+          </span>
+        )}
+
+        {showEpicChip && issue.epicId && issue.epicKey && (
+          <span className="hidden md:inline-flex">
+            <EpicChip
+              epicId={issue.epicId}
+              epicKey={issue.epicKey}
+              epicTitle={issue.epicTitle ?? null}
+            />
           </span>
         )}
 

@@ -38,6 +38,10 @@ export interface BacklogIssue {
   clientId: string | null;
   clientName: string | null;
   epicId: string | null;
+  /** Epic key (e.g. "AGS-E3") for the flat-mode row chip (#170). Null = no epic. */
+  epicKey?: string | null;
+  /** Epic title, joined for grouped-section headers / chip tooltips (#170). */
+  epicTitle?: string | null;
   /** Sprint the issue is assigned to, or null when unassigned (#161). */
   sprintId: string | null;
   /** Blocked flag — DB invariant (#157). When true, no status move is legal. */

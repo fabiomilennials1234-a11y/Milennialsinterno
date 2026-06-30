@@ -8,6 +8,8 @@ import {
 import { Inbox, ListFilter, Plus, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { IssueRow } from './IssueRow';
+import { BacklogEpicSection } from './BacklogEpicSection';
+import { sectionKey, type EpicSection } from '../lib/groupByEpic';
 import type { StoryPointValue } from '../lib/issueSystem';
 import type { BacklogIssue } from './backlogTypes';
 
@@ -39,6 +41,14 @@ export interface BacklogQueueProps {
   onCreateClick?: () => void;
   /** Filtered empty-state CTA. */
   onClearFilters?: () => void;
+  /** Group the queue into collapsible Epic sections (#170). */
+  grouped?: boolean;
+  /** Precomputed sections (from groupIssuesByEpic). Required when `grouped`. */
+  sections?: EpicSection[];
+  /** Collapsed section keys (epic id or NO_EPIC_KEY). */
+  collapsedEpicIds?: Set<string>;
+  /** Toggle a section's collapse by its key. */
+  onToggleCollapse?: (key: string) => void;
   className?: string;
 }
 
@@ -149,6 +159,10 @@ export function BacklogQueue({
   onEstimate,
   onCreateClick,
   onClearFilters,
+  grouped = false,
+  sections = [],
+  collapsedEpicIds,
+  onToggleCollapse,
   className = '',
 }: BacklogQueueProps) {
   const totalPoints = useMemo(
@@ -174,6 +188,32 @@ export function BacklogQueue({
         ) : (
           <ColdEmpty onCreateClick={onCreateClick} />
         )}
+      </div>
+    );
+  }
+
+  // Grouped view (#170): collapsible Epic sections. Drag-to-reorder is a flat
+  // list affordance — grouping is a triage lens, so sections render statically.
+  if (grouped) {
+    return (
+      <div className={shell} style={{ boxShadow: 'var(--mtech-shadow-card)' }}>
+        <QueueHeader count={issues.length} points={totalPoints} />
+        <div className="space-y-1 py-1">
+          {sections.map((section) => {
+            const key = sectionKey(section);
+            return (
+              <BacklogEpicSection
+                key={key}
+                section={section}
+                collapsed={collapsedEpicIds?.has(key) ?? false}
+                onToggle={() => onToggleCollapse?.(key)}
+                selectedId={selectedId}
+                onIssueClick={onIssueClick}
+                onEstimate={onEstimate}
+              />
+            );
+          })}
+        </div>
       </div>
     );
   }
@@ -214,6 +254,7 @@ export function BacklogQueue({
                         isSelected={selectedId === issue.id}
                         isDragging={dragSnapshot.isDragging}
                         dragHandleProps={dragProvided.dragHandleProps ?? undefined}
+                        showEpicChip
                       />
                     </div>
                   )}

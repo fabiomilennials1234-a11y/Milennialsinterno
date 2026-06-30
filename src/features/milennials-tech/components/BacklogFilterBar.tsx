@@ -8,6 +8,8 @@ import {
   Users,
   X,
   SlidersHorizontal,
+  ListTree,
+  Layers,
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
@@ -48,6 +50,9 @@ export interface BacklogFilterBarProps {
   assignees: AssigneeOption[];
   filters: BacklogFilters;
   onChange: (next: BacklogFilters) => void;
+  /** Group-by-epic state (#170). Omit `onGroupedChange` to hide the toggle. */
+  grouped?: boolean;
+  onGroupedChange?: (grouped: boolean) => void;
   className?: string;
 }
 
@@ -213,6 +218,8 @@ export function BacklogFilterBar({
   assignees,
   filters,
   onChange,
+  grouped = true,
+  onGroupedChange,
   className = '',
 }: BacklogFilterBarProps) {
   const [expanded, setExpanded] = useState(true);
@@ -348,6 +355,28 @@ export function BacklogFilterBar({
             onChange={(v) => set('statuses', v as IssueStatus[])}
           />
         </>
+      )}
+
+      {/* Group-by-epic toggle (#170) — right cluster */}
+      {onGroupedChange && (
+        <button
+          type="button"
+          aria-pressed={grouped}
+          aria-label="Agrupar por História"
+          title="Agrupar por História"
+          onClick={() => onGroupedChange(!grouped)}
+          className={`ml-auto inline-flex h-8 w-8 items-center justify-center rounded-[var(--mtech-radius-sm)] border transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--mtech-input-focus)] ${
+            grouped
+              ? 'border-[var(--mtech-accent)]/40 bg-[var(--mtech-accent-muted)] text-[var(--mtech-accent)]'
+              : 'border-[var(--mtech-input-border)] bg-[var(--mtech-input-bg)] text-[var(--mtech-text-muted)] hover:border-[var(--mtech-border-strong)] hover:text-[var(--mtech-text)]'
+          }`}
+        >
+          {grouped ? (
+            <ListTree className="h-4 w-4" aria-hidden />
+          ) : (
+            <Layers className="h-4 w-4" aria-hidden />
+          )}
+        </button>
       )}
 
       {/* Clear all */}

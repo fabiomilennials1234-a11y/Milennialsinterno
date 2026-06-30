@@ -55,7 +55,7 @@ async function fetchBacklogIssues(): Promise<BacklogIssue[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
 
-  const [tasksRes, subtasksRes, projectsRes, clientsRes, profilesRes] = await Promise.all([
+  const [tasksRes, subtasksRes, projectsRes, clientsRes, profilesRes, epicsRes] = await Promise.all([
     sb
       .from('tech_tasks')
       .select(
@@ -69,6 +69,8 @@ async function fetchBacklogIssues(): Promise<BacklogIssue[]> {
     sb.from('tech_projects').select('id, name, key_prefix, client_id'),
     sb.from('clients').select('id, name'),
     sb.from('profiles').select('user_id, name, avatar'),
+    // Epic key + title for the row chip / grouped headers (#170). Joined client-side.
+    sb.from('tech_epics').select('id, key, title'),
   ]);
 
   if (tasksRes.error) throw tasksRes.error;
@@ -76,6 +78,7 @@ async function fetchBacklogIssues(): Promise<BacklogIssue[]> {
   if (projectsRes.error) throw projectsRes.error;
   if (clientsRes.error) throw clientsRes.error;
   if (profilesRes.error) throw profilesRes.error;
+  if (epicsRes.error) throw epicsRes.error;
 
   const subtaskProgress = buildSubtaskProgressMap(
     (subtasksRes.data ?? []).map((s: { parent_id: string; status: IssueStatus }) => ({
@@ -99,6 +102,11 @@ async function fetchBacklogIssues(): Promise<BacklogIssue[]> {
   const profileMap = new Map<string, { name: string | null; avatar: string | null }>();
   for (const pr of profilesRes.data ?? []) {
     profileMap.set(pr.user_id, { name: pr.name ?? null, avatar: pr.avatar ?? null });
+  }
+
+  const epicMap = new Map<string, { key: string | null; title: string }>();
+  for (const e of epicsRes.data ?? []) {
+    epicMap.set(e.id, { key: e.key ?? null, title: e.title });
   }
 
   return (tasksRes.data as TaskRow[]).map((row): BacklogIssue => {
@@ -130,6 +138,8 @@ async function fetchBacklogIssues(): Promise<BacklogIssue[]> {
       blockerReason: row.blocker_reason ?? null,
       addedAfterStart: row.added_after_start ?? false,
       subtaskProgress: subtaskProgress.get(row.id),
+      epicKey: row.epic_id ? epicMap.get(row.epic_id)?.key ?? null : null,
+      epicTitle: row.epic_id ? epicMap.get(row.epic_id)?.title ?? null : null,
     };
   });
 }
