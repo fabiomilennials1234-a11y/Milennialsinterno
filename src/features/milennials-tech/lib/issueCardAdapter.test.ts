@@ -64,3 +64,41 @@ describe('toIssueCardData — sub-task relations (#158)', () => {
     expect(card.subtaskDoneCount).toBe(2);
   });
 });
+
+describe('toIssueCardData — epic + sub-task on the board card (#173)', () => {
+  it('labels the epic chip with the epic key and colors it from the epic id', () => {
+    const card = toIssueCardData(makeIssue({ epicId: 'e1', epicKey: 'AGS-E1' }));
+    expect(card.epicLabel).toBe('AGS-E1');
+    expect(card.epicColor).toBeTruthy();
+  });
+
+  it('falls back to the epic title when the epic has no key', () => {
+    const card = toIssueCardData(makeIssue({ epicId: 'e1', epicKey: null, epicTitle: 'Checkout' }));
+    expect(card.epicLabel).toBe('Checkout');
+  });
+
+  it('leaves the epic chip empty when the issue has no epic', () => {
+    expect(toIssueCardData(makeIssue({ epicId: null })).epicLabel).toBeNull();
+  });
+
+  it('derives sub-task counts from the row progress (#171)', () => {
+    const card = toIssueCardData(makeIssue({ subtaskProgress: { done: 1, total: 3 } }));
+    expect(card.subtaskCount).toBe(3);
+    expect(card.subtaskDoneCount).toBe(1);
+  });
+
+  it('leaves sub-task counts null when the row owns no sub-tasks', () => {
+    const card = toIssueCardData(makeIssue({}));
+    expect(card.subtaskCount).toBeNull();
+    expect(card.subtaskDoneCount).toBeNull();
+  });
+
+  it('lets explicit relations override the row progress', () => {
+    const card = toIssueCardData(
+      makeIssue({ subtaskProgress: { done: 1, total: 3 } }),
+      { subtaskCount: 5, subtaskDoneCount: 2 },
+    );
+    expect(card.subtaskCount).toBe(5);
+    expect(card.subtaskDoneCount).toBe(2);
+  });
+});

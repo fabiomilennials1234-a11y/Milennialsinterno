@@ -114,6 +114,38 @@ describe('buildSquadLanes', () => {
   });
 });
 
+describe('board cards carry epic + sub-task, swimlane unchanged (#173)', () => {
+  it('threads epic label + sub-task counts onto the card via buildBoardColumns', () => {
+    const cols = buildBoardColumns([
+      makeIssue({
+        id: 'x',
+        status: 'TODO',
+        epicId: 'e1',
+        epicKey: 'AGS-E1',
+        subtaskProgress: { done: 1, total: 2 },
+      }),
+    ]);
+    const card = cols.find((c) => c.status === 'TODO')!.issues[0];
+    expect(card.epicLabel).toBe('AGS-E1');
+    expect(card.subtaskCount).toBe(2);
+    expect(card.subtaskDoneCount).toBe(1);
+  });
+
+  it('still groups by squad after the card enrichment (no swimlane regression)', () => {
+    const lanes = buildSquadLanes([
+      makeIssue({ id: 'f', squad: 'FRONT', status: 'TODO', epicId: 'e1', epicKey: 'AGS-E1' }),
+      makeIssue({ id: 'b', squad: 'BACK', status: 'TODO' }),
+    ]);
+    expect(lanes.map((l) => l.squad)).toEqual(['FRONT', 'BACK', null]);
+    expect(lanes.find((l) => l.squad === 'FRONT')!.count).toBe(1);
+    expect(lanes.find((l) => l.squad === 'BACK')!.count).toBe(1);
+    const frontCard = lanes
+      .find((l) => l.squad === 'FRONT')!
+      .columns.find((c) => c.status === 'TODO')!.issues[0];
+    expect(frontCard.epicLabel).toBe('AGS-E1');
+  });
+});
+
 describe('isLegalTarget', () => {
   const issues = [
     makeIssue({ id: 'noclient', status: 'REVIEW', clientId: null }),

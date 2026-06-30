@@ -195,7 +195,7 @@ export function IssueCard({
         </div>
       )}
 
-      {/* 3 · Epic chip */}
+      {/* 3 · Epic chip — dot + mono key, matching the backlog row (#173) */}
       {issue.epicLabel && (
         <div className="mt-2 flex items-center gap-1.5">
           <span
@@ -203,7 +203,10 @@ export function IssueCard({
             className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
             style={{ backgroundColor: issue.epicColor ?? 'var(--mtech-text-subtle)' }}
           />
-          <span className="truncate text-[10px] font-medium uppercase tracking-wide text-[var(--mtech-text-subtle)]">
+          <span
+            data-mono
+            className="truncate text-[10px] font-semibold tracking-[0.04em] text-[var(--mtech-text-muted)]"
+          >
             {issue.epicLabel}
           </span>
         </div>

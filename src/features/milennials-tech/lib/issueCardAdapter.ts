@@ -38,14 +38,17 @@ export function toIssueCardData(
     storyPoints: issue.storyPoints,
     assignee: { name: issue.assigneeName, avatarUrl: issue.assigneeAvatar },
     epicColor: epicColorFromKey(issue.epicId ?? issue.projectPrefix),
-    epicLabel: null,
+    // #173: the row now carries its epic label (key, title fallback) and sub-task
+    // tally (#170/#171). Explicit `relations` still win — they're the targeted
+    // override path (#158) for callers that resolve linkage themselves.
+    epicLabel: issue.epicKey ?? issue.epicTitle ?? null,
     isBlocked: issue.blocked,
     blockerReason: issue.blockerReason,
     changesRequested: issue.status === 'CHANGES_REQUESTED',
     awaitingApproval: issue.status === 'AWAITING_APPROVAL',
     addedAfterStart: issue.addedAfterStart,
     parentKey: relations?.parentKey ?? null,
-    subtaskCount: relations?.subtaskCount ?? null,
-    subtaskDoneCount: relations?.subtaskDoneCount ?? null,
+    subtaskCount: relations?.subtaskCount ?? issue.subtaskProgress?.total ?? null,
+    subtaskDoneCount: relations?.subtaskDoneCount ?? issue.subtaskProgress?.done ?? null,
   };
 }

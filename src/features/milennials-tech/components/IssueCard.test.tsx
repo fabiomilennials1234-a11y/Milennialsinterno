@@ -1,6 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { IssueCard, type IssueCardData } from './IssueCard';
+import { toIssueCardData } from '../lib/issueCardAdapter';
+import type { BacklogIssue } from './backlogTypes';
 
 function makeIssue(overrides: Partial<IssueCardData> = {}): IssueCardData {
   return {
@@ -11,6 +13,34 @@ function makeIssue(overrides: Partial<IssueCardData> = {}): IssueCardData {
     ...overrides,
   };
 }
+
+const makeRow = (over: Partial<BacklogIssue>): BacklogIssue => ({
+  id: 'r1',
+  key: 'AGS-1',
+  title: 'Row issue',
+  type: 'TASK',
+  status: 'TODO',
+  priority: 'MEDIUM',
+  squad: 'FRONT',
+  storyPoints: null,
+  assigneeId: null,
+  assigneeName: null,
+  assigneeAvatar: null,
+  rank: 'V',
+  projectId: 'p1',
+  projectName: 'Agros',
+  projectPrefix: 'AGS',
+  clientId: null,
+  clientName: null,
+  epicId: null,
+  epicKey: null,
+  epicTitle: null,
+  sprintId: null,
+  blocked: false,
+  blockerReason: null,
+  addedAfterStart: false,
+  ...over,
+});
 
 describe('IssueCard', () => {
   it('renders without crashing and shows title + key', () => {
@@ -73,5 +103,30 @@ describe('IssueCard', () => {
   it('is not a button when no onClick is given', () => {
     render(<IssueCard issue={makeIssue()} />);
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+});
+
+describe('IssueCard — epic + sub-task from the board read model (#173)', () => {
+  it('shows the epic chip (key) when the board row belongs to an epic', () => {
+    render(<IssueCard issue={toIssueCardData(makeRow({ epicId: 'e1', epicKey: 'AGS-E1' }))} />);
+    expect(screen.getByText('AGS-E1')).toBeInTheDocument();
+  });
+
+  it('shows no epic chip when the row has no epic', () => {
+    render(<IssueCard issue={toIssueCardData(makeRow({ epicId: null, epicKey: null }))} />);
+    expect(screen.queryByText(/-E\d/)).not.toBeInTheDocument();
+  });
+
+  it('shows a done/total sub-task badge when the row owns sub-tasks', () => {
+    render(
+      <IssueCard issue={toIssueCardData(makeRow({ subtaskProgress: { done: 2, total: 5 } }))} />,
+    );
+    expect(screen.getByText('2/5')).toBeInTheDocument();
+    expect(screen.getByLabelText('2 de 5 sub-tarefas concluídas')).toBeInTheDocument();
+  });
+
+  it('shows no sub-task badge when the row owns none', () => {
+    render(<IssueCard issue={toIssueCardData(makeRow({}))} />);
+    expect(screen.queryByLabelText(/sub-tarefas concluídas/)).not.toBeInTheDocument();
   });
 });
