@@ -22,7 +22,7 @@ Rota: `/gestor-ads`. Página: `src/pages/AdsManagerPage.tsx`.
 1. **Reuniões** — calendário com meetings 1:1, reuniões de time, presenças
 2. **Documentação** — histórico de `ads_daily_documentation` por cliente
 3. **Tarefas Diárias** — `ads_tasks` com `task_type='daily'`
-4. **Tarefas Semanais** — `task_type='weekly'`, inclui tasks auto-geradas na terça
+4. **Tarefas Semanais** — `task_type='weekly'`. As tasks semanais auto-geradas pelo cron bespoke foram removidas em 2026-07-01 (ADR 0016). Recorrência agora é template-driven (`recurring_task_templates` → `department_tasks`), não mais `ads_tasks`.
 5. **Acompanhamento** — clientes por dia da semana (core do ciclo diário)
 6. **Justificativa** — `ads_justifications`, explicações de atrasos
 7. **Novo Cliente** — shortcut para [[02-Fluxos/Cadastro de Cliente]]
@@ -52,7 +52,7 @@ created_at, updated_at
 
 - **Manual**: gestor cria no dashboard
 - **Combinado**: [[02-Fluxos/Ciclo Diário do Ads Manager#Modal de documentação|combinado em documentação]] → auto-cria task `priority=high, tags=['combinado']`
-- **Weekly auto**: [[02-Fluxos/Ciclo Semanal|edge cron]] cria 2 tasks/semana (relatório, lema)
+- **Weekly auto**: ~~cron bespoke `create_weekly_gestor_tasks`~~ **aposentado em 2026-07-01** (ADR 0016). A função role-based que inseria "Enviar relatório para todos os clientes" + "Enviar lema no grupo dos gestores" em `ads_tasks` foi dropada. Tarefa recorrente agora é **exclusivamente template-driven**: `recurring_task_templates` (`is_active`) + `_cron_generate_recurring_tasks()`, que escreve em `department_tasks` (não em `ads_tasks`). Nenhum reseed foi feito — se o relatório semanal voltar, nasce como template.
 - **Results report**: "Apresentar PDF Resultados" — ver [[02-Fluxos/Geração de Results Report]]
 - **Onboarding**: tasks vindas de `onboarding_tasks` são refletidas ou copiadas para `ads_tasks`? — verificar na implementação
 

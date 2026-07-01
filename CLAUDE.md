@@ -84,6 +84,10 @@ SUPABASE_ACCESS_TOKEN=$(grep SUPABASE_ACCESS_TOKEN .env.scripts | cut -d= -f2) s
 
 **Quirk do schema**: `clients.assigned_mktplace` é `text`, não `uuid`. Ao comparar com `auth.uid()`, usar `auth.uid()::text`.
 
+## Tarefa recorrente — gerador ÚNICO (ADR 0016)
+
+**PROIBIDO criar novo cron ou função SQL bespoke role-based que insira task por role hardcoded.** Toda tarefa recorrente passa por `recurring_task_templates` (`is_active`) + `_cron_generate_recurring_tasks()` — o gerador ÚNICO, data-driven, com dedup por `recurring_template_id`. Kill-switch é `is_active=false` no template (dado, não código). O cron bespoke `create_weekly_gestor_tasks` foi aposentado em 2026-07-01 justamente por violar isso.
+
 ## Wiki
 
 Contexto do sistema vive em `docs/wiki/`. Entrada: `docs/wiki/README.md`. Todo agente deve ler o que é relevante antes de opinar.

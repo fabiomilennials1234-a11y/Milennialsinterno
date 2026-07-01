@@ -284,3 +284,19 @@ idêntica à do upsell (board, envolvidos, tier subsume), mas:
 - **NÃO confundir** com Upsell: upsell é venda (gera dinheiro e comissão), concessão é cortesia
   de retenção (não gera nem um nem outro). Um "upsell de R$0" é contradição — o ato sem
   contrapartida é uma Concessão.
+
+---
+
+## Tarefa recorrente — gerador ÚNICO template-driven
+
+**Tarefa recorrente** é toda task que reaparece por cadência (diária, semanal, quinzenal, mensal,
+horária). Sua fonte é **exclusivamente** um **template** em `recurring_task_templates`
+(`title`/`department`/`target_role`/`recurrence`/`is_active`), materializado pelo **gerador único**
+`_cron_generate_recurring_tasks()` em `department_tasks`, carimbando `recurring_template_id`.
+
+- **Gerador único**: `_cron_generate_recurring_tasks()` (cron jobid 15). Dedup por
+  `recurring_template_id` dentro da janela de recorrência. `is_active=false` ⇒ zero geração
+  (kill-switch em dado). Entrada manual admin: `generate_recurring_tasks()` (com auth+`is_admin`).
+- **PROIBIDO** cron/função SQL bespoke role-based que insira task por role hardcoded. Ver ADR 0016.
+- **NÃO confundir** com o extinto `create_weekly_gestor_tasks` (bespoke, escrevia em `ads_tasks`,
+  dropado 2026-07-01) nem com tasks manuais/combinados criados na UI.

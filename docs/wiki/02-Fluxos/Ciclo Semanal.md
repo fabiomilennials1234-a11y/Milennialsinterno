@@ -8,7 +8,10 @@ tags:
 
 # Ciclo Semanal
 
-> [!abstract] O ritual automatizado
+> [!danger] Geração automática de task semanal APOSENTADA (2026-07-01 — ADR 0016)
+> O cron bespoke `public.create_weekly_gestor_tasks()` (jobid 21) que inseria as 2 tasks fixas ("Enviar relatório", "Enviar lema") em `ads_tasks` por `gestor_ads` foi **desagendado e dropado**. Geração de tarefa recorrente é agora **exclusivamente template-driven**: `recurring_task_templates` (`is_active`) + `_cron_generate_recurring_tasks()`, que escreve em `department_tasks` carimbando `recurring_template_id`. **Nenhum reseed foi feito** — hoje o relatório semanal não é gerado por nada; se voltar a ser desejado, nasce como template (não como novo cron bespoke). Ver ADR 0016. A descrição abaixo é **histórica**.
+
+> [!abstract] O ritual automatizado (histórico)
 > Toda segunda-feira (ou início de semana, conforme cron), uma edge function cria tasks semanais automáticas para cada gestor de ads. Idempotente via tags — roda quantas vezes quiser no mesmo dia, não duplica.
 
 Edge function: `supabase/functions/create-weekly-tasks/index.ts`.
