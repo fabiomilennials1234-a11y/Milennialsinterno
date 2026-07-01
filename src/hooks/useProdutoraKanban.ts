@@ -51,7 +51,7 @@ export const PRODUTORA_STATUSES = [
   { id: 'gravando', label: 'GRAVANDO', color: 'bg-orange-500' },
   { id: 'problemas', label: 'PROBLEMAS!', color: 'bg-red-500' },
   { id: 'pos_producao', label: 'PÓS PRODUÇÃO', color: 'bg-purple-500' },
-  { id: 'gravado', label: 'GRAVADO', color: 'bg-green-500' },
+  { id: 'gravado', label: 'GRAVADO', color: 'bg-green-500', terminal: true },
 ] as const;
 
 export const PRODUTORA_STATUS_LABELS: Record<string, string> = {

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { isCardOverdue, terminalStatusesFromConfig } from './kanbanOverdue';
+import { PRODUTORA_STATUSES } from '@/hooks/useProdutoraKanban';
 
 // Pin "now" to a fixed local date so isPast/isToday are deterministic.
 const NOW = new Date('2026-06-01T12:00:00');
@@ -54,6 +55,19 @@ describe('isCardOverdue', () => {
     ).toBe(false);
   });
 
+  // Produtora bug — card GRAVADO (terminal) vencido não conta como atrasado.
+  it('returns false for a past deadline when status is gravado (Produtora terminal)', () => {
+    expect(
+      isCardOverdue({ due_date: '2026-05-20', status: 'gravado' }, ['gravado']),
+    ).toBe(false);
+  });
+
+  it('still overdue for a past deadline on pos_producao (Produtora non-terminal)', () => {
+    expect(
+      isCardOverdue({ due_date: '2026-05-20', status: 'pos_producao' }, ['gravado']),
+    ).toBe(true);
+  });
+
   it('still overdue when status is in-progress even if other boards mark that word terminal', () => {
     // 'fazendo' is never terminal — past deadline => overdue.
     expect(
@@ -79,5 +93,9 @@ describe('terminalStatusesFromConfig', () => {
 
   it('returns empty array when nothing is terminal', () => {
     expect(terminalStatusesFromConfig([{ id: 'a_fazer' }, { id: 'fazendo' }])).toEqual([]);
+  });
+
+  it('extracts gravado (and only gravado) from the Produtora board config', () => {
+    expect(terminalStatusesFromConfig(PRODUTORA_STATUSES)).toEqual(['gravado']);
   });
 });

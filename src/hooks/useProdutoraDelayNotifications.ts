@@ -18,10 +18,9 @@ const hooks = createKanbanDelayHooks({
   dismissalsTable: 'produtora_notification_dismissals',
   personIdCol: 'produtora_id',
   personNameCol: 'produtora_name',
-  // Fora do escopo do PEDIDO 1 (fundador citou só Design/Vídeo/Devs) e o
-  // vocabulário da Produtora é de gravação (gravado/pos_producao), não de
-  // aprovação. Mantém comportamento legado: nenhum status zera atraso.
-  terminalStatuses: [],
+  // `gravado` é o status terminal de entrega da Produtora — card gravado não
+  // conta como atrasado. `pos_producao` ainda é trabalho ativo, não zera.
+  terminalStatuses: ['gravado'],
   queryKeys: {
     delayed: 'produtora-delayed-cards',
     notifications: 'produtora-delay-notifications',
